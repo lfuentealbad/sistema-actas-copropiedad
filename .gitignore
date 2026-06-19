@@ -1,0 +1,12 @@
+# Artefactos de prueba / sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+.playwright-mcp/
+_chk.js
+_app_check.js
+*.log
+
+# Editores
+.vscode/
+.idea/

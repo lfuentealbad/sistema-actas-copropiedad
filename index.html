@@ -1,0 +1,4039 @@
+<!DOCTYPE html>
+<!--
+=======================================================================
+  SISTEMA DE ACTAS DE ASAMBLEA DE COPROPIETARIOS
+  Programa computacional conforme a la Ley N° 21.442
+  sobre Copropiedad Inmobiliaria — Chile
+=======================================================================
+  Autor:    Luis Fuentealba Durán
+  Calidad:  Persona natural — Titular originario del derecho de autor
+            (Art. 7°, Ley N° 17.336 sobre Propiedad Intelectual)
+  Contacto: tslfuentealba@gmail.com
+  Año:      2026
+  Versión:  1.0
+=======================================================================
+  Obra protegida por la Ley N° 17.336 sobre Propiedad Intelectual,
+  desde su sola creación (Art. 1°).
+  Queda prohibida su reproducción con fines comerciales, su
+  modificación o su distribución bajo nombre distinto sin
+  autorización expresa y por escrito del autor.
+  © 2026 Luis Fuentealba Durán — Todos los derechos reservados
+=======================================================================
+-->
+<html lang="es">
+<head>
+  <meta name="author" content="Luis Fuentealba Durán">
+  <meta name="copyright" content="© 2026 Luis Fuentealba Durán. Todos los derechos reservados.">
+  <meta name="description" content="Sistema de Actas de Copropiedad — Programa computacional para la elaboración de actas conforme a la Ley N° 21.442">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="same-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<title>Sistema de Actas de Copropiedad · Ley N° 21.442</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  /* ══════════════════════════════════════════════════════
+     SISTEMA VISUAL — Sistema de Actas de Copropiedad
+     Tipografía Source Sans 3 · Paleta institucional v3
+     © 2026 Luis Fuentealba Durán
+     ══════════════════════════════════════════════════════ */
+
+  /* ── Variables ─────────────────────────────────────── */
+  :root {
+    /* Paleta principal — sin cambios */
+    --c-primary:     #3243A6;
+    --c-secondary:   #2A438C;
+    --c-interact:    #0477BF;
+    --c-accent:      #F21D44;
+    --c-bg:          #F2F2F2;
+
+    /* Aliases semánticos */
+    --c-navy:        var(--c-primary);
+    --c-navy-dark:   var(--c-primary);
+    --c-navy-mid:    var(--c-secondary);
+    --c-navy-soft:   var(--c-interact);
+    --c-navy-pale:   #E8EFF8;
+    --c-copper:      var(--c-interact);
+    --c-copper-light:#AED6F1;
+    --c-copper-pale: #EBF4FB;
+    --c-teal:        var(--c-interact);
+    --c-teal-light:  #D0E4F5;
+    --c-ok:          #1E7E4A;
+    --c-ok-bg:       #D8F3DC;
+
+    /* Neutros */
+    --c-surface:     #FFFFFF;
+    --c-border:      #D6DCE3;
+    --c-white:       #FFFFFF;
+
+    /* Texto */
+    --c-text:        #1C2733;
+    --c-text-2:      #5B6B7A;
+    --c-text-3:      #8A98A8;
+
+    /* Estados */
+    --c-warn:        #A46A1F;
+    --c-warn-bg:     #FBF0DF;
+    --c-error:       #F21D44;
+    --c-error-bg:    #FDEAEE;
+    --c-info:        #2A5870;
+    --c-info-bg:     #E2EEF4;
+
+    /* Sombras refinadas */
+    --shadow-sm:  0 1px 2px rgba(10,36,64,0.04), 0 2px 8px rgba(50,67,166,0.05);
+    --shadow-md:  0 2px 6px rgba(10,36,64,0.05), 0 6px 20px rgba(50,67,166,0.08);
+    --shadow-lg:  0 8px 32px rgba(10,36,64,0.10), 0 2px 8px rgba(50,67,166,0.06);
+    --shadow-up:  0 -4px 20px rgba(10,36,64,0.07), 0 -1px 4px rgba(10,36,64,0.04);
+
+    /* Tipografía */
+    --font-display: 'Source Sans 3', system-ui, sans-serif;
+    --font-body:    'Source Sans 3', system-ui, sans-serif;
+
+    /* Radios — más redondeados = más amigable */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+  }
+
+  /* ── Reset y base ───────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background: #EEF2F8;
+    color: var(--c-text);
+    min-height: 100vh;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+  }
+
+  /* ── Tooltips legales (help-tip) ────────────────────── */
+  .help-tip {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--c-info-bg);
+    color: var(--c-info);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    margin-left: 6px;
+    position: relative;
+    border: 1.5px solid var(--c-info);
+    vertical-align: middle;
+    user-select: none;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .help-tip:hover, .help-tip:focus-visible {
+    background: var(--c-info);
+    color: #fff;
+    outline: 3px solid rgba(42,88,112,0.30);
+    outline-offset: 2px;
+  }
+  .help-tip-content {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    background: #1C2733;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.55;
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.30);
+    z-index: 200;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+    pointer-events: none;
+  }
+  .help-tip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-top-color: #1C2733;
+  }
+  .help-tip:hover .help-tip-content,
+  .help-tip:focus-visible .help-tip-content,
+  .help-tip:focus .help-tip-content {
+    display: block;
+  }
+  .help-tip-content strong { color: #FFC56F; }
+  /* En tablas, el tooltip va hacia abajo si está cerca del top */
+  th .help-tip-content {
+    bottom: auto;
+    top: calc(100% + 10px);
+  }
+  th .help-tip-content::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: #1C2733;
+  }
+
+  /* ── Estado vacío amigable ─────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 36px 24px;
+    background: #FAFBFD;
+    border: 2px dashed #C8D3E2;
+    border-radius: var(--r-md);
+    color: var(--c-text-2);
+    margin: 12px 0 16px;
+  }
+  .empty-state-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+  .empty-state-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-text);
+    margin-bottom: 6px;
+  }
+  .empty-state-desc {
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 480px;
+    margin: 0 auto 14px;
+  }
+
+  /* ── Loading overlay ───────────────────────────────── */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 39, 51, 0.55);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    animation: fadeIn 0.2s ease;
+  }
+  .loading-overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .loading-card {
+    background: #fff;
+    border-radius: var(--r-lg);
+    padding: 28px 36px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.30);
+    text-align: center;
+    min-width: 240px;
+    max-width: 360px;
+  }
+  .loading-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid #DDE5F0;
+    border-top-color: var(--c-interact);
+    border-radius: 50%;
+    margin: 0 auto 14px;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-title {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-primary);
+    margin-bottom: 4px;
+  }
+  .loading-desc {
+    font-size: 13.5px;
+    color: var(--c-text-2);
+    line-height: 1.5;
+  }
+
+  /* ── Texto solo para lectores de pantalla ──────────── */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ── Skip link (accesibilidad) ──────────────────────── */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    background: var(--c-primary);
+    color: #fff;
+    padding: 12px 20px;
+    z-index: 1000;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 0 0 var(--r-md) 0;
+    transition: top 0.2s;
+  }
+  .skip-link:focus {
+    top: 0;
+    outline: 3px solid #fff;
+    outline-offset: -3px;
+  }
+
+  /* ── Header ─────────────────────────────────────────── */
+  header, header.app-header {
+    background: linear-gradient(130deg, #3849b8 0%, #3243A6 40%, #2A438C 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    padding: 0;
+    margin: 0;
+    position: relative;
+  }
+  header::after, header.app-header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.025'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .header-inner, .app-header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .logo, .app-header-brand { display: flex; align-items: center; gap: 14px; }
+  .logo-texts            { display: flex; flex-direction: column; gap: 4px; }
+  .logo-icon, .logo-divider, .logo-sec-img { display: none; }
+  .logo-org, .app-header-org {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.62);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .logo-region, .app-header-title {
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .header-badge, .app-header-badge {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255,255,255,0.88);
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: var(--r-sm);
+    padding: 5px 13px;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
+  .header-action {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.92);
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: var(--r-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s;
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+  }
+  .header-action:hover {
+    background: rgba(255,255,255,0.20);
+    border-color: rgba(255,255,255,0.40);
+  }
+  .header-action-warn {
+    color: rgba(254,202,202,0.95);
+    border-color: rgba(254,202,202,0.30);
+  }
+  .header-action-warn:hover {
+    background: rgba(242,29,68,0.30);
+    border-color: rgba(254,202,202,0.55);
+    color: #ffffff;
+  }
+
+  /* Indicador de auto-guardado */
+  .save-indicator {
+    position: fixed;
+    bottom: 80px;
+    right: 22px;
+    background: rgba(30,126,74,0.95);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 14px rgba(30,126,74,0.30);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .save-indicator.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .header-badge-green {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ffffff;
+    background: rgba(30,126,74,0.45);
+    border: 1px solid rgba(30,126,74,0.60);
+    border-radius: var(--r-sm);
+    padding: 5px 13px;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ── Barra de pasos ─────────────────────────────────── */
+  .progress-wrap {
+    background: var(--c-secondary);
+    border-bottom: 1px solid rgba(0,0,0,0.12);
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .progress-wrap::-webkit-scrollbar { display: none; }
+  .steps-row {
+    display: flex;
+    align-items: stretch;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  .step-tab {
+    flex: 1;
+    min-width: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 16px 8px 14px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    color: rgba(255,255,255,0.65);
+    user-select: none;
+  }
+  .step-tab:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: -3px;
+    background: rgba(255,255,255,0.15);
+  }
+  .step-tab:hover {
+    background: rgba(255,255,255,0.09);
+    color: rgba(255,255,255,0.75);
+  }
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.25);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    font-family: var(--font-body);
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+  }
+  .step-label {
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+    text-align: center;
+    line-height: 1.25;
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .step-tab.active {
+    border-bottom-color: #ffffff;
+    color: #ffffff;
+    background: rgba(255,255,255,0.12);
+  }
+  .step-tab.active .step-num {
+    background: var(--c-interact);
+    border-color: var(--c-interact);
+    color: #ffffff;
+    box-shadow: 0 0 0 5px rgba(4,119,191,0.30);
+    font-size: 14px;
+  }
+  .step-tab.active .step-label {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .step-tab.done {
+    color: rgba(255,255,255,0.58);
+    border-bottom-color: rgba(255,255,255,0.30);
+  }
+  .step-tab.done .step-num {
+    background: rgba(255,255,255,0.20);
+    border-color: rgba(255,255,255,0.40);
+    color: transparent;   /* oculta el número */
+    font-size: 0;         /* elimina espacio del texto */
+    position: relative;
+  }
+  .step-tab.done .step-num::after {
+    content: '✓';
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+  }
+
+  /* ── Layout principal ───────────────────────────────── */
+  .main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 32px 24px 120px;
+  }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Barra nav inferior (fija) ──────────────────────── */
+  .nav-footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--c-surface);
+    border-top: 2px solid #DDE5F0;
+    padding: 14px 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-up);
+    z-index: 99;
+  }
+  .step-info {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--c-text-2);
+    font-weight: 500;
+    letter-spacing: 0.1px;
+  }
+  .nav-buttons { display: flex; gap: 10px; }
+
+  /* ── Cards ──────────────────────────────────────────── */
+  .card {
+    background: var(--c-surface);
+    border-radius: var(--r-xl);
+    box-shadow: 0 2px 8px rgba(10,36,64,0.06), 0 8px 24px rgba(50,67,166,0.07);
+    padding: 32px 36px;
+    margin-bottom: 22px;
+    border: 1px solid #DDE5F0;
+    animation: fadeUp 0.26s ease;
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--c-interact), var(--c-primary));
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    opacity: 0.85;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--c-primary);
+    margin: 0 0 8px;
+    padding-left: 16px;
+    border-left: 4px solid var(--c-interact);
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+  .card-desc {
+    font-family: var(--font-body);
+    color: var(--c-text-2);
+    font-size: 15px;
+    margin-bottom: 26px;
+    padding-left: 20px;
+    line-height: 1.70;
+  }
+
+  /* ── Formularios ────────────────────────────────────── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.span2 { grid-column: 1 / -1; }
+  label {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #3D4E60;
+    letter-spacing: 0.1px;
+  }
+  input[type="text"], input[type="number"], input[type="date"],
+  input[type="time"], input[type="email"], select, textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: var(--r-md);
+    font-size: 15px;
+    font-family: var(--font-body);
+    color: var(--c-text);
+    background: var(--c-surface);
+    transition: border-color 0.18s, box-shadow 0.18s;
+    appearance: none;
+    min-height: 46px;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--c-interact);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(4,119,191,0.16), 0 1px 4px rgba(4,119,191,0.08);
+  }
+  input:hover:not(:focus):not(:disabled),
+  select:hover:not(:focus):not(:disabled),
+  textarea:hover:not(:focus):not(:disabled) {
+    border-color: #b0bccb;
+  }
+  input:disabled, select:disabled, textarea:disabled {
+    background: #F4F7FA;
+    color: var(--c-text-3);
+    cursor: not-allowed;
+  }
+  textarea { resize: vertical; min-height: 82px; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235B6B7A'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    padding-right: 34px;
+    cursor: pointer;
+  }
+
+  /* ── Botones ────────────────────────────────────────── */
+  .btn {
+    padding: 11px 24px;
+    border-radius: var(--r-md);
+    font-size: 14.5px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer;
+    border: none;
+    transition: background 0.18s, transform 0.14s, box-shadow 0.18s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: 0.1px;
+    min-height: 44px;
+  }
+  .btn:active { transform: translateY(1px); box-shadow: none !important; }
+  .btn-primary {
+    background: var(--c-primary);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(50,67,166,0.22);
+  }
+  .btn-primary:hover {
+    background: var(--c-secondary);
+    box-shadow: 0 4px 14px rgba(50,67,166,0.30);
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--c-primary);
+    border: 1.5px solid var(--c-primary);
+  }
+  .btn-secondary:hover {
+    background: var(--c-navy-pale);
+    border-color: var(--c-secondary);
+  }
+  .btn-gold {
+    background: var(--c-interact);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(4,119,191,0.22);
+  }
+  .btn-gold:hover {
+    background: #0366a7;
+    box-shadow: 0 4px 14px rgba(4,119,191,0.28);
+    transform: translateY(-1px);
+  }
+  .btn-nav {
+    background: var(--c-primary);
+    color: #ffffff;
+    padding: 12px 34px;
+    font-size: 15px;
+    box-shadow: 0 3px 8px rgba(50,67,166,0.22);
+    border-radius: var(--r-md);
+  }
+  .btn-nav:hover {
+    background: var(--c-secondary);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(50,67,166,0.30);
+  }
+  .btn-danger { background: var(--c-error); color: #ffffff; }
+  .btn-sm     { padding: 5px 12px; font-size: 12px; }
+  .btn-add-row {
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 2px dashed var(--c-interact);
+    color: var(--c-interact);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    transition: background 0.18s, border-color 0.18s;
+    min-height: 44px;
+  }
+  .btn-add-row:hover {
+    background: var(--c-copper-pale);
+    border-color: #0366a7;
+  }
+
+  /* ── Toggle buttons (segment control) ──────────────── */
+  .toggle-group {
+    display: inline-flex;
+    gap: 0;
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: #F2F5F8;
+    flex-wrap: nowrap;
+  }
+  .toggle-btn {
+    padding: 10px 20px;
+    border: none;
+    border-right: 1px solid var(--c-border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--c-text-2);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-body);
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  .toggle-btn:last-child { border-right: none; }
+  .toggle-btn:hover:not(.active) {
+    background: rgba(4,119,191,0.07);
+    color: var(--c-interact);
+  }
+  .toggle-btn.active {
+    background: var(--c-primary);
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  /* ── Tip / info ─────────────────────────────────────── */
+  .tip {
+    background: var(--c-info-bg);
+    border-left: 4px solid var(--c-info);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 14.5px;
+    font-family: var(--font-body);
+    color: var(--c-info);
+    line-height: 1.65;
+  }
+
+  /* ── Disclaimer banner ──────────────────────────────── */
+  .disclaimer-banner {
+    background: #fffbeb;
+    border-bottom: 2px solid #fde68a;
+    border-left: 5px solid #f59e0b;
+    padding: 12px 48px 12px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+    font-family: var(--font-body);
+    color: #78350f;
+    line-height: 1.55;
+  }
+  .disc-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* ── Tabla de asistentes ────────────────────────────── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: var(--r-md);
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-sm);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    background: #EEF3FB;
+    color: var(--c-primary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 2px solid #D5DFF0;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--c-border);
+    vertical-align: middle;
+    font-family: var(--font-body);
+    font-size: 14.5px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #F5F8FD; }
+  td input { padding: 5px 8px; font-size: 13px; }
+
+  /* ── Quórum ─────────────────────────────────────────── */
+
+  /* ── Puntos del orden del día ───────────────────────── */
+  .punto-card {
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    margin-bottom: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .punto-header {
+    background: #EEF3FB;
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #D5DFF0;
+  }
+  .punto-num {
+    background: var(--c-primary);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    padding: 4px 13px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+  }
+  .punto-body { padding: 16px; }
+
+  /* ── Paso 4: alineación uniforme de secciones ─── */
+  .punto-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .punto-card > .form-grid {
+    padding: 0 20px;
+    margin: 0 !important;
+  }
+  .punto-card > .punto-header + .form-grid { padding-top: 18px; }
+  .punto-card > .form-grid + .form-grid    { padding-top: 14px; }
+  .punto-card > .form-grid:last-of-type    { padding-bottom: 18px; }
+  .punto-card > .punto-vot-panel           { margin: 0 16px 16px !important; }
+  /* Normalizar <p> usado como label para alinear columnas */
+  .punto-card .field > p {
+    margin: 0 0 6px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #3D4E60 !important;
+    letter-spacing: 0.1px !important;
+  }
+
+  /* ── Panel de votación ──────────────────────────────── */
+  .pvot-body { display: none; }
+  .pvot-body.open { display: block; }
+  .vot-conclusion {
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    font-size: 14.5px;
+    font-weight: 600;
+    margin-top: 12px;
+    border: 1px solid transparent;
+    font-family: var(--font-body);
+  }
+  .vot-conclusion.aprobado  { background: var(--c-ok-bg);    color: var(--c-ok);    border-color: rgba(30,126,74,0.20); }
+  .vot-conclusion.rechazado { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(242,29,68,0.20); }
+  .vot-conclusion.pendiente { background: var(--c-warn-bg);  color: var(--c-warn);  border-color: rgba(164,106,31,0.20); }
+  .pref-select {
+    border: 1.5px solid var(--c-border);
+    border-radius: var(--r-sm);
+    padding: 3px 6px;
+    font-size: 12px;
+    font-family: var(--font-body);
+  }
+  .pref-select.afavor    { background: var(--c-ok-bg);    border-color: var(--c-ok);    color: var(--c-ok); }
+  .pref-select.encontra  { background: var(--c-error-bg); border-color: var(--c-error); color: var(--c-error); }
+  .pref-select.abstencion{ background: var(--c-warn-bg);  border-color: var(--c-warn);  color: var(--c-warn); }
+
+  /* ── Acta final ─────────────────────────────────────── */
+  .acta-preview-wrap {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-md);
+  }
+  .acta-section h3 {
+    font-family: var(--font-display);
+    color: var(--c-primary);
+    font-size: 13px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 7px;
+    border-bottom: 1px solid var(--c-border);
+    padding-bottom: 5px;
+  }
+  .print-btn { text-align: center; margin-top: 20px; }
+
+  /* ── Mensajes y estados ─────────────────────────────── */
+  .msg-ok    { background: var(--c-ok-bg);    border-left: 4px solid var(--c-ok);    color: var(--c-ok);    padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 14.5px; font-family: var(--font-body); line-height: 1.5; }
+  .msg-error { background: var(--c-error-bg); border-left: 4px solid var(--c-error); color: var(--c-error); padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 14.5px; font-family: var(--font-body); line-height: 1.5; }
+  .msg-warn  { background: var(--c-warn-bg);  border-left: 4px solid var(--c-warn);  color: var(--c-warn);  padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 14.5px; font-family: var(--font-body); line-height: 1.5; }
+  .required-mark { color: var(--c-error); font-weight: 700; }
+
+  /* ── Importar Excel ─────────────────────────────────── */
+  .import-section {
+    margin-top: 14px;
+    padding: 15px;
+    background: #EEF3FB;
+    border-radius: var(--r-md);
+    border: 1px solid #D5DFF0;
+  }
+
+  /* ── Firmas ─────────────────────────────────────────── */
+  .firmantes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+
+  /* ── Footer de autoría ──────────────────────────────── */
+  .app-footer a { color: var(--c-interact); text-decoration: none; }
+  .app-footer a:hover { text-decoration: underline; }
+
+  /* ── Responsive ─────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .header-inner, .app-header-inner { padding: 12px 16px; gap: 10px; }
+    .logo-region, .app-header-title  { font-size: 16px; }
+    .header-badge, .app-header-badge, .header-badge-green { display: none; }
+    .main       { padding: 16px 14px 100px; }
+    .card       { padding: 22px 18px; }
+    .form-grid  { grid-template-columns: 1fr; }
+    .nav-footer { padding: 12px 16px; }
+    .step-label { font-size: 10px; }
+    .step-num   { width: 28px; height: 28px; font-size: 12px; }
+    .toggle-group { flex-wrap: wrap; border: none; background: none; gap: 6px; }
+    .toggle-btn { border: 1.5px solid var(--c-border); border-radius: var(--r-sm); }
+    .toggle-btn.active { background: var(--c-primary); color: #fff; }
+    .btn-nav { padding: 12px 22px; font-size: 14px; }
+  }
+
+  /* ── Print ──────────────────────────────────────────── */
+
+  /* ── Quórum: barra de progreso ─────────────────── */
+  .quorum-box {
+    background: #EEF3FB;
+    border: 1px solid #D5DFF0;
+    border-left: 3px solid var(--c-primary);
+    border-radius: var(--r-md);
+    padding: 15px 20px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .quorum-meter {
+    flex: 1;
+    background: #D5DFF0;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 10px;
+  }
+  .quorum-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-interact), #0599e8);
+    border-radius: 6px;
+    transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
+  }
+  .quorum-fill.fail {
+    background: linear-gradient(90deg, var(--c-error), #f5426a);
+  }
+  .quorum-status {
+    font-size: 14px;
+    font-family: var(--font-body);
+    color: var(--c-text-2);
+    line-height: 1.45;
+    margin-top: 4px;
+  }
+  .quorum-label {
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--c-primary);
+    min-width: 56px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .quorum-icon  { font-size: 22px; flex-shrink: 0; }
+  .quorum-title { font-family: var(--font-body); font-weight: 700; color: var(--c-primary); font-size: 13px; }
+  .quorum-pct   { font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--c-primary); }
+  .quorum-bar-wrap { flex: 1; background: #D5DFF0; border-radius: 6px; overflow: hidden; height: 10px; margin-top: 4px; }
+
+  /* ── Punto card: cabecera ───────────────────────── */
+  .btn-del {
+    margin-left: auto;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    color: var(--c-error);
+    background: transparent;
+    border: 1.5px solid rgba(242,29,68,0.45);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+  }
+  .btn-del:hover {
+    background: var(--c-error);
+    border-color: var(--c-error);
+    color: #ffffff;
+  }
+  .form-grid.single { grid-template-columns: 1fr; }
+  .form-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .req { color: var(--c-error); }
+  .badge-inhabit {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--c-error-bg);
+    color: var(--c-error);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Panel de votación ──────────────────────────── */
+  .punto-vot-panel {
+    border: 1px solid #D5DFF0;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-top: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .punto-vot-header {
+    background: linear-gradient(135deg, var(--c-secondary) 0%, var(--c-primary) 100%);
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: filter 0.18s;
+  }
+  .punto-vot-header:hover { filter: brightness(1.08); }
+  .punto-vot-header-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.2px;
+  }
+  .punto-vot-header-toggle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    font-family: var(--font-body);
+  }
+  .punto-vot-body {
+    display: none;
+    padding: 16px;
+    background: var(--c-surface);
+  }
+  .punto-vot-body.open { display: block; }
+  .punto-vot-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .btn-vot-quick {
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.18s;
+    letter-spacing: 0.1px;
+  }
+  .btn-vot-favor   { background: var(--c-ok);      color: #ffffff;         border-color: var(--c-ok); box-shadow: 0 2px 6px rgba(30,126,74,0.20); }
+  .btn-vot-contra  { background: var(--c-error-bg); color: var(--c-error);  border-color: rgba(242,29,68,0.40); }
+  .btn-vot-abst    { background: var(--c-warn-bg);  color: var(--c-warn);   border-color: rgba(164,106,31,0.35); }
+  .btn-vot-limpiar { background: #EEF3FB;           color: var(--c-text-2); border-color: #D5DFF0; }
+  .btn-vot-favor:hover  { background: #1a6e40; color: #ffffff; box-shadow: 0 3px 10px rgba(30,126,74,0.28); }
+  .btn-vot-contra:hover { background: var(--c-error); color: #ffffff; box-shadow: 0 3px 10px rgba(242,29,68,0.22); }
+  .btn-vot-abst:hover   { background: var(--c-warn);  color: #ffffff; box-shadow: 0 3px 10px rgba(164,106,31,0.22); }
+  .btn-vot-limpiar:hover { background: #D5DFF0; }
+
+  /* ── Tabla de votación ──────────────────────────── */
+  .punto-vot-lista {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: var(--font-body);
+    margin-bottom: 14px;
+  }
+  .punto-vot-lista th {
+    background: #EEF3FB;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid #D5DFF0;
+  }
+  .punto-vot-lista td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--c-border);
+    vertical-align: middle;
+    font-size: 14px;
+  }
+  .punto-vot-lista tr:last-child td { border-bottom: none; }
+  .pvot-chk { cursor: pointer; width: 15px; height: 15px; accent-color: var(--c-interact); }
+
+  /* ── Resumen de votación ────────────────────────── */
+  .punto-vot-resumen {
+    background: #EEF3FB;
+    border: 1px solid #D5DFF0;
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+  }
+  .punto-vot-resumen-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .pvr-cell {
+    background: var(--c-surface);
+    border: 1px solid #D5DFF0;
+    border-radius: var(--r-md);
+    padding: 11px 13px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(50,67,166,0.05);
+  }
+  .pvr-cell.favor  { border-top: 3px solid var(--c-ok); }
+  .pvr-cell.contra { border-top: 3px solid var(--c-error); }
+  .pvr-cell.abst   { border-top: 3px solid var(--c-warn); }
+  .pvr-cell-label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--c-text-2);
+    margin-bottom: 6px;
+  }
+  .pvr-cell-_pvau {
+    font-family: var(--font-body);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--c-primary);
+    line-height: 1.1;
+  }
+  .pvr-detalle {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    color: var(--c-text-2);
+    margin-bottom: 10px;
+    line-height: 1.55;
+  }
+  .pvr-conclusion {
+    padding: 9px 13px;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    border: 1px solid transparent;
+  }
+  .pvr-conclusion.pendiente  { background: var(--c-warn-bg);  color: var(--c-warn);  border-color: rgba(164,106,31,0.20); }
+  .pvr-conclusion.aprobado   { background: var(--c-ok-bg);    color: var(--c-ok);    border-color: rgba(30,126,74,0.20); }
+  .pvr-conclusion.rechazado  { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(242,29,68,0.20); }
+
+  /* ── Acta generada (paso 6) ─────────────────────── */
+  .acta-header-preview {
+    text-align: center;
+    padding: 28px 0 22px;
+    border-bottom: 2px solid var(--c-primary);
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .acta-header-preview::after {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 3px;
+    background: var(--c-interact);
+    margin: 14px auto 0;
+    border-radius: 2px;
+  }
+  .acta-title {
+    font-family: var(--font-display);
+    font-size: 18pt;
+    font-weight: 400;
+    color: var(--c-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+  .acta-subtitle {
+    font-family: var(--font-body);
+    font-size: 11pt;
+    color: var(--c-text-2);
+    margin-top: 5px;
+    line-height: 1.45;
+  }
+  .acta-section {
+    margin-bottom: 24px;
+    page-break-inside: avoid;
+  }
+  .acta-section-title {
+    font-family: var(--font-display);
+    font-size: 10.5pt;
+    font-weight: 400;
+    color: var(--c-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1.5px solid #D5DFF0;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+  .acta-section p {
+    font-family: var(--font-body);
+    font-size: 10.5pt;
+    color: var(--c-text);
+    line-height: 1.75;
+    margin: 0 0 10px;
+    text-align: justify;
+  }
+  .acta-section table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    font-family: var(--font-body);
+    margin-top: 8px;
+  }
+  .acta-section th {
+    background: #EEF3FB;
+    color: var(--c-primary);
+    font-weight: 700;
+    padding: 7px 10px;
+    text-align: left;
+    border: 1px solid #D5DFF0;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .acta-section td {
+    padding: 6px 10px;
+    border: 1px solid var(--c-border);
+    vertical-align: top;
+    color: var(--c-text);
+    font-family: var(--font-body);
+  }
+  .acta-signatures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 28px;
+    margin-top: 36px;
+  }
+  .signature-block {
+    text-align: center;
+    padding-top: 46px;
+    border-top: 1px solid var(--c-text);
+  }
+  .signature-name {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11pt;
+    color: var(--c-text);
+  }
+  .signature-role {
+    font-family: var(--font-body);
+    font-size: 9.5pt;
+    color: var(--c-text-2);
+    margin-top: 2px;
+  }
+
+  /* ── Footer: visibilidad garantizada ────────────── */
+  .app-footer {
+    padding: 16px 20px;
+    margin-bottom: 60px;
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    color: var(--c-text-2);
+    border-top: 1px solid var(--c-border);
+    background: var(--c-surface);
+    line-height: 1.6;
+  }
+  .app-footer a { color: var(--c-interact); text-decoration: none; }
+  .app-footer a:hover { text-decoration: underline; }
+
+  .quorum-box--acuerdos { border-left-color: var(--c-secondary); }
+  .quorum-box-text { flex: 2; min-width: 0; }
+  .quorum-box-bar  { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 120px; }
+  .quorum-box-title {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--c-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+  }
+  .quorum-box-sub {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--c-text-2);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .quorum-meter { flex: 1; background: #D5DFF0; border-radius: 6px; overflow: hidden; height: 10px; }
+  .quorum-label { font-family: var(--font-body); font-size: 14px; font-weight: 700; color: var(--c-primary); min-width: 52px; text-align: right; flex-shrink: 0; }
+
+  @media print {
+    @page { margin: 2cm 1.8cm; size: A4 portrait; }
+    header, .progress-wrap, .disclaimer-banner, .nav-footer, .save-indicator,
+    .loading-overlay, .skip-link, .help-tip, .empty-state,
+    .print-btn, .btn, .import-section, .tip, .app-footer { display: none !important; }
+    body  { background: white !important; font-size: 10.5pt !important; color: #000 !important; }
+    main, .main { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+    .section { display: none !important; }
+    #step-6   { display: block !important; }
+    .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+    .card::before { display: none !important; }
+    h2.card-title, .card-title, .card-desc { display: none !important; }
+    /* Asegurar saltos de página correctos */
+    .acta-section { page-break-inside: avoid; break-inside: avoid-page; }
+    .acta-section-title { page-break-after: avoid; break-after: avoid-page; }
+    .acta-signatures { page-break-inside: avoid; break-inside: avoid-page; margin-top: 50px !important; }
+    .acta-section table { page-break-inside: auto; }
+    .acta-section tr { page-break-inside: avoid; break-inside: avoid; }
+    .acta-section thead { display: table-header-group; } /* repetir cabecera en cada página */
+    /* Forzar colores institucionales en PDF */
+    .acta-title, .acta-section-title, .acta-section th {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    /* Justificación del cuerpo del acta */
+    .acta-section p { text-align: justify; orphans: 3; widows: 3; }
+  }
+
+  /* ── Checkboxes de materias (Paso 1) ──────────────── */
+  .materias-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+  .materias-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--r-sm);
+    margin-bottom: 3px;
+    transition: background 0.18s;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.50;
+    color: var(--c-text);
+  }
+  .materias-list li:hover { background: rgba(4,119,191,0.06); }
+  .materias-list li.checked { background: var(--c-copper-pale); }
+  .materias-list li .mat-chk {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    margin-top: 1px;
+    accent-color: var(--c-interact);
+    cursor: pointer;
+  }
+  .materias-list li .mat-letter {
+    flex-shrink: 0;
+    width: 18px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    color: var(--c-text-2);
+    font-size: 12px;
+    margin-top: 1px;
+  }
+  .materias-list li .mat-text { flex: 1; }
+  .mat-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .mat-custom-row input {
+    flex: 1;
+    padding: 8px 13px;
+    border: 1.5px dashed var(--c-border);
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-family: var(--font-body);
+    color: var(--c-text);
+    background: var(--c-surface);
+    transition: border-color 0.18s;
+  }
+  .mat-custom-row input:focus {
+    border-color: var(--c-interact);
+    border-style: solid;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(4,119,191,0.13);
+  }
+  .mat-custom-row .btn-add-custom {
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--c-interact);
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--c-interact);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s, color 0.18s;
+    font-family: var(--font-body);
+  }
+  .mat-custom-row .btn-add-custom:hover {
+    background: var(--c-interact);
+    color: #ffffff;
+  }
+  .mat-actions-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+    gap: 10px;
+    align-items: center;
+  }
+  .mat-actions-row .mat-count {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--c-text-2);
+    margin-right: auto;
+  }
+
+  /* ── Botón agregar temas a tabla (verde, distinto de Siguiente) ── */
+  .btn-add-temas {
+    background: #1E7E4A;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(30,126,74,0.22);
+  }
+  .btn-add-temas:hover {
+    background: #186640;
+    box-shadow: 0 4px 14px rgba(30,126,74,0.30);
+    transform: translateY(-1px);
+  }
+
+  /* ── Toast de confirmación de temas ────────────────── */
+  .mat-toast {
+    position: fixed;
+    bottom: 84px;
+    left: 50%;
+    transform: translateX(-50%) translateY(14px);
+    background: #1E7E4A;
+    color: #ffffff;
+    padding: 13px 26px;
+    border-radius: var(--r-md);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .mat-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+<!-- JSZip para construir .xlsx con estilos -->
+<script src="vendor/jszip.min.js"></script>
+<!-- SheetJS para leer archivos Excel .xlsx/.xls -->
+<script src="vendor/xlsx.full.min.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+<!-- ════════════════════════════════════════════
+     ENCABEZADO INSTITUCIONAL
+     ════════════════════════════════════════════ -->
+<header class="app-header" role="banner">
+  <div class="header-inner app-header-inner">
+    <div class="logo">
+      <div class="logo-texts">
+        <h1 class="logo-region" style="margin:0">Sistema de Actas de Copropiedad</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <button type="button" class="header-action" onclick="guardarBorrador()" title="Descarga un archivo con todo lo ingresado, para continuar después o en otro computador">💾 Guardar borrador</button>
+      <button type="button" class="header-action" onclick="cargarBorrador()" title="Carga un borrador guardado anteriormente">📂 Cargar borrador</button>
+      <span class="header-badge">Ley N° 21.442</span>
+    </div>
+  </div>
+</header>
+
+<nav class="progress-wrap" id="progress-bar" aria-label="Pasos del formulario">
+  <div class="steps-row">
+    <div class="step-tab active" onclick="goStep(1)" role="button" tabindex="0" aria-current="step" aria-label="Paso 1 de 6: Datos Generales (actual)">
+      <span class="step-num" aria-hidden="true">1</span>
+      <span class="step-label">Datos Generales</span>
+    </div>
+    <div class="step-tab" onclick="goStep(2)" role="button" tabindex="0" aria-label="Paso 2 de 6: Convocatoria">
+      <span class="step-num" aria-hidden="true">2</span>
+      <span class="step-label">Convocatoria</span>
+    </div>
+    <div class="step-tab" onclick="goStep(3)" role="button" tabindex="0" aria-label="Paso 3 de 6: Asistentes">
+      <span class="step-num" aria-hidden="true">3</span>
+      <span class="step-label">Asistentes</span>
+    </div>
+    <div class="step-tab" onclick="goStep(4)" role="button" tabindex="0" aria-label="Paso 4 de 6: Tabla">
+      <span class="step-num" aria-hidden="true">4</span>
+      <span class="step-label">Tabla</span>
+    </div>
+    <div class="step-tab" onclick="goStep(5)" role="button" tabindex="0" aria-label="Paso 5 de 6: Firmas">
+      <span class="step-num" aria-hidden="true">5</span>
+      <span class="step-label">Firmas</span>
+    </div>
+    <div class="step-tab" onclick="goStep(6)" role="button" tabindex="0" aria-label="Paso 6 de 6: Acta Final">
+      <span class="step-num" aria-hidden="true">6</span>
+      <span class="step-label">Acta Final</span>
+    </div>
+  </div>
+</nav>
+
+<aside class="disclaimer-banner" role="note" aria-label="Aviso de privacidad">
+  <span class="disc-icon" aria-hidden="true">🔒</span>
+  <span>Esta herramienta funciona completamente en su dispositivo. <strong>Ningún tercero —ni el autor del programa, ni terceras instituciones públicas o privadas— almacena, recibe ni tiene acceso</strong> a los datos que usted ingresa.</span>
+</aside>
+
+<div class="save-indicator" id="save-indicator" role="status" aria-live="polite">
+  <span aria-hidden="true">💾</span><span>Guardado automáticamente</span>
+</div>
+
+<!-- Loading overlay (PDF / operaciones largas) -->
+<div class="loading-overlay" id="loading-overlay" role="dialog" aria-live="assertive" aria-label="Operación en proceso">
+  <div class="loading-card">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <div class="loading-title" id="loading-title">Procesando…</div>
+    <div class="loading-desc" id="loading-desc">Esto tomará unos segundos.</div>
+  </div>
+</div>
+
+
+<main class="main" id="main-content">
+
+<!-- ════════════ PASO 1: DATOS GENERALES ════════════ -->
+<div class="section active" id="step-1">
+  <div class="card">
+    <h2 class="card-title">Datos del Condominio y la Sesión</h2>
+    <div class="card-desc">Complete la información básica de la asamblea. Estos datos aparecerán en el encabezado del acta.</div>
+
+    <div class="form-grid single" style="margin-bottom:20px">
+      <div class="field" style="max-width:260px">
+        <label for="acta-numero">N° de Acta <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="text" id="acta-numero" name="acta-numero" placeholder="Ej: 12" />
+      </div>
+    </div>
+
+    <div class="form-grid single" style="margin-bottom:20px">
+      <div class="field">
+        <label for="condo-nombre">Nombre del Condominio <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="text" id="condo-nombre" placeholder="Ej: Condominio Las Araucarias" />
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="condo-direccion">Dirección del Condominio <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="text" id="condo-direccion" placeholder="Ej: Av. Principal 1234, Santiago" />
+      </div>
+      <div class="field">
+        <label for="condo-rut">RUT del Condominio</label>
+        <input type="text" id="condo-rut" placeholder="Ej: 76.123.456-7" />
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:20px">
+      <div class="field">
+        <label for="tipo-asamblea">Tipo de Asamblea <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span><span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre tipos de asamblea">?<span class="help-tip-content"><strong>Ordinaria:</strong> obligatoria una vez al año, trata materias generales (presupuesto, balance, comité). <strong>Extraordinaria Absoluta (50+1%):</strong> reformas importantes. <strong>Extraordinaria Reforzada (66%):</strong> venta de bienes comunes, modificación del reglamento.</span></span></label>
+        <select id="tipo-asamblea" onchange="updateTipoAsambleaExtended()">
+          <option value="">— Seleccione —</option>
+          <option value="ordinaria">Ordinaria</option>
+          <option value="extraordinaria-abs">Extraordinaria · Mayoría Absoluta (50+1%)</option>
+          <option value="extraordinaria-ref">Extraordinaria · Mayoría Reforzada (66%)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="modalidad">Modalidad <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <div class="toggle-group" style="margin-top:6px">
+          <button class="toggle-btn active" onclick="setModalidad(this,'presencial')">🏢 Presencial</button>
+          <button class="toggle-btn" onclick="setModalidad(this,'telemática')">💻 Telemática</button>
+          <button class="toggle-btn" onclick="setModalidad(this,'mixta')">🔀 Mixta</button>
+        </div>
+        <input type="hidden" id="modalidad" value="presencial" />
+      </div>
+    </div>
+
+    <div class="form-grid triple" style="margin-top:20px">
+      <div class="field">
+        <label for="fecha-sesion">Fecha de la Sesión <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="date" id="fecha-sesion" />
+      </div>
+      <div class="field">
+        <label for="hora-inicio">Hora de Inicio <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="time" id="hora-inicio" />
+      </div>
+      <div class="field">
+        <label for="lugar" id="lugar-label">Lugar de la sesión</label>
+        <input type="text" id="lugar" placeholder="Ej: Sala de Reuniones del condominio" />
+      </div>
+      <div class="field" id="plataforma-wrap" style="display:none">
+        <label for="plataforma">Plataforma de conexión</label>
+        <input type="text" id="plataforma" name="plataforma" placeholder="Ej: Zoom, Google Meet, Teams" />
+      </div>
+    </div>
+
+    <div id="quorum-info" style="margin-top:16px; display:none">
+      <div class="tip" id="quorum-tip"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PASO 2: CONVOCATORIA ════════════ -->
+<div class="section" id="step-2">
+  <div class="card">
+    <h2 class="card-title">Antecedentes de la Convocatoria</h2>
+    <div class="card-desc">Cómo se citó a la asamblea afecta la validez del acta. Registre quién la convocó, por qué medio y cuándo se envió la citación.</div>
+
+    <div class="tip">
+      <strong>📅 Plazo importante:</strong> la convocatoria debe enviarse entre <strong>5 y 15 días corridos</strong> antes de la sesión. Si no se cumple, los acuerdos pueden ser impugnados ante el Juzgado de Policía Local (Art. 44, Ley 21.442).
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="quien-convoco">Quién convocó <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <select id="quien-convoco">
+          <option value="presidente">Presidente del Comité de Administración</option>
+          <option value="administrador">Administrador/a</option>
+          <option value="copropietarios">Copropietarios (10% de derechos)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="nombre-convocante">Nombre de quien convocó <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="text" id="nombre-convocante" placeholder="Ej: Juan Pérez González" />
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:20px">
+      <div class="field">
+        <label for="fecha-citacion">Fecha de Envío de la Citación <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="date" id="fecha-citacion" onchange="checkPlazo()" />
+      </div>
+      <div class="field">
+        <label for="medio-notif">Medio de Notificación <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <div class="toggle-group" style="margin-top:6px">
+          <button class="toggle-btn active" onclick="setMedio(this,'correo electrónico')">✉️ Email</button>
+          <button class="toggle-btn" onclick="setMedio(this,'carta certificada')">📮 Carta</button>
+          <button class="toggle-btn" onclick="setMedio(this,'entrega personal')">🤝 Personal</button>
+        </div>
+        <input type="hidden" id="medio-notif" value="correo electrónico" />
+      </div>
+    </div>
+
+    <div id="plazo-alerta" style="margin-top:16px; display:none"></div>
+
+    <div class="form-grid" style="margin-top:20px">
+      <div class="field span2">
+        <label for="doc24">¿Se adjuntó documentación con al menos 24 horas de anticipación?</label>
+        <div class="toggle-group" style="margin-top:6px">
+          <button class="toggle-btn active" onclick="setDoc24(this,'Sí')">✅ Sí</button>
+          <button class="toggle-btn" onclick="setDoc24(this,'No')">❌ No</button>
+        </div>
+        <input type="hidden" id="doc24" value="Sí" />
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:20px">
+      <div class="field span2">
+        <label for="nombre-presidente">Nombre del Presidente del Comité de Administración <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+        <input type="text" id="nombre-presidente" placeholder="Nombre completo" />
+      </div>
+    </div>
+    <div class="form-grid" style="margin-top:20px">
+      <div class="field">
+        <label for="nombre-admin">Nombre del Administrador/a</label>
+        <input type="text" id="nombre-admin" placeholder="Nombre completo" />
+      </div>
+      <div class="field">
+        <label for="grabacion">¿Se realizó grabación de respaldo?</label>
+        <div class="toggle-group" style="margin-top:6px">
+          <button class="toggle-btn" onclick="setGrabacion(this,'Sí')">🎙️ Sí</button>
+          <button class="toggle-btn active" onclick="setGrabacion(this,'No')">❌ No</button>
+        </div>
+        <input type="hidden" id="grabacion" value="No" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PASO 3: TABLA ════════════ -->
+<div class="section" id="step-3">
+  <div class="card">
+    <h2 class="card-title">Registro de Asistencia</h2>
+    <div class="card-desc">Ingrese solo a los copropietarios que efectivamente asistieron marcando <strong>Asiste: Sí</strong>. Si carga el padrón completo del condominio, marque como <strong>No</strong> a quienes no se presentaron. El quórum de constitución se calcula sobre los presentes (hábiles e inhábiles). Solo los copropietarios hábiles y presentes pueden votar.</div>
+    <div class="tip" style="margin-bottom:18px">
+      💡 <strong>¿Tiene un padrón en Excel?</strong> Use el botón <em>"Importar Excel/CSV"</em> al final de la tabla para cargarlo automáticamente, en vez de tipear cada copropietario.
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Unidad</th>
+            <th>Nombre del Copropietario</th>
+            <th>% Derechos <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre porcentaje de derechos">?<span class="help-tip-content">Porcentaje de propiedad que cada copropietario tiene sobre los <strong>bienes comunes</strong>, según el reglamento de copropiedad. La suma de todos debe dar 100%.</span></span></th>
+            <th>Hábil <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre copropietario hábil">?<span class="help-tip-content">Es <strong>hábil</strong> el copropietario que está al día con sus gastos comunes. Solo los hábiles pueden votar (Art. 21, Ley 21.442). Los inhábiles asisten pero no votan.</span></span></th>
+            <th>Asiste <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre asistencia">?<span class="help-tip-content">Marque <strong>Sí</strong> a quienes están presentes (físicamente o por videoconferencia). Solo los presentes cuentan para el quórum de constitución.</span></span></th>
+            <th>Representante</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="asistentes-tbody">
+          <tr>
+            <td><input type="text" id="asist-0-unidad" name="asist-0-unidad" placeholder="101" style="width:60px" class="unidad" /></td>
+            <td><input type="text" id="asist-0-nombre" name="asist-0-nombre" placeholder="Nombre completo" class="nombre-asist" /></td>
+            <td><input type="number" id="asist-0-derechos" name="asist-0-derechos" placeholder="1.5" step="0.01" min="0" max="100" class="derechos" onchange="calcularQuorum()" onkeyup="calcularQuorum()" style="width:70px" /></td>
+            <td>
+              <select id="asist-0-habil" name="asist-0-habil" class="habil" style="min-width:52px" onchange="calcularQuorum(); actualizarVotacion();">
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </td>
+            <td>
+              <select id="asist-0-asiste" name="asist-0-asiste" class="asiste" style="min-width:52px" onchange="calcularQuorum(); actualizarVotacion();">
+                <option value="si">Sí</option>
+                <option value="no">No</option>
+              </select>
+            </td>
+            <td><input type="text" id="asist-0-rep" name="asist-0-rep" placeholder="Solo si vota un representante" class="representante" /></td>
+            <td><button class="btn-del" onclick="delRow(this)" aria-label="Quitar esta fila del registro" title="Quitar fila">✕</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+      <button class="btn-add-row" onclick="addRow()" style="margin-top:0">+ Agregar asistente</button>
+      <label for="excel-import" class="btn-add-row" style="margin-top:0;cursor:pointer;background:transparent;border-color:var(--c-interact);color:var(--c-interact)">
+        📂 Importar Excel / CSV
+      </label>
+      <input type="file" id="excel-import" name="excel-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(this)" />
+      <button class="btn-add-row" onclick="descargarPlantilla()" style="margin-top:0;background:transparent;border-color:var(--c-ok);color:var(--c-ok)">
+        ⬇️ Descargar plantilla
+      </button>
+      <button class="btn-add-row" onclick="abrirInstrucciones()" style="margin-top:0;background:transparent;border-color:var(--c-accent);color:var(--c-accent)">
+        ❓ Ver instrucciones
+      </button>
+
+    </div>
+
+    <!-- Quórum de constitución -->
+    <div class="quorum-box" id="quorum-box">
+      <div class="quorum-box-text">
+        <div class="quorum-box-title">Derechos presentes en la asamblea <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre quórum de constitución">?<span class="help-tip-content"><strong>Quórum de constitución:</strong> mínimo de derechos que deben estar presentes para que la asamblea pueda comenzar. Se calcula sobre el total del condominio (hábiles + inhábiles presentes).</span></span></div>
+        <div class="quorum-status" id="quorum-status-text">Ingrese asistentes para calcular</div>
+        <div class="quorum-box-sub" id="quorum-req-text"></div>
+      </div>
+      <div class="quorum-box-bar">
+        <div class="quorum-meter"><div class="quorum-fill" id="quorum-fill" style="width:0%"></div></div>
+        <div class="quorum-label" id="quorum-pct">0%</div>
+      </div>
+    </div>
+
+    <!-- Quórum de adopción de acuerdos (solo visible en asamblea ordinaria) -->
+    <div class="quorum-box quorum-box--acuerdos" id="quorum-acuerdos-box" style="display:none">
+      <div class="quorum-box-text">
+        <div class="quorum-box-title">Quórum de Adopción de Acuerdos <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre quórum de acuerdos">?<span class="help-tip-content"><strong>Quórum de adopción:</strong> mínimo de votos a favor necesarios para que un acuerdo sea válido. Cambia según el tipo de asamblea: <strong>Ordinaria</strong> = mayoría de los hábiles presentes; <strong>Extraordinaria</strong> = 50+1% o 66% del total del condominio.</span></span></div>
+        <div class="quorum-status" id="quorum-acuerdos-text">—</div>
+        <div class="quorum-box-sub">Adopción de acuerdos · Art. 15 Ley N° 21.442</div>
+      </div>
+      <div class="quorum-box-bar">
+        <div class="quorum-meter"><div class="quorum-fill" id="quorum-acuerdos-fill" style="width:0%"></div></div>
+        <div class="quorum-label" id="quorum-acuerdos-pct">—</div>
+      </div>
+    </div>
+
+    <!-- Aviso: suma de derechos del padrón (debe ser 100%) -->
+    <div id="suma-derechos-aviso" role="status" aria-live="polite" style="display:none;margin-top:12px"></div>
+
+    <!-- Panel de resultado de votación -->
+    
+  </div>
+</div>
+
+
+
+<!-- ════════════ PASO 4: TABLA ════════════ -->
+<div class="section" id="step-4">
+  <div class="card">
+    <h2 class="card-title">Desarrollo de la Tabla</h2>
+    <div class="card-desc">Registre cada punto de la tabla con su presentación, debate y resultado de votación.</div>
+
+    <div id="puntos-container"></div>
+    <div id="puntos-empty-state" class="empty-state">
+      <span class="empty-state-icon" aria-hidden="true">📋</span>
+      <div class="empty-state-title">Aún no ha agregado puntos</div>
+      <div class="empty-state-desc">Cada punto del orden del día debe registrarse con su presentación, debate y resultado de votación. Comience agregando el primero.</div>
+    </div>
+    <button class="btn-add-row" onclick="addPuntoYRenombrar()">+ Agregar punto al orden del día</button>
+  </div>
+</div>
+
+
+
+<!-- ════════════ PASO 5: FIRMAS ════════════ -->
+<div class="section" id="step-5">
+  <div class="card">
+    <h2 class="card-title">Firmantes del Acta</h2>
+    <div class="card-desc">El acta debe ser firmada dentro de los <strong>30 días corridos</strong> desde la celebración de la asamblea.</div>
+
+    <div class="tip">
+      <strong>⚖️ ¿Necesita notario?</strong> Si se tratan materias que requieren mayoría reforzada (venta de bienes comunes, modificación del reglamento, entre otras), la presencia de un ministro de fe es <strong>obligatoria</strong> (Art. 15, Ley 21.442).
+    </div>
+
+    <div id="firmantes-container">
+      <!-- Firmante 1 -->
+      <div class="form-grid triple" style="margin-bottom:16px">
+        <div class="field">
+          <label for="f1-nombre">Firmante 1 · Nombre <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
+          <input type="text" id="f1-nombre" name="f1-nombre" placeholder="Nombre completo" />
+        </div>
+        <div class="field">
+          <label for="f1-rut">Firmante 1 · RUT</label>
+          <input type="text" id="f1-rut" name="f1-rut" placeholder="Ej: 12.345.678-9" />
+        </div>
+        <div class="field">
+          <label for="f1-cargo">Firmante 1 · Cargo</label>
+          <select id="f1-cargo" name="f1-cargo">
+            <option value="Presidente del Comité de Administración">Presidente del Comité de Administración</option>
+            <option value="Miembro del Comité de Administración">Miembro del Comité de Administración</option>
+            <option value="Administrador/a del Condominio">Administrador/a del Condominio</option>
+            <option value="Copropietario/a designado/a por la Asamblea">Copropietario/a designado/a por la Asamblea</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <!-- Firmante 2 -->
+      <div class="form-grid triple" style="margin-bottom:16px">
+        <div class="field">
+          <label for="f2-nombre">Firmante 2 · Nombre</label>
+          <input type="text" id="f2-nombre" name="f2-nombre" placeholder="Nombre completo" />
+        </div>
+        <div class="field">
+          <label for="f2-rut">Firmante 2 · RUT</label>
+          <input type="text" id="f2-rut" name="f2-rut" placeholder="Ej: 12.345.678-9" />
+        </div>
+        <div class="field">
+          <label for="f2-cargo">Firmante 2 · Cargo</label>
+          <select id="f2-cargo" name="f2-cargo">
+            <option value="Miembro del Comité de Administración">Miembro del Comité de Administración</option>
+            <option value="Presidente del Comité de Administración">Presidente del Comité de Administración</option>
+            <option value="Administrador/a del Condominio">Administrador/a del Condominio</option>
+            <option value="Copropietario/a designado/a por la Asamblea">Copropietario/a designado/a por la Asamblea</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <!-- Firmante 3 -->
+      <div class="form-grid triple" style="margin-bottom:16px">
+        <div class="field">
+          <label for="f3-nombre">Firmante 3 · Nombre</label>
+          <input type="text" id="f3-nombre" name="f3-nombre" placeholder="Nombre completo (opcional)" />
+        </div>
+        <div class="field">
+          <label for="f3-rut">Firmante 3 · RUT</label>
+          <input type="text" id="f3-rut" name="f3-rut" placeholder="Ej: 12.345.678-9" />
+        </div>
+        <div class="field">
+          <label for="f3-cargo">Firmante 3 · Cargo</label>
+          <select id="f3-cargo" name="f3-cargo">
+            <option value="Administrador/a del Condominio">Administrador/a del Condominio</option>
+            <option value="Miembro del Comité de Administración">Miembro del Comité de Administración</option>
+            <option value="Presidente del Comité de Administración">Presidente del Comité de Administración</option>
+            <option value="Copropietario/a designado/a por la Asamblea">Copropietario/a designado/a por la Asamblea</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:8px">
+      <div class="field">
+        <label for="notario">¿Interviene Ministro de Fe? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre Ministro de Fe">?<span class="help-tip-content">El <strong>Ministro de Fe</strong> es un Notario Público o, en condominios sociales, un funcionario municipal o del Registro Civil. Su presencia es obligatoria cuando se tratan materias de mayoría reforzada.</span></span></label>
+        <div class="tip" style="margin-bottom:8px;margin-top:6px;font-size:12px">
+          <strong>Art. 73 Ley 21.442:</strong> En condominios de viviendas sociales, la exigencia de notario se cumple con un funcionario municipal designado o el Oficial del Registro Civil.
+        </div>
+        <div class="toggle-group" style="margin-top:6px">
+          <button class="toggle-btn" onclick="setNotario(this,'Si')">✅ Sí</button>
+          <button class="toggle-btn active" onclick="setNotario(this,'No')">❌ No</button>
+        </div>
+        <input type="hidden" id="notario" value="No" />
+      </div>
+    </div>
+    <div id="notario-field" style="display:none">
+      <div class="form-grid triple" style="margin-top:12px">
+        <div class="field">
+          <label for="notario-tipo">Tipo de Ministro de Fe</label>
+          <select id="notario-tipo" name="notario-tipo">
+            <option value="Notario Público">Notario Público</option>
+            <option value="Ministro de Fe Municipal (funcionario designado)">Ministro de Fe Municipal (funcionario designado)</option>
+            <option value="Oficial del Registro Civil">Oficial del Registro Civil</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="notario-nombre">Nombre</label>
+          <input type="text" id="notario-nombre" name="notario-nombre" placeholder="Nombre completo" />
+        </div>
+        <div class="field">
+          <label for="notario-rut">RUT</label>
+          <input type="text" id="notario-rut" name="notario-rut" placeholder="Ej: 12.345.678-9" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-grid" style="margin-top:20px">
+      <div class="field span2">
+        <label for="observaciones">Observaciones finales / Otros antecedentes</label>
+        <textarea id="observaciones" placeholder="Anote cualquier mención adicional que deba constar en el acta. Ej: el comité acordó realizar la próxima asamblea de manera telemática."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PASO 6: ACTA FINAL ════════════ -->
+<div class="section" id="step-6">
+  <div class="card">
+    <h2 class="card-title">Acta Generada</h2>
+    <div class="card-desc">Revise el contenido antes de guardar el PDF o copiar el texto. Si necesita corregir algo, vuelva al paso correspondiente desde la barra superior.</div>
+    <div id="acta-content"></div>
+    <div class="print-btn">
+      <button class="btn btn-gold" onclick="savePDF()">💾 Guardar como PDF</button>
+      <button class="btn btn-secondary" onclick="copyActa()">📋 Copiar texto</button>
+    </div>
+  </div>
+</div>
+
+</main><!-- /main -->
+
+<footer class="app-footer" role="contentinfo">
+  © 2026 Luis Fuentealba Durán · Contacto: <a href="mailto:tslfuentealba@gmail.com">tslfuentealba@gmail.com</a>
+</footer>
+
+
+<!-- BOTTOM NAV -->
+<div class="nav-footer" role="navigation" aria-label="Navegación entre pasos">
+  <button class="btn btn-secondary" id="btn-back" onclick="prevStep()" style="display:none" aria-label="Volver al paso anterior">← Anterior</button>
+  <span class="step-info" id="step-label" aria-live="polite">Paso 1 de 6</span>
+  <button class="btn btn-primary" id="btn-next" onclick="nextStep()" aria-label="Continuar al siguiente paso">Siguiente →</button>
+</div>
+
+<!-- PDF: generado con ventana popup autónoma, sin dependencias externas -->
+
+<!-- PRINT STYLES (respaldo para navegadores directos) -->
+
+
+<script>
+/* © 2026 Luis Fuentealba Durán — Persona natural — Todos los derechos reservados */
+let currentStep = 1;
+const totalSteps = 6;
+let puntoCount = 0;
+function _jlv(n) {
+if (n > currentStep) {
+for (let i = currentStep; i < n; i++) {
+if (!_uzw(i)) return;
+}
+}
+document.getElementById('step-' + currentStep).classList.remove('active');
+document.querySelectorAll('.step-tab')[currentStep-1].classList.remove('active');
+document.querySelectorAll('.step-tab')[currentStep-1].classList.add('done');
+currentStep = n;
+document.getElementById('step-' + currentStep).classList.add('active');
+const tabs = document.querySelectorAll('.step-tab');
+tabs[currentStep-1].classList.remove('done');
+tabs[currentStep-1].classList.add('active');
+_qwpsb();
+window.scrollTo({top:0, behavior:'smooth'});
+if (currentStep === 6) generateActa();
+}
+function nextStep() {
+if (!_uzw(currentStep)) return;
+if (currentStep < totalSteps) _jlv(currentStep + 1);
+}
+function prevStep() {
+if (currentStep > 1) _jlv(currentStep - 1);
+}
+/* Navegación directa por la barra de pasos (pestañas superiores).
+   Reutiliza _jlv, que valida los pasos intermedios al avanzar. */
+function goStep(n) {
+if (n === currentStep) return;
+if (n < 1 || n > totalSteps) return;
+_jlv(n);
+}
+function _qwpsb() {
+document.getElementById('step-label').textContent = 'Paso ' + currentStep + ' de ' + totalSteps;
+document.getElementById('btn-back').style.display = currentStep > 1 ? 'block' : 'none';
+const btnNext = document.getElementById('btn-next');
+if (currentStep === totalSteps) {
+btnNext.textContent = 'Guardar PDF';
+btnNext.onclick = savePDF;
+} else {
+btnNext.textContent = 'Siguiente';
+btnNext.onclick = nextStep;
+}
+}
+function _uzw(step) {
+if (step === 1) {
+if (!document.getElementById('condo-nombre').value.trim()) { alert('Falta completar el nombre del condominio. Es un dato obligatorio para generar el acta.'); return false; }
+if (!document.getElementById('tipo-asamblea').value) { alert('Seleccione el tipo de asamblea (Ordinaria o Extraordinaria) para continuar.'); return false; }
+if (!document.getElementById('fecha-sesion').value) { alert('Falta indicar la fecha de la sesión.'); return false; }
+}
+if (step === 4 && puntoCount === 0) {
+alert('Agregue al menos un punto al orden del día antes de continuar.');
+return false;
+}
+return true;
+}
+function _ldxch(btn, hiddenId, _pvau) {
+btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById(hiddenId).value = _pvau;
+}
+function setModalidad(btn, _pvau) {
+_ldxch(btn, 'modalidad', _pvau);
+var lugarWrap = document.getElementById('lugar').closest('.field');
+var platWrap = document.getElementById('plataforma-wrap');
+var lugarLabel = document.getElementById('lugar-label');
+if (!lugarWrap || !platWrap) return;
+if (_pvau === 'presencial') {
+lugarWrap.style.display = '';
+platWrap.style.display = 'none';
+lugarLabel.textContent = 'Lugar de la sesión';
+} else if (_pvau === 'telemática' || _pvau === 'telematica') {
+lugarWrap.style.display = 'none';
+platWrap.style.display = '';
+} else if (_pvau === 'mixta') {
+lugarWrap.style.display = '';
+platWrap.style.display = '';
+lugarLabel.textContent = 'Lugar físico de la sesión';
+}
+}
+function setMedio(btn, _pvau) { _ldxch(btn, 'medio-notif', _pvau); }
+function setDoc24(btn, _pvau) { _ldxch(btn, 'doc24', _pvau); }
+function setGrabacion(btn, _pvau) { _ldxch(btn, 'grabacion', _pvau); }
+function setNotario(btn, _pvau) {
+_ldxch(btn, 'notario', _pvau);
+document.getElementById('notario-field').style.display = _pvau === 'Si' ? 'block' : 'none';
+}
+function updateTipoAsamblea() {
+var tipo = document.getElementById('tipo-asamblea').value;
+var box = document.getElementById('quorum-info');
+var tip = document.getElementById('quorum-tip');
+if (!tipo) { box.style.display = 'none'; return; }
+box.style.display = 'block';
+var info = {
+'ordinaria': {
+titulo: 'Asamblea Ordinaria (Art. 15 Ley N° 21.442)',
+qConst: '33% de los derechos del condominio.',
+qAcuerdo: 'Mayoría absoluta de los asistentes.',
+materias: [
+'Rendición de cuentas por parte del administrador y aprobación del balance presentado.',
+'Designación, reelección o renuncia de los miembros del comité de administración.',
+'Designación o remoción del administrador o subadministrador.',
+'Reporte de las actualizaciones al plan de emergencia y programación de simulacros de evacuación y/o acciones de capacitación o prevención de riesgos.',
+'Término anticipado de la póliza de seguro del condominio y/o contratación de un nuevo seguro, siempre que no implique una modificación de los riesgos cubiertos por la póliza vigente producto de la eliminación o incorporación de coberturas complementarias.',
+'Cualquier otro asunto relacionado con los intereses de los copropietarios, salvo aquellos que sean materia de asamblea extraordinaria.'
+]
+},
+'extraordinaria-abs': {
+titulo: 'Asamblea Extraordinaria de Mayoría Absoluta (Art. 15 Ley N° 21.442)',
+qConst: 'Mayor\u00eda absoluta de los derechos del condominio (50+1%).',
+qAcuerdo: 'Mayor\u00eda absoluta de los derechos del condominio (50+1%), computada \u00fanicamente sobre la base de copropietarios h\u00e1biles para votar.',
+materias: [
+'Modificación del reglamento de copropiedad, salvo aquellas materias que requieren mayoría reforzada.',
+'Remoción parcial o total de los miembros del comité de administración.',
+'Gastos o inversiones extraordinarias que excedan, en un período de doce meses, el equivalente a seis cuotas de gastos comunes ordinarios del total del condominio.',
+'Administración conjunta de dos o más condominios y establecimiento de subadministraciones en un mismo condominio.',
+'Programas de autofinanciamiento de los condominios y asociaciones con terceros para estos efectos.',
+'Fijación del porcentaje de recargo sobre los gastos comunes para la formación del fondo común de reserva.',
+'Utilización de los recursos del fondo común de reserva para solventar gastos comunes ordinarios de mantención o reparación.',
+'Alteraciones a los bienes comunes.'
+]
+},
+'extraordinaria-ref': {
+titulo: 'Asamblea Extraordinaria de Mayoría Reforzada (Art. 15 Ley N° 21.442)',
+qConst: 'Al menos el 66% de los derechos del condominio.',
+qAcuerdo: 'Al menos el 66% de los derechos del condominio, computado únicamente sobre la base de copropietarios hábiles para votar.',
+materias: [
+'Modificación del reglamento de copropiedad, en las materias que requieren mayoría reforzada.',
+'Delegación de facultades al comité de administración respecto de materias que requieren acuerdo de mayoría absoluta.',
+'Enajenación, arrendamiento o cesión de tenencia de bienes de dominio común, o la constitución de gravámenes sobre ellos.',
+'Reconstrucción o demolición del condominio.',
+'Petición a la dirección de obras municipales para dejar sin efecto la declaración que acogió el condominio al régimen de copropiedad inmobiliaria, o su modificación.',
+'Cambio de destino de las unidades del condominio.',
+'Obras de ampliaciones del condominio, ampliaciones o alteraciones de sus unidades.',
+'Construcciones en los bienes comunes y cambios de destino de dichos bienes, incluso de aquellos asignados en uso y goce exclusivo.',
+'Constitución de derechos de uso y goce exclusivo de bienes de dominio común a favor de uno o más copropietarios, u otras formas de aprovechamiento de los bienes de dominio común.',
+'Retribución a los miembros del comité de administración mediante un porcentaje de descuento en el pago de los gastos comunes.',
+'Contratación de un nuevo seguro del condominio que implique una modificación de los riesgos cubiertos por la póliza vigente producto de la eliminación o incorporación de coberturas complementarias, tales como sismo o salida de mar.'
+]
+}
+};
+var d = info[tipo];
+if (!d) { tip.innerHTML = ''; return; }
+var letters = 'abcdefghijklmnopqrstuvwxyz';
+var materiasHTML = '<ul class="materias-list" id="materias-check-list">';
+d.materias.forEach(function(m, i) {
+var lid = 'mat-chk-' + i;
+materiasHTML += '<li onclick="toggleMatCheck(\'' + lid + '\')">'
++ '<input type="checkbox" class="mat-chk" id="' + lid + '" onclick="event.stopPropagation(); updateMatCount()">'
++ '<span class="mat-letter">' + (letters[i] || '') + '.</span>'
++ '<span class="mat-text">' + m + '</span></li>';
+});
+materiasHTML += '</ul>';
+materiasHTML += '<div class="mat-custom-row">';
+materiasHTML += '<input type="text" id="mat-custom-input" placeholder="Escriba un tema propio del condominio y presione +"';
+materiasHTML += ' onkeydown="if(event.key===\'Enter\'){event.preventDefault();addCustomMateria()}">';
+materiasHTML += '<button class="btn-add-custom" onclick="addCustomMateria()" aria-label="Agregar tema personalizado" title="Agregar tema">+</button>';
+materiasHTML += '</div>';
+materiasHTML += '<div class="mat-actions-row">';
+materiasHTML += '<span class="mat-count" id="mat-count-label">0 tema(s) seleccionado(s)</span>';
+materiasHTML += '<button class="btn btn-add-temas" onclick="agregarTemasATabla()">Agregar temas seleccionados a la tabla \u2192</button>';
+materiasHTML += '</div>';
+tip.innerHTML =
+'<strong>' + d.titulo + '</strong><br><br>' +
+'<b>Qu\u00f3rum de constituci\u00f3n:</b> ' + d.qConst + '<br>' +
+'<b>Qu\u00f3rum de acuerdos:</b> ' + d.qAcuerdo + '<br><br>' +
+'<b>Materias propias de esta sesi\u00f3n:</b>' +
+materiasHTML;
+}
+function toggleMatCheck(id) {
+var cb = document.getElementById(id);
+if (!cb) return;
+cb.checked = !cb.checked;
+cb.closest('li').classList.toggle('checked', cb.checked);
+updateMatCount();
+}
+function updateMatCount() {
+var checks = document.querySelectorAll('#materias-check-list .mat-chk:checked');
+var label = document.getElementById('mat-count-label');
+if (label) label.textContent = checks.length + ' tema(s) seleccionado(s)';
+}
+function addCustomMateria() {
+var input = document.getElementById('mat-custom-input');
+if (!input) return;
+var text = input.value.trim();
+if (!text) { input.focus(); return; }
+var list = document.getElementById('materias-check-list');
+if (!list) return;
+var idx = list.querySelectorAll('li').length;
+var li = document.createElement('li');
+li.className = 'checked';
+li.onclick = function() { toggleMatCheck('mat-chk-' + idx); };
+var chk = document.createElement('input');
+chk.type = 'checkbox'; chk.className = 'mat-chk'; chk.id = 'mat-chk-' + idx; chk.checked = true;
+chk.onclick = function(e) { e.stopPropagation(); updateMatCount(); };
+var spanLetter = document.createElement('span');
+spanLetter.className = 'mat-letter'; spanLetter.textContent = '+';
+var spanText = document.createElement('span');
+spanText.className = 'mat-text'; spanText.textContent = text;
+li.appendChild(chk); li.appendChild(spanLetter); li.appendChild(spanText);
+list.appendChild(li);
+input.value = '';
+input.focus();
+updateMatCount();
+}
+function showMatToast(msg) {
+  var t = document.getElementById('mat-toast-global');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'mat-toast-global';
+    t.className = 'mat-toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(function() { t.classList.remove('show'); }, 3200);
+}
+function agregarTemasATabla() {
+var checks = document.querySelectorAll('#materias-check-list .mat-chk:checked');
+if (checks.length === 0) {
+var label = document.getElementById('mat-count-label');
+if (label) {
+label.textContent = 'Seleccione al menos un tema';
+label.style.color = 'var(--c-error)';
+setTimeout(function() { label.style.color = ''; updateMatCount(); }, 2000);
+}
+return;
+}
+var n = checks.length;
+var primerPuntoUsado = false;
+checks.forEach(function(cb) {
+var li = cb.closest('li');
+var texto = li.querySelector('.mat-text').textContent.trim();
+if (!primerPuntoUsado) {
+  var p1 = document.getElementById('p1-titulo');
+  if (p1 && p1.value.trim() === '') {
+    p1.value = texto;
+    primerPuntoUsado = true;
+  } else {
+    addPunto();
+    _renombrarOpcionesRegla(puntoCount);
+    var tituloInput = document.getElementById('p' + puntoCount + '-titulo');
+    if (tituloInput) tituloInput.value = texto;
+  }
+} else {
+addPunto();
+_renombrarOpcionesRegla(puntoCount);
+var tituloInput = document.getElementById('p' + puntoCount + '-titulo');
+if (tituloInput) tituloInput.value = texto;
+}
+cb.checked = false;
+li.classList.remove('checked');
+});
+updateMatCount();
+showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' incorporado' + (n > 1 ? 's' : '') + ' a la Tabla');
+goStep(4);
+}
+function checkPlazo() {
+const fechaCit = document.getElementById('fecha-citacion').value;
+const fechaSes = document.getElementById('fecha-sesion').value;
+const alertDiv = document.getElementById('plazo-alerta');
+if (!fechaCit || !fechaSes) { alertDiv.style.display = 'none'; return; }
+const diff = Math.round((new Date(fechaSes) - new Date(fechaCit)) / 86400000);
+alertDiv.style.display = 'block';
+if (diff >= 5 && diff <= 15) {
+alertDiv.innerHTML = '<div style="background:#d8f3dc;border-left:4px solid #2d6a4f;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#2d6a4f"><strong>Plazo valido:</strong> ' + diff + ' dias de anticipacion. Cumple la Ley N 21.442.</div>';
+} else {
+alertDiv.innerHTML = '<div style="background:#fdecea;border-left:4px solid #c0392b;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#c0392b"><strong>Plazo fuera de rango:</strong> ' + diff + ' dias. La ley exige entre 5 y 15 dias corridos.</div>';
+}
+}
+function addRow() {
+const tbody = document.getElementById('asistentes-tbody');
+const n = tbody.querySelectorAll('tr').length;
+const tr = document.createElement('tr');
+tr.innerHTML =
+'<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" placeholder="101" style="width:64px" class="unidad"></td>' +
+'<td><input type="text" id="asist-'+n+'-nombre" name="asist-'+n+'-nombre" placeholder="Nombre completo" class="nombre-asist"></td>' +
+'<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" placeholder="1.0" step="0.01" min="0" max="100" class="derechos" onchange="calcularQuorum()" onkeyup="calcularQuorum()" style="width:72px"></td>' +
+'<td><select id="asist-'+n+'-habil" name="asist-'+n+'-habil" class="habil" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
+'<td><select id="asist-'+n+'-asiste" name="asist-'+n+'-asiste" class="asiste" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
+'<td><input type="text" id="asist-'+n+'-rep" name="asist-'+n+'-rep" placeholder="Solo si vota un representante" class="representante"></td>' +
+'<td><button class="btn-del" onclick="delRow(this)" aria-label="Quitar esta fila del registro" title="Quitar fila">X</button></td>';
+tbody.appendChild(tr);
+}
+function delRow(btn) {
+const rows = document.querySelectorAll('#asistentes-tbody tr');
+if (rows.length <= 1) return;
+var tr = btn.closest('tr');
+var nombre = '';
+var nameInput = tr.querySelector('.nombre-asist');
+if (nameInput && nameInput.value) nombre = nameInput.value.trim();
+var msg = nombre
+  ? '¿Quitar a "' + nombre + '" del registro de asistencia?'
+  : '¿Quitar esta fila del registro de asistencia?';
+if (!confirm(msg)) return;
+tr.remove();
+calcularQuorum();
+if (typeof actualizarVotacion === 'function') actualizarVotacion();
+if (typeof autoSave === 'function') autoSave();
+}
+function eliminarPuntoConfirm(el) {
+  var card = el.closest('.punto-card');
+  if (!card) return;
+  var titulo = card.querySelector('input[id$="-titulo"]');
+  var t = (titulo && titulo.value) ? titulo.value.trim() : '';
+  var msg = t ? '¿Eliminar el punto "' + t + '"?\n\nSe perderá toda la información registrada en su votación.'
+              : '¿Eliminar este punto del orden del día?\n\nSe perderá toda la información registrada en su votación.';
+  if (!confirm(msg)) return;
+  card.remove();
+  if (typeof actualizarEstadoVacioPuntos === 'function') actualizarEstadoVacioPuntos();
+  if (typeof autoSave === 'function') autoSave();
+}
+function calcularQuorum() {
+var tipo = document.getElementById('tipo-asamblea').value;
+var totalHabil = 0; 
+var countHabil = 0; 
+var countTotal = 0; 
+var totalPresentes = 0; 
+document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
+var habEl = row.querySelector('.habil');
+var derEl = row.querySelector('.derechos');
+var asisteEl = row.querySelector('.asiste');
+if (!habEl) return;
+var asiste = asisteEl ? asisteEl.value === 'si' : true;
+if (!asiste) return; // no asistió: no cuenta para ningún quórum
+var der = parseFloat(derEl ? derEl.value : 0) || 0;
+countTotal++;
+totalPresentes += der;
+if (habEl.value === 'si') {
+totalHabil += der;
+countHabil++;
+}
+});
+/* ── Validación: la suma de derechos del padrón completo debe ser 100% ── */
+var sumaPadron = 0;
+document.querySelectorAll('#asistentes-tbody tr .derechos').forEach(function(el) {
+  sumaPadron += parseFloat(el.value) || 0;
+});
+var avisoSuma = document.getElementById('suma-derechos-aviso');
+if (avisoSuma) {
+  if (sumaPadron <= 0) {
+    avisoSuma.style.display = 'none';
+  } else if (Math.abs(sumaPadron - 100) <= 0.05) {
+    avisoSuma.style.display = 'block';
+    avisoSuma.className = 'msg-ok';
+    avisoSuma.innerHTML = '✓ La suma de derechos del padrón es <strong>100%</strong>. Los quórum se calculan sobre una base correcta.';
+  } else if (sumaPadron > 100) {
+    avisoSuma.style.display = 'block';
+    avisoSuma.className = 'msg-error';
+    avisoSuma.innerHTML = '✕ La suma de derechos ingresados es <strong>' + sumaPadron.toFixed(2) + '%</strong> y supera el 100%. Revise los porcentajes: los quórum calculados no serán confiables.';
+  } else {
+    avisoSuma.style.display = 'block';
+    avisoSuma.className = 'msg-warn';
+    avisoSuma.innerHTML = '⚠ Suma de derechos ingresados: <strong>' + sumaPadron.toFixed(2) + '%</strong>. El padrón completo del condominio debe sumar 100%. Si aún no termina de ingresar copropietarios, puede continuar.';
+  }
+}
+totalPresentes = Math.min(totalPresentes, 100);
+totalHabil = Math.min(totalHabil, 100);
+var fill = document.getElementById('quorum-fill');
+var pct = document.getElementById('quorum-pct');
+var status = document.getElementById('quorum-status-text');
+var req = document.getElementById('quorum-req-text');
+pct.textContent = totalPresentes.toFixed(1) + '%';
+fill.style.width = Math.min(totalPresentes, 100) + '%';
+var minReq = 33, label = 'Mínimo 33% (asamblea ordinaria)';
+if (tipo === 'extraordinaria-abs') { minReq = 50; label = 'M\u00ednimo 50+1% (asamblea extraordinaria)'; }
+if (tipo === 'extraordinaria-ref') { minReq = 66; label = 'Mínimo 66% (mayoría reforzada)'; }
+var reqTxt = (tipo === 'extraordinaria-abs') ? 'más del 50%' : (minReq + '%');
+req.textContent = label;
+if ((tipo === 'extraordinaria-abs') ? (totalPresentes > 50) : (totalPresentes >= minReq)) {
+fill.className = 'quorum-fill';
+status.innerHTML = '<strong>Quórum de constitución OK</strong> — '
++ totalPresentes.toFixed(1) + '% de derechos presentes en la asamblea';
+status.style.color = '#1e6e4a';
+} else {
+fill.className = 'quorum-fill fail';
+status.innerHTML = '<strong>Quórum insuficiente:</strong> '
++ totalPresentes.toFixed(1) + '% — se requiere ' + reqTxt + ' para constituirse';
+status.style.color = '#b83232';
+}
+var boxAcuerdos = document.getElementById('quorum-acuerdos-box');
+if (!boxAcuerdos) return;
+if (tipo === 'ordinaria') {
+boxAcuerdos.style.display = 'flex';
+var fillA = document.getElementById('quorum-acuerdos-fill');
+var pctA = document.getElementById('quorum-acuerdos-pct');
+var txtA = document.getElementById('quorum-acuerdos-text');
+if (countHabil === 0) {
+txtA.textContent = 'Ingrese copropietarios habiles para calcular';
+pctA.textContent = '--';
+fillA.style.width = '0%';
+} else {
+var votosMinimos = Math.floor(countHabil / 2) + 1;
+fillA.style.width = '50%';
+pctA.textContent = votosMinimos + ' votos';
+txtA.innerHTML =
+'Base para votación: <strong>' + countHabil + '</strong> asistente' + (countHabil === 1 ? '' : 's') + ' h\u00e1bile' + (countHabil === 1 ? '' : 's') + ' presente' + (countHabil === 1 ? '' : 's') + '. '
++ 'Se requieren al menos <strong>' + votosMinimos + ' voto' + (votosMinimos === 1 ? '' : 's') + '</strong> a favor.';
+}
+} else {
+boxAcuerdos.style.display = 'flex';
+var fillA2 = document.getElementById('quorum-acuerdos-fill');
+var pctA2 = document.getElementById('quorum-acuerdos-pct');
+var txtA2 = document.getElementById('quorum-acuerdos-text');
+var subtA = boxAcuerdos.querySelector('div:last-of-type');
+if (subtA) {
+subtA.textContent = tipo === 'extraordinaria-abs'
+? '50+1% de derechos del condominio \u00b7 Art. 15 Ley 21.442'
+: 'Al menos 66% de derechos del condominio · Art. 15 Ley 21.442';
+}
+if (totalHabil === 0) {
+txtA2.textContent = 'Ingrese copropietarios hábiles para calcular';
+pctA2.textContent = '--';
+if (fillA2) fillA2.style.width = '0%';
+} else {
+var minExtPct = (tipo === 'extraordinaria-abs') ? 50 : 66;
+var habOk = (tipo === 'extraordinaria-abs') ? (totalHabil > 50) : (totalHabil >= minExtPct);
+if (fillA2) {
+fillA2.style.width = Math.min(totalHabil, 100) + '%';
+fillA2.className = 'quorum-fill' + (habOk ? '' : ' fail');
+}
+pctA2.textContent = totalHabil.toFixed(1) + '%';
+txtA2.innerHTML =
+'Derechos h\u00e1biles para adopci\u00f3n de acuerdos: '
++ '<strong>' + totalHabil.toFixed(1) + '%</strong> del total del condominio. '
++ (habOk
+? 'Cumple el quórum requerido (' + (tipo === 'extraordinaria-abs' ? 'más del 50%' : '66%') + ').'
+: '<strong>No alcanza</strong> el quórum requerido (' + (tipo === 'extraordinaria-abs' ? 'más del 50%' : '66%') + ').');
+}
+}
+setTimeout(function() { _hyrf(); }, 0);
+}
+function addPunto() {
+puntoCount++;
+var n = puntoCount;
+var container = document.getElementById('puntos-container');
+var div = document.createElement('div');
+div.className = 'punto-card';
+div.id = 'punto-' + n;
+var sq = String.fromCharCode(39);
+var tipoAsm = document.getElementById('tipo-asamblea') ? document.getElementById('tipo-asamblea').value : 'ordinaria';
+var defaultRegla = (tipoAsm === 'ordinaria') ? 'abs_asistentes' : 'abs_derechos';
+var h = '';
+h += '<div class="punto-header">';
+h += '<span class="punto-num">Punto N\u00b0 ' + n + '</span>';
+h += '<button class="btn-del" onclick="eliminarPuntoConfirm(this)" aria-label="Eliminar este punto del orden del día">X Eliminar</button>';
+h += '</div>';
+h += '<div class="form-grid single" style="margin-bottom:14px">';
+h += '<div class="field">';
+h += '<label for="p' + n + '-titulo">T\u00edtulo del punto <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>';
+h += '<input type="text" id="p' + n + '-titulo" placeholder="Ej: Aprobaci\u00f3n del balance anual del condominio">';
+h += '</div></div>';
+h += '<div class="form-grid" style="margin-bottom:14px">';
+h += '<div class="field span2">';
+h += '<label for="p' + n + '-presentacion">Presentaci\u00f3n</label>';
+h += '<textarea id="p' + n + '-presentacion" placeholder="Ej: La administradora present\u00f3 el balance al 31 de mayo, junto al detalle de gastos comunes."></textarea>';
+h += '</div></div>';
+h += '<div class="form-grid" style="margin-bottom:14px">';
+h += '<div class="field span2">';
+h += '<label for="p' + n + '-debate">Resumen del debate</label>';
+h += '<textarea id="p' + n + '-debate" placeholder="Resuma los argumentos. Ej: Se debatió sobre el aumento del fondo de reserva..."></textarea>';
+h += '</div></div>';
+h += '<div class="form-grid" style="margin-top:14px;margin-bottom:4px">';
+h += '<div class="field">';
+h += '<p style="font-size:11.5px;font-weight:600;color:var(--c-navy);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px">\u00bfEste punto requiere acuerdo?</p>';
+h += '<div class="toggle-group" style="margin-top:6px">';
+h += '<button class="toggle-btn active" id="p' + n + '-req-si" onclick="setRequiereAcuerdo(' + n + ',true)">S\u00ed, requiere votaci\u00f3n</button>';
+h += '<button class="toggle-btn" id="p' + n + '-req-no" onclick="setRequiereAcuerdo(' + n + ',false)">No, solo informativo</button>';
+h += '</div>';
+h += '<input type="hidden" id="p' + n + '-requiere" value="si">';
+h += '</div>';
+h += '<div class="field" id="p' + n + '-regla-wrap">';
+h += '<label for="p' + n + '-regla">Regla aplicable al punto</label>';
+h += '<select id="p' + n + '-regla" onchange="_jfg(' + n + ')">';
+h += '<option value="abs_asistentes"' + (tipoAsm === 'ordinaria'           ? ' selected' : '') + '>Mayor\u00eda absoluta de los asistentes h\u00e1biles (Asamblea Ordinaria)</option>';
+h += '<option value="abs_derechos"'  + (tipoAsm === 'extraordinaria-abs'   ? ' selected' : '') + '>Mayor\u00eda absoluta de derechos del condominio — 50+1% (Extraordinaria Absoluta)</option>';
+h += '<option value="dos_tercios"'   + (tipoAsm === 'extraordinaria-ref'   ? ' selected' : '') + '>Al menos 66% de los derechos del condominio (Extraordinaria Reforzada)</option>';
+h += '</select>';
+h += '</div>';
+h += '</div>'; 
+h += '<div class="form-grid" style="margin-top:14px">';
+h += '<div class="field">';
+h += '<label for="p' + n + '-responsable">Responsable</label>';
+h += '<input type="text" id="p' + n + '-responsable" placeholder="Ej: Administradora del condominio">';
+h += '</div>';
+h += '<div class="field">';
+h += '<label for="p' + n + '-plazo">Plazo</label>';
+h += '<input type="text" id="p' + n + '-plazo" placeholder="Ej: 30 d\u00edas desde la asamblea">';
+h += '</div></div>';
+h += '<div class="punto-vot-panel" id="pvot-' + n + '" style="margin-top:16px">';
+h += '<div class="punto-vot-header" onclick="toggleVotPanel(' + n + ')" role="button" tabindex="0" aria-expanded="false" aria-controls="pvot-body-' + n + '" aria-label="Mostrar u ocultar panel de votación del punto ' + n + '">';
+h += '<span class="punto-vot-header-title">\ud83d\uddf3\ufe0f Registrar votaci\u00f3n</span>';
+h += '<span class="punto-vot-header-toggle" id="pvot-toggle-' + n + '">Mostrar \u25bc</span>';
+h += '</div>';
+h += '<div class="punto-vot-body" id="pvot-body-' + n + '">';
+h += '<div class="punto-vot-actions">';
+h += '<button class="btn-vot-quick btn-vot-favor" onclick="marcarTodos(' + n + ',\'favor\')">A favor</button>';
+h += '<button class="btn-vot-quick btn-vot-contra" onclick="marcarTodos(' + n + ',\'contra\')">En contra</button>';
+h += '<button class="btn-vot-quick btn-vot-abst" onclick="marcarTodos(' + n + ',\'abst\')">Abstenci\u00f3n</button>';
+h += '<button class="btn-vot-quick btn-vot-limpiar" onclick="_irkxl(' + n + ')">Limpiar</button>';
+h += '</div>';
+h += '<table class="punto-vot-lista" id="pvot-lista-' + n + '">';
+h += '<thead><tr>';
+h += '<th style="width:28px"><input type="checkbox" id="pvot-all-' + n + '" onchange="_kbxo(' + n + ',this.checked)" title="Seleccionar todos"></th>';
+h += '<th>Unidad</th>';
+h += '<th style="width:90px;text-align:right">% Derechos</th>';
+h += '<th style="width:150px">Preferencia</th>';
+h += '</tr></thead>';
+h += '<tbody id="pvot-rows-' + n + '"></tbody>';
+h += '</table>';
+h += '<div class="punto-vot-resumen" id="pvot-resumen-' + n + '">';
+h += '<div class="punto-vot-resumen-grid">';
+h += '<div class="pvr-cell favor"><span class="pvr-cell-label">\u2705 A Favor</span><div class="pvr-cell-_pvau" id="pvot-rf-' + n + '">\u2014</div></div>';
+h += '<div class="pvr-cell contra"><span class="pvr-cell-label">\u274c En Contra</span><div class="pvr-cell-_pvau" id="pvot-rc-' + n + '">\u2014</div></div>';
+h += '<div class="pvr-cell abst"><span class="pvr-cell-label">\u2796 Abstenci\u00f3n</span><div class="pvr-cell-_pvau" id="pvot-ra-' + n + '">\u2014</div></div>';
+h += '</div>';
+h += '<div class="pvr-detalle" id="pvot-rdet-' + n + '">Abra el panel para registrar preferencias.</div>';
+h += '<div class="pvr-conclusion pendiente" id="pvot-rconcl-' + n + '">Sin registro de votaci\u00f3n</div>';
+h += '</div>'; 
+h += '</div>'; 
+h += '</div>'; 
+div.innerHTML = h;
+container.appendChild(div);
+_qpese(n);
+}
+function _possk(str) {
+if (!str) return '[FECHA]';
+const [y,m,d] = str.split('-');
+const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+return parseInt(d) + ' de ' + meses[parseInt(m)-1] + ' de ' + y;
+}
+function _pvau(id) {
+const el = document.getElementById(id);
+return el ? (el.value || '') : '';
+}
+function escapeHtml(s) {
+if (s == null) return '';
+return String(s)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+}
+function generateActa() {
+const actaNum = escapeHtml(_pvau('acta-numero')) || '\u2014';
+const nombreCondo = escapeHtml(_pvau('condo-nombre')) || '[NOMBRE DEL CONDOMINIO]';
+const dir = escapeHtml(_pvau('condo-direccion'));
+const rut = escapeHtml(_pvau('condo-rut'));
+const tipo = _pvau('tipo-asamblea');
+const tipoTexto = {
+'ordinaria': 'ORDINARIA',
+'extraordinaria-abs': 'EXTRAORDINARIA \u2014 MAYOR\u00cdA ABSOLUTA',
+'extraordinaria-ref': 'EXTRAORDINARIA \u2014 MAYOR\u00cdA REFORZADA'
+}[tipo] || 'ORDINARIA';
+const tipoNarrativo = {
+'ordinaria': 'ordinaria',
+'extraordinaria-abs': 'extraordinaria de mayoría absoluta',
+'extraordinaria-ref': 'extraordinaria de mayoría reforzada'
+}[tipo] || 'ordinaria';
+const esOrdinaria = (tipo === 'ordinaria');
+const modalidad = _pvau('modalidad');
+const fechaSes = _possk(_pvau('fecha-sesion'));
+const horaInicio = escapeHtml(_pvau('hora-inicio')) || '--:--';
+const lugar = escapeHtml(_pvau('lugar'));
+const plataforma = escapeHtml(_pvau('plataforma')) || '';
+const presidenteNom = escapeHtml(_pvau('nombre-presidente')) || '[PRESIDENTE]';
+const quienConvoco = _pvau('quien-convoco');
+const nombreConv = escapeHtml(_pvau('nombre-convocante')) || '[CONVOCANTE]';
+const fechaCit = _possk(_pvau('fecha-citacion'));
+const medioNotif = _pvau('medio-notif');
+const doc24 = _pvau('doc24');
+const grabacion = _pvau('grabacion');
+const notario = _pvau('notario');
+const notarioNombre = escapeHtml(_pvau('notario-nombre'));
+const obs = escapeHtml(_pvau('observaciones'));
+let asistentesRows = '';
+let totalHabil = 0; 
+let totalPresentes = 0; 
+let countHabil = 0; 
+let asistIdx = 0;
+document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
+const asisteEl = row.querySelector('.asiste');
+const asiste = asisteEl ? asisteEl.value === 'si' : true;
+const unidad = row.querySelector('.unidad') ? row.querySelector('.unidad').value : '';
+const nombre = row.querySelector('.nombre-asist')? row.querySelector('.nombre-asist').value: '';
+const der = parseFloat(row.querySelector('.derechos')
+? row.querySelector('.derechos').value : 0) || 0;
+const habil = row.querySelector('.habil') && row.querySelector('.habil').value === 'si'
+? 'S\u00ed' : 'No';
+const rep = row.querySelector('.representante')
+? row.querySelector('.representante').value : '';
+// Solo los presentes cuentan para el quórum
+if (asiste) {
+totalPresentes += der;
+if (habil === 'S\u00ed') { totalHabil += der; countHabil++; }
+}
+asistIdx++;
+const asisteCell = asiste
+? '<td style="text-align:center;color:#1a6e3c;font-weight:500">\u2713 S\u00ed</td>'
+: '<td style="text-align:center;color:#999999">\u2014 No</td>';
+const rowStyle = asiste ? '' : ' style="color:#aaaaaa;background:#f9f9f9;"';
+asistentesRows +=
+'<tr' + rowStyle + '><td>' + asistIdx + '</td><td>' + escapeHtml(unidad) + '</td><td>' + escapeHtml(nombre) +
+'</td><td style="text-align:center">' + der.toFixed(2) + '%</td>' +
+'<td style="text-align:center">' + habil + '</td>' + asisteCell +
+'<td>' + escapeHtml(rep) + '</td></tr>';
+});
+totalPresentes = Math.min(totalPresentes, 100);
+totalHabil = Math.min(totalHabil, 100);
+let quorumMin = 33;
+if (tipo === 'extraordinaria-abs') quorumMin = 50;
+if (tipo === 'extraordinaria-ref') quorumMin = 66;
+const quorumOk = (tipo === 'extraordinaria-abs') ? (totalPresentes > 50) : (totalPresentes >= quorumMin);
+let puntosHTML = '';
+let resumenRows = '';
+document.querySelectorAll('.punto-card').forEach(function(pc, idx) {
+const n = pc.id.replace('punto-', '');
+const titulo = escapeHtml(_pvau('p'+n+'-titulo'));
+const presentacion = escapeHtml(_pvau('p'+n+'-presentacion'));
+const debate = escapeHtml(_pvau('p'+n+'-debate'));
+if (presentacion && presentacion.length < 10)
+console.warn('Punto ' + n + ': presentación muy breve (' + presentacion.length + ' chars)');
+if (debate && debate.length < 10)
+console.warn('Punto ' + n + ': debate muy breve (' + debate.length + ' chars)');
+const resultado = escapeHtml(_pvau('p'+n+'-resultado'));
+const responsable = escapeHtml(_pvau('p'+n+'-responsable'));
+const plazoRaw = escapeHtml(_pvau('p'+n+'-plazo'));
+const plazoText = (plazoRaw && plazoRaw.trim()) ? plazoRaw.trim() : '\u2014';
+const requiere = (document.getElementById('p'+n+'-requiere') || {}).value || 'si';
+const pvotFavor = pc.dataset.votFavor || '';
+const pvotContra= pc.dataset.votContra || '';
+const pvotAbst = pc.dataset.votAbst || '';
+const pvotBase = pc.dataset.votBase || '';
+const pvotUmbral= pc.dataset.votUmbral || '';
+const pvotAprob = pc.dataset.votAprobado|| 'pendiente';
+const pvotUnidad= pc.dataset.votUnidad || '%';
+const hasVot = (requiere === 'si' && pvotFavor !== '' && pvotBase !== '');
+const esSoloInfo= (requiere === 'no');
+var votText = '';
+if (hasVot) {
+votText += '<p><strong>Votaci\u00f3n:</strong> ';
+votText += pvotBase + '. ';
+votText += pvotUmbral + '. ';
+if (esOrdinaria) {
+var favNum = parseInt(pvotFavor, 10) || 0;
+var conNum = parseInt(pvotContra, 10) || 0;
+var absNum = parseInt(pvotAbst, 10) || 0;
+votText += 'A favor: <strong>' + _xckaf(favNum) + '</strong>. ';
+votText += 'En contra: <strong>' + _xckaf(conNum) + '</strong>. ';
+votText += 'Abstenci\u00f3n: <strong>' + _xckaf(absNum) + '</strong>.</p>';
+} else {
+var favPct = parseFloat(pvotFavor) || 0;
+var conPct = parseFloat(pvotContra) || 0;
+var absPct = parseFloat(pvotAbst) || 0;
+votText += 'A favor: <strong>' + favPct.toFixed(2) + '% de los derechos</strong>. ';
+votText += 'En contra: <strong>' + conPct.toFixed(2) + '% de los derechos</strong>. ';
+votText += 'Abstenci\u00f3n: <strong>' + absPct.toFixed(2) + '% de los derechos</strong>.</p>';
+}
+const resultadoFinal = (pvotAprob === 'si') ? 'Se aprueba' : (pvotAprob === 'no') ? 'Se rechaza' : resultado;
+votText += '<p><strong>Acuerdo: ' + resultadoFinal + '.</strong>';
+votText += (responsable ? ' Responsable: ' + responsable + '.' : '');
+votText += (plazoRaw && plazoRaw.trim() ? ' Plazo: ' + plazoRaw.trim() + '.' : '') + '</p>';
+} else if (esSoloInfo) {
+votText += '<p><em>Punto informativo. No requiri\u00f3 acuerdo.</em>';
+votText += (responsable ? ' Responsable: ' + responsable + '.' : '');
+votText += (plazoRaw && plazoRaw.trim() ? ' Plazo: ' + plazoRaw.trim() + '.' : '') + '</p>';
+} else {
+votText += '<p><strong>Acuerdo: ' + resultado + '.</strong>';
+votText += (responsable ? ' Responsable: ' + responsable + '.' : '');
+votText += (plazoRaw && plazoRaw.trim() ? ' Plazo: ' + plazoRaw.trim() + '.' : '') + '</p>';
+}
+puntosHTML +=
+'<div class="acta-section">' +
+'<div class="acta-section-title">Punto N\u00b0 ' + (idx+1) + ': ' + titulo + '</div>' +
+(presentacion ? '<p><strong>Presentaci\u00f3n:</strong> ' + presentacion + '</p>' : '') +
+(debate ? '<p><strong>Debate:</strong> ' + debate + '</p>' : '') +
+votText + '</div>';
+const resultadoResumen = (pvotAprob === 'si') ? 'Se aprueba'
+: (pvotAprob === 'no') ? 'Se rechaza'
+: (esSoloInfo ? 'Informativo'
+: resultado);
+resumenRows +=
+'<tr><td>' + (idx+1) + '</td><td>' + titulo + '</td><td>' + resultadoResumen +
+'</td><td>' + (responsable || '\u2014') + '</td><td>' + plazoText + '</td></tr>';
+});
+var firmasHTML = '<div class="acta-signatures">';
+[['f1'],['f2'],['f3']].forEach(function(pair) {
+var fn = pair[0];
+var fnombre = escapeHtml(_pvau(fn+'-nombre'));
+var fcargo = _pvau(fn+'-cargo');
+var frut = escapeHtml(_pvau(fn+'-rut'));
+if (fnombre) {
+firmasHTML += '<div class="sig-line"><div style="height:40px"></div>' + fnombre;
+if (frut) firmasHTML += '<br><small>RUT: ' + frut + '</small>';
+firmasHTML += '<br><small>' + fcargo + '</small></div>';
+}
+});
+var notarioRut = escapeHtml(_pvau('notario-rut'));
+var notarioTipo = _pvau('notario-tipo') || 'Notario P\u00fablico';
+if (notario === 'Si' && notarioNombre) {
+firmasHTML += '<div class="sig-line"><div style="height:40px"></div>' + notarioNombre;
+if (notarioRut) firmasHTML += '<br><small>RUT: ' + notarioRut + '</small>';
+firmasHTML += '<br><small>' + notarioTipo + '</small></div>';
+}
+firmasHTML += '</div>';
+var lugarText;
+if (modalidad === 'presencial') {
+lugarText = 'en <strong>' + (lugar || 'las dependencias del condominio') +
+'</strong>, modalidad <strong>presencial</strong>';
+} else if (modalidad === 'telem\u00e1tica' || modalidad === 'telematica') {
+lugarText = 'en <strong>modalidad telem\u00e1tica</strong> mediante <strong>' +
+(plataforma || '[plataforma]') + '</strong>';
+} else {
+lugarText = 'en <strong>modalidad mixta</strong>, presencial en <strong>' +
+(lugar || '[lugar]') + '</strong>' +
+(plataforma ? ' y telem\u00e1tica mediante <strong>' + plataforma + '</strong>' : '');
+}
+var obsTexto = (obs && obs.trim()) ? obs.trim() : '';
+var acta =
+'<div class="acta-header-preview">' +
+'<div style="font-size:10pt;color:#666;text-align:right;margin-bottom:6px">Acta N\u00b0 ' + actaNum + '</div>' +
+'<div class="acta-title">Acta de Asamblea ' + tipoTexto + ' de Copropietarios</div>' +
+'<div class="acta-subtitle">' + nombreCondo + (rut ? ' \u2014 RUT ' + rut : '') + '</div>' +
+'<div class="acta-subtitle">' + (dir || '') + '</div>' +
+'</div>' +
+'<div class="acta-section"><div class="acta-section-title">1. Datos de la sesi\u00f3n</div>' +
+(function() {
+var lugarPart, modalPart;
+if (modalidad === 'presencial') {
+lugarPart = 'En ' + (lugar || 'las dependencias del condominio');
+modalPart = 'en modalidad presencial';
+} else if (modalidad === 'telem\u00e1tica' || modalidad === 'telematica') {
+lugarPart = 'En modalidad telem\u00e1tica';
+modalPart = 'mediante <strong>' + (plataforma || '[plataforma]') + '</strong>';
+} else {
+lugarPart = 'En <strong>' + (lugar || '[lugar]') + '</strong>';
+modalPart = 'en modalidad mixta'
++ (plataforma ? ', tambi\u00e9n mediante <strong>' + plataforma + '</strong>' : '');
+}
+return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
++ '<strong>' + horaInicio + ' horas</strong> del d\u00eda '
++ '<strong>' + fechaSes + '</strong>, se re\u00fanen los copropietarios del condominio '
++ '<strong>' + nombreCondo + '</strong>, en asamblea '
++ '<strong>' + tipoNarrativo + '</strong>, '
++ 'conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.</p></div>';
+})() +
+'<div class="acta-section"><div class="acta-section-title">2. Antecedentes de la Convocatoria</div>' +
+'<p>' +
+(quienConvoco === 'presidente'
+? 'La presente asamblea fue convocada por el presidente del Comit\u00e9 de Administraci\u00f3n'
+: quienConvoco === 'administrador'
+? 'La presente asamblea fue convocada por el administrador o administradora'
+: 'La presente asamblea fue convocada por copropietarios que representan el 10% o m\u00e1s de los derechos del condominio') +
+', <strong>' + nombreConv + '</strong>, mediante ' + medioNotif +
+' con fecha <strong>' + fechaCit + '</strong>.'
++ ' La documentaci\u00f3n fue remitida con 24 horas de anticipaci\u00f3n: <strong>' + doc24 + '</strong>.'
++ (grabacion === 'S\u00ed' || grabacion === 'Si' ? ' Se deja constancia de que la sesi\u00f3n fue registrada mediante grabaci\u00f3n de respaldo.' : '') +
+'</p></div>' +
+'<div class="acta-section"><div class="acta-section-title">3. Registro de asistencia</div>' +
+'<table><thead><tr>' +
+'<th>#</th><th>Unidad</th><th>Nombre</th><th>% Derechos</th><th>H\u00e1bil</th><th>Asiste</th><th>Representante</th>' +
+'</tr></thead><tbody>' + asistentesRows + '</tbody></table></div>' +
+'<div class="acta-section"><div class="acta-section-title">4. Qu\u00f3rum de constituci\u00f3n y adopci\u00f3n de acuerdos</div>' +
+'<p>Los derechos presentes en la asamblea alcanzan el <strong>' + totalPresentes.toFixed(2) + '%</strong> del total del condominio. ' +
+(quorumOk
+? 'Con ello se cumple el qu\u00f3rum de constituci\u00f3n exigido (m\u00ednimo ' + quorumMin + '%). '
++ 'La sesi\u00f3n fue v\u00e1lidamente constituida por <strong>' + presidenteNom + '</strong> a las <strong>' + horaInicio + ' horas</strong>.'
+: 'Este porcentaje <strong>no alcanza</strong> el m\u00ednimo de ' + quorumMin + '% requerido para constituir la asamblea.') +
+'</p>' +
+(esOrdinaria
+? '<p>Para efectos de la adopci\u00f3n de acuerdos, éstos se computan sobre la base de los '
++ '<strong>' + countHabil + '</strong> asistentes h\u00e1biles, '
++ 'conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.'
++ (notario === 'Si' && notarioNombre
+? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
+: '') + '</p></div>'
+: '<p>Para efectos de la adopci\u00f3n de acuerdos, se consideran \u00fanicamente los derechos '
++ 'correspondientes a copropietarios h\u00e1biles: <strong>' + totalHabil.toFixed(2) + '%</strong> '
++ 'de los derechos del condominio.'
++ (notario === 'Si' && notarioNombre
+? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
+: '') + '</p></div>') +
+'<div class="acta-section"><div class="acta-section-title">5. Desarrollo de la tabla</div>' +
+puntosHTML + '</div>' +
+(obsTexto
+? '<div class="acta-section"><div class="acta-section-title">6. Observaciones finales</div>'
++ '<p>' + obsTexto + '</p></div>'
+: '') +
+'<div class="acta-section"><div class="acta-section-title">7. Resumen de acuerdos</div>' +
+'<table><thead><tr>' +
+'<th>#</th><th>Acuerdo</th><th>Resultado</th><th>Responsable</th><th>Plazo</th>' +
+'</tr></thead><tbody>' + resumenRows + '</tbody></table></div>' +
+firmasHTML +
+'<p style="font-size:11px;color:#333;text-align:center;margin-top:24px;border-top:1px solid #ddd;padding-top:12px;line-height:1.55">' +
+'<strong style="display:block;font-size:11.5px;color:#8B0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">' +
+'\u26a0\ufe0f IMPORTANTE: ESTA ACTA NO SE ENCUENTRA ALMACENADA EN NING\u00daN SERVIDOR EXTERNO' +
+'</strong>' +
+'<span style="font-style:italic;color:#555">' +
+'El programa funciona completamente en el dispositivo del usuario. <strong>Ning\u00fan tercero \u2014ni el autor del programa, ni instituciones p\u00fablicas o privadas\u2014 almacena, recibe ni tiene acceso</strong> a los datos ingresados. ' +
+'Toda la informaci\u00f3n permanece exclusivamente en el equipo de quien gener\u00f3 el acta, por lo tanto <strong>no es posible solicitar copias de este documento a terceros</strong>. ' +
+'Conserve el archivo original para sus respaldos.' +
+'</span></p>';
+acta = _ctgdc(acta);
+const container = document.getElementById('acta-content');
+if (container) container.innerHTML = acta;
+}
+function savePDF() {
+generateActa();
+const container = document.getElementById('acta-content');
+if (!container || container.innerHTML.trim() === '') {
+alert('Complete los datos del acta antes de descargar el archivo.');
+return;
+}
+const btn = document.querySelector('.print-btn .btn-gold');
+if (btn) { btn.textContent = 'Generando...'; btn.disabled = true; }
+showLoading('Generando el acta…', 'Estamos preparando el documento. Tomará solo unos segundos.');
+const nombreRaw = _pvau('condo-nombre') || 'acta';
+const nombreCondo = nombreRaw.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/ +/g, '_');
+const fecha = _pvau('fecha-sesion') || 'sin_fecha';
+const css =
+'* { box-sizing:border-box; margin:0; padding:0; }' +
+'body { font-family:"Helvetica Neue",Arial,sans-serif; font-size:10.5pt; line-height:1.7; color:#1C2733; background:#fff; padding:16mm 14mm; }' +
+'@media print { .aviso { display:none !important; } body { padding:0; } }' +
+'@page { size:A4; margin:20mm 18mm; }' +
+'.aviso { background:#E8EFF8; border-left:4px solid #3243A6; padding:10px 14px; margin-bottom:20px; font-size:10pt; color:#2A438C; border-radius:3px; }' +
+'.acta-header-preview { text-align:center; border-bottom:2px solid #3243A6; padding-bottom:14px; margin-bottom:24px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'.acta-title { font-family:"Helvetica Neue",Arial,sans-serif; font-size:14pt; font-weight:bold; color:#3243A6; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'.acta-subtitle { font-size:10pt; color:#5B6B7A; margin-top:4px; line-height:1.4; }' +
+'.acta-section { margin-bottom:18px; page-break-inside:avoid; break-inside:avoid-page; }' +
+'.acta-section-title { font-size:8pt; font-weight:bold; color:#3243A6; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid #3243A6; padding-bottom:4px; margin-bottom:8px; page-break-after:avoid; break-after:avoid-page; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'p { margin-bottom:8px; text-align:justify; orphans:3; widows:3; }' +
+'table { width:100%; border-collapse:collapse; font-size:9pt; margin:8px 0; page-break-inside:auto; }' +
+'thead { display:table-header-group; }' +
+'tr { page-break-inside:avoid; break-inside:avoid; }' +
+'th { background:#3243A6; color:#ffffff; padding:6px 8px; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:0.3px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'td { padding:5px 8px; border:1px solid #D6DCE3; vertical-align:middle; font-size:9.5pt; }' +
+'tr:nth-child(even) td { background:#F4F6F8; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'.acta-signatures { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:50px; padding-top:8px; page-break-inside:avoid; break-inside:avoid-page; }' +
+'.signature-block, .sig-line { border-top:1px solid #1C2733; padding-top:8px; text-align:center; font-size:10pt; color:#5B6B7A; margin-top:46px; page-break-inside:avoid; }' +
+'.signature-name, .sig-name { font-weight:bold; font-size:10.5pt; color:#1C2733; }' +
+'.signature-role, .sig-role { font-size:9pt; color:#5B6B7A; margin-top:2px; }';
+const aviso = '<div class="aviso"><strong>Para guardar como PDF:</strong> Presiona Ctrl+P (Windows) o Cmd+P (Mac) y selecciona "Guardar como PDF" como destino de impresion.</div>';
+const doc =
+'<!DOCTYPE html>\n<html lang="es">\n<head>\n' +
+'<meta charset="UTF-8">\n' +
+'<title>Acta ' + nombreCondo + ' ' + fecha + '</title>\n' +
+'<style>\n' + css + '\n</style>\n' +
+'</head>\n<body>\n' +
+aviso + '\n' +
+container.innerHTML + '\n\n\n</body>\n</html>';
+try {
+const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'acta_' + nombreCondo + '_' + fecha + '.html';
+a.style.display = 'none';
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+setTimeout(function() { URL.revokeObjectURL(url); }, 3000);
+if (btn) { btn.textContent = 'Guardar PDF'; btn.disabled = false; }
+hideLoading();
+} catch(e) {
+if (btn) { btn.textContent = 'Guardar PDF'; btn.disabled = false; }
+hideLoading();
+alert('No pudimos generar el archivo. Intente nuevamente.\n\nDetalle técnico: ' + e.message);
+}
+}
+function copyActa() {
+const container = document.getElementById('acta-content');
+const text = container ? container.innerText : '';
+const ta = document.createElement('textarea');
+ta.value = text;
+ta.style.position = 'fixed';
+ta.style.opacity = '0';
+document.body.appendChild(ta);
+ta.focus();
+ta.select();
+try {
+document.execCommand('copy');
+alert('✓ Texto copiado. Ahora puede pegarlo (Ctrl+V) donde lo necesite.');
+} catch(e) {
+alert('No pudimos copiar automáticamente. Seleccione el texto del acta y use Ctrl+C para copiarlo.');
+}
+document.body.removeChild(ta);
+}
+function _khftc(_pvau) {
+var v = String(_pvau || '').trim().toLowerCase()
+.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); 
+return (v === 'si' || v === 's' || v === 'yes' || v === '1' || v === 'true') ? 'si' : 'no';
+}
+function _cwpu(_pvau) {
+var v = String(_pvau || '').trim().toLowerCase()
+.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+return (v === 'presencial' || v === 'p') ? 'Presencial' : 'Telematico';
+}
+function agregarFilaAsistente(tbody, unidad, nombre, derechos, habil, modalidad, representante, asiste) {
+var n = tbody.rows.length;
+var esHabil = _khftc(habil);
+var esAsiste = _khftc(asiste !== undefined ? asiste : 'si');
+var esMod = _cwpu(modalidad);
+var unidadS = String(unidad || '').trim();
+var nombreS = String(nombre || '').trim();
+var derNum = 0;
+var derRaw = derechos;
+if (typeof derRaw === 'number') {
+  derNum = derRaw;
+} else {
+  var derStr = String(derRaw || '').trim();
+  // Si tiene punto de miles y coma decimal (ej: "1.500,25"), eliminar puntos primero
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(derStr)) {
+    derStr = derStr.replace(/\./g, '').replace(',', '.');
+  } else {
+    derStr = derStr.replace(',', '.');
+  }
+  derNum = parseFloat(derStr) || 0;
+}
+var repS = String(representante || '').trim();
+var tr = document.createElement('tr');
+tr.innerHTML =
+'<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" style="width:64px" class="unidad"></td>' +
+'<td><input type="text" id="asist-'+n+'-nombre" name="asist-'+n+'-nombre" class="nombre-asist"></td>' +
+'<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" step="0.01" min="0" max="100" class="derechos" onchange="calcularQuorum()" onkeyup="calcularQuorum()" style="width:72px"></td>' +
+'<td><select id="asist-'+n+'-habil" name="asist-'+n+'-habil" class="habil" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
+'<td><select id="asist-'+n+'-asiste" name="asist-'+n+'-asiste" class="asiste" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
+'<td><input type="text" id="asist-'+n+'-rep" name="asist-'+n+'-rep" placeholder="Solo si vota un representante" class="representante"></td>' +
+'<td><button class="btn-del" onclick="delRow(this)" aria-label="Quitar esta fila del registro" title="Quitar fila">X</button></td>';
+tbody.appendChild(tr);
+tr.querySelector('.unidad').value = unidadS;
+tr.querySelector('.nombre-asist').value = nombreS;
+tr.querySelector('.derechos').value = derNum || '';
+tr.querySelector('.representante').value = repS;
+var habilSel = tr.querySelector('.habil');
+if (habilSel) habilSel.value = esHabil;
+var asisteSel = tr.querySelector('.asiste');
+if (asisteSel) asisteSel.value = esAsiste;
+}
+function procesarFilas(filas) {
+if (!filas || filas.length === 0) {
+alert('El archivo no contiene datos. Revise que tenga al menos una fila con informaci\u00f3n de asistentes.');
+return;
+}
+var tbody = document.getElementById('asistentes-tbody');
+while (tbody.rows.length > 0) tbody.deleteRow(0);
+var primeraFila = filas[0];
+var c0 = String(primeraFila[0] || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+var c1 = String(primeraFila[1] || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+var esEncabezado = c0.includes('unidad') || c1.includes('nombre');
+var inicio = esEncabezado ? 1 : 0;
+var colMap = { unidad:-1, nombre:-1, derechos:-1, habil:-1, representante:-1 };
+if (esEncabezado) {
+primeraFila.forEach(function(cell, i) {
+var c = String(cell || '').trim().toLowerCase()
+.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+if (c.includes('unidad')) colMap.unidad = i;
+if (c.includes('nombre')) colMap.nombre = i;
+if (c.includes('derecho') || c.charAt(0) === '%') colMap.derechos = i;
+if (c.includes('habil')) colMap.habil = i;
+if (c.includes('representante') || c.includes('repres')) colMap.representante = i;
+});
+} else {
+colMap = { unidad:0, nombre:1, derechos:3, habil:4, representante:5 };
+}
+function celda(fila, key) {
+var idx = colMap[key];
+if (idx < 0 || idx === undefined) return '';
+var v = fila[idx];
+return (v === null || v === undefined) ? '' : String(v).trim();
+}
+var count = 0;
+var errores = 0;
+for (var i = inicio; i < filas.length; i++) {
+var fila = filas[i];
+if (!Array.isArray(fila)) continue;
+var unidadVal = String(fila[colMap.unidad >= 0 ? colMap.unidad : 0] == null ? '' : fila[colMap.unidad >= 0 ? colMap.unidad : 0]).trim();
+var nombreVal = String(fila[colMap.nombre >= 0 ? colMap.nombre : 1] == null ? '' : fila[colMap.nombre >= 0 ? colMap.nombre : 1]).trim();
+if (!unidadVal && !nombreVal) continue;
+try {
+agregarFilaAsistente(
+tbody,
+celda(fila, 'unidad'),
+celda(fila, 'nombre'),
+celda(fila, 'derechos'),
+celda(fila, 'habil'),
+'', 
+celda(fila, 'representante')
+);
+count++;
+} catch(e) {
+errores++;
+console.warn('Error al importar fila ' + (i+1) + ':', e.message, fila);
+}
+}
+calcularQuorum();
+var msg = 'Se importaron ' + count + ' registros correctamente.';
+if (errores > 0) msg += ' (' + errores + ' filas con error fueron omitidas — ver consola para detalle.)';
+alert(msg);
+}
+function importarExcel(input) {
+var file = input.files[0];
+if (!file) return;
+var ext = file.name.split('.').pop().toLowerCase();
+var reader = new FileReader();
+if (ext === 'csv') {
+reader.onload = function(e) {
+var text = e.target.result.replace(/^\uFEFF/, '');
+var lines0 = text.split(String.fromCharCode(10));
+var firstDataLine = '';
+for (var li = 0; li < lines0.length; li++) {
+  var l0 = lines0[li].replace(new RegExp(String.fromCharCode(13),'g'),'').trim();
+  if (l0 && l0.charAt(0) !== '#') { firstDataLine = l0; break; }
+}
+var sep = (firstDataLine.split(';').length > firstDataLine.split(',').length) ? ';' : ',';
+var lines = text.split(String.fromCharCode(10));
+var filas = [];
+lines.forEach(function(line) {
+line = line.replace(new RegExp(String.fromCharCode(13), 'g'), '').trim();
+if (!line) return;
+if (line.charAt(0) === '#') return;
+var cols = []; var inQuote = false; var cell = '';
+for (var ci = 0; ci < line.length; ci++) {
+var ch = line[ci];
+if (ch === '"') { inQuote = !inQuote; continue; }
+if (ch === sep && !inQuote) { cols.push(cell.trim()); cell = ''; continue; }
+cell += ch;
+}
+cols.push(cell.trim());
+filas.push(cols);
+});
+procesarFilas(filas);
+};
+reader.readAsText(file, 'UTF-8');
+} else if (ext === 'xlsx' || ext === 'xls') {
+if (typeof XLSX === 'undefined') {
+  alert('No pudimos cargar el lector de Excel. Como alternativa, guarde el archivo como CSV (UTF-8) e impórtelo en formato .csv.');
+  input.value = '';
+  return;
+}
+reader.onload = function(e) {
+  try {
+    var data = new Uint8Array(e.target.result);
+    var wb = XLSX.read(data, { type: 'array' });
+    var wsName = wb.SheetNames.indexOf('Asistentes') >= 0 ? 'Asistentes' : wb.SheetNames[0];
+    var ws = wb.Sheets[wsName];
+    var filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+    procesarFilas(filas);
+  } catch(err) {
+    alert('No pudimos leer el archivo Excel. Guárdelo como CSV (UTF-8) e impórtelo nuevamente en formato .csv.');
+  }
+};
+reader.readAsArrayBuffer(file);
+} else {
+alert('Formato no compatible. Use archivos .csv o .xlsx, o exporte su Excel como CSV (UTF-8).');
+}
+input.value = '';
+}
+function descargarPlantilla() {
+  var contenido =
+    '\uFEFF' +
+    'Unidad;Nombre del copropietario;RUT del Propietario;% Derechos;Habil;Representante\n' +
+    '101;Juan Pérez González;12.345.678-9;1,50;Si;\n' +
+    '202;María López Soto;9.876.543-2;0,85;No;Pedro López (poder notarial)\n' +
+    '303;Carlos Ramírez Fuentes;15.234.567-8;2,10;Si;\n';
+  var blob = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'plantilla_asistentes_asamblea.csv';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+}
+function obtenerAsistentesHabiles() {
+var result = [];
+document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
+var habEl = row.querySelector('.habil');
+var derEl = row.querySelector('.derechos');
+var nomEl = row.querySelector('.nombre-asist');
+var uniEl = row.querySelector('.unidad');
+if (!habEl || habEl.value !== 'si') return;
+result.push({
+unidad: uniEl ? uniEl.value.trim() : '',
+nombre: nomEl ? nomEl.value.trim() : '',
+derechos: parseFloat(derEl ? derEl.value : 0) || 0
+});
+});
+return result;
+}
+function calcularResultadoVotacion(cfg) {
+var habiles = obtenerAsistentesHabiles();
+var sistema = cfg.sistemaComputo || 'asistentes';
+var mayoria = cfg.tipoMayoria || 'abs_asistentes';
+var totalPersonas = habiles.length;
+var totalDerechos = habiles.reduce(function(s, a) { return s + a.derechos; }, 0);
+var favorPersonas = 0, contraPersonas = 0, abstPersonas = 0, sinVotarPersonas = 0;
+var favorDerechos = 0, contraDerechos = 0, abstDerechos = 0;
+habiles.forEach(function(a) {
+switch (a.voto) {
+case 'favor':
+favorPersonas++; favorDerechos += a.derechos; break;
+case 'contra':
+contraPersonas++; contraDerechos += a.derechos; break;
+case 'abstencion':
+abstPersonas++; abstDerechos += a.derechos; break;
+default:
+sinVotarPersonas++;
+}
+});
+var baseValor, aFavor, enContra, abstenciones;
+if (sistema === 'asistentes') {
+baseValor = totalPersonas;
+aFavor = favorPersonas;
+enContra = contraPersonas;
+abstenciones = abstPersonas;
+} else {
+baseValor = totalDerechos;
+aFavor = favorDerechos;
+enContra = contraDerechos;
+abstenciones = abstDerechos;
+}
+var umbral, comparador, descripcionMayoria;
+switch (mayoria) {
+case 'abs_asistentes':
+umbral = totalPersonas / 2;
+comparador = '>';
+descripcionMayoria = 'Mayor\u00eda absoluta de asistentes h\u00e1biles (' + totalPersonas + ' presentes \u2192 m\u00ednimo ' + (Math.floor(totalPersonas / 2) + 1) + ' votos)';
+break;
+case 'abs_derechos':
+umbral = 51;
+comparador = '>=';
+descripcionMayoria = 'Mayor\u00eda absoluta de derechos del condominio (50+1% de 100% \u2192 m\u00ednimo 51%)';
+break;
+case 'dos_tercios':
+umbral = 66;
+comparador = '>=';
+descripcionMayoria = '66% de los derechos del condominio (66% de 100% → umbral 66%)';
+break;
+default:
+umbral = baseValor / 2;
+comparador = '>';
+descripcionMayoria = 'Mayoría absoluta';
+}
+var aprobado = false;
+if (comparador === '>') {
+aprobado = (aFavor > umbral);
+} else {
+aprobado = (aFavor >= umbral);
+}
+var unidad = (sistema === 'asistentes') ? ' asistentes' : '%';
+var NL = String.fromCharCode(10);
+var detalle =
+'Base de c\u00e1lculo: ' + (sistema === 'asistentes'
+? totalPersonas + ' asistentes h\u00e1biles'
+: totalDerechos.toFixed(2) + '% derechos h\u00e1biles') + NL +
+'Mayor\u00eda requerida: ' + descripcionMayoria + NL +
+'Resultado: ' +
+aFavor + (sistema === 'derechos' ? '%' : '') + ' a favor - ' +
+enContra + (sistema === 'derechos' ? '%' : '') + ' en contra - ' +
+abstenciones + (sistema === 'derechos' ? '%' : '') + ' abstenci\u00f3n' +
+(sinVotarPersonas > 0 ? ' (' + sinVotarPersonas + ' sin votar)' : '') + NL +
+'Conclusi\u00f3n: ' + (aprobado ? 'SE APRUEBA' : 'NO SE APRUEBA');
+return {
+baseTipo: sistema,
+baseValor: baseValor,
+aFavor: aFavor,
+enContra: enContra,
+abstenciones: abstenciones,
+sinVotar: sinVotarPersonas,
+umbral: umbral,
+comparador: comparador,
+aprobado: aprobado,
+detalle: detalle,
+descripcionMayoria: descripcionMayoria,
+totalPersonas: totalPersonas,
+totalDerechos: totalDerechos,
+unidad: (sistema === 'asistentes') ? '' : '%'
+};
+}
+function actualizarVotacion() {
+_hyrf();
+}
+function updateTipoAsambleaExtended() {
+updateTipoAsamblea();
+var tipo = document.getElementById('tipo-asamblea').value;
+if (tipo === 'ordinaria') {
+} else if (tipo === 'extraordinaria-abs') {
+} else if (tipo === 'extraordinaria-ref') {
+}
+actualizarVotacion();
+}
+function setRequiereAcuerdo(n, requiere) {
+var hiddenEl = document.getElementById('p' + n + '-requiere');
+var panelEl = document.getElementById('pvot-' + n);
+var btnSi = document.getElementById('p' + n + '-req-si');
+var btnNo = document.getElementById('p' + n + '-req-no');
+if (hiddenEl) hiddenEl.value = requiere ? 'si' : 'no';
+if (panelEl) panelEl.style.display = requiere ? '' : 'none';
+if (btnSi) { btnSi.classList.toggle('active', requiere); }
+if (btnNo) { btnNo.classList.toggle('active', !requiere); }
+}
+function toggleVotPanel(n) {
+var body = document.getElementById('pvot-body-' + n);
+var toggle = document.getElementById('pvot-toggle-' + n);
+if (!body) return;
+var header = body.previousElementSibling; // .punto-vot-header
+var isOpen = body.classList.contains('open');
+if (isOpen) {
+body.classList.remove('open');
+if (toggle) toggle.textContent = 'Mostrar ▼';
+if (header && header.setAttribute) header.setAttribute('aria-expanded', 'false');
+} else {
+_qpese(n);
+body.classList.add('open');
+if (toggle) toggle.textContent = 'Ocultar ▲';
+if (header && header.setAttribute) header.setAttribute('aria-expanded', 'true');
+}
+}
+function _qpese(n) {
+var tbody = document.getElementById('pvot-rows-' + n);
+if (!tbody) return;
+var prevPrefs = {};
+tbody.querySelectorAll('tr').forEach(function(row) {
+var key = row.dataset.key;
+var sel = row.querySelector('.pref-select');
+if (key && sel) prevPrefs[key] = sel.value;
+});
+tbody.innerHTML = '';
+var hayHabiles = false;
+document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
+var habEl = row.querySelector('.habil');
+var derEl = row.querySelector('.derechos');
+var nomEl = row.querySelector('.nombre-asist');
+var uniEl = row.querySelector('.unidad');
+var asisteEl = row.querySelector('.asiste');
+if (!habEl) return;
+var esAsiste = asisteEl ? asisteEl.value === 'si' : true;
+if (!esAsiste) return; // ausente: no aparece en la tabla de votación
+var esHabil = habEl.value === 'si';
+var nombre = nomEl ? nomEl.value.trim() : '';
+var unidad = uniEl ? uniEl.value.trim() : '';
+var derechos = parseFloat(derEl ? derEl.value : 0) || 0;
+var key = unidad + '|' + nombre;
+var prevPref = prevPrefs[key] || 'sin_reg';
+var tr = document.createElement('tr');
+tr.dataset.key = key;
+tr.dataset.derechos = derechos;
+tr.dataset.habil = esHabil ? 'si' : 'no';
+tr.dataset.nombre = nombre; 
+if (!esHabil) tr.classList.add('row-inhabit');
+var tdChk = document.createElement('td');
+if (esHabil) {
+var chk = document.createElement('input');
+chk.type = 'checkbox'; chk.className = 'pvot-chk';
+tdChk.appendChild(chk);
+}
+tr.appendChild(tdChk);
+var tdUni = document.createElement('td');
+tdUni.textContent = unidad || '—';
+tr.appendChild(tdUni);
+var tdDer = document.createElement('td');
+tdDer.textContent = derechos.toFixed(2) + '%';
+tdDer.style.textAlign = 'right';
+tr.appendChild(tdDer);
+var tdPref = document.createElement('td');
+if (!esHabil) {
+var badge = document.createElement('span');
+badge.className = 'badge-inhabit';
+badge.textContent = 'Inhábil · no vota';
+tdPref.appendChild(badge);
+} else {
+hayHabiles = true;
+var sel = document.createElement('select');
+sel.className = 'pref-select sin_reg';
+['sin_reg', 'favor', 'contra', 'abst'].forEach(function(v) {
+var opt = document.createElement('option');
+opt.value = v;
+opt.textContent = v === 'sin_reg' ? 'Sin registrar'
+: v === 'favor' ? 'A favor'
+: v === 'contra' ? 'En contra'
+: 'Abstención';
+sel.appendChild(opt);
+});
+sel.value = prevPref;
+sel.className = 'pref-select ' + sel.value;
+sel.addEventListener('change', function() {
+this.className = 'pref-select ' + this.value;
+_jfg(n);
+_vufa(n);
+});
+tdPref.appendChild(sel);
+}
+tr.appendChild(tdPref);
+tbody.appendChild(tr);
+});
+if (!hayHabiles) {
+var trEmpty = document.createElement('tr');
+trEmpty.innerHTML = '<td colspan="5" style="text-align:center;color:var(--c-text-2);padding:14px">No hay asistentes hábiles registrados en el paso de asistentes.</td>';
+tbody.appendChild(trEmpty);
+}
+_jfg(n);
+}
+function _jfg(n) {
+var tbody = document.getElementById('pvot-rows-' + n);
+if (!tbody) return;
+var reglaEl = document.getElementById('p' + n + '-regla');
+var tipoAsm = document.getElementById('tipo-asamblea') ? document.getElementById('tipo-asamblea').value : 'ordinaria';
+var mayoria = reglaEl ? reglaEl.value : (tipoAsm === 'ordinaria' ? 'abs_asistentes' : 'abs_derechos');
+var totalDer = 0, favorDer = 0, contraDer = 0, abstDer = 0, sinReg = 0;
+var totalHab = 0, favorHab = 0, contraHab = 0, abstHab = 0;
+tbody.querySelectorAll('tr').forEach(function(row) {
+if (row.dataset.habil !== 'si') return;
+var der = parseFloat(row.dataset.derechos) || 0;
+var sel = row.querySelector('.pref-select');
+var pref = sel ? sel.value : 'sin_reg';
+totalDer += der; totalHab++;
+if (pref === 'favor') { favorDer += der; favorHab++; }
+else if (pref === 'contra') { contraDer += der; contraHab++; }
+else if (pref === 'abst') { abstDer += der; abstHab++; }
+else { sinReg++; }
+});
+var rfEl = document.getElementById('pvot-rf-' + n);
+var rcEl = document.getElementById('pvot-rc-' + n);
+var raEl = document.getElementById('pvot-ra-' + n);
+if (!rfEl) return;
+var sistema = (mayoria === 'abs_asistentes') ? 'asistentes' : 'derechos';
+if (sistema === 'asistentes') {
+rfEl.textContent = favorHab;
+rcEl.textContent = contraHab;
+raEl.textContent = abstHab;
+} else {
+rfEl.textContent = favorDer.toFixed(2) + '%';
+rcEl.textContent = contraDer.toFixed(2) + '%';
+raEl.textContent = abstDer.toFixed(2) + '%';
+}
+var umbral, aprobado, umbralDesc, baseDesc;
+if (sistema === 'asistentes') {
+var base = totalHab;
+umbral = Math.floor(base / 2) + 1;
+aprobado = (favorHab >= umbral);
+baseDesc = 'Base: ' + base + ' asistentes hábiles';
+umbralDesc = 'Mínimo requerido: ' + umbral + ' votos a favor';
+} else {
+if (mayoria === 'abs_asistentes' || mayoria === 'abs_derechos') {
+if (mayoria === 'abs_asistentes') {
+umbral = totalDer / 2;
+aprobado = (favorDer > umbral);
+baseDesc = 'Base: ' + totalDer.toFixed(2) + '% derechos h\u00e1biles';
+umbralDesc = 'Mayor\u00eda absoluta: m\u00e1s de ' + umbral.toFixed(2) + '% a favor';
+} else {
+umbral = 51;
+aprobado = (favorDer >= umbral);
+baseDesc = 'Base: 100% derechos del condominio';
+umbralDesc = '50+1% de derechos del condominio: al menos 51% a favor';
+}
+} else {
+umbral = 66;
+aprobado = (favorDer >= umbral);
+baseDesc = 'Base: 100% derechos del condominio';
+umbralDesc = '66% de derechos del condominio: al menos 66% a favor';
+}
+}
+var detEl = document.getElementById('pvot-rdet-' + n);
+var conclEl = document.getElementById('pvot-rconcl-' + n);
+var haySinReg = (sinReg > 0);
+if (detEl) {
+var detalle = baseDesc + ' · ' + umbralDesc;
+if (haySinReg) detalle += ' · ⚠️ ' + sinReg + ' asistente(s) sin registrar';
+detEl.textContent = detalle;
+}
+if (conclEl) {
+if (haySinReg) {
+conclEl.className = 'pvr-conclusion pendiente';
+conclEl.textContent = '⚠️ Faltan ' + sinReg + ' preferencia(s) por registrar';
+} else if (totalHab === 0) {
+conclEl.className = 'pvr-conclusion pendiente';
+conclEl.textContent = 'Sin asistentes hábiles';
+} else if (aprobado) {
+conclEl.className = 'pvr-conclusion aprobado';
+conclEl.textContent = '✅ ACUERDO APROBADO';
+} else {
+conclEl.className = 'pvr-conclusion rechazado';
+conclEl.textContent = '❌ ACUERDO NO APROBADO';
+}
+}
+var card = document.getElementById('punto-' + n);
+if (card) {
+card.dataset.votFavor = sistema === 'asistentes' ? favorHab : favorDer.toFixed(2);
+card.dataset.votContra = sistema === 'asistentes' ? contraHab : contraDer.toFixed(2);
+card.dataset.votAbst = sistema === 'asistentes' ? abstHab : abstDer.toFixed(2);
+card.dataset.votBase = baseDesc;
+card.dataset.votUmbral = umbralDesc;
+card.dataset.votAprobado= (totalHab > 0 && !haySinReg) ? (aprobado ? 'si' : 'no') : 'pendiente';
+card.dataset.votUnidad = sistema === 'asistentes' ? 'votos' : '%';
+card.dataset.votSinReg = sinReg;
+}
+}
+function _vufa(n) {
+var card = document.getElementById('punto-' + n);
+var selRes = document.getElementById('p' + n + '-resultado');
+if (!card || !selRes) return;
+var aprobado = card.dataset.votAprobado;
+if (aprobado === 'si') selRes.value = 'Se aprueba';
+if (aprobado === 'no') selRes.value = 'Se rechaza';
+}
+function marcarTodos(n, pref) {
+var tbody = document.getElementById('pvot-rows-' + n);
+if (!tbody) return;
+var anyChecked = false;
+tbody.querySelectorAll('tr').forEach(function(row) {
+if (row.dataset.habil !== 'si') return;
+var chk = row.querySelector('.pvot-chk');
+if (!chk || !chk.checked) return;
+anyChecked = true;
+var sel = row.querySelector('.pref-select');
+if (sel) { sel.value = pref; sel.className = 'pref-select ' + pref; }
+});
+if (!anyChecked) {
+tbody.querySelectorAll('tr').forEach(function(row) {
+if (row.dataset.habil !== 'si') return;
+var sel = row.querySelector('.pref-select');
+if (sel) { sel.value = pref; sel.className = 'pref-select ' + pref; }
+});
+}
+_jfg(n);
+_vufa(n);
+}
+function _irkxl(n) {
+var tbody = document.getElementById('pvot-rows-' + n);
+if (!tbody) return;
+tbody.querySelectorAll('.pref-select').forEach(function(sel) {
+sel.value = 'sin_reg'; sel.className = 'pref-select sin_reg';
+});
+_jfg(n);
+}
+function _kbxo(n, checked) {
+var tbody = document.getElementById('pvot-rows-' + n);
+if (!tbody) return;
+tbody.querySelectorAll('.pvot-chk').forEach(function(chk) { chk.checked = checked; });
+}
+function _hyrf() {
+document.querySelectorAll('.punto-card').forEach(function(card) {
+var n = card.id.replace('punto-', '');
+_qpese(n);
+});
+}
+function _xckaf(n) {
+var num = parseInt(n, 10);
+return isNaN(num) ? (n + ' votos') : (num === 1 ? '1 voto' : num + ' votos');
+}
+function _ctgdc(texto) {
+if (!texto) return '';
+texto = texto
+.replace(/\bsesion\b/g, 'sesi\u00f3n')
+.replace(/\bSesion\b/g, 'Sesi\u00f3n')
+.replace(/\bsesiones\b/g, 'sesiones')
+.replace(/\breunen\b/g, 're\u00fanen')
+.replace(/\bReunen\b/g, 'Re\u00fanen')
+.replace(/\badministracion\b/g, 'administraci\u00f3n')
+.replace(/\bAdministracion\b/g, 'Administraci\u00f3n')
+.replace(/\bcomite\b/g, 'comit\u00e9')
+.replace(/\bComite\b/g, 'Comit\u00e9')
+.replace(/\bvotacion\b/g, 'votaci\u00f3n')
+.replace(/\bVotacion\b/g, 'Votaci\u00f3n')
+.replace(/\bconstitucion\b/g, 'constituci\u00f3n')
+.replace(/\bConstitucion\b/g, 'Constituci\u00f3n');
+texto = texto
+.replace(/(\d)(votos?)/g, '$1 $2') 
+.replace(/(\d)(%)/g, '$1 $2'); 
+texto = texto.replace(/(\d{1,2}:\d{2})-(\s)/g, '$1$2');
+texto = texto.replace(/(\d{1,2}:\d{2})-$/g, '$1');
+texto = texto.replace(/ +/g, ' ').trim();
+texto = texto.replace(
+/(<[^>]*>)|([^<]+)/g,
+function(match, htmlTag, textNode) {
+if (htmlTag) return htmlTag; 
+return textNode.replace(
+/(^\s*[a-z\u00e0-\u00ff]|[.!?]\s+[a-z\u00e0-\u00ff])/g,
+function(c) { return c.toUpperCase(); }
+);
+}
+);
+return texto;
+}
+
+/* ── Validación de campos ──────────────────────────────── */
+(function() {
+
+  /* a) Solo números enteros */
+  function soloNumeros(e) {
+    var el = e.target;
+    var val = el.value.replace(/[^\d]/g, '');
+    if (el.value !== val) el.value = val;
+  }
+
+  /* b) Formato RUT chileno XX.XXX.XXX-X */
+  function formatRUT(e) {
+    var el  = e.target;
+    var raw = el.value.toUpperCase().replace(/[^0-9K]/g, '');
+    if (!raw) { el.value = ''; return; }
+    var cuerpo = raw.length > 1 ? raw.slice(0, -1) : '';
+    var dv     = raw.length > 1 ? raw.slice(-1) : raw;
+    var grupos = [];
+    while (cuerpo.length > 3) {
+      grupos.unshift(cuerpo.slice(-3));
+      cuerpo = cuerpo.slice(0, -3);
+    }
+    if (cuerpo) grupos.unshift(cuerpo);
+    var formatted = raw.length > 1
+      ? grupos.join('.') + '-' + dv
+      : dv;
+    if (el.value !== formatted) {
+      el.value = formatted;
+      try { el.setSelectionRange(formatted.length, formatted.length); } catch(err) {}
+    }
+  }
+
+  /* c) Solo letras — permite tildes, ñ, espacios, guiones, apóstrofes */
+  function soloLetras(e) {
+    var el  = e.target;
+    var val = el.value.replace(/[^a-zA-Z\u00e0-\u00fc\u00c0-\u00dc\s'\-\.]/g, '');
+    if (e.type === 'blur') val = val.replace(/\s{2,}/g, ' ').trim();
+    if (el.value !== val) el.value = val;
+  }
+
+  /* Bind helper */
+  function bind(id, fn, events) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    (events || ['input']).forEach(function(ev) { el.addEventListener(ev, fn); });
+  }
+
+  function initValidaciones() {
+    /* N° de Acta — solo dígitos */
+    bind('acta-numero', soloNumeros);
+
+    /* RUT — todos los campos */
+    ['condo-rut','f1-rut','f2-rut','f3-rut','notario-rut'].forEach(function(id) {
+      bind(id, formatRUT, ['input', 'blur']);
+    });
+
+    /* Nombres de personas — campos estáticos */
+    ['nombre-convocante','nombre-presidente','nombre-admin',
+     'f1-nombre','f2-nombre','f3-nombre','notario-nombre'].forEach(function(id) {
+      bind(id, soloLetras, ['input', 'blur']);
+    });
+
+    /* Nombres en tabla asistentes — delegación en tbody */
+    var tbody = document.getElementById('asistentes-tbody');
+    if (tbody) {
+      tbody.addEventListener('input', function(e) {
+        if (e.target && e.target.classList.contains('nombre-asist')) soloLetras(e);
+      });
+      tbody.addEventListener('blur', function(e) {
+        if (e.target && e.target.classList.contains('nombre-asist')) soloLetras(e);
+      }, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initValidaciones);
+  } else {
+    initValidaciones();
+  }
+
+})();
+
+function _renombrarOpcionesRegla(n) {
+  var sel = document.getElementById('p' + n + '-regla');
+  if (!sel) return;
+  Array.from(sel.options).forEach(function(opt) {
+    if (opt.value === 'abs_asistentes') opt.text = 'Asamblea Ordinaria';
+    else if (opt.value === 'abs_derechos') opt.text = 'Asamblea Extraordinaria Absoluta';
+    else if (opt.value === 'dos_tercios') opt.text = 'Asamblea Extraordinaria Reforzada';
+  });
+}
+function addPuntoYRenombrar() {
+  addPunto();
+  _renombrarOpcionesRegla(puntoCount);
+  actualizarEstadoVacioPuntos();
+}
+
+/* Mostrar/ocultar el estado vacío según haya puntos o no */
+function actualizarEstadoVacioPuntos() {
+  var empty = document.getElementById('puntos-empty-state');
+  var container = document.getElementById('puntos-container');
+  if (!empty || !container) return;
+  var hayPuntos = container.querySelectorAll('.punto-card').length > 0;
+  empty.style.display = hayPuntos ? 'none' : 'block';
+}
+window.onload = function() {
+addPunto();
+_renombrarOpcionesRegla(puntoCount);
+_qwpsb();
+actualizarEstadoVacioPuntos();
+};
+function abrirInstrucciones() {
+  var m = document.getElementById('modal-instrucciones');
+  if (m) m.style.display = 'flex';
+}
+function cerrarInstrucciones() {
+  var m = document.getElementById('modal-instrucciones');
+  if (m) m.style.display = 'none';
+}
+
+/* ════════════════════════════════════════════════════════════
+   AUTO-GUARDADO en localStorage
+   - Snapshot del HTML del formulario (incluye tabla y puntos)
+   - Restauración al cargar la página
+   - Indicador visual "Guardado automáticamente"
+   ════════════════════════════════════════════════════════════ */
+var STORAGE_KEY = 'sistema_actas_v2';
+var _saveTimer = null;
+var _saveIndicatorTimer = null;
+
+function _captureFieldsSnapshot() {
+  var snap = { fields: {}, asistentes: [], puntos: [] };
+  var isDyn = function(id) {
+    return /^asist-\d+-/.test(id) || /^p\d+-/.test(id) || /^pvot-/.test(id);
+  };
+  // Campos estáticos (todo lo que no sea fila de asistente ni punto dinámico)
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el) {
+    if (!el.id || isDyn(el.id)) return;
+    snap.fields[el.id] = el.value;
+  });
+  // Modalidad activa (toggle group)
+  var modAct = document.querySelector('#step-1 .toggle-btn.active');
+  if (modAct) snap.modalidad = modAct.textContent.trim();
+  // Asistentes: capturados POR CONTENIDO en orden del DOM (sobreviven a borrados intermedios)
+  document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
+    var g = function(sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
+    snap.asistentes.push({
+      unidad: g('.unidad'), nombre: g('.nombre-asist'), derechos: g('.derechos'),
+      habil: g('.habil'), asiste: g('.asiste'), rep: g('.representante')
+    });
+  });
+  // Puntos: capturados POR CONTENIDO en orden del DOM (la votación por clave unidad|nombre)
+  document.querySelectorAll('.punto-card').forEach(function(card) {
+    var m = (card.id || '').match(/^punto-(\d+)$/);
+    var n = m ? m[1] : null;
+    var byId = function(suf) { var e = n && document.getElementById('p' + n + '-' + suf); return e ? e.value : ''; };
+    var votos = {};
+    if (n) {
+      var tbody = document.getElementById('pvot-rows-' + n);
+      if (tbody) tbody.querySelectorAll('tr').forEach(function(r) {
+        var sel = r.querySelector('.pref-select');
+        if (r.dataset.key && sel) votos[r.dataset.key] = sel.value;
+      });
+    }
+    snap.puntos.push({
+      titulo: byId('titulo'), presentacion: byId('presentacion'), debate: byId('debate'),
+      requiere: byId('requiere') || 'si', regla: byId('regla'),
+      responsable: byId('responsable'), plazo: byId('plazo'), votos: votos
+    });
+  });
+  return snap;
+}
+
+function autoSave() {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() {
+    try {
+      var snap = _captureFieldsSnapshot();
+      snap.savedAt = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+      _showSaveIndicator();
+    } catch (e) {
+      console.warn('No se pudo auto-guardar:', e);
+    }
+  }, 600);
+}
+
+function _showSaveIndicator() {
+  var el = document.getElementById('save-indicator');
+  if (!el) return;
+  el.classList.add('show');
+  if (_saveIndicatorTimer) clearTimeout(_saveIndicatorTimer);
+  _saveIndicatorTimer = setTimeout(function() { el.classList.remove('show'); }, 1800);
+}
+
+function _restoreSnapshot(snap) {
+  if (!snap) return false;
+  try {
+    var asis = snap.asistentes || [];
+    var pts  = snap.puntos || [];
+
+    // 1) Asistentes: asegurar N filas y llenarlas POR POSICIÓN
+    var needRows = Math.max(asis.length, 1);
+    var curRows = document.querySelectorAll('#asistentes-tbody tr').length;
+    while (curRows < needRows) { addRow(); curRows++; }
+    var rows = document.querySelectorAll('#asistentes-tbody tr');
+    asis.forEach(function(a, i) {
+      var row = rows[i]; if (!row) return;
+      var set = function(sel, v) { var e = row.querySelector(sel); if (e) e.value = (v != null ? v : ''); };
+      set('.unidad', a.unidad); set('.nombre-asist', a.nombre); set('.derechos', a.derechos);
+      set('.habil', a.habil || 'si'); set('.asiste', a.asiste || 'si'); set('.representante', a.rep);
+    });
+
+    // 2) Campos estáticos por ID
+    var f = snap.fields || {};
+    Object.keys(f).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = f[id];
+    });
+
+    // 3) Modalidad: vía setModalidad para reproducir visibilidad de plataforma/lugar
+    if (snap.modalidad) {
+      document.querySelectorAll('#step-1 .toggle-btn').forEach(function(b) {
+        if (b.textContent.trim() === snap.modalidad) {
+          var t = b.textContent.toLowerCase();
+          var val = (t.indexOf('telem') >= 0) ? 'telemática' : ((t.indexOf('mixta') >= 0) ? 'mixta' : 'presencial');
+          if (typeof setModalidad === 'function') setModalidad(b, val);
+        }
+      });
+    }
+
+    // 4) Updates dependientes
+    if (typeof updateTipoAsambleaExtended === 'function') updateTipoAsambleaExtended();
+    if (typeof calcularQuorum === 'function') calcularQuorum();
+
+    // 5) Puntos: crear N y llenarlos POR POSICIÓN (independiente de la numeración interna)
+    var curP = document.querySelectorAll('.punto-card').length;
+    while (curP < pts.length) { addPuntoYRenombrar(); curP++; }
+    var cards = document.querySelectorAll('.punto-card');
+    pts.forEach(function(p, i) {
+      var card = cards[i]; if (!card) return;
+      var m = (card.id || '').match(/^punto-(\d+)$/); if (!m) return;
+      var n = m[1];
+      var setId = function(suf, v) { var e = document.getElementById('p' + n + '-' + suf); if (e) e.value = (v != null ? v : ''); };
+      setId('titulo', p.titulo); setId('presentacion', p.presentacion); setId('debate', p.debate);
+      setId('regla', p.regla); setId('responsable', p.responsable); setId('plazo', p.plazo);
+      if (typeof setRequiereAcuerdo === 'function') setRequiereAcuerdo(n, (p.requiere || 'si') === 'si');
+      if (typeof _qpese === 'function') _qpese(n);
+      var tbody = document.getElementById('pvot-rows-' + n);
+      if (tbody && p.votos) {
+        tbody.querySelectorAll('tr').forEach(function(r) {
+          var sel = r.querySelector('.pref-select');
+          if (sel && p.votos[r.dataset.key] !== undefined) {
+            sel.value = p.votos[r.dataset.key];
+            sel.className = 'pref-select ' + sel.value;
+          }
+        });
+      }
+      if (typeof _jfg === 'function') _jfg(n);
+      if (typeof _vufa === 'function') _vufa(n);
+    });
+
+    if (typeof actualizarEstadoVacioPuntos === 'function') actualizarEstadoVacioPuntos();
+    return true;
+  } catch (e) {
+    console.warn('Error al restaurar:', e);
+    return false;
+  }
+}
+
+function _tryRestore() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var snap = JSON.parse(raw);
+    if (!snap || !snap.savedAt) return;
+    var when = new Date(snap.savedAt).toLocaleString('es-CL');
+    if (confirm('Encontramos datos de su última sesión (' + when + ').\n\n¿Desea restaurarlos para continuar donde quedó?')) {
+      _restoreSnapshot(snap);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch (e) { console.warn('Restore error:', e); }
+}
+
+function limpiarFormulario() {
+  if (!confirm('¿Está seguro de borrar todos los datos y reiniciar el formulario?\n\nNo podremos recuperar la información después.')) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  location.reload();
+}
+
+/* ════════════════════════════════════════════════════════════
+   BORRADOR EN ARCHIVO (.json)
+   Permite guardar el avance como archivo y continuar después,
+   incluso en otro computador. Complementa el auto-guardado del
+   navegador, que solo persiste en este equipo.
+   ════════════════════════════════════════════════════════════ */
+function guardarBorrador() {
+  try {
+    var snap = _captureFieldsSnapshot();
+    snap.savedAt = new Date().toISOString();
+    snap.app = 'sistema-actas-copropiedad';
+    snap.formatoBorrador = 1;
+    var nombre = (document.getElementById('condo-nombre') || {}).value || '';
+    nombre = nombre.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').trim().replace(/ +/g, '_') || 'condominio';
+    var fecha = new Date().toISOString().slice(0, 10);
+    var blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'borrador_acta_' + nombre + '_' + fecha + '.json';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 3000);
+    alert('✓ Borrador guardado en su carpeta de Descargas.\n\nPara continuar después (en este u otro computador), abra la herramienta y use "Cargar borrador".');
+  } catch (e) {
+    alert('No pudimos guardar el borrador. Intente nuevamente.\n\nDetalle técnico: ' + e.message);
+  }
+}
+
+function cargarBorrador() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = function() {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      try {
+        var snap = JSON.parse(reader.result);
+        if (!snap || snap.app !== 'sistema-actas-copropiedad' || !snap.fields) {
+          alert('El archivo seleccionado no parece ser un borrador de esta herramienta.\n\nBusque un archivo con nombre similar a "borrador_acta_…json".');
+          return;
+        }
+        var when = snap.savedAt ? new Date(snap.savedAt).toLocaleString('es-CL') : 'fecha desconocida';
+        if (!confirm('¿Cargar el borrador guardado el ' + when + '?\n\nSe reemplazará la información actual del formulario.')) return;
+        _restoreSnapshot(snap);
+        if (typeof autoSave === 'function') autoSave();
+      } catch (e) {
+        alert('No pudimos leer el borrador. Revise que sea el archivo .json correcto.\n\nDetalle técnico: ' + e.message);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+  input.click();
+}
+
+/* ════════════════════════════════════════════════════════════
+   DATOS DE EJEMPLO (para presentaciones / demostración)
+   ════════════════════════════════════════════════════════════ */
+function cargarDatosEjemplo() {
+  if (!confirm('¿Cargar datos de ejemplo en el formulario?\n\nSe reemplazará la información que haya ingresado.')) return;
+
+  // Paso 1: Datos generales
+  var f = function(id, v) { var e = document.getElementById(id); if (e) e.value = v; };
+  f('acta-numero', '12');
+  f('condo-nombre', 'Condominio Las Araucarias');
+  f('condo-direccion', 'Av. Los Aromos 1234, Concepción');
+  f('condo-rut', '76.523.811-9');
+  f('tipo-asamblea', 'ordinaria');
+  // Disparar lógica del select
+  if (typeof updateTipoAsambleaExtended === 'function') updateTipoAsambleaExtended();
+
+  // Modalidad presencial (asegurar)
+  document.querySelectorAll('#step-1 .toggle-btn').forEach(function(b){ b.classList.remove('active'); });
+  var pres = Array.from(document.querySelectorAll('#step-1 .toggle-btn')).find(function(b){
+    return b.textContent.toLowerCase().indexOf('presencial') >= 0;
+  });
+  if (pres) pres.classList.add('active');
+  f('modalidad', 'presencial');
+
+  // Fecha actual + 7 días, hora 19:00
+  var fecha = new Date(); fecha.setDate(fecha.getDate() + 7);
+  var iso = fecha.toISOString().slice(0,10);
+  f('fecha-sesion', iso);
+  f('hora-inicio', '19:00');
+  f('lugar', 'Sala de reuniones del condominio (1er piso)');
+
+  // Paso 2: Convocatoria
+  f('convocatoria-fecha', iso);
+  f('convocatoria-medio', 'Correo electrónico y publicación en cartelera del condominio');
+  f('quien-convoca-nombre', 'Patricia Soto López');
+  f('quien-convoca-cargo', 'Administradora del condominio');
+
+  // Paso 3: Asistentes — 6 filas con datos
+  var ejAsist = [
+    { unidad:'101', nombre:'María González Pérez',  derechos:'5.25', habil:'si', asiste:'si', rep:'' },
+    { unidad:'102', nombre:'Juan Sepúlveda Rojas',  derechos:'4.80', habil:'si', asiste:'si', rep:'' },
+    { unidad:'201', nombre:'Ana Castro Muñoz',      derechos:'5.10', habil:'no', asiste:'si', rep:'' },
+    { unidad:'202', nombre:'Carlos Vega Soto',      derechos:'4.75', habil:'si', asiste:'no', rep:'' },
+    { unidad:'301', nombre:'Patricia Soto López',   derechos:'5.40', habil:'si', asiste:'si', rep:'Pedro Soto (poder simple)' },
+    { unidad:'302', nombre:'Luis Fernández Tapia',  derechos:'4.95', habil:'si', asiste:'si', rep:'' }
+  ];
+  // Asegurar cantidad de filas
+  var current = document.querySelectorAll('#asistentes-tbody tr').length;
+  while (current < ejAsist.length) { addRow(); current++; }
+  // Llenar filas
+  ejAsist.forEach(function(a, i) {
+    f('asist-'+i+'-unidad',   a.unidad);
+    f('asist-'+i+'-nombre',   a.nombre);
+    f('asist-'+i+'-derechos', a.derechos);
+    f('asist-'+i+'-habil',    a.habil);
+    f('asist-'+i+'-asiste',   a.asiste);
+    f('asist-'+i+'-rep',      a.rep);
+  });
+  if (typeof calcularQuorum === 'function') calcularQuorum();
+  if (typeof actualizarVotacion === 'function') actualizarVotacion();
+
+  // Paso 5: Firmantes
+  f('presidente-nombre',      'María González Pérez');
+  f('presidente-rut',         '12.345.678-9');
+  f('secretario-nombre',      'Juan Sepúlveda Rojas');
+  f('secretario-rut',         '11.222.333-4');
+  f('administrador-nombre',   'Patricia Soto López');
+  f('administrador-rut',      '15.678.901-2');
+
+  // Disparar guardado
+  if (typeof autoSave === 'function') autoSave();
+
+  // Mensaje
+  alert('✓ Listo. Cargamos datos de ejemplo en los Pasos 1, 2, 3 y 5.\n\nLos puntos del orden del día (Paso 4) se agregan manualmente para mostrar cómo funciona la votación.');
+}
+
+/* ════════════════════════════════════════════════════════════
+   Hooks de auto-guardado: cualquier cambio en el formulario
+   dispara autoSave (con debounce de 600ms)
+   ════════════════════════════════════════════════════════════ */
+document.addEventListener('input', function(e) {
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) {
+    autoSave();
+  }
+});
+document.addEventListener('change', function(e) {
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) {
+    autoSave();
+  }
+});
+
+// Restaurar al cargar (si hay datos guardados)
+window.addEventListener('load', function() {
+  setTimeout(_tryRestore, 350);
+});
+
+/* ════════════════════════════════════════════════════════════
+   LOADING overlay (operaciones largas)
+   ════════════════════════════════════════════════════════════ */
+function showLoading(title, desc) {
+  var ov = document.getElementById('loading-overlay');
+  if (!ov) return;
+  if (title) {
+    var t = document.getElementById('loading-title');
+    if (t) t.textContent = title;
+  }
+  if (desc) {
+    var d = document.getElementById('loading-desc');
+    if (d) d.textContent = desc;
+  }
+  ov.classList.add('show');
+}
+function hideLoading() {
+  var ov = document.getElementById('loading-overlay');
+  if (ov) ov.classList.remove('show');
+}
+
+/* ════════════════════════════════════════════════════════════
+   ACCESIBILIDAD: navegación por teclado para elementos con
+   role="button" (los <div> con onclick)
+   ════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var t = e.target;
+  if (!t || !t.getAttribute) return;
+  if (t.getAttribute('role') !== 'button') return;
+  if (t.tagName === 'BUTTON' || t.tagName === 'A') return; // ya nativo
+  e.preventDefault();
+  t.click();
+});
+</script>
+
+<!-- Modal instrucciones de plantilla -->
+<div id="modal-instrucciones" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;max-width:660px;width:95%;padding:28px 32px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
+    <button onclick="cerrarInstrucciones()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#555" title="Cerrar">✕</button>
+    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#1a3a5c">📋 Instrucciones para completar la plantilla</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
+      <thead>
+        <tr style="background:#1a3a5c;color:#fff">
+          <th style="padding:8px 10px;text-align:left;border-radius:4px 0 0 0">Campo</th>
+          <th style="padding:8px 10px;text-align:left">Formato</th>
+          <th style="padding:8px 10px;text-align:left;border-radius:0 4px 0 0">Ejemplo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#f5f7fa">
+          <td style="padding:8px 10px;font-weight:600">Unidad</td>
+          <td style="padding:8px 10px">Número o código de la unidad</td>
+          <td style="padding:8px 10px;font-family:monospace">101, 3B, PH-2</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;font-weight:600">Nombre del copropietario</td>
+          <td style="padding:8px 10px">Nombre completo del dueño</td>
+          <td style="padding:8px 10px;font-family:monospace">Juan Pérez González</td>
+        </tr>
+        <tr style="background:#f5f7fa">
+          <td style="padding:8px 10px;font-weight:600">RUT del Propietario</td>
+          <td style="padding:8px 10px">Con puntos y guión</td>
+          <td style="padding:8px 10px;font-family:monospace">12.345.678-9</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;font-weight:600">% Derechos</td>
+          <td style="padding:8px 10px">Porcentaje con coma decimal</td>
+          <td style="padding:8px 10px;font-family:monospace">1,50</td>
+        </tr>
+        <tr style="background:#f5f7fa">
+          <td style="padding:8px 10px;font-weight:600">Habil</td>
+          <td style="padding:8px 10px"><strong>Si</strong> = al día con gastos comunes<br><strong>No</strong> = adeuda 3 o más cuotas continuas o discontinuas (Art. 10, Ley N°21.442). Solo los Hábiles cuentan para quórum de acuerdos.</td>
+          <td style="padding:8px 10px;font-family:monospace">Si<br>No</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;font-weight:600">Representante</td>
+          <td style="padding:8px 10px">Nombre y tipo de poder si asiste en lugar del dueño. Dejar vacío si asiste el dueño.</td>
+          <td style="padding:8px 10px;font-family:monospace">Pedro López (poder notarial)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:16px;background:#fff8e1;border-left:4px solid #f59e0b;padding:12px 14px;border-radius:4px;font-size:0.84rem;color:#7c5800">
+      <strong>⚠️ Antes de importar:</strong> Reemplace los 3 registros de ejemplo con sus datos reales. No elimine ni modifique la fila de encabezado. Agregue una fila por cada copropietario asistente.
+    </div>
+    <div style="text-align:right;margin-top:18px">
+      <button onclick="cerrarInstrucciones()" style="background:#1a3a5c;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
