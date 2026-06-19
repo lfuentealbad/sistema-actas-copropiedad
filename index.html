@@ -44,49 +44,49 @@
   /* ── Variables ─────────────────────────────────────── */
   :root {
     /* Paleta principal — sin cambios */
-    --c-primary:     #3243A6;
-    --c-secondary:   #2A438C;
-    --c-interact:    #0477BF;
-    --c-accent:      #F21D44;
-    --c-bg:          #F2F2F2;
+    --c-primary:     #2C313A;
+    --c-secondary:   #21262E;
+    --c-interact:    #15786E;
+    --c-accent:      #B23A2E;
+    --c-bg:          #F2F1EC;
 
     /* Aliases semánticos */
     --c-navy:        var(--c-primary);
     --c-navy-dark:   var(--c-primary);
     --c-navy-mid:    var(--c-secondary);
     --c-navy-soft:   var(--c-interact);
-    --c-navy-pale:   #E8EFF8;
+    --c-navy-pale:   #E7EEEC;
     --c-copper:      var(--c-interact);
-    --c-copper-light:#AED6F1;
-    --c-copper-pale: #EBF4FB;
+    --c-copper-light:#BAD6CF;
+    --c-copper-pale: #ECF1F0;
     --c-teal:        var(--c-interact);
-    --c-teal-light:  #D0E4F5;
+    --c-teal-light:  #CFE0DC;
     --c-ok:          #1E7E4A;
     --c-ok-bg:       #D8F3DC;
 
     /* Neutros */
     --c-surface:     #FFFFFF;
-    --c-border:      #D6DCE3;
+    --c-border:      #D7D6CE;
     --c-white:       #FFFFFF;
 
     /* Texto */
-    --c-text:        #1C2733;
-    --c-text-2:      #5B6B7A;
-    --c-text-3:      #8A98A8;
+    --c-text:        #24282D;
+    --c-text-2:      #5C6168;
+    --c-text-3:      #8B9094;
 
     /* Estados */
     --c-warn:        #A46A1F;
     --c-warn-bg:     #FBF0DF;
-    --c-error:       #F21D44;
-    --c-error-bg:    #FDEAEE;
+    --c-error:       #B23A2E;
+    --c-error-bg:    #F6E6E3;
     --c-info:        #2A5870;
-    --c-info-bg:     #E2EEF4;
+    --c-info-bg:     #E6EEEC;
 
     /* Sombras refinadas */
-    --shadow-sm:  0 1px 2px rgba(10,36,64,0.04), 0 2px 8px rgba(50,67,166,0.05);
-    --shadow-md:  0 2px 6px rgba(10,36,64,0.05), 0 6px 20px rgba(50,67,166,0.08);
-    --shadow-lg:  0 8px 32px rgba(10,36,64,0.10), 0 2px 8px rgba(50,67,166,0.06);
-    --shadow-up:  0 -4px 20px rgba(10,36,64,0.07), 0 -1px 4px rgba(10,36,64,0.04);
+    --shadow-sm:  0 1px 2px rgba(20,24,30,0.04), 0 2px 8px rgba(44,49,58,0.05);
+    --shadow-md:  0 2px 6px rgba(20,24,30,0.05), 0 6px 20px rgba(44,49,58,0.08);
+    --shadow-lg:  0 8px 32px rgba(20,24,30,0.10), 0 2px 8px rgba(44,49,58,0.06);
+    --shadow-up:  0 -4px 20px rgba(20,24,30,0.07), 0 -1px 4px rgba(20,24,30,0.04);
 
     /* Tipografía */
     --font-display: 'Source Sans 3', system-ui, sans-serif;
@@ -104,7 +104,7 @@
 
   body {
     font-family: var(--font-body);
-    background: #EEF2F8;
+    background: #F2F1EC;
     color: var(--c-text);
     min-height: 100vh;
     line-height: 1.65;
@@ -150,7 +150,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: 280px;
-    background: #1C2733;
+    background: #24282D;
     color: #fff;
     font-size: 13px;
     font-weight: 400;
@@ -171,7 +171,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 7px solid transparent;
-    border-top-color: #1C2733;
+    border-top-color: #24282D;
   }
   .help-tip:hover .help-tip-content,
   .help-tip:focus-visible .help-tip-content,
@@ -188,15 +188,15 @@
     top: auto;
     bottom: 100%;
     border-top-color: transparent;
-    border-bottom-color: #1C2733;
+    border-bottom-color: #24282D;
   }
 
   /* ── Estado vacío amigable ─────────────────────────── */
   .empty-state {
     text-align: center;
     padding: 36px 24px;
-    background: #FAFBFD;
-    border: 2px dashed #C8D3E2;
+    background: #F8F8F4;
+    border: 2px dashed #CBCEC8;
     border-radius: var(--r-md);
     color: var(--c-text-2);
     margin: 12px 0 16px;
@@ -246,7 +246,7 @@
   .loading-spinner {
     width: 44px;
     height: 44px;
-    border: 4px solid #DDE5F0;
+    border: 4px solid #D7D6CE;
     border-top-color: var(--c-interact);
     border-radius: 50%;
     margin: 0 auto 14px;
@@ -301,7 +301,7 @@
 
   /* ── Header ─────────────────────────────────────────── */
   header, header.app-header {
-    background: linear-gradient(130deg, #3849b8 0%, #3243A6 40%, #2A438C 100%);
+    background: linear-gradient(130deg, #3A404A 0%, #2C313A 40%, #21262E 100%);
     border-bottom: 1px solid rgba(255,255,255,0.10);
     padding: 0;
     margin: 0;
@@ -382,10 +382,19 @@
     border-color: rgba(254,202,202,0.30);
   }
   .header-action-warn:hover {
-    background: rgba(242,29,68,0.30);
+    background: rgba(178,58,46,0.30);
     border-color: rgba(254,202,202,0.55);
     color: #ffffff;
   }
+  /* Botón DEMO: destacado en teal sobre el header oscuro */
+  .header-action-demo {
+    color: #ffffff;
+    background: var(--c-interact);
+    border-color: var(--c-interact);
+    letter-spacing: 0.6px;
+    font-weight: 700;
+  }
+  .header-action-demo:hover { background: #1c8a7e; border-color: #1c8a7e; }
 
   /* Indicador de auto-guardado */
   .save-indicator {
@@ -499,7 +508,7 @@
     background: var(--c-interact);
     border-color: var(--c-interact);
     color: #ffffff;
-    box-shadow: 0 0 0 5px rgba(4,119,191,0.30);
+    box-shadow: 0 0 0 5px rgba(21,120,110,0.30);
     font-size: 14px;
   }
   .step-tab.active .step-label {
@@ -543,7 +552,7 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: var(--c-surface);
-    border-top: 2px solid #DDE5F0;
+    border-top: 2px solid #D7D6CE;
     padding: 14px 44px;
     display: flex;
     justify-content: space-between;
@@ -564,10 +573,10 @@
   .card {
     background: var(--c-surface);
     border-radius: var(--r-xl);
-    box-shadow: 0 2px 8px rgba(10,36,64,0.06), 0 8px 24px rgba(50,67,166,0.07);
+    box-shadow: 0 2px 8px rgba(20,24,30,0.06), 0 8px 24px rgba(44,49,58,0.07);
     padding: 32px 36px;
     margin-bottom: 22px;
-    border: 1px solid #DDE5F0;
+    border: 1px solid #D7D6CE;
     animation: fadeUp 0.26s ease;
     position: relative;
   }
@@ -612,14 +621,14 @@
     font-family: var(--font-body);
     font-size: 13.5px;
     font-weight: 600;
-    color: #3D4E60;
+    color: #3B4248;
     letter-spacing: 0.1px;
   }
   input[type="text"], input[type="number"], input[type="date"],
   input[type="time"], input[type="email"], select, textarea {
     width: 100%;
     padding: 12px 15px;
-    border: 1.5px solid #CBD5E1;
+    border: 1.5px solid #CDCFC9;
     border-radius: var(--r-md);
     font-size: 15px;
     font-family: var(--font-body);
@@ -632,15 +641,15 @@
   input:focus, select:focus, textarea:focus {
     border-color: var(--c-interact);
     outline: none;
-    box-shadow: 0 0 0 4px rgba(4,119,191,0.16), 0 1px 4px rgba(4,119,191,0.08);
+    box-shadow: 0 0 0 4px rgba(21,120,110,0.16), 0 1px 4px rgba(21,120,110,0.08);
   }
   input:hover:not(:focus):not(:disabled),
   select:hover:not(:focus):not(:disabled),
   textarea:hover:not(:focus):not(:disabled) {
-    border-color: #b0bccb;
+    border-color: #B4B7B0;
   }
   input:disabled, select:disabled, textarea:disabled {
-    background: #F4F7FA;
+    background: #F3F3EF;
     color: var(--c-text-3);
     cursor: not-allowed;
   }
@@ -674,11 +683,11 @@
   .btn-primary {
     background: var(--c-primary);
     color: #ffffff;
-    box-shadow: 0 2px 6px rgba(50,67,166,0.22);
+    box-shadow: 0 2px 6px rgba(44,49,58,0.22);
   }
   .btn-primary:hover {
     background: var(--c-secondary);
-    box-shadow: 0 4px 14px rgba(50,67,166,0.30);
+    box-shadow: 0 4px 14px rgba(44,49,58,0.30);
     transform: translateY(-1px);
   }
   .btn-secondary {
@@ -693,11 +702,11 @@
   .btn-gold {
     background: var(--c-interact);
     color: #ffffff;
-    box-shadow: 0 2px 6px rgba(4,119,191,0.22);
+    box-shadow: 0 2px 6px rgba(21,120,110,0.22);
   }
   .btn-gold:hover {
-    background: #0366a7;
-    box-shadow: 0 4px 14px rgba(4,119,191,0.28);
+    background: #11665E;
+    box-shadow: 0 4px 14px rgba(21,120,110,0.28);
     transform: translateY(-1px);
   }
   .btn-nav {
@@ -705,13 +714,13 @@
     color: #ffffff;
     padding: 12px 34px;
     font-size: 15px;
-    box-shadow: 0 3px 8px rgba(50,67,166,0.22);
+    box-shadow: 0 3px 8px rgba(44,49,58,0.22);
     border-radius: var(--r-md);
   }
   .btn-nav:hover {
     background: var(--c-secondary);
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(50,67,166,0.30);
+    box-shadow: 0 6px 18px rgba(44,49,58,0.30);
   }
   .btn-danger { background: var(--c-error); color: #ffffff; }
   .btn-sm     { padding: 5px 12px; font-size: 12px; }
@@ -731,7 +740,7 @@
   }
   .btn-add-row:hover {
     background: var(--c-copper-pale);
-    border-color: #0366a7;
+    border-color: #11665E;
   }
 
   /* ── Toggle buttons (segment control) ──────────────── */
@@ -741,7 +750,7 @@
     border: 1.5px solid var(--c-border);
     border-radius: var(--r-md);
     overflow: hidden;
-    background: #F2F5F8;
+    background: #F1F1ED;
     flex-wrap: nowrap;
   }
   .toggle-btn {
@@ -761,7 +770,7 @@
   }
   .toggle-btn:last-child { border-right: none; }
   .toggle-btn:hover:not(.active) {
-    background: rgba(4,119,191,0.07);
+    background: rgba(21,120,110,0.07);
     color: var(--c-interact);
   }
   .toggle-btn.active {
@@ -808,7 +817,7 @@
   }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   th {
-    background: #EEF3FB;
+    background: #ECF1F0;
     color: var(--c-primary);
     font-family: var(--font-body);
     font-weight: 700;
@@ -817,7 +826,7 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    border-bottom: 2px solid #D5DFF0;
+    border-bottom: 2px solid #D3DAD7;
   }
   td {
     padding: 10px 14px;
@@ -827,7 +836,7 @@
     font-size: 14.5px;
   }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #F5F8FD; }
+  tr:hover td { background: #F1F4F2; }
   td input { padding: 5px 8px; font-size: 13px; }
 
   /* ── Quórum ─────────────────────────────────────────── */
@@ -841,12 +850,12 @@
     box-shadow: var(--shadow-sm);
   }
   .punto-header {
-    background: #EEF3FB;
+    background: #ECF1F0;
     padding: 11px 16px;
     display: flex;
     align-items: center;
     gap: 10px;
-    border-bottom: 1px solid #D5DFF0;
+    border-bottom: 1px solid #D3DAD7;
   }
   .punto-num {
     background: var(--c-primary);
@@ -881,7 +890,7 @@
     margin: 0 0 6px !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
-    color: #3D4E60 !important;
+    color: #3B4248 !important;
     letter-spacing: 0.1px !important;
   }
 
@@ -898,7 +907,7 @@
     font-family: var(--font-body);
   }
   .vot-conclusion.aprobado  { background: var(--c-ok-bg);    color: var(--c-ok);    border-color: rgba(30,126,74,0.20); }
-  .vot-conclusion.rechazado { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(242,29,68,0.20); }
+  .vot-conclusion.rechazado { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(178,58,46,0.20); }
   .vot-conclusion.pendiente { background: var(--c-warn-bg);  color: var(--c-warn);  border-color: rgba(164,106,31,0.20); }
   .pref-select {
     border: 1.5px solid var(--c-border);
@@ -942,9 +951,9 @@
   .import-section {
     margin-top: 14px;
     padding: 15px;
-    background: #EEF3FB;
+    background: #ECF1F0;
     border-radius: var(--r-md);
-    border: 1px solid #D5DFF0;
+    border: 1px solid #D3DAD7;
   }
 
   /* ── Firmas ─────────────────────────────────────────── */
@@ -975,8 +984,8 @@
 
   /* ── Quórum: barra de progreso ─────────────────── */
   .quorum-box {
-    background: #EEF3FB;
-    border: 1px solid #D5DFF0;
+    background: #ECF1F0;
+    border: 1px solid #D3DAD7;
     border-left: 3px solid var(--c-primary);
     border-radius: var(--r-md);
     padding: 15px 20px;
@@ -987,19 +996,19 @@
   }
   .quorum-meter {
     flex: 1;
-    background: #D5DFF0;
+    background: #D3DAD7;
     border-radius: 6px;
     overflow: hidden;
     height: 10px;
   }
   .quorum-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--c-interact), #0599e8);
+    background: linear-gradient(90deg, var(--c-interact), #2A8E82);
     border-radius: 6px;
     transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
   }
   .quorum-fill.fail {
-    background: linear-gradient(90deg, var(--c-error), #f5426a);
+    background: linear-gradient(90deg, var(--c-error), #C0563F);
   }
   .quorum-status {
     font-size: 14px;
@@ -1020,7 +1029,7 @@
   .quorum-icon  { font-size: 22px; flex-shrink: 0; }
   .quorum-title { font-family: var(--font-body); font-weight: 700; color: var(--c-primary); font-size: 13px; }
   .quorum-pct   { font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--c-primary); }
-  .quorum-bar-wrap { flex: 1; background: #D5DFF0; border-radius: 6px; overflow: hidden; height: 10px; margin-top: 4px; }
+  .quorum-bar-wrap { flex: 1; background: #D3DAD7; border-radius: 6px; overflow: hidden; height: 10px; margin-top: 4px; }
 
   /* ── Punto card: cabecera ───────────────────────── */
   .btn-del {
@@ -1031,7 +1040,7 @@
     font-family: var(--font-body);
     color: var(--c-error);
     background: transparent;
-    border: 1.5px solid rgba(242,29,68,0.45);
+    border: 1.5px solid rgba(178,58,46,0.45);
     border-radius: var(--r-sm);
     cursor: pointer;
     transition: background 0.18s, color 0.18s, border-color 0.18s;
@@ -1058,7 +1067,7 @@
 
   /* ── Panel de votación ──────────────────────────── */
   .punto-vot-panel {
-    border: 1px solid #D5DFF0;
+    border: 1px solid #D3DAD7;
     border-radius: var(--r-md);
     overflow: hidden;
     margin-top: 14px;
@@ -1111,13 +1120,13 @@
     letter-spacing: 0.1px;
   }
   .btn-vot-favor   { background: var(--c-ok);      color: #ffffff;         border-color: var(--c-ok); box-shadow: 0 2px 6px rgba(30,126,74,0.20); }
-  .btn-vot-contra  { background: var(--c-error-bg); color: var(--c-error);  border-color: rgba(242,29,68,0.40); }
+  .btn-vot-contra  { background: var(--c-error-bg); color: var(--c-error);  border-color: rgba(178,58,46,0.40); }
   .btn-vot-abst    { background: var(--c-warn-bg);  color: var(--c-warn);   border-color: rgba(164,106,31,0.35); }
-  .btn-vot-limpiar { background: #EEF3FB;           color: var(--c-text-2); border-color: #D5DFF0; }
+  .btn-vot-limpiar { background: #ECF1F0;           color: var(--c-text-2); border-color: #D3DAD7; }
   .btn-vot-favor:hover  { background: #1a6e40; color: #ffffff; box-shadow: 0 3px 10px rgba(30,126,74,0.28); }
-  .btn-vot-contra:hover { background: var(--c-error); color: #ffffff; box-shadow: 0 3px 10px rgba(242,29,68,0.22); }
+  .btn-vot-contra:hover { background: var(--c-error); color: #ffffff; box-shadow: 0 3px 10px rgba(178,58,46,0.22); }
   .btn-vot-abst:hover   { background: var(--c-warn);  color: #ffffff; box-shadow: 0 3px 10px rgba(164,106,31,0.22); }
-  .btn-vot-limpiar:hover { background: #D5DFF0; }
+  .btn-vot-limpiar:hover { background: #D3DAD7; }
 
   /* ── Tabla de votación ──────────────────────────── */
   .punto-vot-lista {
@@ -1128,7 +1137,7 @@
     margin-bottom: 14px;
   }
   .punto-vot-lista th {
-    background: #EEF3FB;
+    background: #ECF1F0;
     padding: 10px 12px;
     text-align: left;
     font-size: 12px;
@@ -1136,7 +1145,7 @@
     color: var(--c-primary);
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    border-bottom: 1px solid #D5DFF0;
+    border-bottom: 1px solid #D3DAD7;
   }
   .punto-vot-lista td {
     padding: 9px 12px;
@@ -1149,8 +1158,8 @@
 
   /* ── Resumen de votación ────────────────────────── */
   .punto-vot-resumen {
-    background: #EEF3FB;
-    border: 1px solid #D5DFF0;
+    background: #ECF1F0;
+    border: 1px solid #D3DAD7;
     border-radius: var(--r-md);
     padding: 14px 16px;
   }
@@ -1162,11 +1171,11 @@
   }
   .pvr-cell {
     background: var(--c-surface);
-    border: 1px solid #D5DFF0;
+    border: 1px solid #D3DAD7;
     border-radius: var(--r-md);
     padding: 11px 13px;
     text-align: center;
-    box-shadow: 0 1px 4px rgba(50,67,166,0.05);
+    box-shadow: 0 1px 4px rgba(44,49,58,0.05);
   }
   .pvr-cell.favor  { border-top: 3px solid var(--c-ok); }
   .pvr-cell.contra { border-top: 3px solid var(--c-error); }
@@ -1205,7 +1214,7 @@
   }
   .pvr-conclusion.pendiente  { background: var(--c-warn-bg);  color: var(--c-warn);  border-color: rgba(164,106,31,0.20); }
   .pvr-conclusion.aprobado   { background: var(--c-ok-bg);    color: var(--c-ok);    border-color: rgba(30,126,74,0.20); }
-  .pvr-conclusion.rechazado  { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(242,29,68,0.20); }
+  .pvr-conclusion.rechazado  { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(178,58,46,0.20); }
 
   /* ── Acta generada (paso 6) ─────────────────────── */
   .acta-header-preview {
@@ -1252,7 +1261,7 @@
     color: var(--c-primary);
     text-transform: uppercase;
     letter-spacing: 1px;
-    border-bottom: 1.5px solid #D5DFF0;
+    border-bottom: 1.5px solid #D3DAD7;
     padding-bottom: 6px;
     margin-bottom: 12px;
   }
@@ -1272,12 +1281,12 @@
     margin-top: 8px;
   }
   .acta-section th {
-    background: #EEF3FB;
+    background: #ECF1F0;
     color: var(--c-primary);
     font-weight: 700;
     padding: 7px 10px;
     text-align: left;
-    border: 1px solid #D5DFF0;
+    border: 1px solid #D3DAD7;
     font-size: 9pt;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -1347,7 +1356,7 @@
     margin-top: 4px;
     line-height: 1.5;
   }
-  .quorum-meter { flex: 1; background: #D5DFF0; border-radius: 6px; overflow: hidden; height: 10px; }
+  .quorum-meter { flex: 1; background: #D3DAD7; border-radius: 6px; overflow: hidden; height: 10px; }
   .quorum-label { font-family: var(--font-body); font-size: 14px; font-weight: 700; color: var(--c-primary); min-width: 52px; text-align: right; flex-shrink: 0; }
 
   @media print {
@@ -1394,7 +1403,7 @@
     line-height: 1.50;
     color: var(--c-text);
   }
-  .materias-list li:hover { background: rgba(4,119,191,0.06); }
+  .materias-list li:hover { background: rgba(21,120,110,0.06); }
   .materias-list li.checked { background: var(--c-copper-pale); }
   .materias-list li .mat-chk {
     flex-shrink: 0;
@@ -1434,7 +1443,7 @@
     border-color: var(--c-interact);
     border-style: solid;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(4,119,191,0.13);
+    box-shadow: 0 0 0 3px rgba(21,120,110,0.13);
   }
   .mat-custom-row .btn-add-custom {
     flex-shrink: 0;
@@ -1525,8 +1534,7 @@
       </div>
     </div>
     <div class="header-right">
-      <button type="button" class="header-action" onclick="guardarBorrador()" title="Descarga un archivo con todo lo ingresado, para continuar después o en otro computador">💾 Guardar borrador</button>
-      <button type="button" class="header-action" onclick="cargarBorrador()" title="Carga un borrador guardado anteriormente">📂 Cargar borrador</button>
+      <button type="button" class="header-action header-action-demo" onclick="cargarDatosEjemplo()" title="Carga datos de ejemplo para ver cómo funciona la herramienta">▶ DEMO</button>
       <span class="header-badge">Ley N° 21.442</span>
     </div>
   </div>
@@ -2277,7 +2285,7 @@ alertDiv.style.display = 'block';
 if (diff >= 5 && diff <= 15) {
 alertDiv.innerHTML = '<div style="background:#d8f3dc;border-left:4px solid #2d6a4f;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#2d6a4f"><strong>Plazo valido:</strong> ' + diff + ' dias de anticipacion. Cumple la Ley N 21.442.</div>';
 } else {
-alertDiv.innerHTML = '<div style="background:#fdecea;border-left:4px solid #c0392b;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#c0392b"><strong>Plazo fuera de rango:</strong> ' + diff + ' dias. La ley exige entre 5 y 15 dias corridos.</div>';
+alertDiv.innerHTML = '<div style="background:#F6E6E3;border-left:4px solid #c0392b;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#c0392b"><strong>Plazo fuera de rango:</strong> ' + diff + ' dias. La ley exige entre 5 y 15 dias corridos.</div>';
 }
 }
 function addRow() {
@@ -2388,7 +2396,7 @@ status.style.color = '#1e6e4a';
 fill.className = 'quorum-fill fail';
 status.innerHTML = '<strong>Quórum insuficiente:</strong> '
 + totalPresentes.toFixed(1) + '% — se requiere ' + reqTxt + ' para constituirse';
-status.style.color = '#b83232';
+status.style.color = '#B23A2E';
 }
 var boxAcuerdos = document.getElementById('quorum-acuerdos-box');
 if (!boxAcuerdos) return;
@@ -2832,26 +2840,26 @@ const nombreCondo = nombreRaw.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/ +/g
 const fecha = _pvau('fecha-sesion') || 'sin_fecha';
 const css =
 '* { box-sizing:border-box; margin:0; padding:0; }' +
-'body { font-family:"Helvetica Neue",Arial,sans-serif; font-size:10.5pt; line-height:1.7; color:#1C2733; background:#fff; padding:16mm 14mm; }' +
+'body { font-family:"Helvetica Neue",Arial,sans-serif; font-size:10.5pt; line-height:1.7; color:#24282D; background:#fff; padding:16mm 14mm; }' +
 '@media print { .aviso { display:none !important; } body { padding:0; } }' +
 '@page { size:A4; margin:20mm 18mm; }' +
-'.aviso { background:#E8EFF8; border-left:4px solid #3243A6; padding:10px 14px; margin-bottom:20px; font-size:10pt; color:#2A438C; border-radius:3px; }' +
-'.acta-header-preview { text-align:center; border-bottom:2px solid #3243A6; padding-bottom:14px; margin-bottom:24px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
-'.acta-title { font-family:"Helvetica Neue",Arial,sans-serif; font-size:14pt; font-weight:bold; color:#3243A6; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
-'.acta-subtitle { font-size:10pt; color:#5B6B7A; margin-top:4px; line-height:1.4; }' +
+'.aviso { background:#E7EEEC; border-left:4px solid #2C313A; padding:10px 14px; margin-bottom:20px; font-size:10pt; color:#21262E; border-radius:3px; }' +
+'.acta-header-preview { text-align:center; border-bottom:2px solid #2C313A; padding-bottom:14px; margin-bottom:24px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'.acta-title { font-family:"Helvetica Neue",Arial,sans-serif; font-size:14pt; font-weight:bold; color:#2C313A; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'.acta-subtitle { font-size:10pt; color:#5C6168; margin-top:4px; line-height:1.4; }' +
 '.acta-section { margin-bottom:18px; page-break-inside:avoid; break-inside:avoid-page; }' +
-'.acta-section-title { font-size:8pt; font-weight:bold; color:#3243A6; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid #3243A6; padding-bottom:4px; margin-bottom:8px; page-break-after:avoid; break-after:avoid-page; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'.acta-section-title { font-size:8pt; font-weight:bold; color:#2C313A; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid #2C313A; padding-bottom:4px; margin-bottom:8px; page-break-after:avoid; break-after:avoid-page; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
 'p { margin-bottom:8px; text-align:justify; orphans:3; widows:3; }' +
 'table { width:100%; border-collapse:collapse; font-size:9pt; margin:8px 0; page-break-inside:auto; }' +
 'thead { display:table-header-group; }' +
 'tr { page-break-inside:avoid; break-inside:avoid; }' +
-'th { background:#3243A6; color:#ffffff; padding:6px 8px; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:0.3px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
-'td { padding:5px 8px; border:1px solid #D6DCE3; vertical-align:middle; font-size:9.5pt; }' +
-'tr:nth-child(even) td { background:#F4F6F8; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'th { background:#2C313A; color:#ffffff; padding:6px 8px; text-align:left; font-size:8pt; text-transform:uppercase; letter-spacing:0.3px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
+'td { padding:5px 8px; border:1px solid #D7D6CE; vertical-align:middle; font-size:9.5pt; }' +
+'tr:nth-child(even) td { background:#F4F4F0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }' +
 '.acta-signatures { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:50px; padding-top:8px; page-break-inside:avoid; break-inside:avoid-page; }' +
-'.signature-block, .sig-line { border-top:1px solid #1C2733; padding-top:8px; text-align:center; font-size:10pt; color:#5B6B7A; margin-top:46px; page-break-inside:avoid; }' +
-'.signature-name, .sig-name { font-weight:bold; font-size:10.5pt; color:#1C2733; }' +
-'.signature-role, .sig-role { font-size:9pt; color:#5B6B7A; margin-top:2px; }';
+'.signature-block, .sig-line { border-top:1px solid #24282D; padding-top:8px; text-align:center; font-size:10pt; color:#5C6168; margin-top:46px; page-break-inside:avoid; }' +
+'.signature-name, .sig-name { font-weight:bold; font-size:10.5pt; color:#24282D; }' +
+'.signature-role, .sig-role { font-size:9pt; color:#5C6168; margin-top:2px; }';
 const aviso = '<div class="aviso"><strong>Para guardar como PDF:</strong> Presiona Ctrl+P (Windows) o Cmd+P (Mac) y selecciona "Guardar como PDF" como destino de impresion.</div>';
 const doc =
 '<!DOCTYPE html>\n<html lang="es">\n<head>\n' +
@@ -3986,17 +3994,17 @@ document.addEventListener('keydown', function(e) {
 <div id="modal-instrucciones" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:10px;max-width:660px;width:95%;padding:28px 32px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
     <button onclick="cerrarInstrucciones()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#555" title="Cerrar">✕</button>
-    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#1a3a5c">📋 Instrucciones para completar la plantilla</h3>
+    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#2C313A">📋 Instrucciones para completar la plantilla</h3>
     <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
       <thead>
-        <tr style="background:#1a3a5c;color:#fff">
+        <tr style="background:#2C313A;color:#fff">
           <th style="padding:8px 10px;text-align:left;border-radius:4px 0 0 0">Campo</th>
           <th style="padding:8px 10px;text-align:left">Formato</th>
           <th style="padding:8px 10px;text-align:left;border-radius:0 4px 0 0">Ejemplo</th>
         </tr>
       </thead>
       <tbody>
-        <tr style="background:#f5f7fa">
+        <tr style="background:#F4F4F0">
           <td style="padding:8px 10px;font-weight:600">Unidad</td>
           <td style="padding:8px 10px">Número o código de la unidad</td>
           <td style="padding:8px 10px;font-family:monospace">101, 3B, PH-2</td>
@@ -4006,7 +4014,7 @@ document.addEventListener('keydown', function(e) {
           <td style="padding:8px 10px">Nombre completo del dueño</td>
           <td style="padding:8px 10px;font-family:monospace">Juan Pérez González</td>
         </tr>
-        <tr style="background:#f5f7fa">
+        <tr style="background:#F4F4F0">
           <td style="padding:8px 10px;font-weight:600">RUT del Propietario</td>
           <td style="padding:8px 10px">Con puntos y guión</td>
           <td style="padding:8px 10px;font-family:monospace">12.345.678-9</td>
@@ -4016,7 +4024,7 @@ document.addEventListener('keydown', function(e) {
           <td style="padding:8px 10px">Porcentaje con coma decimal</td>
           <td style="padding:8px 10px;font-family:monospace">1,50</td>
         </tr>
-        <tr style="background:#f5f7fa">
+        <tr style="background:#F4F4F0">
           <td style="padding:8px 10px;font-weight:600">Habil</td>
           <td style="padding:8px 10px"><strong>Si</strong> = al día con gastos comunes<br><strong>No</strong> = adeuda 3 o más cuotas continuas o discontinuas (Art. 10, Ley N°21.442). Solo los Hábiles cuentan para quórum de acuerdos.</td>
           <td style="padding:8px 10px;font-family:monospace">Si<br>No</td>
@@ -4032,7 +4040,7 @@ document.addEventListener('keydown', function(e) {
       <strong>⚠️ Antes de importar:</strong> Reemplace los 3 registros de ejemplo con sus datos reales. No elimine ni modifique la fila de encabezado. Agregue una fila por cada copropietario asistente.
     </div>
     <div style="text-align:right;margin-top:18px">
-      <button onclick="cerrarInstrucciones()" style="background:#1a3a5c;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
+      <button onclick="cerrarInstrucciones()" style="background:#2C313A;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
     </div>
   </div>
 </div>
