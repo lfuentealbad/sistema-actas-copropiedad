@@ -287,6 +287,13 @@ function validarRut(rut){
   const r=11-(sum%11), dvc=r===11?'0':r===10?'K':String(r);
   return dvc===dv;
 }
+function formatRut(rut){
+  const c=String(rut||'').replace(/[^0-9kK]/g,'').toUpperCase();
+  if(c.length<2) return String(rut||'').trim();
+  let cuerpo=c.slice(0,-1); const dv=c.slice(-1); let out='';
+  while(cuerpo.length>3){ out='.'+cuerpo.slice(-3)+out; cuerpo=cuerpo.slice(0,-3); }
+  return cuerpo+out+'-'+dv;
+}
 const codigoNuevo = () => { const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; };
 function setBusy(btn,busy,txt){ if(!btn||!btn.tagName) return; if(busy){ if(btn.dataset.t===undefined) btn.dataset.t=btn.textContent; btn.disabled=true; if(txt) btn.textContent=txt; } else { btn.disabled=false; if(btn.dataset.t!==undefined){ btn.textContent=btn.dataset.t; delete btn.dataset.t; } } }
 function setConn(txt,cls){ const e=$('conn'); if(!e) return; e.textContent=txt; e.className='conn '+(cls||''); }
@@ -298,7 +305,7 @@ function show(id){ ['rol','mesa','votar'].forEach(x=>$('screen-'+x).classList.to
 function entrar(rol){ ROL=rol; $('role-badge').textContent=rol==='mesa'?'MESA':'VOTAR'; show(rol); if(rol==='mesa') initMesa(); if(rol==='votar') initVotar(); }
 
 /* ===================== MESA ===================== */
-let asamblea=null, padron=[], puntos=[], puntoActivo=null, votacionAbierta=false, padronDirty=false;
+let asamblea=null, padron=[], puntos=[], puntoActivo=null, votacionAbierta=false, padronDirty=false, autoTimer=null;
 let chVotos=null, seqVotos=0;
 const LS = c => 'sala-mesa-'+c;
 
@@ -313,7 +320,9 @@ async function crearAsamblea(btn){
     if(error) throw error;
     asamblea={id:data.id,codigo,condo,tipo}; padron=[]; puntos=[]; puntoActivo=null; votacionAbierta=false; padronDirty=false;
     padronEjemplo();
-    await abrirPanelMesa(data); persistMesa();
+    await abrirPanelMesa(data);
+    await autoGuardarPadron();
+    persistMesa();
   }catch(e){ alert('No se pudo crear la asamblea. Revisa tu conexión a internet e inténtalo nuevamente.'); }
   finally{ setBusy(btn,false); }
 }
@@ -355,7 +364,23 @@ async function abrirPanelMesa(row){
 function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent).then(()=>{ if(btn){ const t=btn.textContent; btn.textContent='¡Copiado!'; setTimeout(()=>btn.textContent=t,1500); } }); }
 
 /* ----- padrón ----- */
-function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='(cambios sin guardar)'; persistMesa(); }
+function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='Cambios sin guardar…'; persistMesa(); clearTimeout(autoTimer); autoTimer=setTimeout(autoGuardarPadron,900); }
+async function persistirPadronDB(filas){
+  await sb.from('padron').delete().eq('asamblea_id',asamblea.id);
+  const ins=filas.map(p=>({asamblea_id:asamblea.id,rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,derechos:parseFloat(p.der)||0}));
+  if(ins.length){ const {error}=await sb.from('padron').insert(ins); if(error) throw error; }
+  return ins.length;
+}
+async function autoGuardarPadron(){
+  clearTimeout(autoTimer); if(!asamblea) return;
+  const filas=padron.filter(p=>norm(p.rut));
+  const malRut=filas.filter(p=>!validarRut(p.rut));
+  const seen={}; let dup=false; filas.forEach(p=>{ const k=norm(p.rut); if(seen[k]) dup=true; else seen[k]=1; });
+  const ok=$('m-padron-ok');
+  if(malRut.length||dup){ if(ok) ok.textContent='Sin guardar — '+(malRut.length?malRut.length+' RUT con formato inválido':'hay RUT repetido')+' (corrige para guardar).'; return; }
+  try{ const n=await persistirPadronDB(filas); padronDirty=false; if(ok) ok.textContent='✓ Guardado automáticamente ('+n+').'; persistMesa(); }
+  catch(e){ if(ok) ok.textContent='Sin conexión: no se pudo guardar. Reintenta.'; }
+}
 function renderPadron(){
   const tb=$('m-padron-body'); tb.innerHTML='';
   padron.forEach((p,i)=>{
@@ -365,6 +390,7 @@ function renderPadron(){
     tr.appendChild(td(inp(p.unidad,'64px',v=>{padron[i].unidad=v;markDirty();})));
     tr.appendChild(td(inp(p.nombre,null,v=>{padron[i].nombre=v;markDirty();})));
     const rutInp=inp(p.rut,'120px',(v,el)=>{padron[i].rut=v; el.style.borderColor=(!v||validarRut(v))?'':'var(--err)'; renderPadronSum(); markDirty();});
+    rutInp.addEventListener('change',()=>{ if(padron[i].rut && validarRut(padron[i].rut)){ padron[i].rut=formatRut(padron[i].rut); rutInp.value=padron[i].rut; rutInp.style.borderColor=''; renderPadronSum(); } });
     if(p.rut && !validarRut(p.rut)) rutInp.style.borderColor='var(--err)';
     tr.appendChild(td(rutInp));
     const derInp=inp(p.der,'80px',v=>{padron[i].der=parseFloat(v)||0; renderPadronSum(); markDirty();},'number'); derInp.step='0.01'; derInp.min='0'; derInp.max='100';
@@ -419,7 +445,7 @@ function importarPadron(input){
         if(!rut&&!nombre){ omit++; return; }
         const derRaw=pick(o,['derecho','porcentaje','prorrateo','%']); if(String(derRaw).trim()!=='') hayColDer=true;
         const der=parseFloat(String(derRaw||'0').replace('%','').replace(',','.').trim())||0;
-        nuevo.push({ unidad:String(pick(o,['unidad','depto','casa','nro','numero'])||'').trim(), nombre, rut, der,
+        nuevo.push({ unidad:String(pick(o,['unidad','depto','casa','nro','numero'])||'').trim(), nombre, rut:formatRut(rut), der,
           habil:!/^(no|n|inhabil|0|false)$/.test(na(String(pick(o,['habil','aldia','estado'])||'si'))) });
       });
       if(nuevo.length===0){ alert('No reconocí los datos. El archivo debería tener columnas como: unidad, nombre, rut, derechos, hábil.'); input.value=''; return; }
@@ -449,10 +475,8 @@ async function guardarPadron(btn){
   if(sum>0 && Math.abs(sum-100)>0.5){ if(!confirm('La suma de derechos es '+sum.toFixed(2)+'%, no 100%. Esto afecta el cálculo de mayorías. ¿Guardar de todas formas?')) return; }
   setBusy(btn,true,'Guardando…'); const ok=$('m-padron-ok');
   try{
-    await sb.from('padron').delete().eq('asamblea_id',asamblea.id);
-    const ins=filas.map(p=>({asamblea_id:asamblea.id,rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,derechos:parseFloat(p.der)||0}));
-    if(ins.length){ const {error}=await sb.from('padron').insert(ins); if(error) throw error; }
-    padronDirty=false; ok.textContent='✓ Padrón guardado ('+ins.length+').'; persistMesa();
+    const n=await persistirPadronDB(filas);
+    padronDirty=false; ok.textContent='✓ Padrón guardado ('+n+').'; persistMesa();
   }catch(e){ ok.textContent=''; alert('No se pudo guardar el padrón. Revisa tu conexión e intenta de nuevo.'); }
   finally{ setBusy(btn,false); }
 }
@@ -475,7 +499,8 @@ function renderPuntos(){
 }
 function quitarPunto(i){ if(puntos[i].key===puntoActivo && votacionAbierta){ alert('No puedes quitar un punto mientras está en votación. Ciérralo primero.'); return; } if(!confirm('¿Quitar el punto "'+puntos[i].titulo+'"?')) return; puntos.splice(i,1); renderPuntos(); persistMesa(); }
 async function abrirPunto(key,btn){
-  if(padronDirty){ alert('Tienes cambios sin guardar en el padrón. Pulsa "Guardar padrón" antes de abrir la votación.'); return; }
+  if(padronDirty){ await autoGuardarPadron(); }
+  if(padronDirty){ alert('Hay RUT inválidos o repetidos en el padrón (marcados en rojo). Corrígelos antes de abrir la votación.'); return; }
   if(padron.filter(p=>p.habil!==false).length===0){ alert('No hay copropietarios hábiles en el padrón.'); return; }
   setBusy(btn,true,'Abriendo…');
   try{
@@ -569,7 +594,7 @@ let chAsam=null, chPadronF=null, seqMiVoto=0;
 function initVotar(){
   const cod=new URLSearchParams(location.search).get('code');
   const ci=$('v-codigo'); if(ci){ ci.addEventListener('keydown',e=>{ if(e.key==='Enter') unirse(); }); setTimeout(()=>{try{ci.focus();}catch(e){}},120); }
-  const ri=$('rut-input'); if(ri) ri.addEventListener('keydown',e=>{ if(e.key==='Enter') identificar(); });
+  const ri=$('rut-input'); if(ri){ ri.addEventListener('keydown',e=>{ if(e.key==='Enter') identificar(); }); ri.addEventListener('change',()=>{ if(validarRut(ri.value)) ri.value=formatRut(ri.value); }); }
   if(cod && ci){ ci.value=cod.toUpperCase().replace(/[^A-Z0-9]/g,''); unirse(); }
 }
 async function unirse(btn){
