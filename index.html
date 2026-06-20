@@ -30,7 +30,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="same-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Sistema de Actas de Copropiedad · Ley N° 21.442</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link href="fonts/source-sans-3.css" rel="stylesheet">
@@ -1520,6 +1520,9 @@
 <script src="vendor/jszip.min.js"></script>
 <!-- SheetJS para leer archivos Excel .xlsx/.xls -->
 <script src="vendor/xlsx.full.min.js"></script>
+<!-- Supabase + QR (votación en vivo; requiere internet) -->
+<script src="vendor/supabase.min.js"></script>
+<script src="vendor/qrcode-generator.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
@@ -1754,6 +1757,7 @@
           <tr>
             <th>Unidad</th>
             <th>Nombre del Copropietario</th>
+            <th>RUT del Propietario</th>
             <th>% Derechos <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre porcentaje de derechos">?<span class="help-tip-content">Porcentaje de propiedad que cada copropietario tiene sobre los <strong>bienes comunes</strong>, según el reglamento de copropiedad. La suma de todos debe dar 100%.</span></span></th>
             <th>Hábil <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre copropietario hábil">?<span class="help-tip-content">Es <strong>hábil</strong> el copropietario que está al día con sus gastos comunes. Solo los hábiles pueden votar (Art. 21, Ley 21.442). Los inhábiles asisten pero no votan.</span></span></th>
             <th>Asiste <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre asistencia">?<span class="help-tip-content">Marque <strong>Sí</strong> a quienes están presentes (físicamente o por videoconferencia). Solo los presentes cuentan para el quórum de constitución.</span></span></th>
@@ -1765,6 +1769,7 @@
           <tr>
             <td><input type="text" id="asist-0-unidad" name="asist-0-unidad" placeholder="101" style="width:60px" class="unidad" /></td>
             <td><input type="text" id="asist-0-nombre" name="asist-0-nombre" placeholder="Nombre completo" class="nombre-asist" /></td>
+            <td><input type="text" id="asist-0-rut" name="asist-0-rut" placeholder="12.345.678-9" class="rut-asist" style="width:120px" /></td>
             <td><input type="number" id="asist-0-derechos" name="asist-0-derechos" placeholder="1.5" step="0.01" min="0" max="100" class="derechos" onchange="calcularQuorum()" onkeyup="calcularQuorum()" style="width:70px" /></td>
             <td>
               <select id="asist-0-habil" name="asist-0-habil" class="habil" style="min-width:52px" onchange="calcularQuorum(); actualizarVotacion();">
@@ -1848,6 +1853,38 @@
       <div class="empty-state-desc">Cada punto del orden del día debe registrarse con su presentación, debate y resultado de votación. Comience agregando el primero.</div>
     </div>
     <button class="btn-add-row" onclick="addPuntoYRenombrar()">+ Agregar punto al orden del día</button>
+  </div>
+
+  <div class="card" id="vv-card" style="border:1.5px solid var(--c-interact)">
+    <style>
+      #vv-card h2.card-title{display:flex;align-items:center;gap:8px}
+      .vv-tema{border:1px solid var(--c-border,#D7D6CE);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
+      .vv-tema.activo{border-color:var(--c-interact);background:#F0F7FB}
+      .vv-tema-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .vv-tema-tit{flex:1;font-weight:600;font-size:14.5px;color:var(--c-primary);min-width:160px}
+      .vv-tema-acc{display:flex;gap:8px;flex-wrap:wrap}
+      .vv-btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:7px 12px;cursor:pointer;border:1.5px solid}
+      .vv-btn-abrir{background:var(--c-interact);color:#fff;border-color:var(--c-interact)}
+      .vv-btn-traer{background:transparent;color:var(--c-primary);border-color:var(--c-primary)}
+      .vv-btn:disabled{opacity:.5;cursor:not-allowed}
+      .vv-tema-res{font-size:13px;color:var(--c-text-2);margin-top:8px}
+      #vv-codebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#F0F7FB;border:1px solid #CFE0EC;border-radius:10px;padding:14px}
+      #vv-qr img{display:block;background:#fff;border-radius:8px;padding:6px;width:104px;height:104px}
+    </style>
+    <h2 class="card-title">🗳️ Votación en vivo desde el teléfono <span style="font-weight:400;font-size:13px;color:var(--c-text-2)">(opcional)</span></h2>
+    <div class="card-desc">Abra una sala para que los copropietarios <strong>presentes</strong> voten cada punto desde su teléfono. Los votos se traen directamente al registro de votación de cada punto. <strong>Requiere internet</strong> y que los asistentes tengan su <strong>RUT</strong> cargado en el Paso 3.</div>
+    <div id="vv-start" style="margin-top:12px">
+      <button type="button" class="btn-add-row" style="background:var(--c-interact);color:#fff;border-color:var(--c-interact)" onclick="actaIniciarSala(this)">Iniciar sala de votación en vivo</button>
+    </div>
+    <div id="vv-panel" style="display:none;margin-top:14px">
+      <div id="vv-codebox">
+        <div><div style="font-size:11px;font-weight:600;color:var(--c-text-2);letter-spacing:.5px">CÓDIGO</div><div id="vv-codigo" style="font-size:26px;font-weight:700;letter-spacing:3px;color:var(--c-interact)">——————</div></div>
+        <div id="vv-qr"></div>
+        <div style="flex:1;min-width:180px"><div style="font-size:11px;font-weight:600;color:var(--c-text-2);letter-spacing:.5px">ENLACE PARA LOS TELÉFONOS</div><div id="vv-link" style="font-size:12.5px;word-break:break-all;color:var(--c-primary)"></div></div>
+      </div>
+      <p style="font-size:12.5px;color:var(--c-text-2);margin:12px 0 8px">Los copropietarios escanean el QR (o entran al enlace), se identifican con su RUT y votan. Abra cada punto cuando corresponda y luego pulse <strong>Traer al acta</strong>:</p>
+      <div id="vv-temas"></div>
+    </div>
   </div>
 </div>
 
@@ -2290,6 +2327,7 @@ const tr = document.createElement('tr');
 tr.innerHTML =
 '<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" placeholder="101" style="width:64px" class="unidad"></td>' +
 '<td><input type="text" id="asist-'+n+'-nombre" name="asist-'+n+'-nombre" placeholder="Nombre completo" class="nombre-asist"></td>' +
+'<td><input type="text" id="asist-'+n+'-rut" name="asist-'+n+'-rut" placeholder="12.345.678-9" class="rut-asist" style="width:120px"></td>' +
 '<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" placeholder="1.0" step="0.01" min="0" max="100" class="derechos" onchange="calcularQuorum()" onkeyup="calcularQuorum()" style="width:72px"></td>' +
 '<td><select id="asist-'+n+'-habil" name="asist-'+n+'-habil" class="habil" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
 '<td><select id="asist-'+n+'-asiste" name="asist-'+n+'-asiste" class="asiste" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
@@ -2911,7 +2949,7 @@ var v = String(_pvau || '').trim().toLowerCase()
 .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 return (v === 'presencial' || v === 'p') ? 'Presencial' : 'Telematico';
 }
-function agregarFilaAsistente(tbody, unidad, nombre, derechos, habil, modalidad, representante, asiste) {
+function agregarFilaAsistente(tbody, unidad, nombre, derechos, habil, modalidad, representante, asiste, rut) {
 var n = tbody.rows.length;
 var esHabil = _khftc(habil);
 var esAsiste = _khftc(asiste !== undefined ? asiste : 'si');
@@ -2937,6 +2975,7 @@ var tr = document.createElement('tr');
 tr.innerHTML =
 '<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" style="width:64px" class="unidad"></td>' +
 '<td><input type="text" id="asist-'+n+'-nombre" name="asist-'+n+'-nombre" class="nombre-asist"></td>' +
+'<td><input type="text" id="asist-'+n+'-rut" name="asist-'+n+'-rut" class="rut-asist" style="width:120px"></td>' +
 '<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" step="0.01" min="0" max="100" class="derechos" onchange="calcularQuorum()" onkeyup="calcularQuorum()" style="width:72px"></td>' +
 '<td><select id="asist-'+n+'-habil" name="asist-'+n+'-habil" class="habil" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
 '<td><select id="asist-'+n+'-asiste" name="asist-'+n+'-asiste" class="asiste" onchange="calcularQuorum(); actualizarVotacion();"><option value="si">Sí</option><option value="no">No</option></select></td>' +
@@ -2945,6 +2984,7 @@ tr.innerHTML =
 tbody.appendChild(tr);
 tr.querySelector('.unidad').value = unidadS;
 tr.querySelector('.nombre-asist').value = nombreS;
+var _rutEl = tr.querySelector('.rut-asist'); if (_rutEl) _rutEl.value = String(rut || '').trim();
 tr.querySelector('.derechos').value = derNum || '';
 tr.querySelector('.representante').value = repS;
 var habilSel = tr.querySelector('.habil');
@@ -2964,7 +3004,7 @@ var c0 = String(primeraFila[0] || '').trim().toLowerCase().normalize('NFD').repl
 var c1 = String(primeraFila[1] || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 var esEncabezado = c0.includes('unidad') || c1.includes('nombre');
 var inicio = esEncabezado ? 1 : 0;
-var colMap = { unidad:-1, nombre:-1, derechos:-1, habil:-1, representante:-1 };
+var colMap = { unidad:-1, nombre:-1, rut:-1, derechos:-1, habil:-1, representante:-1 };
 if (esEncabezado) {
 primeraFila.forEach(function(cell, i) {
 var c = String(cell || '').trim().toLowerCase()
@@ -2974,9 +3014,10 @@ if (c.includes('nombre')) colMap.nombre = i;
 if (c.includes('derecho') || c.charAt(0) === '%') colMap.derechos = i;
 if (c.includes('habil')) colMap.habil = i;
 if (c.includes('representante') || c.includes('repres')) colMap.representante = i;
+if (c.includes('rut') || c.includes('run')) colMap.rut = i;
 });
 } else {
-colMap = { unidad:0, nombre:1, derechos:3, habil:4, representante:5 };
+colMap = { unidad:0, nombre:1, rut:2, derechos:3, habil:4, representante:5 };
 }
 function celda(fila, key) {
 var idx = colMap[key];
@@ -3000,7 +3041,9 @@ celda(fila, 'nombre'),
 celda(fila, 'derechos'),
 celda(fila, 'habil'),
 '', 
-celda(fila, 'representante')
+celda(fila, 'representante'),
+'si',
+celda(fila, 'rut')
 );
 count++;
 } catch(e) {
@@ -3648,7 +3691,7 @@ function _captureFieldsSnapshot() {
   document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
     var g = function(sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
     snap.asistentes.push({
-      unidad: g('.unidad'), nombre: g('.nombre-asist'), derechos: g('.derechos'),
+      unidad: g('.unidad'), nombre: g('.nombre-asist'), rut: g('.rut-asist'), derechos: g('.derechos'),
       habil: g('.habil'), asiste: g('.asiste'), rep: g('.representante')
     });
   });
@@ -3710,7 +3753,7 @@ function _restoreSnapshot(snap) {
     asis.forEach(function(a, i) {
       var row = rows[i]; if (!row) return;
       var set = function(sel, v) { var e = row.querySelector(sel); if (e) e.value = (v != null ? v : ''); };
-      set('.unidad', a.unidad); set('.nombre-asist', a.nombre); set('.derechos', a.derechos);
+      set('.unidad', a.unidad); set('.nombre-asist', a.nombre); set('.rut-asist', a.rut); set('.derechos', a.derechos);
       set('.habil', a.habil || 'si'); set('.asiste', a.asiste || 'si'); set('.representante', a.rep);
     });
 
@@ -4040,5 +4083,154 @@ document.addEventListener('keydown', function(e) {
   </div>
 </div>
 
+<script>
+/* ===== Votación en vivo: puente acta <-> Supabase ===== */
+(function(){
+  var VV_URL='https://rujwokagmjbqtrcvosye.supabase.co';
+  var VV_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
+  var sb=null, asam=null, ch=null, activo=null, temasActuales=[];
+  function client(){ if(!sb && window.supabase) sb=window.supabase.createClient(VV_URL,VV_ANON); return sb; }
+  function norm(r){ return String(r||'').replace(/[.\-\s]/g,'').toLowerCase(); }
+  function codNuevo(){ var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',s=''; for(var i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function asistentes(){
+    var out=[];
+    document.querySelectorAll('#asistentes-tbody tr').forEach(function(row){
+      var get=function(sel){ var e=row.querySelector(sel); return e?String(e.value).trim():''; };
+      var rut=get('.rut-asist'), nombre=get('.nombre-asist'), unidad=get('.unidad');
+      var der=parseFloat(get('.derechos'))||0;
+      var habil=(row.querySelector('.habil')?row.querySelector('.habil').value:'si')==='si';
+      var asiste=(row.querySelector('.asiste')?row.querySelector('.asiste').value:'si')==='si';
+      if(asiste && rut) out.push({rut:rut,nombre:nombre,unidad:unidad,der:der,habil:habil});
+    });
+    return out;
+  }
+  function temas(){
+    var out=[];
+    document.querySelectorAll('.punto-card').forEach(function(card){
+      var m=(card.id||'').match(/^punto-(\d+)$/); if(!m) return;
+      var n=m[1];
+      var req=document.getElementById('p'+n+'-requiere');
+      if(req && req.value==='no') return;
+      var tEl=document.getElementById('p'+n+'-titulo');
+      var tit=tEl?tEl.value.trim():'';
+      if(!tit) return;
+      out.push({n:n, key:n+'. '+tit, titulo:tit});
+    });
+    return out;
+  }
+  window.actaIniciarSala=async function(btn){
+    var c=client();
+    if(!c){ alert('No se pudo cargar el componente de votación. Recargue la página.'); return; }
+    var asis=asistentes();
+    if(asis.length===0){ alert('No hay asistentes presentes con RUT.\n\nEn el Paso 3 agregue el RUT de los copropietarios (o impórtelo desde su Excel) y marque Asiste: Sí.'); return; }
+    var tms=temas();
+    if(tms.length===0){ alert('No hay puntos que requieran votación. Agregue al menos un punto en el orden del día.'); return; }
+    btn.disabled=true; var _t=btn.textContent; btn.textContent='Creando sala…';
+    try{
+      var codigo=codNuevo();
+      var tipo=document.getElementById('tipo-asamblea')?document.getElementById('tipo-asamblea').value:'ordinaria';
+      var tipoSala=tipo==='extraordinaria-abs'?'ext-abs':tipo==='extraordinaria-ref'?'ext-ref':'ordinaria';
+      var condo=document.getElementById('condo-nombre')?document.getElementById('condo-nombre').value:'';
+      var ins=await c.from('asambleas').insert({codigo:codigo,titulo:condo,punto:'',votacion_abierta:false}).select().single();
+      if(ins.error) throw ins.error;
+      asam={id:ins.data.id, codigo:codigo, tipo:tipoSala};
+      await c.from('padron').delete().eq('asamblea_id',asam.id);
+      var pad=asis.map(function(a){ return {asamblea_id:asam.id,rut:norm(a.rut),nombre:a.nombre,unidad:a.unidad,habil:a.habil,derechos:a.der}; });
+      var pi=await c.from('padron').insert(pad);
+      if(pi.error) throw pi.error;
+      document.getElementById('vv-start').style.display='none';
+      document.getElementById('vv-panel').style.display='block';
+      document.getElementById('vv-codigo').textContent=codigo;
+      var link=location.origin+'/votacion/?code='+codigo;
+      document.getElementById('vv-link').textContent=link;
+      try{ var qr=qrcode(0,'M'); qr.addData(link); qr.make(); document.getElementById('vv-qr').innerHTML=qr.createImgTag(3,8); }catch(e){}
+      temasActuales=tms; renderTemas();
+      if(ch){ try{ await c.removeChannel(ch); }catch(e){} }
+      ch=c.channel('vv-'+asam.id).on('postgres_changes',{event:'*',schema:'public',table:'votos',filter:'asamblea_id=eq.'+asam.id},function(){ refrescar(); }).subscribe();
+    }catch(e){ alert('No se pudo iniciar la sala. Revise su conexión a internet.\n\n'+(e.message||e)); }
+    finally{ btn.disabled=false; btn.textContent=_t; }
+  };
+  function renderTemas(){
+    var cont=document.getElementById('vv-temas'); cont.innerHTML='';
+    temasActuales.forEach(function(t){
+      var d=document.createElement('div'); d.className='vv-tema'; d.id='vv-tema-'+t.n;
+      var top=document.createElement('div'); top.className='vv-tema-top';
+      var tit=document.createElement('span'); tit.className='vv-tema-tit'; tit.textContent='Punto '+t.n+': '+t.titulo;
+      var acc=document.createElement('span'); acc.className='vv-tema-acc';
+      var bAb=document.createElement('button'); bAb.type='button'; bAb.className='vv-btn vv-btn-abrir'; bAb.textContent='▶ Abrir';
+      bAb.onclick=function(){ abrir(t); };
+      var bTr=document.createElement('button'); bTr.type='button'; bTr.className='vv-btn vv-btn-traer'; bTr.textContent='⤵ Traer al acta';
+      bTr.onclick=function(){ traer(t); };
+      acc.appendChild(bAb); acc.appendChild(bTr);
+      top.appendChild(tit); top.appendChild(acc); d.appendChild(top);
+      var res=document.createElement('div'); res.className='vv-tema-res'; res.id='vv-res-'+t.n; res.textContent='Sin abrir';
+      d.appendChild(res);
+      cont.appendChild(d);
+    });
+  }
+  async function abrir(t){
+    var c=client(); activo=t;
+    document.querySelectorAll('.vv-tema').forEach(function(el){ el.classList.remove('activo'); });
+    var card=document.getElementById('vv-tema-'+t.n); if(card) card.classList.add('activo');
+    temasActuales.forEach(function(x){
+      var b=document.querySelector('#vv-tema-'+x.n+' .vv-btn-abrir'); if(!b) return;
+      if(x.n===t.n){ b.textContent='■ Cerrar'; b.onclick=function(){ cerrar(t); }; }
+      else { b.textContent='▶ Abrir'; b.onclick=function(){ abrir(x); }; }
+    });
+    try{ await c.from('asambleas').update({punto:t.key, votacion_abierta:true}).eq('id',asam.id); }catch(e){}
+    refrescar();
+  }
+  async function cerrar(t){
+    var c=client();
+    try{ await c.from('asambleas').update({votacion_abierta:false}).eq('id',asam.id); }catch(e){}
+    var b=document.querySelector('#vv-tema-'+t.n+' .vv-btn-abrir'); if(b){ b.textContent='▶ Abrir'; b.onclick=function(){ abrir(t); }; }
+    refrescar();
+  }
+  async function refrescar(){
+    if(!activo) return;
+    var c=client();
+    var q=await c.from('votos').select('rut,choice').eq('asamblea_id',asam.id).eq('punto',activo.key);
+    var votos=q.data||[];
+    var byRut={}; asistentes().forEach(function(a){ byRut[norm(a.rut)]=a; });
+    var f=0,co=0,ab=0,n=0;
+    votos.forEach(function(v){ var p=byRut[v.rut]; if(!p||!p.habil) return; n++; if(v.choice==='favor')f+=p.der; else if(v.choice==='contra')co+=p.der; else ab+=p.der; });
+    var el=document.getElementById('vv-res-'+activo.n);
+    if(el) el.innerHTML='<b style="color:var(--c-ok)">'+f.toFixed(2)+'%</b> a favor &nbsp;·&nbsp; <b style="color:var(--c-error)">'+co.toFixed(2)+'%</b> en contra &nbsp;·&nbsp; '+ab.toFixed(2)+'% abst. &nbsp;·&nbsp; <b>'+n+'</b> votos en vivo';
+  }
+  async function traer(t){
+    var c=client();
+    var q=await c.from('votos').select('rut,choice').eq('asamblea_id',asam.id).eq('punto',t.key);
+    var votos=q.data||[];
+    if(votos.length===0){ if(!confirm('Aún no hay votos para "'+t.titulo+'". ¿Traer de todas formas?')) return; }
+    var voteByRut={}; votos.forEach(function(v){ voteByRut[v.rut]=v.choice; });
+    var keyByRut={};
+    document.querySelectorAll('#asistentes-tbody tr').forEach(function(row){
+      var rEl=row.querySelector('.rut-asist'), nEl=row.querySelector('.nombre-asist'), uEl=row.querySelector('.unidad');
+      var rut=rEl?rEl.value.trim():''; if(!rut) return;
+      keyByRut[norm(rut)]=(uEl?uEl.value.trim():'')+'|'+(nEl?nEl.value.trim():'');
+    });
+    if(typeof _qpese==='function') _qpese(t.n);
+    var tbody=document.getElementById('pvot-rows-'+t.n);
+    if(!tbody){ alert('No encontré el panel de votación del Punto '+t.n+'. Asegúrese de que el punto requiere votación.'); return; }
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    var aplicados=0;
+    Object.keys(voteByRut).forEach(function(rk){
+      var key=keyByRut[rk]; if(!key) return;
+      var row=null; for(var i=0;i<rows.length;i++){ if(rows[i].dataset.key===key){ row=rows[i]; break; } }
+      if(!row) return;
+      var sel=row.querySelector('.pref-select'); if(!sel) return;
+      sel.value=voteByRut[rk]; sel.className='pref-select '+sel.value; aplicados++;
+    });
+    if(typeof _jfg==='function') _jfg(t.n);
+    if(typeof _vufa==='function') _vufa(t.n);
+    if(typeof autoSave==='function') autoSave();
+    var el=document.getElementById('vv-res-'+t.n);
+    if(el) el.innerHTML += ' &nbsp;<span style="color:var(--c-ok);font-weight:700">✓ '+aplicados+' votos traídos al acta</span>';
+    var body=document.getElementById('pvot-body-'+t.n);
+    if(body && body.offsetParent===null && typeof toggleVotPanel==='function') toggleVotPanel(t.n);
+  }
+})();
+</script>
 </body>
 </html>
