@@ -2304,8 +2304,7 @@ cb.checked = false;
 li.classList.remove('checked');
 });
 updateMatCount();
-showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' incorporado' + (n > 1 ? 's' : '') + ' a la Tabla');
-goStep(4);
+showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' incorporado' + (n > 1 ? 's' : '') + ' a la Tabla. Complete los pasos 2 y 3 antes de generar el acta.');
 }
 function checkPlazo() {
 const fechaCit = document.getElementById('fecha-citacion').value;
@@ -2521,14 +2520,6 @@ h += '<button class="toggle-btn active" id="p' + n + '-req-si" onclick="setRequi
 h += '<button class="toggle-btn" id="p' + n + '-req-no" onclick="setRequiereAcuerdo(' + n + ',false)">No, solo informativo</button>';
 h += '</div>';
 h += '<input type="hidden" id="p' + n + '-requiere" value="si">';
-h += '</div>';
-h += '<div class="field" id="p' + n + '-regla-wrap">';
-h += '<label for="p' + n + '-regla">Regla aplicable al punto</label>';
-h += '<select id="p' + n + '-regla" onchange="_jfg(' + n + ')">';
-h += '<option value="abs_asistentes"' + (tipoAsm === 'ordinaria'           ? ' selected' : '') + '>Mayor\u00eda absoluta de los asistentes h\u00e1biles (Asamblea Ordinaria)</option>';
-h += '<option value="abs_derechos"'  + (tipoAsm === 'extraordinaria-abs'   ? ' selected' : '') + '>Mayor\u00eda absoluta de derechos del condominio — 50+1% (Extraordinaria Absoluta)</option>';
-h += '<option value="dos_tercios"'   + (tipoAsm === 'extraordinaria-ref'   ? ' selected' : '') + '>Al menos 66% de los derechos del condominio (Extraordinaria Reforzada)</option>';
-h += '</select>';
 h += '</div>';
 h += '</div>'; 
 h += '<div class="form-grid" style="margin-top:14px">';
@@ -2949,6 +2940,7 @@ var v = String(_pvau || '').trim().toLowerCase()
 .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 return (v === 'presencial' || v === 'p') ? 'Presencial' : 'Telematico';
 }
+function _fmtRut(v){ var raw=String(v||'').toUpperCase().replace(/[^0-9K]/g,''); if(raw.length<2) return raw; var cuerpo=raw.slice(0,-1), dv=raw.slice(-1), g=[]; while(cuerpo.length>3){ g.unshift(cuerpo.slice(-3)); cuerpo=cuerpo.slice(0,-3); } if(cuerpo) g.unshift(cuerpo); return g.join('.')+'-'+dv; }
 function agregarFilaAsistente(tbody, unidad, nombre, derechos, habil, modalidad, representante, asiste, rut) {
 var n = tbody.rows.length;
 var esHabil = _khftc(habil);
@@ -2984,7 +2976,7 @@ tr.innerHTML =
 tbody.appendChild(tr);
 tr.querySelector('.unidad').value = unidadS;
 tr.querySelector('.nombre-asist').value = nombreS;
-var _rutEl = tr.querySelector('.rut-asist'); if (_rutEl) _rutEl.value = String(rut || '').trim();
+var _rutEl = tr.querySelector('.rut-asist'); if (_rutEl) _rutEl.value = _fmtRut(rut);
 tr.querySelector('.derechos').value = derNum || '';
 tr.querySelector('.representante').value = repS;
 var habilSel = tr.querySelector('.habil');
@@ -3364,9 +3356,8 @@ _jfg(n);
 function _jfg(n) {
 var tbody = document.getElementById('pvot-rows-' + n);
 if (!tbody) return;
-var reglaEl = document.getElementById('p' + n + '-regla');
 var tipoAsm = document.getElementById('tipo-asamblea') ? document.getElementById('tipo-asamblea').value : 'ordinaria';
-var mayoria = reglaEl ? reglaEl.value : (tipoAsm === 'ordinaria' ? 'abs_asistentes' : 'abs_derechos');
+var mayoria = (tipoAsm === 'extraordinaria-ref') ? 'dos_tercios' : ((tipoAsm === 'extraordinaria-abs') ? 'abs_derechos' : 'abs_asistentes');
 var totalDer = 0, favorDer = 0, contraDer = 0, abstDer = 0, sinReg = 0;
 var totalHab = 0, favorHab = 0, contraHab = 0, abstHab = 0;
 tbody.querySelectorAll('tr').forEach(function(row) {
@@ -3611,9 +3602,11 @@ return texto;
     if (tbody) {
       tbody.addEventListener('input', function(e) {
         if (e.target && e.target.classList.contains('nombre-asist')) soloLetras(e);
+        if (e.target && e.target.classList.contains('rut-asist')) formatRUT(e);
       });
       tbody.addEventListener('blur', function(e) {
         if (e.target && e.target.classList.contains('nombre-asist')) soloLetras(e);
+        if (e.target && e.target.classList.contains('rut-asist')) formatRUT(e);
       }, true);
     }
   }
@@ -4230,6 +4223,7 @@ document.addEventListener('keydown', function(e) {
     var body=document.getElementById('pvot-body-'+t.n);
     if(body && body.offsetParent===null && typeof toggleVotPanel==='function') toggleVotPanel(t.n);
   }
+  try{ var _vc=document.getElementById('vv-card'), _s4=document.getElementById('step-4'); if(_vc&&_s4&&_s4.firstElementChild&&_s4.firstElementChild!==_vc) _s4.insertBefore(_vc,_s4.firstElementChild); }catch(e){}
 })();
 </script>
 </body>
