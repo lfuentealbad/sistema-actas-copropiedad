@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<!--
+  PROTOTIPO — Votación en vivo (corazón del sistema)
+  ===================================================
+  Demuestra el flujo: Mesa (secretario) + Votar (teléfono) que se identifica
+  por RUT contra un padrón y emite un voto que se suma PONDERADO por % de
+  derechos, en tiempo real.
+
+  Sincronización: capa "bus" aislada (BroadcastChannel + localStorage) que
+  funciona entre ventanas del mismo navegador. Para teléfonos separados se
+  reemplaza SOLO esta capa por Supabase Realtime (mismo resto del código).
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototipo · Votación en vivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --graf:#2C313A; --graf2:#21262E; --graf3:#3A404A;
+    --teal:#15786E; --teal2:#1C8A7E; --teal-pale:#ECF1F0;
+    --ok:#1E7E4A; --ok-bg:#E1F2E8;
+    --err:#B23A2E; --err-bg:#F6E6E3;
+    --warn:#9A6B1F; --warn-bg:#FBF3E3;
+    --bg:#F2F1EC; --surface:#FFFFFF; --border:#D7D6CE;
+    --tx:#24282D; --tx2:#5C6168; --tx3:#8B9094;
+    --r:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Source Sans 3',system-ui,sans-serif;background:var(--bg);color:var(--tx);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  header{background:linear-gradient(130deg,var(--graf3),var(--graf) 45%,var(--graf2));color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  header h1{font-size:17px;font-weight:700;margin:0;letter-spacing:-.2px;}
+  header .sub{font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
+  .badge{background:var(--teal);color:#fff;font-size:11px;font-weight:700;letter-spacing:.6px;padding:5px 12px;border-radius:20px;}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 18px 60px;}
+  .demo-note{background:var(--warn-bg);border-left:4px solid var(--warn);color:#6a4a14;padding:10px 14px;border-radius:0 10px 10px 0;font-size:13px;margin:0 auto 18px;max-width:760px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:0 2px 8px rgba(20,24,30,.05);margin-bottom:16px;}
+  .card h2{margin:0 0 4px;font-size:19px;color:var(--graf);font-weight:600;}
+  .muted{color:var(--tx2);font-size:14px;}
+  .btn{font-family:inherit;font-size:15px;font-weight:600;border:none;border-radius:12px;padding:13px 22px;cursor:pointer;transition:background .15s,transform .12s,box-shadow .15s;min-height:48px;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--graf);color:#fff;}
+  .btn-primary:hover{background:var(--graf2);}
+  .btn-teal{background:var(--teal);color:#fff;}
+  .btn-teal:hover{background:var(--teal2);}
+  .btn-ghost{background:transparent;color:var(--graf);border:1.5px solid var(--graf);}
+  .btn-ghost:hover{background:#eee;}
+  input[type=text]{width:100%;font-family:inherit;font-size:16px;padding:13px 15px;border:1.5px solid #CDCFC9;border-radius:12px;min-height:48px;}
+  input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(21,120,110,.15);}
+  label{display:block;font-size:13.5px;font-weight:600;color:#3B4248;margin-bottom:6px;}
+
+  /* selector de rol */
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .role-card{border:1.5px solid var(--border);border-radius:var(--r);padding:26px 20px;text-align:center;cursor:pointer;background:var(--surface);transition:border-color .15s,box-shadow .15s,transform .12s;}
+  .role-card:hover{border-color:var(--teal);box-shadow:0 6px 18px rgba(20,24,30,.08);transform:translateY(-2px);}
+  .role-ic{font-size:40px;display:block;margin-bottom:8px;}
+  .role-card h3{margin:0 0 4px;font-size:18px;color:var(--graf);}
+  .role-card p{margin:0;font-size:13.5px;color:var(--tx2);}
+  @media(max-width:560px){.roles{grid-template-columns:1fr;}}
+
+  /* mesa: barras */
+  .qbox{background:var(--graf);color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:16px;}
+  .qbox .q{font-size:16px;font-weight:600;}
+  .qbox .st{font-size:12.5px;opacity:.8;margin-top:2px;}
+  .res-row{display:flex;align-items:center;gap:12px;margin:12px 0;}
+  .res-lab{width:104px;font-weight:600;font-size:14px;flex-shrink:0;}
+  .res-lab.favor{color:var(--ok);} .res-lab.contra{color:var(--err);} .res-lab.abst{color:var(--warn);}
+  .meter{flex:1;background:#EDEDE8;border-radius:7px;height:16px;overflow:hidden;}
+  .meter > span{display:block;height:100%;border-radius:7px;transition:width .4s cubic-bezier(.4,0,.2,1);}
+  .meter.favor > span{background:var(--ok);} .meter.contra > span{background:var(--err);} .meter.abst > span{background:var(--warn);}
+  .res-pct{width:66px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;}
+  .concl{margin-top:14px;padding:12px 16px;border-radius:10px;font-weight:600;font-size:14.5px;}
+  .concl.ap{background:var(--ok-bg);color:var(--ok);}
+  .concl.re{background:var(--err-bg);color:var(--err);}
+  .concl.pe{background:var(--warn-bg);color:var(--warn);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--graf);padding:8px 10px;border-bottom:2px solid var(--border);}
+  td{padding:8px 10px;border-bottom:1px solid var(--border);}
+  .pill{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:20px;}
+  .pill.f{background:var(--ok-bg);color:var(--ok);} .pill.c{background:var(--err-bg);color:var(--err);}
+  .pill.a{background:var(--warn-bg);color:var(--warn);} .pill.p{background:#EDEDE8;color:var(--tx2);}
+  .code-chip{display:inline-block;background:var(--teal-pale);border:1px solid var(--teal);color:var(--teal);font-weight:700;font-size:15px;letter-spacing:1px;padding:6px 14px;border-radius:10px;}
+  .rut-help{font-size:12.5px;color:var(--tx2);margin-top:10px;line-height:1.7;}
+  .rut-help code{background:#eee;padding:1px 6px;border-radius:5px;cursor:pointer;font-size:12px;}
+  .rut-help code:hover{background:var(--teal-pale);color:var(--teal);}
+
+  /* votar (teléfono) */
+  .vote-id{background:var(--teal-pale);border:1px solid #CFE0DC;border-radius:12px;padding:16px 18px;margin-bottom:18px;}
+  .vote-id .nom{font-size:18px;font-weight:600;color:var(--graf);}
+  .vote-id .peso{font-size:15px;color:var(--tx);margin-top:4px;}
+  .vote-id .peso b{color:var(--teal);font-size:22px;}
+  .vbtns{display:grid;gap:12px;}
+  .vbtn{font-size:18px;font-weight:700;border:2px solid;border-radius:14px;padding:20px;cursor:pointer;background:#fff;min-height:64px;transition:all .12s;}
+  .vbtn.favor{border-color:var(--ok);color:var(--ok);} .vbtn.favor:hover{background:var(--ok);color:#fff;}
+  .vbtn.contra{border-color:var(--err);color:var(--err);} .vbtn.contra:hover{background:var(--err);color:#fff;}
+  .vbtn.abst{border-color:var(--warn);color:var(--warn);} .vbtn.abst:hover{background:var(--warn);color:#fff;}
+  .vbtn.sel{color:#fff;}
+  .vbtn.favor.sel{background:var(--ok);} .vbtn.contra.sel{background:var(--err);} .vbtn.abst.sel{background:var(--warn);}
+  .status{text-align:center;padding:24px;color:var(--tx2);font-size:15px;}
+  .status .big{font-size:18px;color:var(--graf);font-weight:600;margin-bottom:4px;}
+  .hidden{display:none;}
+  .back{background:none;border:none;color:var(--teal);font-size:13.5px;cursor:pointer;padding:4px;margin-bottom:8px;font-weight:600;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="sub">Prototipo · Sistema de Actas</div>
+    <h1>Votación en vivo</h1>
+  </div>
+  <span class="badge" id="role-badge">DEMOSTRACIÓN</span>
+</header>
+
+<div class="demo-note">
+  <strong>Cómo probarlo:</strong> abre esta misma página en <strong>2 ventanas</strong> del navegador.
+  En una elige <em>“Mesa”</em>; en la otra elige <em>“Votar”</em> e identifícate con un RUT de ejemplo.
+  Los votos aparecen en la Mesa en tiempo real. <em>(En esta demo la sincronización es entre ventanas del mismo equipo; entre teléfonos separados se conecta a un servidor.)</em>
+</div>
+
+<div class="wrap">
+
+  <!-- ====== SELECCIÓN DE ROL ====== -->
+  <section id="screen-rol">
+    <div class="card">
+      <h2>¿Cómo vas a entrar?</h2>
+      <p class="muted">Sesión de demostración: <span class="code-chip">ASAMBLEA-DEMO</span></p>
+      <div class="roles" style="margin-top:16px">
+        <div class="role-card" onclick="entrar('mesa')">
+          <span class="role-ic">🖥️</span>
+          <h3>Mesa</h3>
+          <p>Pantalla del secretario. Abre la votación y ve los resultados en vivo.</p>
+        </div>
+        <div class="role-card" onclick="entrar('votar')">
+          <span class="role-ic">📱</span>
+          <h3>Votar</h3>
+          <p>El copropietario se identifica con su RUT y emite su voto.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== MESA (SECRETARIO) ====== -->
+  <section id="screen-mesa" class="hidden">
+    <button class="back" onclick="location.reload()">← Cambiar de rol</button>
+    <div class="card">
+      <h2>Mesa · Secretario</h2>
+      <p class="muted">Los copropietarios entran a <span class="code-chip">ASAMBLEA-DEMO</span> desde su teléfono y se identifican con su RUT.</p>
+
+      <div style="margin-top:16px">
+        <label for="q-input">Punto en votación</label>
+        <input type="text" id="q-input" value="Aprobación del balance anual del condominio">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-teal" id="btn-abrir" onclick="abrirVotacion()">▶ Abrir votación</button>
+        <button class="btn btn-ghost hidden" id="btn-cerrar" onclick="cerrarVotacion()">■ Cerrar votación</button>
+        <button class="btn btn-ghost" onclick="reiniciar()">↺ Reiniciar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="qbox">
+        <div class="q" id="mesa-q">—</div>
+        <div class="st" id="mesa-st">Votación cerrada</div>
+      </div>
+
+      <div class="res-row"><div class="res-lab favor">✓ A favor</div><div class="meter favor"><span id="bar-favor" style="width:0%"></span></div><div class="res-pct" id="pct-favor">0%</div></div>
+      <div class="res-row"><div class="res-lab contra">✕ En contra</div><div class="meter contra"><span id="bar-contra" style="width:0%"></span></div><div class="res-pct" id="pct-contra">0%</div></div>
+      <div class="res-row"><div class="res-lab abst">○ Abstención</div><div class="meter abst"><span id="bar-abst" style="width:0%"></span></div><div class="res-pct" id="pct-abst">0%</div></div>
+
+      <div class="concl pe" id="mesa-concl">Esperando votos…</div>
+      <p class="muted" id="mesa-base" style="margin-top:10px">—</p>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:16px">Registro de votos</h2>
+      <table>
+        <thead><tr><th>Unidad</th><th>Copropietario</th><th>% Derechos</th><th>Hábil</th><th>Voto</th></tr></thead>
+        <tbody id="mesa-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== VOTAR (TELÉFONO) ====== -->
+  <section id="screen-votar" class="hidden">
+    <button class="back" onclick="location.reload()">← Cambiar de rol</button>
+
+    <!-- paso identificarse -->
+    <div class="card" id="votar-id">
+      <h2>Identifíquese</h2>
+      <p class="muted">Ingrese su RUT para conectarse a la asamblea.</p>
+      <div style="margin-top:14px">
+        <label for="rut-input">RUT</label>
+        <input type="text" id="rut-input" placeholder="12.345.678-9" autocomplete="off">
+      </div>
+      <button class="btn btn-teal" style="margin-top:14px;width:100%" onclick="identificar()">Entrar a la asamblea</button>
+      <div id="rut-error" class="hidden" style="color:var(--err);font-size:13.5px;margin-top:10px"></div>
+      <div class="rut-help">
+        RUTs de ejemplo (clic para usar):
+        <span id="rut-chips"></span>
+      </div>
+    </div>
+
+    <!-- paso votar -->
+    <div class="card hidden" id="votar-panel">
+      <div class="vote-id">
+        <div class="nom" id="v-nom">—</div>
+        <div class="peso">Su voto representa el <b id="v-peso">—</b> de los derechos del condominio.</div>
+      </div>
+
+      <div id="v-wait" class="status">
+        <div class="big" id="v-q">—</div>
+        <div id="v-wait-msg">Esperando que el secretario abra la votación…</div>
+      </div>
+
+      <div id="v-choices" class="hidden">
+        <p class="muted" style="margin:0 0 12px"><strong id="v-q2">—</strong></p>
+        <div class="vbtns">
+          <button class="vbtn favor" data-c="favor" onclick="emitir('favor')">✓ A FAVOR</button>
+          <button class="vbtn contra" data-c="contra" onclick="emitir('contra')">✕ EN CONTRA</button>
+          <button class="vbtn abst" data-c="abst" onclick="emitir('abst')">○ ABSTENCIÓN</button>
+        </div>
+        <div id="v-done" class="status hidden"><div class="big" style="color:var(--ok)">✓ Voto registrado</div>Puede cambiarlo mientras la votación siga abierta.</div>
+      </div>
+
+      <div id="v-inhabil" class="status hidden">
+        <div class="big" style="color:var(--err)">No habilitado para votar</div>
+        Usted figura como <strong>inhábil</strong> (no está al día con los gastos comunes). Puede asistir, pero no votar.
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =====================================================================
+   PADRÓN DE EJEMPLO (en el sistema real vendría del Excel: RUT → unidad → %)
+   ===================================================================== */
+const PADRON = [
+  {rut:'12.345.678-9', nombre:'María González Pérez',  unidad:'101', habil:true,  der:5.25},
+  {rut:'11.222.333-4', nombre:'Juan Sepúlveda Rojas',  unidad:'102', habil:true,  der:4.80},
+  {rut:'15.678.901-2', nombre:'Ana Castro Muñoz',      unidad:'201', habil:false, der:5.10},
+  {rut:'9.876.543-1',  nombre:'Carlos Vega Soto',      unidad:'202', habil:true,  der:4.75},
+  {rut:'8.765.432-1',  nombre:'Patricia Soto López',   unidad:'301', habil:true,  der:5.40},
+  {rut:'10.111.222-3', nombre:'Luis Fernández Tapia',  unidad:'302', habil:true,  der:4.95},
+];
+const norm = r => String(r||'').replace(/[.\-\s]/g,'').toLowerCase();
+const buscar = r => PADRON.find(p => norm(p.rut) === norm(r));
+
+/* =====================================================================
+   CAPA DE SINCRONIZACIÓN ("bus") — aislada a propósito.
+   Hoy: BroadcastChannel + localStorage (entre ventanas del mismo equipo).
+   Mañana: se reemplaza por Supabase Realtime, sin tocar el resto.
+   ===================================================================== */
+const Bus = (() => {
+  const CH = 'asamblea-demo';
+  const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(CH) : null;
+  let handler = () => {};
+  if (bc) bc.onmessage = e => { try { handler(JSON.parse(e.data)); } catch(_){} };
+  window.addEventListener('storage', e => {
+    if (e.key === 'asamblea-bus-msg' && e.newValue) { try { handler(JSON.parse(e.newValue)); } catch(_){} }
+  });
+  return {
+    send(msg){
+      const s = JSON.stringify(msg);
+      if (bc) bc.postMessage(s);
+      try { localStorage.setItem('asamblea-bus-msg', s + '|' + Date.now() + Math.random()); } catch(_){}
+    },
+    onMessage(cb){ handler = cb; }
+  };
+})();
+// nota: el sufijo en localStorage fuerza un cambio de valor para disparar el evento 'storage'.
+Bus._real = Bus.send;
+Bus.send = (msg) => { Bus._real({...msg}); };
+
+/* =====================================================================
+   ESTADO Y NAVEGACIÓN
+   ===================================================================== */
+let ROL = null;
+function show(id){ ['rol','mesa','votar'].forEach(s => document.getElementById('screen-'+s).classList.toggle('hidden', s!==id)); }
+function entrar(rol){
+  ROL = rol;
+  document.getElementById('role-badge').textContent = rol === 'mesa' ? 'MESA' : 'VOTAR';
+  show(rol);
+  if (rol === 'mesa') initMesa();
+  if (rol === 'votar') initVotar();
+}
+
+/* =====================================================================
+   MESA (fuente de la verdad: guarda los votos y recalcula)
+   ===================================================================== */
+const mesa = { question:'', isOpen:false, votes:{} };  // votes: rutKey -> 'favor'|'contra'|'abst'
+
+function initMesa(){
+  mesa.question = document.getElementById('q-input').value;
+  Bus.onMessage(m => {
+    if (m.role === 'vote'){
+      const p = buscar(m.rut);
+      if (p && p.habil){ mesa.votes[norm(m.rut)] = m.choice; renderMesa(); difundir(); }
+    } else if (m.role === 'hello'){
+      difundir(); // un teléfono recién entró: le mando el estado actual
+    }
+  });
+  renderMesa();
+  difundir();
+}
+function difundir(){
+  Bus.send({ role:'state', question:mesa.question, isOpen:mesa.isOpen, votos:mesa.votes });
+}
+function abrirVotacion(){
+  mesa.question = document.getElementById('q-input').value.trim() || 'Punto sin título';
+  mesa.isOpen = true;
+  document.getElementById('btn-abrir').classList.add('hidden');
+  document.getElementById('btn-cerrar').classList.remove('hidden');
+  document.getElementById('q-input').disabled = true;
+  renderMesa(); difundir();
+}
+function cerrarVotacion(){
+  mesa.isOpen = false;
+  document.getElementById('btn-abrir').classList.remove('hidden');
+  document.getElementById('btn-cerrar').classList.add('hidden');
+  document.getElementById('q-input').disabled = false;
+  renderMesa(); difundir();
+}
+function reiniciar(){
+  mesa.votes = {}; mesa.isOpen = false;
+  document.getElementById('btn-abrir').classList.remove('hidden');
+  document.getElementById('btn-cerrar').classList.add('hidden');
+  document.getElementById('q-input').disabled = false;
+  renderMesa(); difundir();
+}
+function renderMesa(){
+  document.getElementById('mesa-q').textContent = mesa.question || '—';
+  document.getElementById('mesa-st').textContent = mesa.isOpen ? '● Votación ABIERTA' : 'Votación cerrada';
+
+  let f=0,c=0,a=0, votantes=0, baseHabil=0;
+  PADRON.forEach(p => { if (p.habil) baseHabil += p.der; });
+  PADRON.forEach(p => {
+    const v = mesa.votes[norm(p.rut)];
+    if (v){ votantes++; if(v==='favor')f+=p.der; else if(v==='contra')c+=p.der; else a+=p.der; }
+  });
+  const set=(bar,pct,val)=>{ document.getElementById(bar).style.width=Math.min(val,100)+'%'; document.getElementById(pct).textContent=val.toFixed(2)+'%'; };
+  set('bar-favor','pct-favor',f); set('bar-contra','pct-contra',c); set('bar-abst','pct-abst',a);
+
+  const concl = document.getElementById('mesa-concl');
+  if (votantes===0){ concl.className='concl pe'; concl.textContent='Esperando votos…'; }
+  else if (f>c){ concl.className='concl ap'; concl.textContent='Tendencia: APROBADO — la mayoría de los derechos votó a favor.'; }
+  else if (c>f){ concl.className='concl re'; concl.textContent='Tendencia: RECHAZADO — la mayoría de los derechos votó en contra.'; }
+  else { concl.className='concl pe'; concl.textContent='Empate por ahora.'; }
+
+  document.getElementById('mesa-base').innerHTML =
+    'Han votado <strong>'+votantes+'</strong> de '+PADRON.filter(p=>p.habil).length+' copropietarios hábiles · ' +
+    'base hábil del condominio: <strong>'+baseHabil.toFixed(2)+'%</strong> de los derechos.';
+
+  const tb = document.getElementById('mesa-tbody'); tb.innerHTML='';
+  PADRON.forEach(p => {
+    const v = mesa.votes[norm(p.rut)];
+    const pill = !p.habil ? '<span class="pill p">inhábil</span>'
+      : v==='favor' ? '<span class="pill f">A favor</span>'
+      : v==='contra'? '<span class="pill c">En contra</span>'
+      : v==='abst'  ? '<span class="pill a">Abstención</span>'
+      : '<span class="pill p">pendiente</span>';
+    tb.insertAdjacentHTML('beforeend',
+      '<tr><td>'+p.unidad+'</td><td>'+p.nombre+'</td><td>'+p.der.toFixed(2)+'%</td><td>'+(p.habil?'Sí':'No')+'</td><td>'+pill+'</td></tr>');
+  });
+}
+
+/* =====================================================================
+   VOTAR (teléfono): se identifica y emite voto
+   ===================================================================== */
+let yo = null, miVoto = null, estadoActual = {isOpen:false, question:''};
+function initVotar(){
+  const chips = document.getElementById('rut-chips');
+  PADRON.forEach(p => {
+    const c = document.createElement('code');
+    c.textContent = p.rut;
+    c.title = p.nombre + (p.habil ? '' : ' (inhábil)');
+    c.onclick = () => { document.getElementById('rut-input').value = p.rut; };
+    chips.appendChild(c); chips.appendChild(document.createTextNode(' '));
+  });
+  Bus.onMessage(m => { if (m.role === 'state'){ estadoActual = m; pintarVotar(); } });
+}
+function identificar(){
+  const r = document.getElementById('rut-input').value;
+  const p = buscar(r);
+  const err = document.getElementById('rut-error');
+  if (!p){ err.classList.remove('hidden'); err.textContent='No encontramos ese RUT en el padrón de la asamblea. Pruebe con uno de los ejemplos.'; return; }
+  err.classList.add('hidden');
+  yo = p;
+  document.getElementById('votar-id').classList.add('hidden');
+  document.getElementById('votar-panel').classList.remove('hidden');
+  document.getElementById('v-nom').textContent = p.nombre + ' · Unidad ' + p.unidad;
+  document.getElementById('v-peso').textContent = p.der.toFixed(2) + '%';
+  if (!p.habil){
+    document.getElementById('v-wait').classList.add('hidden');
+    document.getElementById('v-choices').classList.add('hidden');
+    document.getElementById('v-inhabil').classList.remove('hidden');
+  }
+  Bus.send({ role:'hello', rut:p.rut });  // pedir estado actual a la Mesa
+  pintarVotar();
+}
+function pintarVotar(){
+  if (!yo || !yo.habil) return;
+  document.getElementById('v-q').textContent = estadoActual.question || '—';
+  document.getElementById('v-q2').textContent = estadoActual.question || '—';
+  const abierto = !!estadoActual.isOpen;
+  document.getElementById('v-wait').classList.toggle('hidden', abierto);
+  document.getElementById('v-choices').classList.toggle('hidden', !abierto);
+  // reflejar mi voto guardado en la Mesa (por si recargué)
+  const guardado = estadoActual.votos ? estadoActual.votos[norm(yo.rut)] : null;
+  if (guardado) miVoto = guardado;
+  document.querySelectorAll('.vbtn').forEach(b => b.classList.toggle('sel', b.dataset.c===miVoto));
+  document.getElementById('v-done').classList.toggle('hidden', !miVoto);
+}
+function emitir(choice){
+  if (!estadoActual.isOpen) return;
+  miVoto = choice;
+  document.querySelectorAll('.vbtn').forEach(b => b.classList.toggle('sel', b.dataset.c===choice));
+  document.getElementById('v-done').classList.remove('hidden');
+  Bus.send({ role:'vote', rut:yo.rut, choice });
+}
+</script>
+</body>
+</html>
