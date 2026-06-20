@@ -14,8 +14,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prototipo · Votación en vivo</title>
+<title>Votación en vivo · Asamblea</title>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --graf:#2C313A; --graf2:#21262E; --graf3:#3A404A;
@@ -109,13 +110,11 @@
     <div class="sub">Prototipo · Sistema de Actas</div>
     <h1>Votación en vivo</h1>
   </div>
-  <span class="badge" id="role-badge">DEMOSTRACIÓN</span>
+  <span class="badge" id="role-badge">EN LÍNEA</span>
 </header>
 
 <div class="demo-note">
-  <strong>Cómo probarlo:</strong> abre esta misma página en <strong>2 ventanas</strong> del navegador.
-  En una elige <em>“Mesa”</em>; en la otra elige <em>“Votar”</em> e identifícate con un RUT de ejemplo.
-  Los votos aparecen en la Mesa en tiempo real. <em>(En esta demo la sincronización es entre ventanas del mismo equipo; entre teléfonos separados se conecta a un servidor.)</em>
+  <strong>Versión en línea (servidor real).</strong> Funciona entre <strong>teléfonos separados</strong>: la Mesa abre la votación y cada copropietario entra desde su teléfono, se identifica con su RUT y vota. Todo se sincroniza por internet en tiempo real.
 </div>
 
 <div class="wrap">
@@ -234,8 +233,15 @@
 
 <script>
 /* =====================================================================
-   PADRÓN DE EJEMPLO (en el sistema real vendría del Excel: RUT → unidad → %)
+   CONFIGURACIÓN — pega aquí los 2 datos de tu proyecto Supabase
+   (Supabase → Project Settings → API)
    ===================================================================== */
+const SUPABASE_URL  = 'https://rujwokagmjbqtrcvosye.supabase.co';      // ej: https://abcd1234.supabase.co
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';  // la "anon public" key
+const CODIGO        = 'ASAMBLEA-DEMO';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
 const PADRON = [
   {rut:'12.345.678-9', nombre:'María González Pérez',  unidad:'101', habil:true,  der:5.25},
   {rut:'11.222.333-4', nombre:'Juan Sepúlveda Rojas',  unidad:'102', habil:true,  der:4.80},
@@ -245,179 +251,146 @@ const PADRON = [
   {rut:'10.111.222-3', nombre:'Luis Fernández Tapia',  unidad:'302', habil:true,  der:4.95},
 ];
 const norm = r => String(r||'').replace(/[.\-\s]/g,'').toLowerCase();
-const buscar = r => PADRON.find(p => norm(p.rut) === norm(r));
 
-/* =====================================================================
-   CAPA DE SINCRONIZACIÓN ("bus") — aislada a propósito.
-   Hoy: BroadcastChannel + localStorage (entre ventanas del mismo equipo).
-   Mañana: se reemplaza por Supabase Realtime, sin tocar el resto.
-   ===================================================================== */
-const Bus = (() => {
-  const CH = 'asamblea-demo';
-  const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(CH) : null;
-  let handler = () => {};
-  if (bc) bc.onmessage = e => { try { handler(JSON.parse(e.data)); } catch(_){} };
-  window.addEventListener('storage', e => {
-    if (e.key === 'asamblea-bus-msg' && e.newValue) { try { handler(JSON.parse(e.newValue)); } catch(_){} }
-  });
-  return {
-    send(msg){
-      const s = JSON.stringify(msg);
-      if (bc) bc.postMessage(s);
-      try { localStorage.setItem('asamblea-bus-msg', s + '|' + Date.now() + Math.random()); } catch(_){}
-    },
-    onMessage(cb){ handler = cb; }
-  };
-})();
-// nota: el sufijo en localStorage fuerza un cambio de valor para disparar el evento 'storage'.
-Bus._real = Bus.send;
-Bus.send = (msg) => { Bus._real({...msg}); };
+async function getAsamblea(){
+  let { data, error } = await sb.from('asambleas').select('*').eq('codigo', CODIGO).maybeSingle();
+  if (error) throw error;
+  if (!data){
+    const ins = await sb.from('asambleas').insert({ codigo:CODIGO, titulo:'Asamblea de demostración', punto:'', votacion_abierta:false }).select().single();
+    if (ins.error) throw ins.error;
+    data = ins.data;
+  }
+  return data;
+}
 
-/* =====================================================================
-   ESTADO Y NAVEGACIÓN
-   ===================================================================== */
-let ROL = null;
-function show(id){ ['rol','mesa','votar'].forEach(s => document.getElementById('screen-'+s).classList.toggle('hidden', s!==id)); }
+let ROL=null;
+function show(id){ ['rol','mesa','votar'].forEach(x=>document.getElementById('screen-'+x).classList.toggle('hidden', x!==id)); }
 function entrar(rol){
-  ROL = rol;
-  document.getElementById('role-badge').textContent = rol === 'mesa' ? 'MESA' : 'VOTAR';
+  ROL=rol;
+  document.getElementById('role-badge').textContent = rol==='mesa'?'MESA':'VOTAR';
   show(rol);
-  if (rol === 'mesa') initMesa();
-  if (rol === 'votar') initVotar();
+  if(rol==='mesa') initMesa();
+  if(rol==='votar') initVotar();
 }
 
-/* =====================================================================
-   MESA (fuente de la verdad: guarda los votos y recalcula)
-   ===================================================================== */
-const mesa = { question:'', isOpen:false, votes:{} };  // votes: rutKey -> 'favor'|'contra'|'abst'
-
-function initMesa(){
-  mesa.question = document.getElementById('q-input').value;
-  Bus.onMessage(m => {
-    if (m.role === 'vote'){
-      const p = buscar(m.rut);
-      if (p && p.habil){ mesa.votes[norm(m.rut)] = m.choice; renderMesa(); difundir(); }
-    } else if (m.role === 'hello'){
-      difundir(); // un teléfono recién entró: le mando el estado actual
-    }
-  });
+let asamblea=null;
+const mesa={ question:'', isOpen:false, votes:{} };
+async function initMesa(){
+  try{
+    asamblea = await getAsamblea();
+    await sb.from('padron').upsert(
+      PADRON.map(p=>({asamblea_id:asamblea.id, rut:norm(p.rut), nombre:p.nombre, unidad:p.unidad, habil:p.habil, derechos:p.der})),
+      {onConflict:'asamblea_id,rut'});
+    mesa.question = asamblea.punto || document.getElementById('q-input').value;
+    mesa.isOpen   = asamblea.votacion_abierta;
+    if(mesa.question) document.getElementById('q-input').value = mesa.question;
+    if(mesa.isOpen){ document.getElementById('btn-abrir').classList.add('hidden'); document.getElementById('btn-cerrar').classList.remove('hidden'); document.getElementById('q-input').disabled=true; }
+    await cargarVotos();
+    sb.channel('rt-votos').on('postgres_changes',
+      {event:'*', schema:'public', table:'votos', filter:'asamblea_id=eq.'+asamblea.id},
+      ()=>cargarVotos()).subscribe();
+  }catch(e){ alert('No se pudo conectar a Supabase.\n\nRevisa que pegaste bien la URL y la anon key, y que corriste el SQL.\n\nDetalle: '+(e.message||e)); }
+}
+async function cargarVotos(){
+  if(!asamblea) return;
+  const { data } = await sb.from('votos').select('rut,choice').eq('asamblea_id', asamblea.id).eq('punto', mesa.question||'');
+  mesa.votes={}; (data||[]).forEach(v=> mesa.votes[v.rut]=v.choice);
   renderMesa();
-  difundir();
 }
-function difundir(){
-  Bus.send({ role:'state', question:mesa.question, isOpen:mesa.isOpen, votos:mesa.votes });
-}
-function abrirVotacion(){
-  mesa.question = document.getElementById('q-input').value.trim() || 'Punto sin título';
-  mesa.isOpen = true;
+async function abrirVotacion(){
+  const q=document.getElementById('q-input').value.trim()||'Punto sin título';
+  mesa.question=q; mesa.isOpen=true;
   document.getElementById('btn-abrir').classList.add('hidden');
   document.getElementById('btn-cerrar').classList.remove('hidden');
-  document.getElementById('q-input').disabled = true;
-  renderMesa(); difundir();
+  document.getElementById('q-input').disabled=true;
+  await sb.from('asambleas').update({punto:q, votacion_abierta:true}).eq('id', asamblea.id);
+  await cargarVotos();
 }
-function cerrarVotacion(){
-  mesa.isOpen = false;
+async function cerrarVotacion(){
+  mesa.isOpen=false;
   document.getElementById('btn-abrir').classList.remove('hidden');
   document.getElementById('btn-cerrar').classList.add('hidden');
-  document.getElementById('q-input').disabled = false;
-  renderMesa(); difundir();
+  document.getElementById('q-input').disabled=false;
+  await sb.from('asambleas').update({votacion_abierta:false}).eq('id', asamblea.id);
+  renderMesa();
 }
-function reiniciar(){
-  mesa.votes = {}; mesa.isOpen = false;
+async function reiniciar(){
+  mesa.votes={}; mesa.isOpen=false;
   document.getElementById('btn-abrir').classList.remove('hidden');
   document.getElementById('btn-cerrar').classList.add('hidden');
-  document.getElementById('q-input').disabled = false;
-  renderMesa(); difundir();
+  document.getElementById('q-input').disabled=false;
+  await sb.from('votos').delete().eq('asamblea_id', asamblea.id).eq('punto', mesa.question||'');
+  await sb.from('asambleas').update({votacion_abierta:false}).eq('id', asamblea.id);
+  renderMesa();
 }
 function renderMesa(){
-  document.getElementById('mesa-q').textContent = mesa.question || '—';
-  document.getElementById('mesa-st').textContent = mesa.isOpen ? '● Votación ABIERTA' : 'Votación cerrada';
-
-  let f=0,c=0,a=0, votantes=0, baseHabil=0;
-  PADRON.forEach(p => { if (p.habil) baseHabil += p.der; });
-  PADRON.forEach(p => {
-    const v = mesa.votes[norm(p.rut)];
-    if (v){ votantes++; if(v==='favor')f+=p.der; else if(v==='contra')c+=p.der; else a+=p.der; }
-  });
-  const set=(bar,pct,val)=>{ document.getElementById(bar).style.width=Math.min(val,100)+'%'; document.getElementById(pct).textContent=val.toFixed(2)+'%'; };
+  document.getElementById('mesa-q').textContent = mesa.question||'—';
+  document.getElementById('mesa-st').textContent = mesa.isOpen?'● Votación ABIERTA':'Votación cerrada';
+  let f=0,c=0,a=0,votantes=0,baseHabil=0;
+  PADRON.forEach(p=>{ if(p.habil) baseHabil+=p.der; });
+  PADRON.forEach(p=>{ const v=mesa.votes[norm(p.rut)]; if(v){votantes++; if(v==='favor')f+=p.der; else if(v==='contra')c+=p.der; else a+=p.der;} });
+  const set=(b,pc,val)=>{ document.getElementById(b).style.width=Math.min(val,100)+'%'; document.getElementById(pc).textContent=val.toFixed(2)+'%'; };
   set('bar-favor','pct-favor',f); set('bar-contra','pct-contra',c); set('bar-abst','pct-abst',a);
-
-  const concl = document.getElementById('mesa-concl');
-  if (votantes===0){ concl.className='concl pe'; concl.textContent='Esperando votos…'; }
-  else if (f>c){ concl.className='concl ap'; concl.textContent='Tendencia: APROBADO — la mayoría de los derechos votó a favor.'; }
-  else if (c>f){ concl.className='concl re'; concl.textContent='Tendencia: RECHAZADO — la mayoría de los derechos votó en contra.'; }
-  else { concl.className='concl pe'; concl.textContent='Empate por ahora.'; }
-
-  document.getElementById('mesa-base').innerHTML =
-    'Han votado <strong>'+votantes+'</strong> de '+PADRON.filter(p=>p.habil).length+' copropietarios hábiles · ' +
-    'base hábil del condominio: <strong>'+baseHabil.toFixed(2)+'%</strong> de los derechos.';
-
-  const tb = document.getElementById('mesa-tbody'); tb.innerHTML='';
-  PADRON.forEach(p => {
-    const v = mesa.votes[norm(p.rut)];
-    const pill = !p.habil ? '<span class="pill p">inhábil</span>'
-      : v==='favor' ? '<span class="pill f">A favor</span>'
-      : v==='contra'? '<span class="pill c">En contra</span>'
-      : v==='abst'  ? '<span class="pill a">Abstención</span>'
-      : '<span class="pill p">pendiente</span>';
-    tb.insertAdjacentHTML('beforeend',
-      '<tr><td>'+p.unidad+'</td><td>'+p.nombre+'</td><td>'+p.der.toFixed(2)+'%</td><td>'+(p.habil?'Sí':'No')+'</td><td>'+pill+'</td></tr>');
-  });
+  const cc=document.getElementById('mesa-concl');
+  if(votantes===0){cc.className='concl pe';cc.textContent='Esperando votos…';}
+  else if(f>c){cc.className='concl ap';cc.textContent='Tendencia: APROBADO — la mayoría de los derechos votó a favor.';}
+  else if(c>f){cc.className='concl re';cc.textContent='Tendencia: RECHAZADO — la mayoría de los derechos votó en contra.';}
+  else {cc.className='concl pe';cc.textContent='Empate por ahora.';}
+  document.getElementById('mesa-base').innerHTML='Han votado <strong>'+votantes+'</strong> de '+PADRON.filter(p=>p.habil).length+' copropietarios hábiles · base hábil del condominio: <strong>'+baseHabil.toFixed(2)+'%</strong> de los derechos.';
+  const tb=document.getElementById('mesa-tbody'); tb.innerHTML='';
+  PADRON.forEach(p=>{ const v=mesa.votes[norm(p.rut)];
+    const pill=!p.habil?'<span class="pill p">inhábil</span>':v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>';
+    tb.insertAdjacentHTML('beforeend','<tr><td>'+p.unidad+'</td><td>'+p.nombre+'</td><td>'+p.der.toFixed(2)+'%</td><td>'+(p.habil?'Sí':'No')+'</td><td>'+pill+'</td></tr>'); });
 }
 
-/* =====================================================================
-   VOTAR (teléfono): se identifica y emite voto
-   ===================================================================== */
-let yo = null, miVoto = null, estadoActual = {isOpen:false, question:''};
-function initVotar(){
-  const chips = document.getElementById('rut-chips');
-  PADRON.forEach(p => {
-    const c = document.createElement('code');
-    c.textContent = p.rut;
-    c.title = p.nombre + (p.habil ? '' : ' (inhábil)');
-    c.onclick = () => { document.getElementById('rut-input').value = p.rut; };
-    chips.appendChild(c); chips.appendChild(document.createTextNode(' '));
-  });
-  Bus.onMessage(m => { if (m.role === 'state'){ estadoActual = m; pintarVotar(); } });
+let asambleaP=null, yo=null, miVoto=null, estado={isOpen:false, question:''};
+async function initVotar(){
+  const chips=document.getElementById('rut-chips');
+  PADRON.forEach(p=>{ const c=document.createElement('code'); c.textContent=p.rut; c.title=p.nombre+(p.habil?'':' (inhábil)'); c.onclick=()=>{document.getElementById('rut-input').value=p.rut;}; chips.appendChild(c); chips.appendChild(document.createTextNode(' ')); });
+  try{
+    asambleaP = await getAsamblea();
+    estado = { isOpen:asambleaP.votacion_abierta, question:asambleaP.punto };
+    sb.channel('rt-asamblea').on('postgres_changes',
+      {event:'UPDATE', schema:'public', table:'asambleas', filter:'id=eq.'+asambleaP.id},
+      payload=>{ estado={isOpen:payload.new.votacion_abierta, question:payload.new.punto}; pintarVotar(); cargarMiVoto(); }).subscribe();
+  }catch(e){ alert('No se pudo conectar a Supabase.\n\nDetalle: '+(e.message||e)); }
 }
-function identificar(){
-  const r = document.getElementById('rut-input').value;
-  const p = buscar(r);
-  const err = document.getElementById('rut-error');
-  if (!p){ err.classList.remove('hidden'); err.textContent='No encontramos ese RUT en el padrón de la asamblea. Pruebe con uno de los ejemplos.'; return; }
+async function identificar(){
+  const r=norm(document.getElementById('rut-input').value);
+  const err=document.getElementById('rut-error');
+  if(!asambleaP){ err.classList.remove('hidden'); err.textContent='Aún conectando con la asamblea, intente de nuevo en un segundo.'; return; }
+  const { data } = await sb.from('padron').select('*').eq('asamblea_id', asambleaP.id).eq('rut', r).maybeSingle();
+  if(!data){ err.classList.remove('hidden'); err.textContent='No encontramos ese RUT en el padrón de la asamblea. Pruebe con uno de los ejemplos.'; return; }
   err.classList.add('hidden');
-  yo = p;
+  yo={ rut:data.rut, nombre:data.nombre, unidad:data.unidad, habil:data.habil, der:Number(data.derechos) };
   document.getElementById('votar-id').classList.add('hidden');
   document.getElementById('votar-panel').classList.remove('hidden');
-  document.getElementById('v-nom').textContent = p.nombre + ' · Unidad ' + p.unidad;
-  document.getElementById('v-peso').textContent = p.der.toFixed(2) + '%';
-  if (!p.habil){
-    document.getElementById('v-wait').classList.add('hidden');
-    document.getElementById('v-choices').classList.add('hidden');
-    document.getElementById('v-inhabil').classList.remove('hidden');
-  }
-  Bus.send({ role:'hello', rut:p.rut });  // pedir estado actual a la Mesa
-  pintarVotar();
+  document.getElementById('v-nom').textContent = yo.nombre+' · Unidad '+yo.unidad;
+  document.getElementById('v-peso').textContent = yo.der.toFixed(2)+'%';
+  if(!yo.habil){ document.getElementById('v-wait').classList.add('hidden'); document.getElementById('v-choices').classList.add('hidden'); document.getElementById('v-inhabil').classList.remove('hidden'); return; }
+  await cargarMiVoto(); pintarVotar();
 }
-function pintarVotar(){
-  if (!yo || !yo.habil) return;
-  document.getElementById('v-q').textContent = estadoActual.question || '—';
-  document.getElementById('v-q2').textContent = estadoActual.question || '—';
-  const abierto = !!estadoActual.isOpen;
-  document.getElementById('v-wait').classList.toggle('hidden', abierto);
-  document.getElementById('v-choices').classList.toggle('hidden', !abierto);
-  // reflejar mi voto guardado en la Mesa (por si recargué)
-  const guardado = estadoActual.votos ? estadoActual.votos[norm(yo.rut)] : null;
-  if (guardado) miVoto = guardado;
-  document.querySelectorAll('.vbtn').forEach(b => b.classList.toggle('sel', b.dataset.c===miVoto));
+async function cargarMiVoto(){
+  if(!yo||!yo.habil||!estado.question){ return; }
+  const { data } = await sb.from('votos').select('choice').eq('asamblea_id', asambleaP.id).eq('punto', estado.question).eq('rut', yo.rut).maybeSingle();
+  miVoto = data?data.choice:null;
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===miVoto));
   document.getElementById('v-done').classList.toggle('hidden', !miVoto);
 }
-function emitir(choice){
-  if (!estadoActual.isOpen) return;
-  miVoto = choice;
-  document.querySelectorAll('.vbtn').forEach(b => b.classList.toggle('sel', b.dataset.c===choice));
+function pintarVotar(){
+  if(!yo||!yo.habil) return;
+  document.getElementById('v-q').textContent = estado.question||'—';
+  document.getElementById('v-q2').textContent = estado.question||'—';
+  const abierto=!!estado.isOpen;
+  document.getElementById('v-wait').classList.toggle('hidden', abierto);
+  document.getElementById('v-choices').classList.toggle('hidden', !abierto);
+}
+async function emitir(choice){
+  if(!estado.isOpen) return;
+  miVoto=choice;
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===choice));
   document.getElementById('v-done').classList.remove('hidden');
-  Bus.send({ role:'vote', rut:yo.rut, choice });
+  await sb.from('votos').upsert({asamblea_id:asambleaP.id, rut:yo.rut, punto:estado.question, choice, actualizado_en:new Date().toISOString()}, {onConflict:'asamblea_id,punto,rut'});
 }
 </script>
 </body>
