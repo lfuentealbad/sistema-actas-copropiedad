@@ -594,7 +594,7 @@ let chAsam=null, chPadronF=null, seqMiVoto=0;
 function initVotar(){
   const cod=new URLSearchParams(location.search).get('code');
   const ci=$('v-codigo'); if(ci){ ci.addEventListener('keydown',e=>{ if(e.key==='Enter') unirse(); }); setTimeout(()=>{try{ci.focus();}catch(e){}},120); }
-  const ri=$('rut-input'); if(ri){ ri.addEventListener('keydown',e=>{ if(e.key==='Enter') identificar(); }); ri.addEventListener('change',()=>{ if(validarRut(ri.value)) ri.value=formatRut(ri.value); }); }
+  const ri=$('rut-input'); if(ri){ ri.addEventListener('input',()=>{ const v=formatRut(ri.value); if(v!==ri.value){ ri.value=v; try{ri.setSelectionRange(v.length,v.length);}catch(e){} } }); ri.addEventListener('keydown',e=>{ if(e.key==='Enter') identificar(); }); }
   if(cod && ci){ ci.value=cod.toUpperCase().replace(/[^A-Z0-9]/g,''); unirse(); }
 }
 async function unirse(btn){
@@ -626,12 +626,13 @@ async function identificar(btn){
   const raw=$('rut-input').value, r=norm(raw);
   const err=$('rut-error'); err.classList.add('hidden');
   if(!asambleaP){ err.classList.remove('hidden'); err.textContent='Aún conectando con la asamblea, intente de nuevo en un segundo.'; return; }
-  if(!validarRut(raw)){ err.classList.remove('hidden'); err.textContent='Revise su RUT: parece incompleto o mal escrito (ej: 12.345.678-9).'; return; }
+  if(r.length<2){ err.classList.remove('hidden'); err.textContent='Escriba su RUT para continuar (ej: 12.345.678-9).'; return; }
   setBusy(btn,true,'Verificando…');
   try{
-    const { data, error }=await sb.from('padron').select('*').eq('asamblea_id',asambleaP.id).eq('rut',r).maybeSingle();
-    if(error){ err.classList.remove('hidden'); err.textContent='Hubo un problema al verificar su RUT. Intente nuevamente.'; return; }
-    if(!data){ err.classList.remove('hidden'); err.textContent='No encontramos ese RUT en el padrón de esta asamblea. Verifique con la Mesa.'; return; }
+    const q=await sb.from('padron').select('*').eq('asamblea_id',asambleaP.id).eq('rut',r).limit(1);
+    if(q.error){ err.classList.remove('hidden'); err.textContent='Hubo un problema al verificar su RUT. Intente nuevamente.'; return; }
+    const data=q.data&&q.data[0];
+    if(!data){ err.classList.remove('hidden'); err.textContent = validarRut(raw) ? 'No encontramos ese RUT en el padrón de esta asamblea. Verifique con la Mesa.' : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-9) o consulte con la Mesa.'; return; }
     yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.derechos)};
     $('votar-id').classList.add('hidden'); $('votar-panel').classList.remove('hidden');
     $('v-nom').textContent=yo.nombre+' · Unidad '+yo.unidad;
