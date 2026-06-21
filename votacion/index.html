@@ -15,11 +15,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="same-origin">
 <title>Sala de Votación · Asamblea de Copropietarios</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<!-- Librerías vendorizadas (sin CDN): integridad verificable + CSP estricta -->
+<script src="/vendor/supabase.min.js"></script>
+<script src="/vendor/xlsx.full.min.js"></script>
+<script src="/vendor/qrcode-generator.js"></script>
 <style>
   :root{
     --graf:#2C313A; --graf2:#21262E; --graf3:#3A404A;
