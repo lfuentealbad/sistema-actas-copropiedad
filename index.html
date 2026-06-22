@@ -4079,7 +4079,7 @@ document.addEventListener('keydown', function(e) {
 (function(){
   var VV_URL='https://rujwokagmjbqtrcvosye.supabase.co';
   var VV_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
-  var sb=null, asam=null, ch=null, activo=null, temasActuales=[];
+  var sb=null, asam=null, pollTimer=null, activo=null, temasActuales=[];
   function client(){ if(!sb && window.supabase) sb=window.supabase.createClient(VV_URL,VV_ANON); return sb; }
   function norm(r){ return String(r||'').replace(/[.\-\s]/g,'').toLowerCase(); }
   function codNuevo(){ var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',s=''; for(var i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
@@ -4119,16 +4119,15 @@ document.addEventListener('keydown', function(e) {
     if(tms.length===0){ alert('No hay puntos que requieran votación. Agregue al menos un punto en el orden del día.'); return; }
     btn.disabled=true; var _t=btn.textContent; btn.textContent='Creando sala…';
     try{
-      var codigo=codNuevo();
       var tipo=document.getElementById('tipo-asamblea')?document.getElementById('tipo-asamblea').value:'ordinaria';
       var tipoSala=tipo==='extraordinaria-abs'?'ext-abs':tipo==='extraordinaria-ref'?'ext-ref':'ordinaria';
       var condo=document.getElementById('condo-nombre')?document.getElementById('condo-nombre').value:'';
-      var ins=await c.from('asambleas').insert({codigo:codigo,titulo:condo,punto:'',votacion_abierta:false}).select().single();
+      var ins=await c.rpc('vv_crear',{p_titulo:condo});
       if(ins.error) throw ins.error;
-      asam={id:ins.data.id, codigo:codigo, tipo:tipoSala};
-      await c.from('padron').delete().eq('asamblea_id',asam.id);
-      var pad=asis.map(function(a){ return {asamblea_id:asam.id,rut:norm(a.rut),nombre:a.nombre,unidad:a.unidad,habil:a.habil,derechos:a.der}; });
-      var pi=await c.from('padron').insert(pad);
+      var codigo=ins.data.codigo;
+      asam={id:ins.data.id, codigo:codigo, token:ins.data.admin_token, tipo:tipoSala};
+      var pad=asis.map(function(a){ return {rut:norm(a.rut),nombre:a.nombre,unidad:a.unidad,habil:a.habil,der:a.der}; });
+      var pi=await c.rpc('vv_set_padron',{p_codigo:asam.codigo,p_token:asam.token,p_padron:pad});
       if(pi.error) throw pi.error;
       document.getElementById('vv-start').style.display='none';
       document.getElementById('vv-panel').style.display='block';
@@ -4137,8 +4136,8 @@ document.addEventListener('keydown', function(e) {
       document.getElementById('vv-link').textContent=link;
       try{ var qr=qrcode(0,'M'); qr.addData(link); qr.make(); document.getElementById('vv-qr').innerHTML=qr.createImgTag(3,8); }catch(e){}
       temasActuales=tms; renderTemas();
-      if(ch){ try{ await c.removeChannel(ch); }catch(e){} }
-      ch=c.channel('vv-'+asam.id).on('postgres_changes',{event:'*',schema:'public',table:'votos',filter:'asamblea_id=eq.'+asam.id},function(){ refrescar(); }).subscribe();
+      if(pollTimer) clearInterval(pollTimer);
+      pollTimer=setInterval(function(){ if(activo) refrescar(); }, 2500);
     }catch(e){ alert('No se pudo iniciar la sala. Revise su conexión a internet.\n\n'+(e.message||e)); }
     finally{ btn.disabled=false; btn.textContent=_t; }
   };
@@ -4169,20 +4168,21 @@ document.addEventListener('keydown', function(e) {
       if(x.n===t.n){ b.textContent='■ Cerrar'; b.onclick=function(){ cerrar(t); }; }
       else { b.textContent='▶ Abrir'; b.onclick=function(){ abrir(x); }; }
     });
-    try{ await c.from('asambleas').update({punto:t.key, votacion_abierta:true}).eq('id',asam.id); }catch(e){}
+    try{ await c.rpc('vv_abrir',{p_codigo:asam.codigo,p_token:asam.token,p_punto:t.key}); }catch(e){}
     refrescar();
   }
   async function cerrar(t){
     var c=client();
-    try{ await c.from('asambleas').update({votacion_abierta:false}).eq('id',asam.id); }catch(e){}
+    try{ await c.rpc('vv_cerrar',{p_codigo:asam.codigo,p_token:asam.token}); }catch(e){}
     var b=document.querySelector('#vv-tema-'+t.n+' .vv-btn-abrir'); if(b){ b.textContent='▶ Abrir'; b.onclick=function(){ abrir(t); }; }
     refrescar();
   }
   async function refrescar(){
     if(!activo) return;
     var c=client();
-    var q=await c.from('votos').select('rut,choice').eq('asamblea_id',asam.id).eq('punto',activo.key);
-    var votos=q.data||[];
+    var q=await c.rpc('vv_resultados',{p_codigo:asam.codigo,p_token:asam.token,p_punto:activo.key});
+    if(q.error) return;
+    var votos=(q.data&&q.data.votos)||[];
     var byRut={}; asistentes().forEach(function(a){ byRut[norm(a.rut)]=a; });
     var f=0,co=0,ab=0,n=0;
     votos.forEach(function(v){ var p=byRut[v.rut]; if(!p||!p.habil) return; n++; if(v.choice==='favor')f+=p.der; else if(v.choice==='contra')co+=p.der; else ab+=p.der; });
@@ -4191,8 +4191,8 @@ document.addEventListener('keydown', function(e) {
   }
   async function traer(t){
     var c=client();
-    var q=await c.from('votos').select('rut,choice').eq('asamblea_id',asam.id).eq('punto',t.key);
-    var votos=q.data||[];
+    var q=await c.rpc('vv_resultados',{p_codigo:asam.codigo,p_token:asam.token,p_punto:t.key});
+    var votos=(q.data&&q.data.votos)||[];
     if(votos.length===0){ if(!confirm('Aún no hay votos para "'+t.titulo+'". ¿Traer de todas formas?')) return; }
     var voteByRut={}; votos.forEach(function(v){ voteByRut[v.rut]=v.choice; });
     var keyByRut={};

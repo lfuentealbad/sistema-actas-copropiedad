@@ -310,21 +310,21 @@ function entrar(rol){ ROL=rol; $('role-badge').textContent=rol==='mesa'?'MESA':'
 
 /* ===================== MESA ===================== */
 let asamblea=null, padron=[], puntos=[], puntoActivo=null, votacionAbierta=false, padronDirty=false, autoTimer=null;
-let chVotos=null, seqVotos=0;
+let mesaTimer=null, seqVotos=0;
 const LS = c => 'sala-mesa-'+c;
 
 function initMesa(){ const last=localStorage.getItem('sala-mesa-last'); if(last){ const r=$('m-reanudar'); r.textContent='Continuar asamblea '+last; r.classList.remove('hidden'); } }
-function persistMesa(){ if(!asamblea) return; localStorage.setItem('sala-mesa-last',asamblea.codigo); localStorage.setItem(LS(asamblea.codigo),JSON.stringify({id:asamblea.id,codigo:asamblea.codigo,condo:asamblea.condo,tipo:asamblea.tipo,padron,puntos,puntoActivo})); }
+function persistMesa(){ if(!asamblea) return; localStorage.setItem('sala-mesa-last',asamblea.codigo); localStorage.setItem(LS(asamblea.codigo),JSON.stringify({id:asamblea.id,codigo:asamblea.codigo,condo:asamblea.condo,tipo:asamblea.tipo,token:asamblea.token,padron,puntos,puntoActivo})); }
 
 async function crearAsamblea(btn){
   setBusy(btn,true,'Creando…');
   try{
-    const condo=$('m-condo').value.trim(), tipo=$('m-tipo').value, codigo=codigoNuevo();
-    const { data, error }=await sb.from('asambleas').insert({codigo,titulo:condo,punto:'',votacion_abierta:false}).select().single();
+    const condo=$('m-condo').value.trim(), tipo=$('m-tipo').value;
+    const { data, error }=await sb.rpc('vv_crear',{p_titulo:condo});
     if(error) throw error;
-    asamblea={id:data.id,codigo,condo,tipo}; padron=[]; puntos=[]; puntoActivo=null; votacionAbierta=false; padronDirty=false;
+    asamblea={id:data.id,codigo:data.codigo,condo,tipo,token:data.admin_token}; padron=[]; puntos=[]; puntoActivo=null; votacionAbierta=false; padronDirty=false;
     padronEjemplo();
-    await abrirPanelMesa(data);
+    await abrirPanelMesa({votacion_abierta:false});
     await autoGuardarPadron();
     persistMesa();
   }catch(e){ alert('No se pudo crear la asamblea. Revisa tu conexión a internet e inténtalo nuevamente.'); }
@@ -336,18 +336,18 @@ async function reanudar(btn){
   try{
     const code=localStorage.getItem('sala-mesa-last'); if(!code) return;
     const saved=JSON.parse(localStorage.getItem(LS(code))||'{}');
-    const { data }=await sb.from('asambleas').select('*').eq('codigo',code).maybeSingle();
-    if(!data){ alert('Esa asamblea ya no existe en el servidor. Crea una nueva.'); return; }
-    asamblea={id:data.id,codigo:data.codigo,condo:saved.condo||data.titulo||'',tipo:saved.tipo||'ordinaria'};
-    const pad=await sb.from('padron').select('*').eq('asamblea_id',data.id);
-    padron=(pad.data&&pad.data.length)? pad.data.map(p=>({unidad:p.unidad||'',nombre:p.nombre||'',rut:p.rut||'',der:Number(p.derechos)||0,habil:p.habil!==false})) : (saved.padron||[]);
+    if(!saved.token){ alert('No tengo la llave de Mesa de esa asamblea en este equipo. Crea una nueva.'); return; }
+    const { data, error }=await sb.rpc('vv_reanudar',{p_codigo:code,p_token:saved.token});
+    if(error||!data||!data.asamblea){ alert('Esa asamblea ya no existe o la llave no corresponde. Crea una nueva.'); return; }
+    const a=data.asamblea;
+    asamblea={id:a.id,codigo:a.codigo,condo:saved.condo||a.titulo||'',tipo:saved.tipo||'ordinaria',token:saved.token};
+    padron=(data.padron&&data.padron.length)? data.padron.map(p=>({unidad:p.unidad||'',nombre:p.nombre||'',rut:p.rut||'',der:Number(p.der)||0,habil:p.habil!==false})) : (saved.padron||[]);
     puntos=saved.puntos||[];
-    const vt=await sb.from('votos').select('punto').eq('asamblea_id',data.id);
-    if(vt.data){ const set=new Set(puntos.map(p=>p.key)); vt.data.forEach(v=>{ if(v.punto&&!set.has(v.punto)){ set.add(v.punto); puntos.push({key:v.punto,titulo:String(v.punto).replace(/^\d+\.\s*/,'')}); } }); }
-    votacionAbierta=!!data.votacion_abierta; puntoActivo=votacionAbierta?data.punto:(saved.puntoActivo||null);
+    { const set=new Set(puntos.map(p=>p.key)); (data.puntos||[]).forEach(k=>{ if(k&&!set.has(k)){ set.add(k); puntos.push({key:k,titulo:String(k).replace(/^\d+\.\s*/,'')}); } }); }
+    votacionAbierta=!!a.abierta; puntoActivo=votacionAbierta?a.punto:(saved.puntoActivo||null);
     padronDirty=false;
-    await abrirPanelMesa(data); persistMesa();
-    if((pad.data||[]).length) { const ok=$('m-padron-ok'); if(ok) ok.textContent='Padrón recuperado del servidor ('+pad.data.length+').'; }
+    await abrirPanelMesa({votacion_abierta:a.abierta,punto:a.punto}); persistMesa();
+    if((data.padron||[]).length) { const ok=$('m-padron-ok'); if(ok) ok.textContent='Padrón recuperado del servidor ('+data.padron.length+').'; }
   } finally { setBusy(btn,false); }
 }
 
@@ -360,20 +360,19 @@ async function abrirPanelMesa(row){
   try{ const qr=qrcode(0,'M'); qr.addData(link); qr.make(); $('m-qr').innerHTML=qr.createImgTag(3,8); }catch(e){}
   renderPadron(); renderPuntos();
   if(row && row.votacion_abierta){ votacionAbierta=true; puntoActivo=row.punto; mostrarVotacionMesa(); }
-  if(chVotos){ try{ await sb.removeChannel(chVotos); }catch(e){} chVotos=null; }
-  chVotos=sb.channel('rt-votos-'+asamblea.id)
-    .on('postgres_changes',{event:'*',schema:'public',table:'votos',filter:'asamblea_id=eq.'+asamblea.id},()=>cargarVotos())
-    .subscribe(st=>{ if(st==='SUBSCRIBED'){ setConn('● en línea','ok'); cargarVotos(); } else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){ setConn('○ reconectando…','warn'); } });
+  if(mesaTimer) clearInterval(mesaTimer);
+  setConn('● en línea','ok');
+  mesaTimer=setInterval(()=>{ if(puntoActivo) cargarVotos(); }, 2500);
 }
 function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent).then(()=>{ if(btn){ const t=btn.textContent; btn.textContent='¡Copiado!'; setTimeout(()=>btn.textContent=t,1500); } }); }
 
 /* ----- padrón ----- */
 function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='Cambios sin guardar…'; persistMesa(); clearTimeout(autoTimer); autoTimer=setTimeout(autoGuardarPadron,900); }
 async function persistirPadronDB(filas){
-  await sb.from('padron').delete().eq('asamblea_id',asamblea.id);
-  const ins=filas.map(p=>({asamblea_id:asamblea.id,rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,derechos:parseFloat(p.der)||0}));
-  if(ins.length){ const {error}=await sb.from('padron').insert(ins); if(error) throw error; }
-  return ins.length;
+  const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,der:parseFloat(p.der)||0}));
+  const {data,error}=await sb.rpc('vv_set_padron',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_padron:arr});
+  if(error) throw error;
+  return (data&&data.n)||arr.length;
 }
 async function autoGuardarPadron(){
   clearTimeout(autoTimer); if(!asamblea) return;
@@ -508,9 +507,9 @@ async function abrirPunto(key,btn){
   if(padron.filter(p=>p.habil!==false).length===0){ alert('No hay copropietarios hábiles en el padrón.'); return; }
   setBusy(btn,true,'Abriendo…');
   try{
-    puntoActivo=key; votacionAbierta=true;
-    const { error }=await sb.from('asambleas').update({punto:key,votacion_abierta:true}).eq('id',asamblea.id);
+    const { error }=await sb.rpc('vv_abrir',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:key});
     if(error) throw error;
+    puntoActivo=key; votacionAbierta=true;
     renderPuntos(); mostrarVotacionMesa(); await cargarVotos(); persistMesa();
   }catch(e){ votacionAbierta=false; alert('No se pudo abrir la votación. Revisa tu conexión.'); }
   finally{ setBusy(btn,false); }
@@ -519,7 +518,7 @@ async function cerrarPunto(btn){
   setBusy(btn,true,'Cerrando…');
   try{
     votacionAbierta=false;
-    await sb.from('asambleas').update({votacion_abierta:false}).eq('id',asamblea.id);
+    await sb.rpc('vv_cerrar',{p_codigo:asamblea.codigo,p_token:asamblea.token});
     await cargarVotos();
     $('mesa-st').textContent='Votación CERRADA · resultado final';
     $('mesa-cerrar').classList.add('hidden');
@@ -535,9 +534,11 @@ function mostrarVotacionMesa(){
 async function cargarVotos(){
   if(!asamblea||!puntoActivo) return;
   const punto=puntoActivo, myseq=++seqVotos;
-  const { data }=await sb.from('votos').select('rut,choice').eq('asamblea_id',asamblea.id).eq('punto',punto);
+  const { data, error }=await sb.rpc('vv_resultados',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:punto});
+  if(error){ setConn('○ reconectando…','warn'); return; }
+  setConn('● en línea','ok');
   if(myseq!==seqVotos||punto!==puntoActivo) return;
-  renderResultados(data||[]);
+  renderResultados((data&&data.votos)||[]);
 }
 function calc(votos){
   const map={}; votos.forEach(v=>map[v.rut]=v.choice);
@@ -578,8 +579,8 @@ async function exportarResultados(btn){
     out+='Total derechos hábiles: '+padron.filter(p=>p.habil!==false).reduce((a,p)=>a+(parseFloat(p.der)||0),0).toFixed(2)+'% del condominio\n\n';
     for(let i=0;i<puntos.length;i++){
       const p=puntos[i];
-      const { data }=await sb.from('votos').select('rut,choice').eq('asamblea_id',asamblea.id).eq('punto',p.key);
-      const r=calc(data||[]); const cn=conclusionTipo(r,true);
+      const { data }=await sb.rpc('vv_resultados',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:p.key});
+      const r=calc((data&&data.votos)||[]); const cn=conclusionTipo(r,true);
       out+='PUNTO '+(i+1)+': '+p.titulo+'\n';
       out+='  A favor: '+r.f.toFixed(2)+'%  ·  En contra: '+r.c.toFixed(2)+'%  ·  Abstención: '+r.a.toFixed(2)+'%\n';
       out+='  Votaron: '+r.n+' copropietarios hábiles\n';
@@ -593,7 +594,7 @@ function copiarResumen(){ const ta=$('m-export'); const go=()=>navigator.clipboa
 
 /* ===================== VOTAR ===================== */
 let asambleaP=null, yo=null, miVoto=null, estado={isOpen:false,question:''};
-let chAsam=null, chPadronF=null, seqMiVoto=0;
+let fonoTimer=null, pollTick=0, seqMiVoto=0;
 
 function initVotar(){
   const cod=new URLSearchParams(location.search).get('code');
@@ -607,15 +608,14 @@ async function unirse(btn){
   if(code.length<4){ err.classList.remove('hidden'); err.textContent='Escribe el código que muestra la Mesa (ej: ABC123).'; return; }
   setBusy(btn,true,'Entrando…');
   try{
-    const { data }=await sb.from('asambleas').select('*').eq('codigo',code).maybeSingle();
-    if(!data){ err.classList.remove('hidden'); err.textContent='No encontramos la asamblea '+code+'. Verifica el código con la Mesa o vuelve a escanear el QR.'; return; }
-    asambleaP=data; estado={isOpen:!!data.votacion_abierta, question:data.punto||''};
+    const { data }=await sb.rpc('vv_estado',{p_codigo:code});
+    if(!data||!data.existe){ err.classList.remove('hidden'); err.textContent='No encontramos la asamblea '+code+'. Verifica el código con la Mesa o vuelve a escanear el QR.'; return; }
+    asambleaP={codigo:code, titulo:data.titulo}; estado={isOpen:!!data.abierta, question:data.punto||''};
     $('votar-codigo').classList.add('hidden'); $('votar-id').classList.remove('hidden');
     const ri=$('rut-input'); if(ri) setTimeout(()=>{try{ri.focus();}catch(e){}},120);
-    if(chAsam){ try{ await sb.removeChannel(chAsam); }catch(e){} chAsam=null; }
-    chAsam=sb.channel('rt-asam-'+data.id)
-      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'asambleas',filter:'id=eq.'+data.id},payload=>onEstado({isOpen:!!payload.new.votacion_abierta,question:payload.new.punto||''}))
-      .subscribe(st=>{ if(st==='SUBSCRIBED') setConn('● en línea','ok'); else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT') setConn('○ reconectando…','warn'); });
+    setConn('● en línea','ok');
+    if(fonoTimer) clearInterval(fonoTimer);
+    fonoTimer=setInterval(pollEstado, 2500);
   }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revisa tu internet e intenta de nuevo.'; }
   finally{ setBusy(btn,false); }
 }
@@ -626,6 +626,15 @@ function onEstado(nuevo){
   pintarVotar();
   cargarMiVoto().then(()=>document.querySelectorAll('.vbtn').forEach(b=>b.disabled=false));
 }
+async function pollEstado(){
+  if(!asambleaP) return;
+  const r=await sb.rpc('vv_estado',{p_codigo:asambleaP.codigo});
+  if(r.error||!r.data||!r.data.existe){ setConn('○ reconectando…','warn'); return; }
+  setConn('● en línea','ok');
+  const nuevo={isOpen:!!r.data.abierta, question:r.data.punto||''};
+  if(nuevo.isOpen!==estado.isOpen || nuevo.question!==estado.question) onEstado(nuevo);
+  if(yo && (++pollTick % 3 === 0)) refrescarYo();
+}
 async function identificar(btn){
   const raw=$('rut-input').value, r=norm(raw);
   const err=$('rut-error'); err.classList.add('hidden');
@@ -633,29 +642,26 @@ async function identificar(btn){
   if(r.length<2){ err.classList.remove('hidden'); err.textContent='Escriba su RUT para continuar (ej: 12.345.678-9).'; return; }
   setBusy(btn,true,'Verificando…');
   try{
-    const q=await sb.from('padron').select('*').eq('asamblea_id',asambleaP.id).eq('rut',r).limit(1);
+    const q=await sb.rpc('vv_identificar',{p_codigo:asambleaP.codigo,p_rut:r});
     if(q.error){ err.classList.remove('hidden'); err.textContent='Hubo un problema al verificar su RUT. Intente nuevamente.'; return; }
-    const data=q.data&&q.data[0];
-    if(!data){ err.classList.remove('hidden'); err.textContent = validarRut(raw) ? 'No encontramos ese RUT en el padrón de esta asamblea. Verifique con la Mesa.' : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-9) o consulte con la Mesa.'; return; }
-    yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.derechos)};
+    const data=q.data;
+    if(!data||!data.existe){ err.classList.remove('hidden'); err.textContent = validarRut(raw) ? 'No encontramos ese RUT en el padrón de esta asamblea. Verifique con la Mesa.' : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-9) o consulte con la Mesa.'; return; }
+    yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.der)};
     $('votar-id').classList.add('hidden'); $('votar-panel').classList.remove('hidden');
     $('v-nom').textContent=yo.nombre+' · Unidad '+yo.unidad;
     $('v-peso').textContent=yo.der.toFixed(2)+'%';
-    if(chPadronF){ try{ await sb.removeChannel(chPadronF); }catch(e){} chPadronF=null; }
-    chPadronF=sb.channel('rt-padron-'+asambleaP.id)
-      .on('postgres_changes',{event:'*',schema:'public',table:'padron',filter:'asamblea_id=eq.'+asambleaP.id},()=>refrescarYo())
-      .subscribe();
     aplicarHabilidad();
   }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revise su internet.'; }
   finally{ setBusy(btn,false); }
 }
 async function refrescarYo(){
   if(!yo||!asambleaP) return;
-  const { data }=await sb.from('padron').select('*').eq('asamblea_id',asambleaP.id).eq('rut',norm(yo.rut)).maybeSingle();
-  if(!data) return;
-  yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.derechos)};
+  const { data }=await sb.rpc('vv_identificar',{p_codigo:asambleaP.codigo,p_rut:yo.rut});
+  if(!data||!data.existe) return;
+  const wasHabil=yo.habil;
+  yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.der)};
   $('v-peso').textContent=yo.der.toFixed(2)+'%';
-  aplicarHabilidad();
+  if(wasHabil!==yo.habil) aplicarHabilidad();
 }
 function aplicarHabilidad(){
   if(!yo) return;
@@ -666,9 +672,9 @@ function aplicarHabilidad(){
 async function cargarMiVoto(){
   if(!yo||!yo.habil||!estado.question) return;
   const punto=estado.question, myseq=++seqMiVoto;
-  const { data }=await sb.from('votos').select('choice').eq('asamblea_id',asambleaP.id).eq('punto',punto).eq('rut',yo.rut).maybeSingle();
+  const { data }=await sb.rpc('vv_mi_voto',{p_codigo:asambleaP.codigo,p_rut:yo.rut,p_punto:punto});
   if(myseq!==seqMiVoto||punto!==estado.question) return;
-  miVoto=data?data.choice:null;
+  miVoto=(data&&data.choice)||null;
   document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===miVoto));
   $('v-done').classList.toggle('hidden', !miVoto);
 }
@@ -691,7 +697,7 @@ async function emitir(choice){
   const btns=[...document.querySelectorAll('.vbtn')]; btns.forEach(b=>b.disabled=true);
   document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===choice));
   try{
-    const { error }=await sb.from('votos').upsert({asamblea_id:asambleaP.id,rut:yo.rut,punto,choice,actualizado_en:new Date().toISOString()},{onConflict:'asamblea_id,punto,rut'});
+    const { error }=await sb.rpc('vv_emitir',{p_codigo:asambleaP.codigo,p_rut:yo.rut,p_punto:punto,p_choice:choice});
     if(error) throw error;
     miVoto=choice; $('v-done').classList.remove('hidden');
   }catch(e){
