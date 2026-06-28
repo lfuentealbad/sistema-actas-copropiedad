@@ -10,7 +10,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Genere actas de asamblea de copropietarios conforme a la Ley N° 21.442, con votación en vivo desde el teléfono. Sin instalar nada.">
 <title>Sistema de Actas de Copropiedad · Ley N° 21.442</title>
+<link rel="canonical" href="https://actascopropiedad.cl/">
+<meta name="theme-color" content="#15181C">
+<!-- Open Graph / redes sociales -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Actas de Copropiedad">
+<meta property="og:locale" content="es_CL">
+<meta property="og:url" content="https://actascopropiedad.cl/">
+<meta property="og:title" content="Sistema de Actas de Copropiedad · Ley N° 21.442">
+<meta property="og:description" content="Arme el acta de su asamblea, reciba los votos en vivo desde el teléfono y obtenga un documento listo para firmar. Conforme a la ley, sin instalar nada.">
+<meta property="og:image" content="https://actascopropiedad.cl/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sistema de Actas de Copropiedad — Ley N° 21.442">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sistema de Actas de Copropiedad · Ley N° 21.442">
+<meta name="twitter:description" content="Arme el acta, reciba los votos en vivo y obtenga un documento listo para firmar.">
+<meta name="twitter:image" content="https://actascopropiedad.cl/og.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:300 700; font-display:swap; font-style:normal; }
@@ -37,6 +55,8 @@
   body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.04;mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
   a{color:inherit;text-decoration:none;}
+  :focus-visible{outline:3px solid var(--teal-d);outline-offset:3px;border-radius:5px;}
+  .hero :focus-visible,.cta :focus-visible,.big :focus-visible{outline-color:var(--teal-l);}
   .wrap{max-width:1140px;margin:0 auto;padding:0 26px;}
   .serif{font-family:var(--serif);font-variation-settings:'opsz' 120,'wght' 540;font-weight:540;letter-spacing:-.01em;}
   .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-d);}
@@ -63,7 +83,7 @@
   .brand{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);font-size:16.5px;}
   .brand svg{width:36px;height:36px;flex-shrink:0;filter:drop-shadow(0 4px 8px rgba(20,24,30,.18));}
   .brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;font-weight:600;letter-spacing:-.01em;}
-  .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx3);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
+  .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
   .nav-links{display:flex;align-items:center;gap:30px;}
   .nav-links a.lnk{font-size:14.5px;font-weight:500;color:var(--tx2);transition:color .2s;}
   .nav-links a.lnk:hover{color:var(--ink);}
@@ -100,7 +120,7 @@
   .stage .glow{position:absolute;inset:6% 8%;background:radial-gradient(ellipse at 60% 40%,rgba(63,201,180,.4),transparent 70%);filter:blur(30px);}
   .card-doc{position:absolute;inset:8px 64px 40px 0;background:linear-gradient(160deg,#fff,#f3f5f4);border-radius:18px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.6) inset;padding:26px 26px 22px;transform:rotateY(-13deg) rotateX(4deg) rotate(-2deg);transform-style:preserve-3d;}
   .card-doc .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);background:var(--teal,#179c8b)10;background:rgba(23,156,139,.1);padding:4px 9px;border-radius:6px;margin-bottom:16px;}
-  .card-doc h4{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;margin:0 0 14px;color:var(--ink);font-size:17px;}
+  .card-doc .doc-title{display:block;font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;margin:0 0 14px;color:var(--ink);font-size:17px;}
   .card-doc .ln{height:8px;border-radius:5px;background:#E7EBEA;margin-bottom:10px;}
   .card-doc .ln.a{width:94%;} .card-doc .ln.b{width:78%;} .card-doc .ln.c{width:88%;} .card-doc .ln.d{width:62%;}
   .card-doc .sign{margin-top:20px;display:flex;align-items:center;gap:10px;padding-top:16px;border-top:1px dashed #DDE2E1;}
@@ -186,14 +206,33 @@
   .cta h2{color:#fff;}
   .cta p{font-size:18.5px;color:rgba(255,255,255,.8);margin:0 auto 30px;max-width:520px;}
 
+  /* Showcase (ventana de navegador) */
+  .window{max-width:1000px;margin:0 auto;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh-lg);background:#fff;}
+  .win-bar{display:flex;align-items:center;gap:8px;padding:13px 18px;background:#ECEAE3;border-bottom:1px solid var(--line);}
+  .win-bar .wd{width:12px;height:12px;border-radius:50%;}
+  .win-bar .wd.r{background:#E5837A;} .win-bar .wd.y{background:#E5C07A;} .win-bar .wd.g{background:#86C29A;}
+  .win-url{margin-left:14px;font-size:13px;color:var(--tx2);background:#fff;padding:6px 16px;border-radius:8px;border:1px solid var(--line-soft);}
+  .window img{display:block;width:100%;height:auto;}
+
+  /* FAQ */
+  .faq{max-width:780px;margin:0 auto;}
+  .faq details{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
+  .faq details[open]{border-color:rgba(23,156,139,.35);box-shadow:var(--sh-sm);}
+  .faq summary{list-style:none;cursor:pointer;padding:21px 24px;font-size:17.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:16px;}
+  .faq summary::-webkit-details-marker{display:none;}
+  .faq summary::after{content:"+";font-size:25px;font-weight:300;color:var(--teal-d);transition:transform .25s var(--ease);line-height:1;flex-shrink:0;}
+  .faq details[open] summary::after{transform:rotate(45deg);}
+  .faq details > div{padding:0 24px 22px;font-size:15.5px;color:var(--tx2);line-height:1.65;}
+  @media(max-width:680px){ .win-url{display:none;} .faq summary{font-size:16px;padding:18px 19px;} }
+
   /* Footer */
   footer{padding:54px 0 40px;border-top:1px solid var(--line);}
   .foot{display:grid;grid-template-columns:1.4fr 1fr;gap:30px;align-items:start;}
   footer .brand{margin-bottom:12px;}
-  .foot-legal{font-size:13px;color:var(--tx3);line-height:1.7;max-width:420px;}
+  .foot-legal{font-size:13px;color:var(--tx2);line-height:1.7;max-width:420px;}
   .foot-r{text-align:right;font-size:14px;color:var(--tx2);}
   .foot-r a{color:var(--teal-d);font-weight:600;}
-  .foot-r .small{font-size:12.5px;color:var(--tx3);margin-top:8px;}
+  .foot-r .small{font-size:12.5px;color:var(--tx2);margin-top:8px;}
   @media(max-width:680px){ .foot{grid-template-columns:1fr;} .foot-r{text-align:left;} }
 
   /* Reveal on scroll */
@@ -215,6 +254,33 @@
     html{scroll-behavior:auto;}
   }
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Sistema de Actas de Copropiedad",
+      "url": "https://actascopropiedad.cl/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "es-CL",
+      "description": "Genere actas de asamblea de copropietarios conforme a la Ley N° 21.442, con votación en vivo desde el teléfono. Sin instalar nada.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CLP" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "¿Necesito instalar algo o crear una cuenta?", "acceptedAnswer": { "@type": "Answer", "text": "No. Funciona en el navegador de su computador o teléfono, sin instalar nada ni registrarse." } },
+        { "@type": "Question", "name": "¿Cómo votan los copropietarios?", "acceptedAnswer": { "@type": "Answer", "text": "Usted proyecta un código QR. Cada copropietario entra desde su teléfono, se identifica con su RUT y vota; el resultado se calcula ponderado por los derechos de cada unidad. Solo votan quienes están hábiles." } },
+        { "@type": "Question", "name": "¿Es seguro? ¿Quién ve mis datos?", "acceptedAnswer": { "@type": "Answer", "text": "El acta se genera en su propio equipo y no se almacena en servidores. Los datos de la votación viajan cifrados y la base está blindada." } },
+        { "@type": "Question", "name": "¿El acta cumple con la Ley N° 21.442?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El sistema aplica el quórum, las mayorías y los plazos de la ley vigente, y entrega un documento listo para firmar." } },
+        { "@type": "Question", "name": "¿Cuánto cuesta?", "acceptedAnswer": { "@type": "Answer", "text": "Es gratis. No tiene costo de uso ni mensualidad." } }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -259,7 +325,7 @@
         <div class="glow"></div>
         <div class="card-doc">
           <span class="tag">Acta de Asamblea</span>
-          <h4>Aprobación del balance anual</h4>
+          <div class="doc-title">Aprobación del balance anual</div>
           <div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="ln a"></div><div class="ln d"></div>
           <div class="sign"><div class="sealed"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><div><div class="ln" style="width:90px;margin:0 0 6px"></div><div class="ln" style="width:60px;margin:0;background:#EEF1F0;height:6px"></div></div></div>
         </div>
@@ -363,10 +429,41 @@
   </div>
 </section>
 
+<section class="pad" style="padding-top:0" id="vista">
+  <div class="wrap">
+    <div class="head center">
+      <span class="eyebrow">El sistema por dentro</span>
+      <h2>Profesional, <em>y fácil de usar.</em></h2>
+      <p>Una interfaz clara que lo guía paso a paso — pensada para administradores y secretarios, no para expertos.</p>
+    </div>
+    <div class="window reveal">
+      <div class="win-bar"><span class="wd r"></span><span class="wd y"></span><span class="wd g"></span><span class="win-url">actascopropiedad.cl/acta</span></div>
+      <img src="/preview-acta.png" alt="Vista del sistema: registro de asistentes con unidad, RUT, porcentaje de derechos y cálculo de quórum" loading="lazy" width="1240" height="900">
+    </div>
+  </div>
+</section>
+
 <section class="pad" style="padding-top:0">
   <div class="wrap">
     <div class="quote reveal">
       <p>“Olvídese del conteo a mano y las planillas. La asamblea avanza, los votos llegan solos y el acta <em>se arma sola.</em>”</p>
+    </div>
+  </div>
+</section>
+
+<section class="pad" style="padding-top:0" id="faq">
+  <div class="wrap">
+    <div class="head center">
+      <span class="eyebrow">Preguntas frecuentes</span>
+      <h2>Lo que suelen <em>preguntar.</em></h2>
+    </div>
+    <div class="faq">
+      <details class="reveal"><summary>¿Necesito instalar algo o crear una cuenta?</summary><div>No. Funciona en el navegador de su computador o teléfono, sin instalar nada ni registrarse. Solo abra el sistema y comience.</div></details>
+      <details class="reveal"><summary>¿Cómo votan los copropietarios?</summary><div>Usted proyecta un código QR. Cada copropietario entra desde su teléfono, se identifica con su RUT y vota; el resultado se calcula ponderado por los derechos de cada unidad, al instante. Solo votan quienes están hábiles.</div></details>
+      <details class="reveal"><summary>¿Es seguro? ¿Quién ve mis datos?</summary><div>El acta se genera en su propio equipo y no se almacena en servidores. Los datos de la votación viajan cifrados y la base está blindada: nadie puede leerla con la clave pública. Recomendamos borrar los datos al terminar cada asamblea.</div></details>
+      <details class="reveal"><summary>¿Sirve para asambleas telemáticas o mixtas?</summary><div>Sí. Mientras los asistentes puedan abrir el enlace y votar desde su teléfono, funciona igual para asambleas presenciales, por videollamada o mixtas.</div></details>
+      <details class="reveal"><summary>¿El acta cumple con la Ley N° 21.442?</summary><div>Sí. El sistema aplica el quórum, las mayorías y los plazos de la ley vigente, y entrega un documento ordenado, listo para imprimir y firmar.</div></details>
+      <details class="reveal"><summary>¿Cuánto cuesta?</summary><div>Es gratis. No tiene costo de uso ni mensualidad.</div></details>
     </div>
   </div>
 </section>
