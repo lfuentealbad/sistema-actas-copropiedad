@@ -314,7 +314,7 @@ let mesaTimer=null, seqVotos=0;
 const LS = c => 'sala-mesa-'+c;
 
 function initMesa(){ const last=localStorage.getItem('sala-mesa-last'); if(last){ const r=$('m-reanudar'); r.textContent='Continuar asamblea '+last; r.classList.remove('hidden'); } }
-function persistMesa(){ if(!asamblea) return; localStorage.setItem('sala-mesa-last',asamblea.codigo); localStorage.setItem(LS(asamblea.codigo),JSON.stringify({id:asamblea.id,codigo:asamblea.codigo,condo:asamblea.condo,tipo:asamblea.tipo,token:asamblea.token,padron,puntos,puntoActivo})); }
+function persistMesa(){ if(!asamblea) return; localStorage.setItem('sala-mesa-last',asamblea.codigo); localStorage.setItem(LS(asamblea.codigo),JSON.stringify({id:asamblea.id,codigo:asamblea.codigo,condo:asamblea.condo,tipo:asamblea.tipo,token:asamblea.token,puntos,puntoActivo})); }
 
 async function crearAsamblea(btn){
   setBusy(btn,true,'Creando…');
@@ -707,7 +707,8 @@ async function emitir(choice){
   finally{ setTimeout(()=>btns.forEach(b=>b.disabled=false), 400); }
 }
 
-if(new URLSearchParams(location.search).get('code')){ entrar('votar'); }
+/* /votacion/ es solo para votantes; la Mesa se opera desde el acta o con ?rol=mesa */
+(function(){ var _p=new URLSearchParams(location.search); if(_p.get('rol')==='mesa') entrar('mesa'); else entrar('votar'); })();
 </script>
 </body>
 </html>
