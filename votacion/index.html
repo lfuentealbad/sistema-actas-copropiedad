@@ -119,25 +119,7 @@
 
 <div class="wrap">
 
-  <!-- ====== ROL ====== -->
-  <section id="screen-rol">
-    <div class="card">
-      <h2>Asamblea de copropietarios</h2>
-      <p class="muted">Votación en vivo desde el teléfono, computada por porcentaje de derechos.</p>
-      <div class="roles" style="margin-top:16px">
-        <div class="role-card" onclick="entrar('mesa')">
-          <span class="role-ic">🖥️</span><h3>Soy la Mesa</h3>
-          <p>Secretario: crear la asamblea, cargar el padrón y dirigir la votación.</p>
-        </div>
-        <div class="role-card" onclick="entrar('votar')">
-          <span class="role-ic">📱</span><h3>Voy a votar</h3>
-          <p>Copropietario: entrar con el código y votar desde mi teléfono.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ====== MESA ====== -->
+  <!-- ====== MESA (solo vía ?rol=mesa o desde el acta) ====== -->
   <section id="screen-mesa" class="hidden">
     <button class="back" onclick="location.href=location.pathname">← Inicio</button>
 
@@ -232,7 +214,7 @@
   </section>
 
   <!-- ====== VOTAR ====== -->
-  <section id="screen-votar" class="hidden">
+  <section id="screen-votar">
     <button class="back" onclick="location.href=location.pathname">← Inicio</button>
 
     <div class="card" id="votar-codigo">
@@ -305,7 +287,7 @@ function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta
 
 /* ===== navegación ===== */
 let ROL=null;
-function show(id){ ['rol','mesa','votar'].forEach(x=>$('screen-'+x).classList.toggle('hidden', x!==id)); }
+function show(id){ ['mesa','votar'].forEach(x=>$('screen-'+x).classList.toggle('hidden', x!==id)); }
 function entrar(rol){ ROL=rol; $('role-badge').textContent=rol==='mesa'?'MESA':'VOTAR'; show(rol); if(rol==='mesa') initMesa(); if(rol==='votar') initVotar(); }
 
 /* ===================== MESA ===================== */
