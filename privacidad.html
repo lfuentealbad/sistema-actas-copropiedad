@@ -22,7 +22,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
-  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:300 700; font-display:swap; font-style:normal; }
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
   :root{
     --ink:#15181C; --teal:#179C8B; --teal-d:#15786E; --teal-l:#3FC9B4;
     --gold:#CBA86A; --cream:#F5F3EE; --paper:#FBFAF7; --surface:#FFFFFF;
@@ -60,7 +61,7 @@
   .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--teal);opacity:.6;}
   h1{font-family:var(--serif);font-variation-settings:'opsz' 120,'wght' 560;font-weight:560;font-size:clamp(32px,6vw,46px);line-height:1.08;letter-spacing:-.02em;color:var(--ink);margin:0 0 14px;}
   .lede{font-size:19px;color:var(--tx2);max-width:62ch;margin:0;}
-  .updated{margin-top:18px;font-size:13.5px;color:var(--tx3);letter-spacing:.02em;}
+  .updated{margin-top:18px;font-size:13.5px;color:var(--tx2);letter-spacing:.02em;}
 
   /* Resumen destacado */
   .tldr{margin:34px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:var(--sh-sm);}
@@ -111,7 +112,7 @@
   </div>
 </header>
 
-<div class="wrap">
+<main class="wrap">
   <div class="doc-head">
     <span class="eyebrow">Transparencia</span>
     <h1>Aviso de privacidad</h1>
@@ -167,7 +168,7 @@
       <p>Si actualizamos cómo se tratan los datos, publicaremos la nueva versión en esta misma página, con su fecha de actualización.</p>
     </section>
   </article>
-</div>
+</main>
 
 <footer class="site">
   <div class="wrap">

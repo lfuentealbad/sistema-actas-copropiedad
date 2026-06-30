@@ -21,6 +21,16 @@
 <title>Sala de Votación · Asamblea de Copropietarios</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="canonical" href="https://actascopropiedad.cl/votacion/">
+<meta name="theme-color" content="#2C313A">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Actas de Copropiedad">
+<meta property="og:locale" content="es_CL">
+<meta property="og:url" content="https://actascopropiedad.cl/votacion/">
+<meta property="og:title" content="Sala de Votación · Asamblea de Copropietarios">
+<meta property="og:description" content="Vote en vivo desde su teléfono en la asamblea de su comunidad, identificándose con su RUT. Conforme a la Ley N° 21.442.">
+<meta property="og:image" content="https://actascopropiedad.cl/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <!-- Librerías vendorizadas (sin CDN): integridad verificable + CSP estricta -->
 <script src="/vendor/supabase.min.js"></script>
@@ -58,6 +68,9 @@
   .btn-sm{padding:7px 13px;font-size:13px;min-height:auto;border-radius:9px;}
   .btn-del{background:transparent;border:1.5px solid rgba(178,58,46,.45);color:var(--err);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;}
   .btn-del:hover{background:var(--err);color:#fff;}
+  :focus-visible{outline:3px solid var(--teal2);outline-offset:2px;border-radius:8px;}
+  header :focus-visible{outline-color:#fff;}
+  @media (prefers-reduced-motion:reduce){ *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;} }
   input[type=text],input[type=number],select{width:100%;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDCFC9;border-radius:11px;min-height:44px;background:#fff;}
   input:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(21,120,110,.15);}
   label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin-bottom:5px;}

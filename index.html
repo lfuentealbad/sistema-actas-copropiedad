@@ -31,7 +31,8 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
-  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:300 700; font-display:swap; font-style:normal; }
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
 
   :root{
     --ink:#15181C; --ink2:#0F1216; --ink3:#272C33;
@@ -119,7 +120,7 @@
   .stage{position:relative;height:430px;perspective:1400px;}
   .stage .glow{position:absolute;inset:6% 8%;background:radial-gradient(ellipse at 60% 40%,rgba(63,201,180,.4),transparent 70%);filter:blur(30px);}
   .card-doc{position:absolute;inset:8px 64px 40px 0;background:linear-gradient(160deg,#fff,#f3f5f4);border-radius:18px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.6) inset;padding:26px 26px 22px;transform:rotateY(-13deg) rotateX(4deg) rotate(-2deg);transform-style:preserve-3d;}
-  .card-doc .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);background:var(--teal,#179c8b)10;background:rgba(23,156,139,.1);padding:4px 9px;border-radius:6px;margin-bottom:16px;}
+  .card-doc .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);background:rgba(23,156,139,.1);padding:4px 9px;border-radius:6px;margin-bottom:16px;}
   .card-doc .doc-title{display:block;font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;margin:0 0 14px;color:var(--ink);font-size:17px;}
   .card-doc .ln{height:8px;border-radius:5px;background:#E7EBEA;margin-bottom:10px;}
   .card-doc .ln.a{width:94%;} .card-doc .ln.b{width:78%;} .card-doc .ln.c{width:88%;} .card-doc .ln.d{width:62%;}
