@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<!--
+  Aviso de privacidad — Sistema de Actas de Copropiedad
+  Coherente con el landing (Fraunces + Source Sans, paleta, grano).
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Aviso de privacidad del Sistema de Actas de Copropiedad: el acta se genera en su equipo, la analítica es anónima y sin cookies, y los datos de la votación los controla la administración de cada comunidad. Conforme a la Ley N° 21.719.">
+<title>Aviso de privacidad · Sistema de Actas de Copropiedad</title>
+<link rel="canonical" href="https://actascopropiedad.cl/privacidad">
+<meta name="theme-color" content="#15181C">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Actas de Copropiedad">
+<meta property="og:locale" content="es_CL">
+<meta property="og:url" content="https://actascopropiedad.cl/privacidad">
+<meta property="og:title" content="Aviso de privacidad · Sistema de Actas de Copropiedad">
+<meta property="og:description" content="El acta se genera en su equipo, la analítica es anónima y sin cookies, y los datos de la votación los controla la administración de cada comunidad.">
+<meta property="og:image" content="https://actascopropiedad.cl/og.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:300 700; font-display:swap; font-style:normal; }
+  :root{
+    --ink:#15181C; --teal:#179C8B; --teal-d:#15786E; --teal-l:#3FC9B4;
+    --gold:#CBA86A; --cream:#F5F3EE; --paper:#FBFAF7; --surface:#FFFFFF;
+    --line:rgba(20,24,30,.09); --line-soft:rgba(20,24,30,.06);
+    --tx:#1B1F24; --tx2:#586069; --tx3:#8A9199;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Source Sans 3',system-ui,-apple-system,sans-serif;
+    --sh-sm:0 2px 8px rgba(20,24,30,.06);
+    --sh:0 14px 40px -12px rgba(20,24,30,.18);
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+  body{margin:0;font-family:var(--sans);background:var(--cream);color:var(--tx);line-height:1.65;font-size:17px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.04;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  a{color:var(--teal-d);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  :focus-visible{outline:3px solid var(--teal-d);outline-offset:3px;border-radius:5px;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 26px;}
+
+  /* Nav */
+  header{position:sticky;top:0;z-index:100;background:rgba(245,243,238,.82);backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line-soft);}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:15px 0;max-width:1140px;margin:0 auto;padding-left:26px;padding-right:26px;}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);font-size:16.5px;}
+  .brand svg{width:34px;height:34px;flex-shrink:0;filter:drop-shadow(0 4px 8px rgba(20,24,30,.18));}
+  .brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;font-weight:600;letter-spacing:-.01em;}
+  .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
+  .nav-cta{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:#fff;background:linear-gradient(180deg,var(--teal) 0%,var(--teal-d) 100%);padding:10px 18px;border-radius:11px;box-shadow:0 8px 20px -8px rgba(21,120,110,.5);transition:transform .25s var(--ease);}
+  .nav-cta:hover{transform:translateY(-2px);text-decoration:none;}
+
+  /* Encabezado del documento */
+  .doc-head{padding:64px 0 40px;border-bottom:1px solid var(--line);}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-d);margin-bottom:18px;}
+  .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--teal);opacity:.6;}
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 120,'wght' 560;font-weight:560;font-size:clamp(32px,6vw,46px);line-height:1.08;letter-spacing:-.02em;color:var(--ink);margin:0 0 14px;}
+  .lede{font-size:19px;color:var(--tx2);max-width:62ch;margin:0;}
+  .updated{margin-top:18px;font-size:13.5px;color:var(--tx3);letter-spacing:.02em;}
+
+  /* Resumen destacado */
+  .tldr{margin:34px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:var(--sh-sm);}
+  .tldr h2{font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-d);margin:0 0 14px;}
+  .tldr ul{margin:0;padding:0;list-style:none;display:grid;gap:12px;}
+  .tldr li{display:flex;gap:12px;align-items:flex-start;font-size:16px;color:var(--tx);}
+  .tldr li svg{width:20px;height:20px;flex-shrink:0;margin-top:2px;color:var(--teal-d);}
+
+  /* Cuerpo */
+  article{padding:14px 0 20px;}
+  section{padding:30px 0;border-bottom:1px solid var(--line-soft);}
+  section:last-of-type{border-bottom:none;}
+  h2.sec{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 580;font-weight:580;font-size:25px;letter-spacing:-.01em;color:var(--ink);margin:0 0 8px;display:flex;gap:14px;align-items:baseline;}
+  h2.sec .num{font-family:var(--sans);font-size:14px;font-weight:700;color:var(--teal-d);letter-spacing:.04em;flex-shrink:0;}
+  section p{margin:12px 0;color:var(--tx);}
+  section p.muted{color:var(--tx2);font-size:15.5px;}
+  strong{color:var(--ink);font-weight:600;}
+  .pill{display:inline-block;background:rgba(23,156,139,.1);color:var(--teal-d);font-size:13px;font-weight:600;padding:3px 10px;border-radius:20px;}
+
+  /* Pie (claro, coherente con el landing) */
+  footer.site{border-top:1px solid var(--line);padding:48px 0 44px;margin-top:30px;}
+  footer.site .wrap{max-width:1140px;}
+  .foot-row{display:flex;flex-wrap:wrap;gap:22px;justify-content:space-between;align-items:center;}
+  .foot-brand{display:flex;align-items:center;gap:11px;color:var(--ink);font-weight:700;}
+  .foot-brand svg{width:30px;height:30px;}
+  .foot-brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;}
+  .foot-links{display:flex;gap:22px;font-size:14.5px;}
+  .foot-links a{color:var(--teal-d);font-weight:600;}
+  .foot-links a:hover{color:var(--ink);text-decoration:none;}
+  .foot-legal{margin-top:22px;font-size:13px;color:var(--tx2);line-height:1.7;}
+
+  @media (max-width:560px){
+    .doc-head{padding:44px 0 32px;}
+    .brand small{display:none;}
+  }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#15181C"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#15181C"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3FC9B4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span><b>Actas de Copropiedad</b><small>Ley N° 21.442</small></span>
+    </a>
+    <a class="nav-cta" href="/acta">Entrar al sistema →</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="doc-head">
+    <span class="eyebrow">Transparencia</span>
+    <h1>Aviso de privacidad</h1>
+    <p class="lede">Cómo se tratan los datos al usar el Sistema de Actas de Copropiedad. En resumen: lo mínimo, de forma anónima, y siempre bajo su control.</p>
+    <p class="updated">Última actualización: junio de 2026 · Conforme a la Ley N° 21.719 sobre protección de datos personales</p>
+  </div>
+
+  <div class="tldr">
+    <h2>En una frase</h2>
+    <ul>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> El acta se genera <strong>en su propio equipo</strong> y no se almacena en servidores.</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> La analítica de uso es <strong>anónima y sin cookies</strong>: medimos cuántos entran, no quiénes.</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Los datos de la votación (RUT, nombres) los <strong>controla la administración de su comunidad</strong> y se borran al terminar la asamblea.</li>
+    </ul>
+  </div>
+
+  <article>
+    <section>
+      <h2 class="sec"><span class="num">01</span> El acta se genera en su dispositivo</h2>
+      <p>El sistema de actas funciona <strong>íntegramente en el navegador de su computador o teléfono</strong>. Todo lo que escribe —datos de la asamblea, asistentes, acuerdos— permanece en su equipo mientras lo usa, y el documento final se descarga localmente.</p>
+      <p>No enviamos ni almacenamos el contenido del acta en ningún servidor. Por lo mismo, <strong>nadie puede solicitar copias de su acta a terceros</strong>, incluido el MINVU o el autor de la herramienta. La custodia del documento es suya.</p>
+    </section>
+
+    <section>
+      <h2 class="sec"><span class="num">02</span> Analítica de uso <span class="pill">anónima · sin cookies</span></h2>
+      <p>Para entender cuánto se usa la herramienta medimos <strong>visitas de forma agregada y anónima</strong>, con dos mecanismos que <strong>no instalan cookies ni identifican personas</strong>:</p>
+      <p class="muted">• <strong>Cloudflare Web Analytics:</strong> cuántas personas acceden, desde qué país, con qué tipo de dispositivo y a qué página. No usa cookies ni rastrea entre sitios; la dirección IP solo se procesa de forma transitoria para derivar el país y no se almacena como identificador.</p>
+      <p class="muted">• <strong>Telemetría de uso propia:</strong> eventos como “se abrió el sistema” o “se generó un acta”, asociados a un <strong>identificador de sesión aleatorio</strong> (no es su RUT ni un usuario) que vive solo en su navegador. Solo se registran conteos y tipos de evento — <strong>nunca</strong> RUT, nombres ni direcciones.</p>
+      <p>Como no usamos cookies de seguimiento, este sitio <strong>no requiere banner de consentimiento</strong>. La finalidad es exclusivamente mejorar la herramienta.</p>
+    </section>
+
+    <section>
+      <h2 class="sec"><span class="num">03</span> Votación en vivo y datos personales</h2>
+      <p>La función opcional de <strong>votación en vivo</strong> sí trata datos personales: para identificar a quién vota, la Mesa carga un padrón con <strong>RUT y nombres</strong> de los copropietarios. En este tratamiento:</p>
+      <p class="muted">• El <strong>responsable de los datos es la administración o la Mesa de cada comunidad</strong>, que decide cargarlos para realizar su asamblea. La herramienta actúa solo como medio técnico.</p>
+      <p class="muted">• Los datos se usan <strong>únicamente para esa asamblea</strong>, viajan cifrados y se guardan en una base <strong>blindada</strong>: no son legibles con la clave pública del sitio, y el acceso pasa por funciones que validan cada operación.</p>
+      <p class="muted">• Se recomienda <strong>borrar los datos al terminar cada asamblea</strong>, en línea con el principio de minimización de la Ley N° 21.719.</p>
+    </section>
+
+    <section>
+      <h2 class="sec"><span class="num">04</span> Cookies</h2>
+      <p>Este sitio <strong>no utiliza cookies de seguimiento ni publicitarias</strong>. El navegador puede usar almacenamiento local propio (por ejemplo, para recordar su borrador del acta en su mismo equipo), pero esa información no se envía a ningún servidor.</p>
+    </section>
+
+    <section>
+      <h2 class="sec"><span class="num">05</span> Sus derechos</h2>
+      <p>La Ley N° 21.719 le reconoce los derechos de <strong>acceso, rectificación, supresión y oposición</strong> sobre sus datos personales.</p>
+      <p>Como la analítica de este sitio es anónima, no hay datos personales suyos que solicitar por esa vía. Respecto de los <strong>datos de una asamblea</strong> (padrón de votación), el responsable es la <strong>administración de su comunidad</strong>: a ella debe dirigir cualquier solicitud sobre esos datos.</p>
+    </section>
+
+    <section>
+      <h2 class="sec"><span class="num">06</span> Cambios a este aviso</h2>
+      <p>Si actualizamos cómo se tratan los datos, publicaremos la nueva versión en esta misma página, con su fecha de actualización.</p>
+    </section>
+  </article>
+</div>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-row">
+      <div class="foot-brand">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#15181C"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#15181C"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3FC9B4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span><b>Actas de Copropiedad</b></span>
+      </div>
+      <div class="foot-links">
+        <a href="/">Inicio</a>
+        <a href="/acta">Entrar al sistema</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      Herramienta para generar actas de asamblea conforme a la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo.<br>
+      actascopropiedad.cl · Obra inscrita en el Registro de Propiedad Intelectual N° 2026-A-5167 · © 2026
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
