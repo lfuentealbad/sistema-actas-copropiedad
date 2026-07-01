@@ -4102,14 +4102,27 @@ document.addEventListener('keydown', function(e) {
   var VV_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
   var sb=null, asam=null, pollTimer=null, activo=null, temasActuales=[];
   function client(){ if(!sb && window.supabase) sb=window.supabase.createClient(VV_URL,VV_ANON); return sb; }
+  /* Geolocalización aproximada (región/ciudad) vía Cloudflare, cacheada por
+     sesión. Best-effort: nunca bloquea ni afecta al acta. */
+  var _geo=null;
+  try{ var _gs=sessionStorage.getItem('acta_geo'); if(_gs) _geo=JSON.parse(_gs); }catch(e){}
+  (function loadGeo(){
+    if(_geo) return;
+    try{ fetch('/cf-geo').then(function(r){ return r.ok?r.json():null; }).then(function(g){
+      if(g){ _geo=g; try{ sessionStorage.setItem('acta_geo', JSON.stringify(g)); }catch(e){} }
+    }).catch(function(){}); }catch(e){}
+  })();
   /* Telemetría de uso ANÓNIMA (fire-and-forget): solo conteos + id de sesión
-     aleatorio; nunca RUT/nombres. Si algo falla, no afecta al usuario. */
+     aleatorio + región/ciudad aproximada; nunca RUT/nombres. Si algo falla, no
+     afecta al usuario. */
   function track(tipo, props){
     try{
       var c=client(); if(!c) return;
       var s=sessionStorage.getItem('acta_sid');
       if(!s){ s=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(String(Date.now())+Math.random()); sessionStorage.setItem('acta_sid', s); }
-      var q=c.rpc('vv_log', { p_tipo:String(tipo).slice(0,40), p_sesion:s, p_props:props||{} });
+      var p={}; if(props) for(var k in props) p[k]=props[k];
+      if(_geo){ if(_geo.region) p.region=_geo.region; if(_geo.ciudad) p.ciudad=_geo.ciudad; }
+      var q=c.rpc('vv_log', { p_tipo:String(tipo).slice(0,40), p_sesion:s, p_props:p });
       if (q && q.then) q.then(function(){}, function(){});  /* supabase rpc es lazy: .then() dispara el envío y traga el error */
     }catch(e){}
   }
