@@ -1639,9 +1639,9 @@
     </div>
     <div id="reg-paso2" style="display:none">
       <h2>Revise su correo</h2>
-      <p class="reg-sub">Enviamos un código de 6 dígitos a <strong id="reg-dest"></strong>. Puede tardar un minuto — revise también el spam.</p>
+      <p class="reg-sub">Enviamos un código a <strong id="reg-dest"></strong>. Puede tardar un minuto — revise también el spam.</p>
       <label for="reg-codigo">Código de verificación</label>
-      <input type="text" id="reg-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······">
+      <input type="text" id="reg-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="········">
       <div id="reg-error2" role="alert"></div>
       <button type="submit" id="reg-btn2">Verificar y entrar →</button>
       <p class="reg-priv"><a href="#" id="reg-reenviar">Reenviar código</a> &nbsp;·&nbsp; <a href="#" id="reg-volver">Cambiar correo</a></p>
@@ -4231,7 +4231,7 @@ document.addEventListener('keydown', function(e) {
     }
     function verificar(){
       var t=$('reg-codigo').value.trim(), e2=$('reg-error2');
-      if(!/^[0-9]{6}$/.test(t)){ fail(e2,'Ingrese el código de 6 dígitos que llegó a su correo.'); return; }
+      if(!/^[0-9]{6,8}$/.test(t)){ fail(e2,'Ingrese el código que llegó a su correo.'); return; }
       e2.style.display='none';
       var b=$('reg-btn2'); b.disabled=true; b.textContent='Verificando…';
       client().auth.verifyOtp({ email: pend.c, token: t, type: 'email' }).then(function(r){
