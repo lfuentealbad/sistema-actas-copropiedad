@@ -1604,6 +1604,50 @@
   </div>
 </div>
 
+<!-- Registro único (nombre, correo, comuna) — se pide una vez por equipo -->
+<style>
+  #reg-overlay{display:none;position:fixed;inset:0;z-index:12000;background:rgba(33,38,46,.55);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:18px;}
+  #reg-overlay.open{display:flex;}
+  .reg-card{background:#fff;border-radius:16px;box-shadow:0 30px 70px -20px rgba(20,24,30,.45);max-width:430px;width:100%;padding:30px 28px 24px;}
+  .reg-card h2{margin:0 0 6px;font-size:21px;color:var(--c-primary);}
+  .reg-card .reg-sub{margin:0 0 18px;font-size:14.5px;color:#5C6168;line-height:1.55;}
+  .reg-card label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin:12px 0 5px;}
+  .reg-card input{width:100%;box-sizing:border-box;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDCFC9;border-radius:10px;min-height:44px;background:#fff;}
+  .reg-card input:focus{outline:none;border-color:var(--c-interact);box-shadow:0 0 0 4px rgba(21,120,110,.15);}
+  #reg-codigo{letter-spacing:9px;text-align:center;font-size:21px;font-weight:700;color:var(--c-primary);}
+  #reg-error,#reg-error2{display:none;margin:12px 0 0;font-size:13.5px;color:var(--c-accent);font-weight:600;}
+  #reg-btn,#reg-btn2{width:100%;margin-top:18px;font-family:inherit;font-size:15.5px;font-weight:700;color:#fff;background:var(--c-interact);border:none;border-radius:11px;padding:13px 18px;min-height:48px;cursor:pointer;}
+  #reg-btn:hover,#reg-btn2:hover{background:#1C8A7E;}
+  #reg-btn:disabled,#reg-btn2:disabled{opacity:.6;cursor:wait;}
+  .reg-priv{margin:14px 0 0;font-size:12.5px;color:#8B9094;line-height:1.5;text-align:center;}
+  .reg-priv a{color:var(--c-interact);}
+</style>
+<div id="reg-overlay" role="dialog" aria-modal="true" aria-labelledby="reg-title">
+  <form class="reg-card" id="reg-form" novalidate>
+    <div id="reg-paso1">
+      <h2 id="reg-title">Antes de comenzar</h2>
+      <p class="reg-sub">Cuéntenos quién usa el sistema. Se lo pediremos <strong>una sola vez</strong>: este equipo lo recordará.</p>
+      <label for="reg-nombre">Nombre y apellido</label>
+      <input type="text" id="reg-nombre" autocomplete="name" maxlength="120" placeholder="Ej: María Soto Pérez" required>
+      <label for="reg-correo">Correo electrónico</label>
+      <input type="email" id="reg-correo" autocomplete="email" maxlength="160" placeholder="Ej: maria@correo.cl" required>
+      <label for="reg-comuna">Comuna</label>
+      <input type="text" id="reg-comuna" maxlength="80" placeholder="Ej: Concepción" required>
+      <div id="reg-error" role="alert"></div>
+      <button type="submit" id="reg-btn">Continuar →</button>
+      <p class="reg-priv">Le enviaremos un código para confirmar su correo. Usamos estos datos solo para conocer quiénes usan el sistema. <a href="/privacidad" target="_blank" rel="noopener">Aviso de privacidad</a></p>
+    </div>
+    <div id="reg-paso2" style="display:none">
+      <h2>Revise su correo</h2>
+      <p class="reg-sub">Enviamos un código de 6 dígitos a <strong id="reg-dest"></strong>. Puede tardar un minuto — revise también el spam.</p>
+      <label for="reg-codigo">Código de verificación</label>
+      <input type="text" id="reg-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······">
+      <div id="reg-error2" role="alert"></div>
+      <button type="submit" id="reg-btn2">Verificar y entrar →</button>
+      <p class="reg-priv"><a href="#" id="reg-reenviar">Reenviar código</a> &nbsp;·&nbsp; <a href="#" id="reg-volver">Cambiar correo</a></p>
+    </div>
+  </form>
+</div>
 
 <main class="main" id="main-content">
 
@@ -4127,6 +4171,109 @@ document.addEventListener('keydown', function(e) {
     }catch(e){}
   }
   window.track=track;
+  /* Registro único (nombre, correo, comuna): se pide una vez por equipo; las
+     visitas siguientes solo actualizan "última visita" en el servidor. */
+  function regDatos(){ try{ return JSON.parse(localStorage.getItem('acta_reg')); }catch(e){ return null; } }
+  function regEnviarDatos(cb){ /* inserta/actualiza el registro (exige sesión con correo verificado) */
+    try{
+      var c=client(), d=regDatos();
+      if(!c||!d){ if(cb) cb(false); return; }
+      var s=sessionStorage.getItem('acta_sid')||'';
+      var q=c.rpc('vv_registro', { p_nombre:d.n, p_comuna:d.m, p_sesion:s });
+      if(q && q.then) q.then(function(r){ if(cb) cb(!(r&&r.error)); }, function(){ if(cb) cb(false); });
+      else if(cb) cb(false);
+    }catch(e){ if(cb) cb(false); }
+  }
+  function regPing(d){ /* visita de alguien ya registrado: marca "última visita" */
+    try{
+      if(d && d.pend){ /* el insert quedó pendiente: reintenta con la sesión guardada */
+        regEnviarDatos(function(ok){ if(ok){ d.pend=0; try{ localStorage.setItem('acta_reg', JSON.stringify(d)); }catch(e){} } });
+        return;
+      }
+      var c=client(); if(!c||!d||!d.c) return;
+      var q=c.rpc('vv_visita', { p_correo:d.c });
+      if(q && q.then) q.then(function(){}, function(){});
+    }catch(e){}
+  }
+  (function regInit(){
+    var ov=document.getElementById('reg-overlay'), fm=document.getElementById('reg-form');
+    if(!ov||!fm) return;
+    var d0=regDatos();
+    if(d0 && d0.c){ regPing(d0); return; }
+    ov.classList.add('open');
+    setTimeout(function(){ var i=document.getElementById('reg-nombre'); if(i) i.focus(); }, 80);
+    var $=function(id){ return document.getElementById(id); };
+    var pend=null, cool=0, coolT=null;
+    function fail(el,m){ el.textContent=m; el.style.display='block'; }
+    function paso2(on){
+      $('reg-paso1').style.display = on?'none':'block';
+      $('reg-paso2').style.display = on?'block':'none';
+      setTimeout(function(){ var i=$(on?'reg-codigo':'reg-nombre'); if(i) i.focus(); }, 60);
+    }
+    function cooldown(){
+      cool=60; var a=$('reg-reenviar');
+      if(coolT) clearInterval(coolT);
+      coolT=setInterval(function(){
+        cool--;
+        if(cool<=0){ clearInterval(coolT); a.textContent='Reenviar código'; }
+        else a.textContent='Reenviar código ('+cool+'s)';
+      }, 1000);
+    }
+    function enviarCodigo(cb){
+      var c=client();
+      if(!c||!c.auth){ cb(false,'Sin conexión con el servicio. Revise su internet e intente de nuevo.'); return; }
+      c.auth.signInWithOtp({ email: pend.c }).then(function(r){
+        if(r && r.error){
+          var m=String(r.error.message||'');
+          cb(false, /rate|seconds|exceed|often/i.test(m) ? 'Demasiados envíos seguidos. Espere un minuto e intente de nuevo.' : 'No pudimos enviar el código a ese correo. Revíselo e intente de nuevo.');
+        } else cb(true);
+      }, function(){ cb(false,'No pudimos enviar el código. Revise su conexión.'); });
+    }
+    function verificar(){
+      var t=$('reg-codigo').value.trim(), e2=$('reg-error2');
+      if(!/^[0-9]{6}$/.test(t)){ fail(e2,'Ingrese el código de 6 dígitos que llegó a su correo.'); return; }
+      e2.style.display='none';
+      var b=$('reg-btn2'); b.disabled=true; b.textContent='Verificando…';
+      client().auth.verifyOtp({ email: pend.c, token: t, type: 'email' }).then(function(r){
+        if(r && r.error){ b.disabled=false; b.textContent='Verificar y entrar →'; fail(e2,'Código incorrecto o vencido. Puede reenviarlo.'); return; }
+        var datos={ n:pend.n, c:pend.c, m:pend.m, t:Date.now(), pend:1 };
+        try{ localStorage.setItem('acta_reg', JSON.stringify(datos)); }catch(e){}
+        regEnviarDatos(function(ok){ if(ok){ datos.pend=0; try{ localStorage.setItem('acta_reg', JSON.stringify(datos)); }catch(e){} } });
+        if(window.track) window.track('registro_completado', { comuna:pend.m });
+        ov.classList.remove('open');
+      }, function(){ b.disabled=false; b.textContent='Verificar y entrar →'; fail(e2,'No pudimos verificar el código. Intente de nuevo.'); });
+    }
+    fm.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      if($('reg-paso2').style.display!=='none'){ verificar(); return; }
+      var n=$('reg-nombre').value.trim(), c=$('reg-correo').value.trim(), m=$('reg-comuna').value.trim(), err=$('reg-error');
+      var msg='';
+      if(n.length<3) msg='Escriba su nombre y apellido.';
+      else if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c)) msg='Revise el correo electrónico.';
+      else if(m.length<3) msg='Indique su comuna.';
+      if(msg){ fail(err,msg); return; }
+      err.style.display='none';
+      var btn=$('reg-btn'); btn.disabled=true; btn.textContent='Enviando código…';
+      pend={ n:n, c:c.toLowerCase(), m:m };
+      enviarCodigo(function(ok, emsg){
+        btn.disabled=false; btn.textContent='Continuar →';
+        if(!ok){ fail(err, emsg||'No pudimos enviar el código.'); return; }
+        $('reg-dest').textContent=pend.c;
+        $('reg-codigo').value='';
+        paso2(true); cooldown();
+      });
+    });
+    $('reg-reenviar').addEventListener('click', function(ev){
+      ev.preventDefault();
+      if(cool>0 || !pend) return;
+      enviarCodigo(function(ok, emsg){
+        var e2=$('reg-error2');
+        if(!ok) fail(e2, emsg||'No pudimos reenviar el código.');
+        else { e2.style.display='none'; cooldown(); }
+      });
+    });
+    $('reg-volver').addEventListener('click', function(ev){ ev.preventDefault(); paso2(false); });
+  })();
   function norm(r){ return String(r||'').replace(/[.\-\s]/g,'').toLowerCase(); }
   function codNuevo(){ var A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',s=''; for(var i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
