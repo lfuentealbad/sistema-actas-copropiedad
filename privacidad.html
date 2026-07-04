@@ -70,16 +70,17 @@
   .tldr li{display:flex;gap:12px;align-items:flex-start;font-size:16px;color:var(--tx);}
   .tldr li svg{width:20px;height:20px;flex-shrink:0;margin-top:2px;color:var(--teal-d);}
 
-  /* Cuerpo */
-  article{padding:14px 0 20px;}
-  section{padding:30px 0;border-bottom:1px solid var(--line-soft);}
-  section:last-of-type{border-bottom:none;}
-  h2.sec{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 580;font-weight:580;font-size:25px;letter-spacing:-.01em;color:var(--ink);margin:0 0 8px;display:flex;gap:14px;align-items:baseline;}
-  h2.sec .num{font-family:var(--sans);font-size:14px;font-weight:700;color:var(--teal-d);letter-spacing:.04em;flex-shrink:0;}
-  section p{margin:12px 0;color:var(--tx);}
-  section p.muted{color:var(--tx2);font-size:15.5px;}
+  /* Cuerpo — bloques breves */
+  .pblocks{margin:34px 0 6px;}
+  .pblock{display:flex;gap:16px;align-items:flex-start;padding:22px 0;border-bottom:1px solid var(--line-soft);}
+  .pblock:last-child{border-bottom:none;}
+  .pblock .ic{flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(23,156,139,.1);display:flex;align-items:center;justify-content:center;margin-top:2px;}
+  .pblock .ic svg{width:19px;height:19px;color:var(--teal-d);}
+  .pblock h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:20px;letter-spacing:-.01em;color:var(--ink);margin:0 0 5px;}
+  .pblock p{margin:0;color:var(--tx2);font-size:16px;line-height:1.6;}
   strong{color:var(--ink);font-weight:600;}
-  .pill{display:inline-block;background:rgba(23,156,139,.1);color:var(--teal-d);font-size:13px;font-weight:600;padding:3px 10px;border-radius:20px;}
+  .pclose{margin:24px 0 0;font-size:14px;color:var(--tx2);}
+  .pclose a{color:var(--teal-d);font-weight:600;}
 
   /* Pie (claro, coherente con el landing) */
   footer.site{border-top:1px solid var(--line);padding:48px 0 44px;margin-top:30px;}
@@ -114,70 +115,52 @@
 
 <main class="wrap">
   <div class="doc-head">
-    <span class="eyebrow">Transparencia</span>
-    <h1>Aviso de privacidad</h1>
-    <p class="lede">Cómo se tratan los datos al usar el Sistema de Actas de Copropiedad. En resumen: pedimos lo mínimo, medimos de forma anónima y usted mantiene el control.</p>
-    <p class="updated">Última actualización: junio de 2026 · Conforme a la Ley N° 21.719 sobre protección de datos personales</p>
+    <span class="eyebrow">Privacidad</span>
+    <h1>Sus datos, en simple.</h1>
+    <p class="lede">Pedimos lo mínimo, medimos de forma anónima y usted mantiene el control. Sin letra chica.</p>
+    <p class="updated">Actualizado en julio de 2026 · Conforme a la Ley N° 21.719</p>
   </div>
 
-  <div class="tldr">
-    <h2>En una frase</h2>
-    <ul>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> El acta se genera <strong>en su propio equipo</strong> y no se almacena en servidores.</li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> La analítica de uso es <strong>anónima y sin cookies</strong>: medimos cuántos entran, no quiénes.</li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Los datos de la votación (RUT, nombres) los <strong>controla la administración de su comunidad</strong> y se borran al terminar la asamblea.</li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Para usar el sistema le pedimos <strong>una sola vez</strong> su nombre, correo y comuna — es lo único que sabemos de usted.</li>
-    </ul>
+  <div class="pblocks">
+    <div class="pblock">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8V7z"/></svg></span>
+      <div>
+        <h2>Su acta es suya</h2>
+        <p>El acta se arma en su propio equipo y <strong>no se guarda en ningún servidor</strong>. Nadie —ni nosotros ni el MINVU— puede pedir una copia.</p>
+      </div>
+    </div>
+    <div class="pblock">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+      <div>
+        <h2>Le pedimos tres datos, una vez</h2>
+        <p>Al entrar por primera vez: <strong>nombre, correo y comuna</strong>, confirmando el correo con un código. Es solo para saber quiénes usan el sistema y mejorarlo. <strong>No los compartimos ni los vendemos.</strong></p>
+      </div>
+    </div>
+    <div class="pblock">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span>
+      <div>
+        <h2>Medimos el uso de forma anónima</h2>
+        <p>Contamos cuántas personas entran y qué hacen, para mejorar la herramienta, <strong>sin cookies y sin identificar a nadie</strong>.</p>
+      </div>
+    </div>
+    <div class="pblock">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
+      <div>
+        <h2>La votación la maneja su comunidad</h2>
+        <p>Si usa la votación en vivo, los <strong>RUT y nombres</strong> del padrón los carga y controla la <strong>administración de su comunidad</strong>. Se usan solo para esa asamblea y se recomienda borrarlos al terminar.</p>
+      </div>
+    </div>
+    <div class="pblock">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8V7z"/></svg></span>
+      <div>
+        <h2>Usted manda sobre sus datos</h2>
+        <p>Puede pedir <strong>ver, corregir o borrar</strong> su registro cuando quiera, escribiendo a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>. Le responderemos a la brevedad.</p>
+      </div>
+    </div>
   </div>
 
-  <article>
-    <section>
-      <h2 class="sec"><span class="num">01</span> El acta se genera en su dispositivo</h2>
-      <p>El sistema de actas funciona <strong>íntegramente en el navegador de su computador o teléfono</strong>. Todo lo que escribe —datos de la asamblea, asistentes, acuerdos— permanece en su equipo mientras lo usa, y el documento final se descarga localmente.</p>
-      <p>No enviamos ni almacenamos el contenido del acta en ningún servidor. Por lo mismo, <strong>nadie puede solicitar copias de su acta a terceros</strong>, incluido el MINVU o el autor de la herramienta. La custodia del documento es suya.</p>
-    </section>
+  <p class="pclose">Si cambiamos algo importante en cómo tratamos sus datos, lo verá actualizado en esta misma página.</p>
 
-    <section>
-      <h2 class="sec"><span class="num">02</span> Registro para usar el sistema</h2>
-      <p>Para conocer a quienes usan la herramienta, al abrir el sistema de actas por primera vez le pedimos <strong>tres datos: nombre, correo electrónico y comuna</strong>, y confirmamos el correo con un <strong>código de un solo uso</strong> (solo guardamos correos verificados). Su equipo los recuerda y no volvemos a preguntar; las visitas siguientes solo actualizan la fecha de su último acceso.</p>
-      <p class="muted">• <strong>Finalidad:</strong> saber quiénes y desde qué comunas usan el sistema, elaborar estadísticas de uso y, eventualmente, contactarle sobre mejoras de la herramienta. Nada más.</p>
-      <p class="muted">• <strong>Resguardo:</strong> se almacenan en una base blindada — no son legibles con la clave pública del sitio — y <strong>no se comparten con terceros ni se venden</strong>.</p>
-      <p class="muted">• <strong>Supresión:</strong> puede pedir que eliminemos su registro cuando quiera (vea la sección Sus derechos).</p>
-      <p>El <strong>contenido de sus actas no se registra</strong>: sigue generándose íntegramente en su equipo.</p>
-    </section>
-
-    <section>
-      <h2 class="sec"><span class="num">03</span> Analítica de uso <span class="pill">anónima · sin cookies</span></h2>
-      <p>Para entender cuánto se usa la herramienta medimos <strong>visitas de forma agregada y anónima</strong>, con dos mecanismos que <strong>no instalan cookies ni identifican personas</strong>:</p>
-      <p class="muted">• <strong>Cloudflare Web Analytics:</strong> cuántas personas acceden, desde qué país, con qué tipo de dispositivo y a qué página. No usa cookies ni rastrea entre sitios; la dirección IP solo se procesa de forma transitoria para derivar el país y no se almacena como identificador.</p>
-      <p class="muted">• <strong>Telemetría de uso propia:</strong> eventos como “se abrió el sistema” o “se generó un acta”, asociados a un <strong>identificador de sesión aleatorio</strong> (no es su RUT ni un usuario) que vive solo en su navegador. Solo se registran conteos y tipos de evento — <strong>nunca</strong> RUT, nombres ni direcciones.</p>
-      <p>Como no usamos cookies de seguimiento, este sitio <strong>no requiere banner de consentimiento</strong>. La finalidad es exclusivamente mejorar la herramienta.</p>
-    </section>
-
-    <section>
-      <h2 class="sec"><span class="num">04</span> Votación en vivo y datos personales</h2>
-      <p>La función opcional de <strong>votación en vivo</strong> sí trata datos personales: para identificar a quién vota, la Mesa carga un padrón con <strong>RUT y nombres</strong> de los copropietarios. En este tratamiento:</p>
-      <p class="muted">• El <strong>responsable de los datos es la administración o la Mesa de cada comunidad</strong>, que decide cargarlos para realizar su asamblea. La herramienta actúa solo como medio técnico.</p>
-      <p class="muted">• Los datos se usan <strong>únicamente para esa asamblea</strong>, viajan cifrados y se guardan en una base <strong>blindada</strong>: no son legibles con la clave pública del sitio, y el acceso pasa por funciones que validan cada operación.</p>
-      <p class="muted">• Se recomienda <strong>borrar los datos al terminar cada asamblea</strong>, en línea con el principio de minimización de la Ley N° 21.719.</p>
-    </section>
-
-    <section>
-      <h2 class="sec"><span class="num">05</span> Cookies</h2>
-      <p>Este sitio <strong>no utiliza cookies de seguimiento ni publicitarias</strong>. El navegador puede usar almacenamiento local propio (por ejemplo, para recordar su borrador del acta en su mismo equipo), pero esa información no se envía a ningún servidor.</p>
-    </section>
-
-    <section>
-      <h2 class="sec"><span class="num">06</span> Sus derechos</h2>
-      <p>La Ley N° 21.719 le reconoce los derechos de <strong>acceso, rectificación, supresión y oposición</strong> sobre sus datos personales.</p>
-      <p>Sobre su <strong>registro de usuario</strong> (nombre, correo y comuna), puede ejercerlos escribiendo a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>; eliminaremos o corregiremos sus datos a la brevedad. La analítica del sitio es anónima, por lo que no hay datos personales suyos que solicitar por esa vía. Respecto de los <strong>datos de una asamblea</strong> (padrón de votación), el responsable es la <strong>administración de su comunidad</strong>: a ella debe dirigir cualquier solicitud sobre esos datos.</p>
-    </section>
-
-    <section>
-      <h2 class="sec"><span class="num">07</span> Cambios a este aviso</h2>
-      <p>Si actualizamos cómo se tratan los datos, publicaremos la nueva versión en esta misma página, con su fecha de actualización.</p>
-    </section>
-  </article>
 </main>
 
 <footer class="site">
