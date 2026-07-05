@@ -202,6 +202,11 @@
   .win-bar .wd.r{background:#E5837A;} .win-bar .wd.y{background:#E5C07A;} .win-bar .wd.g{background:#86C29A;}
   .win-url{margin-left:14px;font-size:13px;color:var(--tx2);background:#fff;padding:6px 16px;border-radius:8px;border:1px solid var(--line-soft);}
   .window img{display:block;width:100%;height:auto;}
+  .show-tabs{display:flex;justify-content:center;gap:10px;margin:0 0 26px;flex-wrap:wrap;}
+  .show-tab{font-family:var(--sans);font-size:15px;font-weight:600;color:var(--tx2);background:var(--surface);border:1px solid var(--line);border-radius:30px;padding:10px 22px;cursor:pointer;transition:background .2s,color .2s,border-color .2s;}
+  .show-tab:hover{color:var(--ink);border-color:var(--tx3);}
+  .show-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:var(--sh-sm);}
+  .window[hidden]{display:none;}
 
   /* FAQ */
   .faq{max-width:780px;margin:0 auto;}
@@ -333,6 +338,31 @@
   </div>
 </section>
 
+<section class="pad" id="vista">
+  <div class="wrap">
+    <div class="head center">
+      <span class="eyebrow">En acción</span>
+      <h2>Véalo <em>funcionar.</em></h2>
+      <p>Dos herramientas, un solo lugar: arme el acta y reciba los votos en vivo.</p>
+    </div>
+    <div class="show-tabs" role="tablist" aria-label="Demostraciones">
+      <button class="show-tab active" type="button" role="tab" aria-selected="true" data-show="acta">Armar el acta</button>
+      <button class="show-tab" type="button" role="tab" aria-selected="false" data-show="votos">Recibir los votos</button>
+    </div>
+    <div class="window reveal" data-panel="acta">
+      <div class="win-bar"><span class="wd r"></span><span class="wd y"></span><span class="wd g"></span><span class="win-url">actascopropiedad.cl/acta</span></div>
+      <picture>
+        <source media="(prefers-reduced-motion: reduce)" srcset="/preview-acta.png">
+        <img src="/tutorial-acta.gif" alt="Demostración: el acta se completa paso a paso, desde los datos hasta el documento listo para firmar" width="820" height="519">
+      </picture>
+    </div>
+    <div class="window reveal" data-panel="votos" hidden>
+      <div class="win-bar"><span class="wd r"></span><span class="wd y"></span><span class="wd g"></span><span class="win-url">actascopropiedad.cl · votación en vivo</span></div>
+      <img data-src="/tutorial-votacion.gif" alt="Demostración: la Mesa abre un punto, los copropietarios votan desde su teléfono y los votos se traen al acta" width="820" height="628">
+    </div>
+  </div>
+</section>
+
 <section class="pad" id="como">
   <div class="wrap">
     <div class="head center">
@@ -408,30 +438,6 @@
   </div>
 </section>
 
-<section class="pad" style="padding-top:0" id="vista">
-  <div class="wrap">
-    <div class="head center">
-      <span class="eyebrow">El sistema por dentro</span>
-      <h2>Véalo <em>en acción.</em></h2>
-      <p>Así se completa un acta de principio a fin: datos, convocatoria, asistentes, votación y el documento listo — todo guiado, paso a paso.</p>
-    </div>
-    <div class="window reveal">
-      <div class="win-bar"><span class="wd r"></span><span class="wd y"></span><span class="wd g"></span><span class="win-url">actascopropiedad.cl/acta</span></div>
-      <picture>
-        <source media="(prefers-reduced-motion: reduce)" srcset="/preview-acta.png">
-        <img src="/tutorial-acta.gif" alt="Demostración animada: el acta se completa paso a paso, desde los datos del condominio hasta el documento final listo para firmar" loading="lazy" width="820" height="519">
-      </picture>
-    </div>
-  </div>
-</section>
-
-<section class="pad" style="padding-top:0">
-  <div class="wrap">
-    <div class="quote reveal">
-      <p>“Olvídese del conteo a mano y las planillas. La asamblea avanza, los votos llegan solos y el acta <em>se arma sola.</em>”</p>
-    </div>
-  </div>
-</section>
 
 <section class="pad" style="padding-top:0" id="faq">
   <div class="wrap">
@@ -510,6 +516,18 @@
     document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('in');});
     document.querySelectorAll('[data-tally] i').forEach(function(i){ i.style.width=i.getAttribute('data-w')+'%'; });
   }
+  /* Pestañas de la demo (con carga diferida del 2º GIF) */
+  document.querySelectorAll('.show-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var key=tab.getAttribute('data-show');
+      document.querySelectorAll('.show-tab').forEach(function(t){ var on=(t===tab); t.classList.toggle('active',on); t.setAttribute('aria-selected',on?'true':'false'); });
+      document.querySelectorAll('.window[data-panel]').forEach(function(w){
+        var show=(w.getAttribute('data-panel')===key);
+        w.hidden=!show;
+        if(show){ var im=w.querySelector('img[data-src]'); if(im){ im.src=im.getAttribute('data-src'); im.removeAttribute('data-src'); } }
+      });
+    });
+  });
 </script>
 
 </body>
