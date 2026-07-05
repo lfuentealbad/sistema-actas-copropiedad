@@ -11,7 +11,7 @@
 <meta name="description" content="Genere actas de asamblea de copropietarios conforme a la Ley N° 21.442, con votación en vivo desde el teléfono. Sin instalar nada.">
 <title>Sistema de Actas de Copropiedad · Ley N° 21.442</title>
 <link rel="canonical" href="https://actascopropiedad.cl/">
-<meta name="theme-color" content="#15181C">
+<meta name="theme-color" content="#14213D">
 <!-- Open Graph / redes sociales -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Actas de Copropiedad">
@@ -35,12 +35,12 @@
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
 
   :root{
-    --ink:#15181C; --ink2:#0F1216; --ink3:#272C33;
-    --teal:#179C8B; --teal-d:#15786E; --teal-l:#3FC9B4; --teal-glow:rgba(63,201,180,.5);
-    --gold:#CBA86A;
-    --cream:#F5F3EE; --paper:#FBFAF7; --surface:#FFFFFF;
+    --ink:#14213D; --ink2:#0E1830; --ink3:#1F3159;
+    --teal:#15697E; --teal-d:#114C5A; --teal-l:#FFC801; --teal-glow:rgba(255,200,1,.45);
+    --gold:#FCA311;
+    --cream:#F1F6F4; --paper:#FAFCFB; --surface:#FFFFFF;
     --line:rgba(20,24,30,.09); --line-soft:rgba(20,24,30,.06);
-    --tx:#1B1F24; --tx2:#586069; --tx3:#8A9199;
+    --tx:#1A2437; --tx2:#4F5E77; --tx3:#8995A7;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Source Sans 3',system-ui,-apple-system,sans-serif;
     --r:18px; --r-lg:26px;
@@ -66,8 +66,8 @@
   /* Botones */
   .btn{display:inline-flex;align-items:center;gap:9px;font-family:var(--sans);font-size:16px;font-weight:600;border:none;border-radius:13px;padding:15px 28px;cursor:pointer;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .2s;min-height:52px;position:relative;overflow:hidden;}
   .btn:active{transform:translateY(1px) scale(.99);}
-  .btn-primary{background:linear-gradient(180deg,var(--teal) 0%,var(--teal-d) 100%);color:#fff;box-shadow:0 10px 28px -8px rgba(21,120,110,.55),inset 0 1px 0 rgba(255,255,255,.18);}
-  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px -10px rgba(21,120,110,.6),inset 0 1px 0 rgba(255,255,255,.22);}
+  .btn-primary{background:linear-gradient(180deg,#FFC801 0%,#FCA311 100%);color:#14213D;box-shadow:0 10px 28px -8px rgba(252,163,17,.5),inset 0 1px 0 rgba(255,255,255,.4);}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 40px -10px rgba(252,163,17,.55),inset 0 1px 0 rgba(255,255,255,.45);}
   .btn-primary::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);transition:left .6s var(--ease);}
   .btn-primary:hover::after{left:140%;}
   .btn-light{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);}
@@ -95,9 +95,9 @@
   .hero{position:relative;background:var(--ink);color:#fff;overflow:hidden;border-radius:0 0 38px 38px;}
   .hero-bg{position:absolute;inset:0;z-index:0;overflow:hidden;}
   .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.55;will-change:transform;}
-  .blob.b1{width:620px;height:620px;top:-220px;right:-160px;background:radial-gradient(circle,rgba(23,156,139,.9),transparent 65%);animation:drift1 18s var(--ease) infinite alternate;}
-  .blob.b2{width:520px;height:520px;bottom:-260px;left:-120px;background:radial-gradient(circle,rgba(40,80,120,.7),transparent 65%);animation:drift2 22s var(--ease) infinite alternate;}
-  .blob.b3{width:300px;height:300px;top:30%;left:42%;background:radial-gradient(circle,rgba(203,168,106,.32),transparent 70%);animation:drift1 26s var(--ease) infinite alternate;}
+  .blob.b1{width:620px;height:620px;top:-220px;right:-160px;background:radial-gradient(circle,rgba(252,163,17,.6),transparent 65%);animation:drift1 18s var(--ease) infinite alternate;}
+  .blob.b2{width:520px;height:520px;bottom:-260px;left:-120px;background:radial-gradient(circle,rgba(17,76,90,.85),transparent 65%);animation:drift2 22s var(--ease) infinite alternate;}
+  .blob.b3{width:300px;height:300px;top:30%;left:42%;background:radial-gradient(circle,rgba(255,153,50,.35),transparent 70%);animation:drift1 26s var(--ease) infinite alternate;}
   @keyframes drift1{to{transform:translate(-40px,40px) scale(1.12);}}
   @keyframes drift2{to{transform:translate(50px,-30px) scale(1.08);}}
   .hero-grid-lines{position:absolute;inset:0;z-index:0;opacity:.5;
@@ -105,11 +105,11 @@
     background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,#000 30%,transparent 75%);}
   .hero-inner{position:relative;z-index:2;}
   .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:54px;align-items:center;padding:84px 0 96px;}
-  .badge{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#cfe9e4;font-size:13px;font-weight:600;padding:7px 15px;border-radius:30px;margin-bottom:26px;backdrop-filter:blur(6px);}
+  .badge{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#D9E8E2;font-size:13px;font-weight:600;padding:7px 15px;border-radius:30px;margin-bottom:26px;backdrop-filter:blur(6px);}
   .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-l);box-shadow:0 0 0 0 var(--teal-glow);animation:pulse 2.4s infinite;}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--teal-glow);}70%{box-shadow:0 0 0 9px rgba(63,201,180,0);}100%{box-shadow:0 0 0 0 rgba(63,201,180,0);}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--teal-glow);}70%{box-shadow:0 0 0 9px rgba(255,200,1,0);}100%{box-shadow:0 0 0 0 rgba(255,200,1,0);}}
   h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;font-size:clamp(40px,5.6vw,68px);line-height:1.03;letter-spacing:-.025em;margin:0 0 22px;}
-  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,var(--teal-l),#9fe6d8 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,#FFC801,#FCA311 55%,#FF9932);-webkit-background-clip:text;background-clip:text;color:transparent;}
   .hero p.lead{font-size:19.5px;color:rgba(255,255,255,.78);margin:0 0 34px;max-width:540px;line-height:1.55;}
   .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
   .hero-note{margin-top:24px;display:flex;gap:20px;flex-wrap:wrap;font-size:13.5px;color:rgba(255,255,255,.55);}
@@ -118,15 +118,15 @@
 
   /* Hero visual: mockup flotante con glass + glow */
   .stage{position:relative;height:430px;perspective:1400px;}
-  .stage .glow{position:absolute;inset:6% 8%;background:radial-gradient(ellipse at 60% 40%,rgba(63,201,180,.4),transparent 70%);filter:blur(30px);}
+  .stage .glow{position:absolute;inset:6% 8%;background:radial-gradient(ellipse at 60% 40%,rgba(252,163,17,.4),transparent 70%);filter:blur(30px);}
   .card-doc{position:absolute;inset:8px 64px 40px 0;background:linear-gradient(160deg,#fff,#f3f5f4);border-radius:18px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.6) inset;padding:26px 26px 22px;transform:rotateY(-13deg) rotateX(4deg) rotate(-2deg);transform-style:preserve-3d;}
-  .card-doc .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);background:rgba(23,156,139,.1);padding:4px 9px;border-radius:6px;margin-bottom:16px;}
+  .card-doc .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);background:rgba(17,76,90,.08);padding:4px 9px;border-radius:6px;margin-bottom:16px;}
   .card-doc .doc-title{display:block;font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;margin:0 0 14px;color:var(--ink);font-size:17px;}
   .card-doc .ln{height:8px;border-radius:5px;background:#E7EBEA;margin-bottom:10px;}
   .card-doc .ln.a{width:94%;} .card-doc .ln.b{width:78%;} .card-doc .ln.c{width:88%;} .card-doc .ln.d{width:62%;}
   .card-doc .sign{margin-top:20px;display:flex;align-items:center;gap:10px;padding-top:16px;border-top:1px dashed #DDE2E1;}
-  .card-doc .sealed{width:38px;height:38px;border-radius:50%;background:var(--teal-d);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -4px rgba(21,120,110,.6);}
-  .phone{position:absolute;right:-4px;bottom:-10px;width:166px;height:330px;background:linear-gradient(160deg,#22272e,#15181c);border-radius:30px;padding:11px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.08) inset;transform:rotate(5deg);}
+  .card-doc .sealed{width:38px;height:38px;border-radius:50%;background:var(--teal-d);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -4px rgba(17,76,90,.55);}
+  .phone{position:absolute;right:-4px;bottom:-10px;width:166px;height:330px;background:linear-gradient(160deg,#1C2E52,#0E1830);border-radius:30px;padding:11px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.08) inset;transform:rotate(5deg);}
   .phone .notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:46px;height:5px;border-radius:4px;background:rgba(255,255,255,.18);}
   .phone .scr{background:linear-gradient(170deg,#fff,#f6f8f7);border-radius:20px;height:100%;padding:20px 15px;display:flex;flex-direction:column;}
   .phone .miniq{font-family:var(--serif);font-variation-settings:'opsz' 30,'wght' 600;font-size:13px;color:var(--ink);line-height:1.25;margin-bottom:14px;}
@@ -160,9 +160,9 @@
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative;}
   .steps::before{content:"";position:absolute;top:54px;left:16%;right:16%;height:1.5px;background:repeating-linear-gradient(90deg,var(--line) 0 7px,transparent 7px 15px);z-index:0;}
   .step{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:34px 30px;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s;}
-  .step:hover{transform:translateY(-6px);box-shadow:var(--sh);border-color:rgba(23,156,139,.3);}
+  .step:hover{transform:translateY(-6px);box-shadow:var(--sh);border-color:rgba(17,76,90,.3);}
   .step .num{width:54px;height:54px;border-radius:16px;background:linear-gradient(150deg,var(--ink),var(--ink3));color:#fff;font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 500;font-size:24px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;box-shadow:var(--sh-sm);}
-  .step:nth-child(2) .num{background:linear-gradient(150deg,var(--teal-d),var(--teal));box-shadow:0 8px 20px -8px rgba(21,120,110,.55);}
+  .step:nth-child(2) .num{background:linear-gradient(150deg,var(--teal-d),var(--teal));box-shadow:0 8px 20px -8px rgba(17,76,90,.5);}
   .step h3{font-size:20px;color:var(--ink);margin:0 0 9px;font-weight:700;}
   .step p{font-size:15.5px;color:var(--tx2);margin:0;}
 
@@ -175,7 +175,7 @@
   .cell h3{font-size:18.5px;color:var(--ink);margin:0 0 7px;font-weight:700;}
   .cell p{font-size:14.5px;color:var(--tx2);margin:0;}
   .cell.big{grid-column:span 3;grid-row:span 2;background:var(--ink);color:#fff;display:flex;flex-direction:column;justify-content:space-between;}
-  .cell.big::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 80% 110%,rgba(23,156,139,.5),transparent 60%);}
+  .cell.big::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 80% 110%,rgba(252,163,17,.38),transparent 60%);}
   .cell.big > *{position:relative;z-index:1;}
   .cell.big h3{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 540;font-size:27px;line-height:1.12;color:#fff;}
   .cell.big p{font-size:16px;color:rgba(255,255,255,.78);}
@@ -202,7 +202,7 @@
 
   /* CTA final */
   .cta{position:relative;background:var(--ink);border-radius:var(--r-lg);padding:80px 60px;text-align:center;color:#fff;overflow:hidden;}
-  .cta::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 90% at 50% 130%,rgba(23,156,139,.55),transparent 60%),radial-gradient(circle at 15% -10%,rgba(203,168,106,.18),transparent 40%);}
+  .cta::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 90% at 50% 130%,rgba(17,76,90,.6),transparent 60%),radial-gradient(circle at 15% -10%,rgba(252,163,17,.22),transparent 40%);}
   .cta > *{position:relative;z-index:1;}
   .cta h2{color:#fff;}
   .cta p{font-size:18.5px;color:rgba(255,255,255,.8);margin:0 auto 30px;max-width:520px;}
@@ -218,7 +218,7 @@
   /* FAQ */
   .faq{max-width:780px;margin:0 auto;}
   .faq details{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
-  .faq details[open]{border-color:rgba(23,156,139,.35);box-shadow:var(--sh-sm);}
+  .faq details[open]{border-color:rgba(17,76,90,.35);box-shadow:var(--sh-sm);}
   .faq summary{list-style:none;cursor:pointer;padding:21px 24px;font-size:17.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:16px;}
   .faq summary::-webkit-details-marker{display:none;}
   .faq summary::after{content:"+";font-size:25px;font-weight:300;color:var(--teal-d);transition:transform .25s var(--ease);line-height:1;flex-shrink:0;}
@@ -288,7 +288,7 @@
 <header id="hdr">
   <div class="wrap nav">
     <a class="brand" href="#top">
-      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#15181C"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#15181C"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3FC9B4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14213D"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#14213D"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#FFC801" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span><b>Actas de Copropiedad</b><small>Ley N° 21.442</small></span>
     </a>
     <nav class="nav-links">
@@ -391,12 +391,12 @@
     <div class="bento">
       <div class="cell big reveal" id="votacion">
         <div>
-          <div class="ic" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="#3FC9B4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+          <div class="ic" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)"><svg viewBox="0 0 24 24" fill="none" stroke="#FFC801" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
           <h3>La votación, desde el bolsillo de cada copropietario.</h3>
           <p>Abra cada punto y los presentes votan desde su teléfono. Usted ve el resultado en vivo, ponderado por los derechos de cada unidad — y los votos se traen directo al acta.</p>
         </div>
         <div class="mini-tally" data-tally>
-          <div class="mt-row"><span class="mt-lab" style="color:#7be0a6">A favor</span><span class="mt-bar"><i data-w="68" style="background:linear-gradient(90deg,#1E7E4A,#3FC9B4)"></i></span><span class="mt-pct">68%</span></div>
+          <div class="mt-row"><span class="mt-lab" style="color:#7be0a6">A favor</span><span class="mt-bar"><i data-w="68" style="background:linear-gradient(90deg,#1E7E4A,#2FA56B)"></i></span><span class="mt-pct">68%</span></div>
           <div class="mt-row"><span class="mt-lab" style="color:#f0a59b">En contra</span><span class="mt-bar"><i data-w="22" style="background:#B23A2E"></i></span><span class="mt-pct">22%</span></div>
           <div class="mt-row"><span class="mt-lab" style="color:#f0cf8f">Abstención</span><span class="mt-bar"><i data-w="10" style="background:#9A6B1F"></i></span><span class="mt-pct">10%</span></div>
         </div>
@@ -472,7 +472,7 @@
 <section class="pad" style="padding-top:0">
   <div class="wrap">
     <div class="cta reveal">
-      <span class="eyebrow" style="color:#7fd6c8;justify-content:center;margin-bottom:8px">Empiece hoy</span>
+      <span class="eyebrow" style="color:#FFC801;justify-content:center;margin-bottom:8px">Empiece hoy</span>
       <h2>¿Listo para su próxima asamblea?</h2>
       <p>Sin contraseñas ni instalaciones. Abra el sistema y arme su primera acta en minutos.</p>
       <a class="btn btn-white" href="/acta">Entrar al sistema →</a>
@@ -484,7 +484,7 @@
   <div class="wrap foot">
     <div>
       <a class="brand" href="#top">
-        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#15181C"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#15181C"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3FC9B4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14213D"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#14213D"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#FFC801" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span><b style="font-family:var(--serif)">Actas de Copropiedad</b></span>
       </a>
       <div class="foot-legal">Herramienta para generar actas de asamblea conforme a la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo. Obra inscrita en el Registro de Propiedad Intelectual N° 2026-A-5167.</div>

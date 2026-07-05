@@ -46,7 +46,7 @@
 <meta name="twitter:title" content="Sistema de Actas de Copropiedad · Ley N° 21.442">
 <meta name="twitter:image" content="https://actascopropiedad.cl/og.png">
 <link rel="canonical" href="https://actascopropiedad.cl/acta">
-<meta name="theme-color" content="#2C313A">
+<meta name="theme-color" content="#14213D">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="fonts/source-sans-3.css" rel="stylesheet">
@@ -60,11 +60,11 @@
   /* ── Variables ─────────────────────────────────────── */
   :root {
     /* Paleta principal — sin cambios */
-    --c-primary:     #2C313A;
-    --c-secondary:   #21262E;
-    --c-interact:    #15786E;
+    --c-primary:     #14213D;
+    --c-secondary:   #0E1830;
+    --c-interact:    #114C5A;
     --c-accent:      #B23A2E;
-    --c-bg:          #F2F1EC;
+    --c-bg:          #F1F6F4;
 
     /* Aliases semánticos */
     --c-navy:        var(--c-primary);
@@ -120,7 +120,7 @@
 
   body {
     font-family: var(--font-body);
-    background: #F2F1EC;
+    background: #F1F6F4;
     color: var(--c-text);
     min-height: 100vh;
     line-height: 1.65;
@@ -317,7 +317,7 @@
 
   /* ── Header ─────────────────────────────────────────── */
   header, header.app-header {
-    background: linear-gradient(130deg, #3A404A 0%, #2C313A 40%, #21262E 100%);
+    background: linear-gradient(130deg, #24365F 0%, #14213D 45%, #0E1830 100%);
     border-bottom: 1px solid rgba(255,255,255,0.10);
     padding: 0;
     margin: 0;
@@ -410,7 +410,7 @@
     letter-spacing: 0.6px;
     font-weight: 700;
   }
-  .header-action-demo:hover { background: #1c8a7e; border-color: #1c8a7e; }
+  .header-action-demo:hover { background: #17627A; border-color: #17627A; }
 
   /* Indicador de auto-guardado */
   .save-indicator {
@@ -524,7 +524,7 @@
     background: var(--c-interact);
     border-color: var(--c-interact);
     color: #ffffff;
-    box-shadow: 0 0 0 5px rgba(21,120,110,0.30);
+    box-shadow: 0 0 0 5px rgba(17,76,90,0.30);
     font-size: 14px;
   }
   .step-tab.active .step-label {
@@ -657,7 +657,7 @@
   input:focus, select:focus, textarea:focus {
     border-color: var(--c-interact);
     outline: none;
-    box-shadow: 0 0 0 4px rgba(21,120,110,0.16), 0 1px 4px rgba(21,120,110,0.08);
+    box-shadow: 0 0 0 4px rgba(17,76,90,0.16), 0 1px 4px rgba(17,76,90,0.08);
   }
   input:hover:not(:focus):not(:disabled),
   select:hover:not(:focus):not(:disabled),
@@ -718,11 +718,11 @@
   .btn-gold {
     background: var(--c-interact);
     color: #ffffff;
-    box-shadow: 0 2px 6px rgba(21,120,110,0.22);
+    box-shadow: 0 2px 6px rgba(17,76,90,0.22);
   }
   .btn-gold:hover {
     background: #11665E;
-    box-shadow: 0 4px 14px rgba(21,120,110,0.28);
+    box-shadow: 0 4px 14px rgba(17,76,90,0.28);
     transform: translateY(-1px);
   }
   .btn-nav {
@@ -786,7 +786,7 @@
   }
   .toggle-btn:last-child { border-right: none; }
   .toggle-btn:hover:not(.active) {
-    background: rgba(21,120,110,0.07);
+    background: rgba(17,76,90,0.07);
     color: var(--c-interact);
   }
   .toggle-btn.active {
@@ -1422,7 +1422,7 @@
     line-height: 1.50;
     color: var(--c-text);
   }
-  .materias-list li:hover { background: rgba(21,120,110,0.06); }
+  .materias-list li:hover { background: rgba(17,76,90,0.06); }
   .materias-list li.checked { background: var(--c-copper-pale); }
   .materias-list li .mat-chk {
     flex-shrink: 0;
@@ -1462,7 +1462,7 @@
     border-color: var(--c-interact);
     border-style: solid;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(21,120,110,0.13);
+    box-shadow: 0 0 0 3px rgba(17,76,90,0.13);
   }
   .mat-custom-row .btn-add-custom {
     flex-shrink: 0;
@@ -1613,11 +1613,11 @@
   .reg-card .reg-sub{margin:0 0 18px;font-size:14.5px;color:#5C6168;line-height:1.55;}
   .reg-card label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin:12px 0 5px;}
   .reg-card input{width:100%;box-sizing:border-box;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDCFC9;border-radius:10px;min-height:44px;background:#fff;}
-  .reg-card input:focus{outline:none;border-color:var(--c-interact);box-shadow:0 0 0 4px rgba(21,120,110,.15);}
+  .reg-card input:focus{outline:none;border-color:var(--c-interact);box-shadow:0 0 0 4px rgba(17,76,90,.15);}
   #reg-codigo{letter-spacing:9px;text-align:center;font-size:21px;font-weight:700;color:var(--c-primary);}
   #reg-error,#reg-error2{display:none;margin:12px 0 0;font-size:13.5px;color:var(--c-accent);font-weight:600;}
   #reg-btn,#reg-btn2{width:100%;margin-top:18px;font-family:inherit;font-size:15.5px;font-weight:700;color:#fff;background:var(--c-interact);border:none;border-radius:11px;padding:13px 18px;min-height:48px;cursor:pointer;}
-  #reg-btn:hover,#reg-btn2:hover{background:#1C8A7E;}
+  #reg-btn:hover,#reg-btn2:hover{background:#17627A;}
   #reg-btn:disabled,#reg-btn2:disabled{opacity:.6;cursor:wait;}
   .reg-priv{margin:14px 0 0;font-size:12.5px;color:#8B9094;line-height:1.5;text-align:center;}
   .reg-priv a{color:var(--c-interact);}
@@ -4088,10 +4088,10 @@ document.addEventListener('keydown', function(e) {
 <div id="modal-instrucciones" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:10px;max-width:660px;width:95%;padding:28px 32px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
     <button onclick="cerrarInstrucciones()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#555" title="Cerrar">✕</button>
-    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#2C313A">📋 Instrucciones para completar la plantilla</h3>
+    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#14213D">📋 Instrucciones para completar la plantilla</h3>
     <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
       <thead>
-        <tr style="background:#2C313A;color:#fff">
+        <tr style="background:#14213D;color:#fff">
           <th style="padding:8px 10px;text-align:left;border-radius:4px 0 0 0">Campo</th>
           <th style="padding:8px 10px;text-align:left">Formato</th>
           <th style="padding:8px 10px;text-align:left;border-radius:0 4px 0 0">Ejemplo</th>
@@ -4134,7 +4134,7 @@ document.addEventListener('keydown', function(e) {
       <strong>⚠️ Antes de importar:</strong> Reemplace los 3 registros de ejemplo con sus datos reales. No elimine ni modifique la fila de encabezado. Agregue una fila por cada copropietario asistente.
     </div>
     <div style="text-align:right;margin-top:18px">
-      <button onclick="cerrarInstrucciones()" style="background:#2C313A;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
+      <button onclick="cerrarInstrucciones()" style="background:#14213D;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
     </div>
   </div>
 </div>
