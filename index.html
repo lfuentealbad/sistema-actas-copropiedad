@@ -105,9 +105,6 @@
     background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,#000 30%,transparent 75%);}
   .hero-inner{position:relative;z-index:2;}
   .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:54px;align-items:center;padding:84px 0 96px;}
-  .badge{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#D9E8E2;font-size:13px;font-weight:600;padding:7px 15px;border-radius:30px;margin-bottom:26px;backdrop-filter:blur(6px);}
-  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-l);box-shadow:0 0 0 0 var(--teal-glow);animation:pulse 2.4s infinite;}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--teal-glow);}70%{box-shadow:0 0 0 9px rgba(255,200,1,0);}100%{box-shadow:0 0 0 0 rgba(255,200,1,0);}}
   h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;font-size:clamp(40px,5.6vw,68px);line-height:1.03;letter-spacing:-.025em;margin:0 0 22px;}
   h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,#FFC801,#FCA311 55%,#FF9932);-webkit-background-clip:text;background-clip:text;color:transparent;}
   .hero p.lead{font-size:19.5px;color:rgba(255,255,255,.78);margin:0 0 34px;max-width:540px;line-height:1.55;}
@@ -138,15 +135,6 @@
   .float-chip.c1{top:-4px;left:-12px;}
   .float-chip .pin{width:30px;height:30px;border-radius:9px;background:var(--teal-d);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
   .float-chip .pct{font-family:var(--serif);font-variation-settings:'opsz' 30,'wght' 600;color:var(--teal-d);}
-
-  /* Stats strip */
-  .strip{border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);background:rgba(255,255,255,.5);}
-  .strip-grid{display:grid;grid-template-columns:repeat(4,1fr);}
-  .strip-item{padding:26px 22px;text-align:center;border-right:1px solid var(--line-soft);}
-  .strip-item:last-child{border-right:none;}
-  .strip-item .v{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 560;font-size:30px;color:var(--ink);line-height:1;letter-spacing:-.02em;}
-  .strip-item .k{font-size:13px;color:var(--tx2);margin-top:7px;font-weight:500;}
-  @media(max-width:720px){ .strip-grid{grid-template-columns:1fr 1fr;} .strip-item:nth-child(2){border-right:none;} .strip-item:nth-child(1),.strip-item:nth-child(2){border-bottom:1px solid var(--line-soft);} }
 
   /* Secciones */
   section.pad{padding:104px 0;}
@@ -309,9 +297,8 @@
   <div class="wrap hero-inner">
     <div class="hero-grid">
       <div>
-        <span class="badge"><span class="dot"></span> Conforme a la Ley N° 21.442 vigente</span>
         <h1 class="reveal in">El acta de su asamblea,<br><em>impecable</em> y sin esfuerzo.</h1>
-        <p class="lead reveal in d1">Arme el acta paso a paso, reciba los votos en vivo desde el teléfono de cada copropietario y obtenga un documento listo para firmar. Profesional, conforme a la ley, sin instalar nada.</p>
+        <p class="lead reveal in d1">Arme el acta paso a paso, reciba los votos en vivo desde el teléfono de cada copropietario y obtenga un documento listo para firmar.</p>
         <div class="hero-cta reveal in d2">
           <a class="btn btn-primary" href="/acta">Entrar al sistema</a>
           <a class="btn btn-light" href="#como">Ver cómo funciona</a>
@@ -345,15 +332,6 @@
     </div>
   </div>
 </section>
-
-<div class="strip">
-  <div class="wrap"><div class="strip-grid">
-    <div class="strip-item reveal"><div class="v">21.442</div><div class="k">Conforme a la ley</div></div>
-    <div class="strip-item reveal d1"><div class="v">100%</div><div class="k">En su navegador</div></div>
-    <div class="strip-item reveal d2"><div class="v">En vivo</div><div class="k">Votación por teléfono</div></div>
-    <div class="strip-item reveal d3"><div class="v">0</div><div class="k">Instalaciones</div></div>
-  </div></div>
-</div>
 
 <section class="pad" id="como">
   <div class="wrap">
