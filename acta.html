@@ -1930,7 +1930,11 @@
       .vv-btn-abrir{background:var(--c-interact);color:#fff;border-color:var(--c-interact)}
       .vv-btn-traer{background:transparent;color:var(--c-primary);border-color:var(--c-primary)}
       .vv-btn:disabled{opacity:.5;cursor:not-allowed}
-      .vv-tema-res{font-size:13px;color:var(--c-text-2);margin-top:8px}
+      .vv-tema-res{font-size:13px;color:var(--c-text-2);margin-top:10px;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 4px}
+      .vv-pct{font-size:25px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+      .vv-pct-lab{font-size:12.5px;color:var(--c-text-2);margin-right:14px}
+      .vv-votos{margin-left:auto;font-size:12.5px;color:var(--c-text-2);white-space:nowrap}
+      .vv-votos b{color:var(--c-primary);font-size:15px}
       #vv-codebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#F0F7FB;border:1px solid #CFE0EC;border-radius:10px;padding:14px}
       #vv-qr img{display:block;background:#fff;border-radius:8px;padding:6px;width:104px;height:104px}
       .vv-guia{background:#F4F8FA;border:1px solid #D6E5EC;border-radius:10px;padding:14px 16px;margin:14px 0}
@@ -4407,7 +4411,11 @@ document.addEventListener('keydown', function(e) {
     var f=0,co=0,ab=0,n=0;
     votos.forEach(function(v){ var p=byRut[v.rut]; if(!p||!p.habil) return; n++; if(v.choice==='favor')f+=p.der; else if(v.choice==='contra')co+=p.der; else ab+=p.der; });
     var el=document.getElementById('vv-res-'+activo.n);
-    if(el) el.innerHTML='<b style="color:var(--c-ok)">'+f.toFixed(2)+'%</b> a favor &nbsp;·&nbsp; <b style="color:var(--c-error)">'+co.toFixed(2)+'%</b> en contra &nbsp;·&nbsp; '+ab.toFixed(2)+'% abst. &nbsp;·&nbsp; <b>'+n+'</b> votos en vivo';
+    if(el) el.innerHTML=
+      '<span class="vv-pct" style="color:var(--c-ok)">'+f.toFixed(2)+'%</span><span class="vv-pct-lab">a favor</span>'+
+      '<span class="vv-pct" style="color:var(--c-error)">'+co.toFixed(2)+'%</span><span class="vv-pct-lab">en contra</span>'+
+      '<span class="vv-pct" style="color:var(--c-warn,#9A6B1F)">'+ab.toFixed(2)+'%</span><span class="vv-pct-lab">abstención</span>'+
+      '<span class="vv-votos"><b>'+n+'</b> votos en vivo</span>';
   }
   async function traer(t){
     var c=client();
