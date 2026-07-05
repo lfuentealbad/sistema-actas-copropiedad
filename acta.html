@@ -1933,6 +1933,16 @@
       .vv-tema-res{font-size:13px;color:var(--c-text-2);margin-top:8px}
       #vv-codebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#F0F7FB;border:1px solid #CFE0EC;border-radius:10px;padding:14px}
       #vv-qr img{display:block;background:#fff;border-radius:8px;padding:6px;width:104px;height:104px}
+      .vv-guia{background:#F4F8FA;border:1px solid #D6E5EC;border-radius:10px;padding:14px 16px;margin:14px 0}
+      .vv-guia > strong{display:block;font-size:13px;color:var(--c-primary);margin-bottom:8px}
+      .vv-guia ol{margin:0;padding-left:20px}
+      .vv-guia li{font-size:13px;color:var(--c-text);line-height:1.55;margin-bottom:6px}
+      .vv-aviso{margin-top:10px;background:#FBF3E3;border:1px solid #EBD9B0;border-radius:8px;padding:9px 12px;font-size:12.5px;color:#7A5A16;line-height:1.5}
+      .vv-estado{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;margin-left:8px;flex-shrink:0}
+      .vv-estado.cerrado{background:#EDEDE8;color:#5C6168}
+      .vv-estado.abierto{background:#E1F2E8;color:#1E7E4A}
+      #vv-reminder{display:none;background:#E1F2E8;border:1px solid #A9D9BE;border-radius:8px;padding:10px 13px;font-size:12.5px;color:#166a3a;line-height:1.5;margin:12px 0}
+      #vv-reminder.show{display:block}
     </style>
     <h2 class="card-title">🗳️ Votación en vivo desde el teléfono <span style="font-weight:400;font-size:13px;color:var(--c-text-2)">(opcional)</span></h2>
     <div class="card-desc">Abra una sala para que los copropietarios <strong>presentes</strong> voten cada punto desde su teléfono. Los votos se traen directamente al registro de votación de cada punto. <strong>Requiere internet</strong> y que los asistentes tengan su <strong>RUT</strong> cargado en el Paso 3.</div>
@@ -1945,7 +1955,17 @@
         <div id="vv-qr"></div>
         <div style="flex:1;min-width:180px"><div style="font-size:11px;font-weight:600;color:var(--c-text-2);letter-spacing:.5px">ENLACE PARA LOS TELÉFONOS</div><div id="vv-link" style="font-size:12.5px;word-break:break-all;color:var(--c-primary)"></div></div>
       </div>
-      <p style="font-size:12.5px;color:var(--c-text-2);margin:12px 0 8px">Los copropietarios escanean el QR (o entran al enlace), se identifican con su RUT y votan. Abra cada punto cuando corresponda y luego pulse <strong>Traer al acta</strong>:</p>
+      <div class="vv-guia">
+        <strong>Cómo dirigir la votación, paso a paso</strong>
+        <ol>
+          <li>Muestre el <strong>código o el QR</strong> a los asistentes: cada uno entra desde su teléfono, escribe su <strong>RUT</strong> y queda listo.</li>
+          <li>Cuando llegue el momento de votar un punto, pulse <strong>▶ Abrir</strong> en ese punto. <em>Recién ahí los teléfonos pueden votarlo.</em></li>
+          <li>Mantenga abierto <strong>un solo punto a la vez</strong>. Cuando todos hayan votado, pulse <strong>■ Cerrar</strong>.</li>
+          <li>Pulse <strong>⤵ Traer al acta</strong> para volcar esos votos al registro del punto.</li>
+        </ol>
+        <div class="vv-aviso">⚠️ <strong>Al terminar, cierre el último punto.</strong> Si queda abierto, los asistentes podrían seguir votando después de la asamblea.</div>
+      </div>
+      <div id="vv-reminder" role="status" aria-live="polite"></div>
       <div id="vv-temas"></div>
     </div>
   </div>
@@ -4346,8 +4366,9 @@ document.addEventListener('keydown', function(e) {
       var bTr=document.createElement('button'); bTr.type='button'; bTr.className='vv-btn vv-btn-traer'; bTr.textContent='⤵ Traer al acta';
       bTr.onclick=function(){ traer(t); };
       acc.appendChild(bAb); acc.appendChild(bTr);
-      top.appendChild(tit); top.appendChild(acc); d.appendChild(top);
-      var res=document.createElement('div'); res.className='vv-tema-res'; res.id='vv-res-'+t.n; res.textContent='Sin abrir';
+      var est=document.createElement('span'); est.className='vv-estado cerrado'; est.id='vv-est-'+t.n; est.textContent='● Cerrado';
+      top.appendChild(tit); top.appendChild(est); top.appendChild(acc); d.appendChild(top);
+      var res=document.createElement('div'); res.className='vv-tema-res'; res.id='vv-res-'+t.n; res.textContent='Aún no se abre a votación.';
       d.appendChild(res);
       cont.appendChild(d);
     });
@@ -4360,7 +4381,11 @@ document.addEventListener('keydown', function(e) {
       var b=document.querySelector('#vv-tema-'+x.n+' .vv-btn-abrir'); if(!b) return;
       if(x.n===t.n){ b.textContent='■ Cerrar'; b.onclick=function(){ cerrar(t); }; }
       else { b.textContent='▶ Abrir'; b.onclick=function(){ abrir(x); }; }
+      var e=document.getElementById('vv-est-'+x.n);
+      if(e){ if(x.n===t.n){ e.className='vv-estado abierto'; e.textContent='● Abierto'; } else { e.className='vv-estado cerrado'; e.textContent='● Cerrado'; } }
     });
+    var rem=document.getElementById('vv-reminder');
+    if(rem){ rem.className='show'; rem.innerHTML='🟢 <strong>Punto '+t.n+' abierto</strong> — los presentes ya pueden votar desde su teléfono. Recuerde pulsar <strong>■ Cerrar</strong> cuando terminen.'; }
     try{ await c.rpc('vv_abrir',{p_codigo:asam.codigo,p_token:asam.token,p_punto:t.key}); }catch(e){}
     refrescar();
   }
@@ -4368,6 +4393,8 @@ document.addEventListener('keydown', function(e) {
     var c=client();
     try{ await c.rpc('vv_cerrar',{p_codigo:asam.codigo,p_token:asam.token}); }catch(e){}
     var b=document.querySelector('#vv-tema-'+t.n+' .vv-btn-abrir'); if(b){ b.textContent='▶ Abrir'; b.onclick=function(){ abrir(t); }; }
+    var e=document.getElementById('vv-est-'+t.n); if(e){ e.className='vv-estado cerrado'; e.textContent='● Cerrado'; }
+    var rem=document.getElementById('vv-reminder'); if(rem){ rem.className=''; rem.innerHTML=''; }
     refrescar();
   }
   async function refrescar(){
