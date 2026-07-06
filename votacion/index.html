@@ -146,7 +146,7 @@
         <div><label>Tipo de asamblea</label>
           <select id="m-tipo">
             <option value="ordinaria">Ordinaria · acuerdos por mayoría de los presentes</option>
-            <option value="ext-abs">Extraordinaria · mayoría absoluta (más del 50%)</option>
+            <option value="ext-abs">Extraordinaria · mayoría absoluta (50+1% de los derechos)</option>
             <option value="ext-ref">Extraordinaria · reforzada (66%)</option>
           </select>
         </div>
@@ -298,7 +298,7 @@ function formatRut(rut){
 const codigoNuevo = () => { const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; };
 function setBusy(btn,busy,txt){ if(!btn||!btn.tagName) return; if(busy){ if(btn.dataset.t===undefined) btn.dataset.t=btn.textContent; btn.disabled=true; if(txt) btn.textContent=txt; } else { btn.disabled=false; if(btn.dataset.t!==undefined){ btn.textContent=btn.dataset.t; delete btn.dataset.t; } } }
 function setConn(txt,cls){ const e=$('conn'); if(!e) return; e.textContent=txt; e.className='conn '+(cls||''); }
-function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (más del 50%)':t==='ext-ref'?'Extraordinaria · reforzada (66%)':'Ordinaria · acuerdos por mayoría de los presentes'; }
+function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (50+1% de los derechos)':t==='ext-ref'?'Extraordinaria · reforzada (66%)':'Ordinaria · acuerdos por mayoría de los presentes'; }
 
 /* ===== navegación ===== */
 let ROL=null;
@@ -547,7 +547,7 @@ function calc(votos){
 function conclusionTipo(r,cerrada){
   const tipo=asamblea?asamblea.tipo:'ordinaria';
   if(r.n===0) return {cls:'pe',txt:cerrada?'Sin votos registrados.':'Esperando votos…'};
-  if(tipo==='ext-abs'){ const ok=r.f>50; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (supera el 50%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere más del 50% de los derechos del condominio).'}; }
+  if(tipo==='ext-abs'){ const ok=r.f>=51; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (alcanza el 51%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere al menos 51% — el 50+1% — de los derechos del condominio).'}; }
   if(tipo==='ext-ref'){ const ok=r.f>=66; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (alcanza el 66%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere 66% de los derechos del condominio).'}; }
   /* Ordinaria: los acuerdos se adoptan por MAYORÍA DE LOS PRESENTES (conteo de cabezas), no por % de derechos. */
   const minimo=Math.floor(r.habPresentes/2)+1;
