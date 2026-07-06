@@ -1935,6 +1935,7 @@
       .vv-pct-lab{font-size:12.5px;color:var(--c-text-2);margin-right:14px}
       .vv-votos{margin-left:auto;font-size:12.5px;color:var(--c-text-2);white-space:nowrap}
       .vv-votos b{color:var(--c-primary);font-size:15px}
+      .vv-tema-meta{flex-basis:100%;margin-top:7px;font-size:12px;color:var(--c-text-2);line-height:1.45}
       #vv-codebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#F0F7FB;border:1px solid #CFE0EC;border-radius:10px;padding:14px}
       #vv-qr img{display:block;background:#fff;border-radius:8px;padding:6px;width:104px;height:104px}
       .vv-guia{background:#F4F8FA;border:1px solid #D6E5EC;border-radius:10px;padding:14px 16px;margin:14px 0}
@@ -4407,15 +4408,34 @@ document.addEventListener('keydown', function(e) {
     var q=await c.rpc('vv_resultados',{p_codigo:asam.codigo,p_token:asam.token,p_punto:activo.key});
     if(q.error) return;
     var votos=(q.data&&q.data.votos)||[];
-    var byRut={}; asistentes().forEach(function(a){ byRut[norm(a.rut)]=a; });
-    var f=0,co=0,ab=0,n=0;
-    votos.forEach(function(v){ var p=byRut[v.rut]; if(!p||!p.habil) return; n++; if(v.choice==='favor')f+=p.der; else if(v.choice==='contra')co+=p.der; else ab+=p.der; });
-    var el=document.getElementById('vv-res-'+activo.n);
-    if(el) el.innerHTML=
-      '<span class="vv-pct" style="color:var(--c-ok)">'+f.toFixed(2)+'%</span><span class="vv-pct-lab">a favor</span>'+
-      '<span class="vv-pct" style="color:var(--c-error)">'+co.toFixed(2)+'%</span><span class="vv-pct-lab">en contra</span>'+
-      '<span class="vv-pct" style="color:var(--c-warn,#9A6B1F)">'+ab.toFixed(2)+'%</span><span class="vv-pct-lab">abstención</span>'+
-      '<span class="vv-votos"><b>'+n+'</b> votos en vivo</span>';
+    var byRut={}, habPresentes=0;
+    asistentes().forEach(function(a){ byRut[norm(a.rut)]=a; if(a.habil) habPresentes++; });
+    var f=0,co=0,ab=0, nf=0,nc=0,na=0, n=0;
+    votos.forEach(function(v){ var p=byRut[v.rut]; if(!p||!p.habil) return; n++;
+      if(v.choice==='favor'){f+=p.der;nf++;} else if(v.choice==='contra'){co+=p.der;nc++;} else {ab+=p.der;na++;} });
+    var el=document.getElementById('vv-res-'+activo.n); if(!el) return;
+    var tipo=(asam&&asam.tipo)||'ordinaria';
+    var OK='var(--c-ok)', ER='var(--c-error)', WN='var(--c-warn,#9A6B1F)';
+    var big=function(val,color,lab){ return '<span class="vv-pct" style="color:'+color+'">'+val+'</span><span class="vv-pct-lab">'+lab+'</span>'; };
+    if(tipo==='ordinaria'){
+      /* Ordinaria: se adopta por MAYORÍA DE LOS PRESENTES (conteo), no por % de derechos. */
+      var minimo=Math.floor(habPresentes/2)+1;
+      var pasa=(habPresentes>0 && nf>=minimo);
+      el.innerHTML=
+        big(nf,OK,'a favor')+big(nc,ER,'en contra')+big(na,WN,'abstención')+
+        '<span class="vv-votos"><b>'+n+'</b> de '+habPresentes+' presentes</span>'+
+        '<div class="vv-tema-meta">Asamblea ordinaria: se adopta por <b>mayoría de los presentes</b> — no por % de derechos. '+
+        (habPresentes>0?('Se requieren '+minimo+' de '+habPresentes+' votos'+(pasa?' · <b style="color:var(--c-ok)">alcanzado</b>':'')+'.'):'')+'</div>';
+    } else {
+      /* Extraordinaria: se adopta por % de los DERECHOS del condominio. */
+      var umb=(tipo==='ext-ref')?66:51;
+      var pasaE=(f>=umb);
+      el.innerHTML=
+        big(f.toFixed(2)+'%',OK,'a favor')+big(co.toFixed(2)+'%',ER,'en contra')+big(ab.toFixed(2)+'%',WN,'abstención')+
+        '<span class="vv-votos"><b>'+n+'</b> votos</span>'+
+        '<div class="vv-tema-meta">Asamblea extraordinaria: requiere <b>al menos '+umb+'% de los derechos del condominio</b> · '+
+        (pasaE?'<b style="color:var(--c-ok)">alcanza el umbral</b>':'aún no alcanza el umbral')+'.</div>';
+    }
   }
   async function traer(t){
     var c=client();
