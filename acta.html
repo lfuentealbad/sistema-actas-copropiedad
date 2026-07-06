@@ -3384,14 +3384,17 @@ if (!esAsiste) return; // ausente: no aparece en la tabla de votación
 var esHabil = habEl.value === 'si';
 var nombre = nomEl ? nomEl.value.trim() : '';
 var unidad = uniEl ? uniEl.value.trim() : '';
+var rutEl = row.querySelector('.rut-asist');
+var rutAsist = rutEl ? rutEl.value.trim() : '';
 var derechos = parseFloat(derEl ? derEl.value : 0) || 0;
 var key = unidad + '|' + nombre;
 var prevPref = prevPrefs[key] || 'sin_reg';
 var tr = document.createElement('tr');
 tr.dataset.key = key;
+tr.dataset.rut = rutAsist;
 tr.dataset.derechos = derechos;
 tr.dataset.habil = esHabil ? 'si' : 'no';
-tr.dataset.nombre = nombre; 
+tr.dataset.nombre = nombre;
 if (!esHabil) tr.classList.add('row-inhabit');
 var tdChk = document.createElement('td');
 if (esHabil) {
@@ -4010,20 +4013,23 @@ function cargarDatosEjemplo() {
   f('hora-inicio', '19:00');
   f('lugar', 'Sala de reuniones del condominio (1er piso)');
 
-  // Paso 2: Convocatoria
-  f('convocatoria-fecha', iso);
-  f('convocatoria-medio', 'Correo electrónico y publicación en cartelera del condominio');
-  f('quien-convoca-nombre', 'Patricia Soto López');
-  f('quien-convoca-cargo', 'Administradora del condominio');
+  // Paso 2: Convocatoria — la citación se envía hoy (≈7 días antes de la sesión)
+  var hoy = new Date().toISOString().slice(0,10);
+  f('quien-convoco', 'administrador');
+  f('nombre-convocante', 'Patricia Soto López');
+  f('fecha-citacion', hoy);
+  if (typeof checkPlazo === 'function') checkPlazo();
+  f('nombre-presidente', 'María González Pérez');
+  f('nombre-admin', 'Patricia Soto López');
 
-  // Paso 3: Asistentes — 6 filas con datos
+  // Paso 3: Asistentes — 6 filas con datos (con RUT válido para la votación en vivo)
   var ejAsist = [
-    { unidad:'101', nombre:'María González Pérez',  derechos:'5.25', habil:'si', asiste:'si', rep:'' },
-    { unidad:'102', nombre:'Juan Sepúlveda Rojas',  derechos:'4.80', habil:'si', asiste:'si', rep:'' },
-    { unidad:'201', nombre:'Ana Castro Muñoz',      derechos:'5.10', habil:'no', asiste:'si', rep:'' },
-    { unidad:'202', nombre:'Carlos Vega Soto',      derechos:'4.75', habil:'si', asiste:'no', rep:'' },
-    { unidad:'301', nombre:'Patricia Soto López',   derechos:'5.40', habil:'si', asiste:'si', rep:'Pedro Soto (poder simple)' },
-    { unidad:'302', nombre:'Luis Fernández Tapia',  derechos:'4.95', habil:'si', asiste:'si', rep:'' }
+    { unidad:'101', nombre:'María González Pérez',  rut:'12.345.678-5', derechos:'5.25', habil:'si', asiste:'si', rep:'' },
+    { unidad:'102', nombre:'Juan Sepúlveda Rojas',  rut:'11.222.333-9', derechos:'4.80', habil:'si', asiste:'si', rep:'' },
+    { unidad:'201', nombre:'Ana Castro Muñoz',      rut:'15.678.901-1', derechos:'5.10', habil:'no', asiste:'si', rep:'' },
+    { unidad:'202', nombre:'Carlos Vega Soto',      rut:'9.876.543-3', derechos:'4.75', habil:'si', asiste:'no', rep:'' },
+    { unidad:'301', nombre:'Patricia Soto López',   rut:'8.765.432-K', derechos:'5.40', habil:'si', asiste:'si', rep:'Pedro Soto (poder simple)' },
+    { unidad:'302', nombre:'Luis Fernández Tapia',  rut:'10.111.222-5', derechos:'4.95', habil:'si', asiste:'si', rep:'' }
   ];
   // Asegurar cantidad de filas
   var current = document.querySelectorAll('#asistentes-tbody tr').length;
@@ -4032,6 +4038,7 @@ function cargarDatosEjemplo() {
   ejAsist.forEach(function(a, i) {
     f('asist-'+i+'-unidad',   a.unidad);
     f('asist-'+i+'-nombre',   a.nombre);
+    f('asist-'+i+'-rut',      a.rut);
     f('asist-'+i+'-derechos', a.derechos);
     f('asist-'+i+'-habil',    a.habil);
     f('asist-'+i+'-asiste',   a.asiste);
@@ -4041,12 +4048,9 @@ function cargarDatosEjemplo() {
   if (typeof actualizarVotacion === 'function') actualizarVotacion();
 
   // Paso 5: Firmantes
-  f('presidente-nombre',      'María González Pérez');
-  f('presidente-rut',         '12.345.678-9');
-  f('secretario-nombre',      'Juan Sepúlveda Rojas');
-  f('secretario-rut',         '11.222.333-4');
-  f('administrador-nombre',   'Patricia Soto López');
-  f('administrador-rut',      '15.678.901-2');
+  f('f1-nombre', 'María González Pérez'); f('f1-rut', '12.345.678-5'); f('f1-cargo', 'Presidente del Comité de Administración');
+  f('f2-nombre', 'Juan Sepúlveda Rojas'); f('f2-rut', '11.222.333-9'); f('f2-cargo', 'Miembro del Comité de Administración');
+  f('f3-nombre', 'Patricia Soto López');  f('f3-rut', '8.765.432-K');  f('f3-cargo', 'Administrador/a del Condominio');
 
   // Disparar guardado
   if (typeof autoSave === 'function') autoSave();
@@ -4465,20 +4469,14 @@ document.addEventListener('keydown', function(e) {
     var votos=(q.data&&q.data.votos)||[];
     if(votos.length===0){ if(!confirm('Aún no hay votos para "'+t.titulo+'". ¿Traer de todas formas?')) return; }
     var voteByRut={}; votos.forEach(function(v){ voteByRut[v.rut]=v.choice; });
-    var keyByRut={};
-    document.querySelectorAll('#asistentes-tbody tr').forEach(function(row){
-      var rEl=row.querySelector('.rut-asist'), nEl=row.querySelector('.nombre-asist'), uEl=row.querySelector('.unidad');
-      var rut=rEl?rEl.value.trim():''; if(!rut) return;
-      keyByRut[norm(rut)]=(uEl?uEl.value.trim():'')+'|'+(nEl?nEl.value.trim():'');
-    });
     if(typeof _qpese==='function') _qpese(t.n);
     var tbody=document.getElementById('pvot-rows-'+t.n);
     if(!tbody){ alert('No encontré el panel de votación del Punto '+t.n+'. Asegúrese de que el punto requiere votación.'); return; }
     var rows=[].slice.call(tbody.querySelectorAll('tr'));
     var aplicados=0;
     Object.keys(voteByRut).forEach(function(rk){
-      var key=keyByRut[rk]; if(!key) return;
-      var row=null; for(var i=0;i<rows.length;i++){ if(rows[i].dataset.key===key){ row=rows[i]; break; } }
+      // Mapear cada voto por RUT (único), no por unidad|nombre (que puede colisionar).
+      var row=null; for(var i=0;i<rows.length;i++){ if(norm(rows[i].dataset.rut||'')===rk){ row=rows[i]; break; } }
       if(!row) return;
       var sel=row.querySelector('.pref-select'); if(!sel) return;
       sel.value=voteByRut[rk]; sel.className='pref-select '+sel.value; aplicados++;

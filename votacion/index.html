@@ -183,7 +183,7 @@
         </div>
         <div style="overflow-x:auto">
         <table id="m-padron-tabla">
-          <thead><tr><th>Unidad</th><th>Nombre</th><th>RUT</th><th>% Derechos</th><th>Hábil</th><th></th></tr></thead>
+          <thead><tr><th>Unidad</th><th>Nombre</th><th>RUT</th><th>% Derechos</th><th>Hábil</th><th>Asiste</th><th></th></tr></thead>
           <tbody id="m-padron-body"></tbody>
         </table>
         </div>
@@ -338,7 +338,7 @@ async function reanudar(btn){
     if(error||!data||!data.asamblea){ alert('Esa asamblea ya no existe o la llave no corresponde. Crea una nueva.'); return; }
     const a=data.asamblea;
     asamblea={id:a.id,codigo:a.codigo,condo:saved.condo||a.titulo||'',tipo:saved.tipo||'ordinaria',token:saved.token};
-    padron=(data.padron&&data.padron.length)? data.padron.map(p=>({unidad:p.unidad||'',nombre:p.nombre||'',rut:p.rut||'',der:Number(p.der)||0,habil:p.habil!==false})) : (saved.padron||[]);
+    padron=(data.padron&&data.padron.length)? data.padron.map(p=>({unidad:p.unidad||'',nombre:p.nombre||'',rut:p.rut||'',der:Number(p.der)||0,habil:p.habil!==false,asiste:p.asiste!==false})) : (saved.padron||[]);
     puntos=saved.puntos||[];
     { const set=new Set(puntos.map(p=>p.key)); (data.puntos||[]).forEach(k=>{ if(k&&!set.has(k)){ set.add(k); puntos.push({key:k,titulo:String(k).replace(/^\d+\.\s*/,'')}); } }); }
     votacionAbierta=!!a.abierta; puntoActivo=votacionAbierta?a.punto:(saved.puntoActivo||null);
@@ -400,6 +400,11 @@ function renderPadron(){
     const o2=document.createElement('option'); o2.value='no'; o2.textContent='No';
     sel.appendChild(o1); sel.appendChild(o2); sel.value=p.habil===false?'no':'si';
     sel.addEventListener('change',()=>{padron[i].habil=sel.value==='si';markDirty();}); tr.appendChild(td(sel));
+    const selA=document.createElement('select'); selA.style.width='70px';
+    const a1=document.createElement('option'); a1.value='si'; a1.textContent='Sí';
+    const a2=document.createElement('option'); a2.value='no'; a2.textContent='No';
+    selA.appendChild(a1); selA.appendChild(a2); selA.value=p.asiste===false?'no':'si';
+    selA.addEventListener('change',()=>{padron[i].asiste=selA.value==='si';renderPadronSum();markDirty();}); tr.appendChild(td(selA));
     const del=document.createElement('button'); del.className='btn-del'; del.textContent='✕'; del.title='Quitar';
     del.addEventListener('click',()=>{ if(confirm('¿Quitar a '+(p.nombre||'esta persona')+' del padrón?')){ padron.splice(i,1); renderPadron(); markDirty(); } });
     tr.appendChild(td(del));
@@ -410,21 +415,22 @@ function renderPadron(){
 function renderPadronSum(){
   const sum=padron.reduce((a,p)=>a+(parseFloat(p.der)||0),0);
   const hab=padron.filter(p=>p.habil!==false).length;
+  const pres=padron.filter(p=>p.habil!==false&&p.asiste!==false).length;
   const malRut=padron.filter(p=>p.rut&&!validarRut(p.rut)).length;
-  let h=padron.length+' copropietarios · '+hab+' hábiles · suma de derechos: <strong>'+sum.toFixed(2)+'%</strong>';
+  let h=padron.length+' copropietarios · '+hab+' hábiles · '+pres+' presentes hábiles · suma de derechos: <strong>'+sum.toFixed(2)+'%</strong>';
   if(Math.abs(sum-100)>0.5&&sum>0) h+=' <span style="color:var(--warn)">(no suma 100%)</span>';
   if(malRut) h+=' <span style="color:var(--err)">· '+malRut+' RUT inválido</span>';
   $('m-padron-sum').innerHTML=h;
 }
-function agregarFila(){ padron.push({unidad:'',nombre:'',rut:'',der:0,habil:true}); renderPadron(); markDirty(); }
+function agregarFila(){ padron.push({unidad:'',nombre:'',rut:'',der:0,habil:true,asiste:true}); renderPadron(); markDirty(); }
 function padronEjemplo(){
   padron=[
-    {unidad:'101',nombre:'María González Pérez',rut:'12.345.678-5',der:5.25,habil:true},
-    {unidad:'102',nombre:'Juan Sepúlveda Rojas',rut:'11.222.333-9',der:4.80,habil:true},
-    {unidad:'201',nombre:'Ana Castro Muñoz',rut:'15.678.901-1',der:5.10,habil:false},
-    {unidad:'202',nombre:'Carlos Vega Soto',rut:'9.876.543-3',der:4.75,habil:true},
-    {unidad:'301',nombre:'Patricia Soto López',rut:'8.765.432-K',der:5.40,habil:true},
-    {unidad:'302',nombre:'Luis Fernández Tapia',rut:'10.111.222-5',der:4.95,habil:true},
+    {unidad:'101',nombre:'María González Pérez',rut:'12.345.678-5',der:5.25,habil:true,asiste:true},
+    {unidad:'102',nombre:'Juan Sepúlveda Rojas',rut:'11.222.333-9',der:4.80,habil:true,asiste:true},
+    {unidad:'201',nombre:'Ana Castro Muñoz',rut:'15.678.901-1',der:5.10,habil:false,asiste:true},
+    {unidad:'202',nombre:'Carlos Vega Soto',rut:'9.876.543-3',der:4.75,habil:true,asiste:true},
+    {unidad:'301',nombre:'Patricia Soto López',rut:'8.765.432-K',der:5.40,habil:true,asiste:true},
+    {unidad:'302',nombre:'Luis Fernández Tapia',rut:'10.111.222-5',der:4.95,habil:true,asiste:true},
   ];
   renderPadron(); markDirty();
 }
@@ -446,7 +452,8 @@ function importarPadron(input){
         const derRaw=pick(o,['derecho','porcentaje','prorrateo','%']); if(String(derRaw).trim()!=='') hayColDer=true;
         const der=parseFloat(String(derRaw||'0').replace('%','').replace(',','.').trim())||0;
         nuevo.push({ unidad:String(pick(o,['unidad','depto','casa','nro','numero'])||'').trim(), nombre, rut:formatRut(rut), der,
-          habil:!/^(no|n|inhabil|0|false)$/.test(na(String(pick(o,['habil','aldia','estado'])||'si'))) });
+          habil:!/^(no|n|inhabil|0|false)$/.test(na(String(pick(o,['habil','aldia','estado'])||'si'))),
+          asiste:!/^(no|n|ausente|0|false)$/.test(na(String(pick(o,['asiste','presente','asistio'])||'si'))) });
       });
       if(nuevo.length===0){ alert('No reconocí los datos. El archivo debería tener columnas como: unidad, nombre, rut, derechos, hábil.'); input.value=''; return; }
       padron=nuevo; renderPadron(); markDirty();
@@ -540,8 +547,8 @@ async function cargarVotos(){
 function calc(votos){
   const map={}; votos.forEach(v=>map[v.rut]=v.choice);
   let f=0,c=0,a=0,n=0,nf=0,nc=0,na=0,totalCond=0,totalHabil=0,habPresentes=0;
-  padron.forEach(p=>{ const d=parseFloat(p.der)||0; totalCond+=d; if(p.habil!==false){ totalHabil+=d; habPresentes++; } });
-  padron.forEach(p=>{ const v=map[norm(p.rut)]; const d=parseFloat(p.der)||0; if(v&&p.habil!==false){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} } });
+  padron.forEach(p=>{ const d=parseFloat(p.der)||0; totalCond+=d; if(p.habil!==false){ totalHabil+=d; if(p.asiste!==false) habPresentes++; } });
+  padron.forEach(p=>{ const v=map[norm(p.rut)]; const d=parseFloat(p.der)||0; if(v&&p.habil!==false&&p.asiste!==false){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} } });
   return {map,f,c,a,n,nf,nc,na,totalCond,totalHabil,habPresentes};
 }
 function conclusionTipo(r,cerrada){
@@ -572,7 +579,7 @@ function renderResultados(votos){
   const cn=conclusionTipo(r,cerrada); const cc=$('mesa-concl'); cc.className='concl '+cn.cls; cc.textContent=(cerrada?'':'Tendencia: ')+cn.txt;
   const tb=$('mesa-tbody'); tb.innerHTML='';
   padron.forEach(p=>{ const v=r.map[norm(p.rut)];
-    const pill=p.habil===false?'<span class="pill p">inhábil</span>':v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>';
+    const pill=p.asiste===false?'<span class="pill p">ausente</span>':p.habil===false?'<span class="pill p">inhábil</span>':v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>';
     const tr=document.createElement('tr');
     tr.innerHTML='<td>'+esc(p.unidad)+'</td><td>'+esc(p.nombre)+'</td><td>'+(parseFloat(p.der)||0).toFixed(2)+'%</td><td>'+(p.habil===false?'No':'Sí')+'</td><td>'+pill+'</td>';
     tb.appendChild(tr);
