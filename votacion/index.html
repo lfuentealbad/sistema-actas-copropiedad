@@ -145,7 +145,7 @@
         <div><label>Nombre del condominio</label><input type="text" id="m-condo" placeholder="Ej: Condominio Las Araucarias"></div>
         <div><label>Tipo de asamblea</label>
           <select id="m-tipo">
-            <option value="ordinaria">Ordinaria · mayoría simple de los derechos</option>
+            <option value="ordinaria">Ordinaria · acuerdos por mayoría de los presentes</option>
             <option value="ext-abs">Extraordinaria · mayoría absoluta (más del 50%)</option>
             <option value="ext-ref">Extraordinaria · reforzada (66%)</option>
           </select>
@@ -298,7 +298,7 @@ function formatRut(rut){
 const codigoNuevo = () => { const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; };
 function setBusy(btn,busy,txt){ if(!btn||!btn.tagName) return; if(busy){ if(btn.dataset.t===undefined) btn.dataset.t=btn.textContent; btn.disabled=true; if(txt) btn.textContent=txt; } else { btn.disabled=false; if(btn.dataset.t!==undefined){ btn.textContent=btn.dataset.t; delete btn.dataset.t; } } }
 function setConn(txt,cls){ const e=$('conn'); if(!e) return; e.textContent=txt; e.className='conn '+(cls||''); }
-function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (más del 50%)':t==='ext-ref'?'Extraordinaria · reforzada (66%)':'Ordinaria · mayoría simple de los derechos'; }
+function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (más del 50%)':t==='ext-ref'?'Extraordinaria · reforzada (66%)':'Ordinaria · acuerdos por mayoría de los presentes'; }
 
 /* ===== navegación ===== */
 let ROL=null;
@@ -539,26 +539,37 @@ async function cargarVotos(){
 }
 function calc(votos){
   const map={}; votos.forEach(v=>map[v.rut]=v.choice);
-  let f=0,c=0,a=0,n=0,totalCond=0,totalHabil=0;
-  padron.forEach(p=>{ const d=parseFloat(p.der)||0; totalCond+=d; if(p.habil!==false) totalHabil+=d; });
-  padron.forEach(p=>{ const v=map[norm(p.rut)]; const d=parseFloat(p.der)||0; if(v&&p.habil!==false){ n++; if(v==='favor')f+=d; else if(v==='contra')c+=d; else a+=d; } });
-  return {map,f,c,a,n,totalCond,totalHabil};
+  let f=0,c=0,a=0,n=0,nf=0,nc=0,na=0,totalCond=0,totalHabil=0,habPresentes=0;
+  padron.forEach(p=>{ const d=parseFloat(p.der)||0; totalCond+=d; if(p.habil!==false){ totalHabil+=d; habPresentes++; } });
+  padron.forEach(p=>{ const v=map[norm(p.rut)]; const d=parseFloat(p.der)||0; if(v&&p.habil!==false){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} } });
+  return {map,f,c,a,n,nf,nc,na,totalCond,totalHabil,habPresentes};
 }
 function conclusionTipo(r,cerrada){
   const tipo=asamblea?asamblea.tipo:'ordinaria';
   if(r.n===0) return {cls:'pe',txt:cerrada?'Sin votos registrados.':'Esperando votos…'};
   if(tipo==='ext-abs'){ const ok=r.f>50; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (supera el 50%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere más del 50% de los derechos del condominio).'}; }
   if(tipo==='ext-ref'){ const ok=r.f>=66; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (alcanza el 66%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere 66% de los derechos del condominio).'}; }
-  if(r.f>r.c) return {cls:'ap',txt:'APROBADO — mayoría de los derechos votó a favor ('+r.f.toFixed(2)+'% vs '+r.c.toFixed(2)+'%).'};
-  if(r.c>r.f) return {cls:'re',txt:'RECHAZADO — mayoría votó en contra ('+r.c.toFixed(2)+'% vs '+r.f.toFixed(2)+'%).'};
-  return cerrada?{cls:'re',txt:'NO APROBADO — empate, no se alcanzó mayoría.'}:{cls:'pe',txt:'Empate por ahora.'};
+  /* Ordinaria: los acuerdos se adoptan por MAYORÍA DE LOS PRESENTES (conteo de cabezas), no por % de derechos. */
+  const minimo=Math.floor(r.habPresentes/2)+1;
+  if(r.habPresentes>0 && r.nf>=minimo) return {cls:'ap',txt:'APROBADO — '+r.nf+' de '+r.habPresentes+' presentes a favor (mayoría alcanzada; se requerían '+minimo+').'};
+  if(cerrada) return {cls:'re',txt:'NO APROBADO — '+r.nf+' a favor de '+r.habPresentes+' presentes (se requerían '+minimo+' para la mayoría).'};
+  return {cls:'pe',txt:'Por ahora '+r.nf+' a favor · se requieren '+minimo+' de '+r.habPresentes+' presentes.'};
 }
 function renderResultados(votos){
   const r=calc(votos), cerrada=!votacionAbierta;
-  const set=(b,pc,val)=>{ $(b).style.width=Math.min(val,100)+'%'; $(pc).textContent=val.toFixed(2)+'%'; };
-  set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
+  const tipo=asamblea?asamblea.tipo:'ordinaria';
+  if(tipo==='ordinaria'){
+    /* Ordinaria: se cuenta por cabezas. La barra muestra la proporción de los votos emitidos; la etiqueta, el número de votos. */
+    const setN=(b,pc,cnt)=>{ $(b).style.width=(r.n>0?Math.round(cnt/r.n*100):0)+'%'; $(pc).textContent=String(cnt); };
+    setN('bar-favor','pct-favor',r.nf); setN('bar-contra','pct-contra',r.nc); setN('bar-abst','pct-abst',r.na);
+    const minimo=Math.floor(r.habPresentes/2)+1;
+    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' presentes hábiles · se adopta por <strong>mayoría de los presentes</strong> (se requieren '+minimo+'), no por % de derechos.';
+  } else {
+    const set=(b,pc,val)=>{ $(b).style.width=Math.min(val,100)+'%'; $(pc).textContent=val.toFixed(2)+'%'; };
+    set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
+    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' hábiles · base hábil: <strong>'+r.totalHabil.toFixed(2)+'%</strong> · total condominio: '+r.totalCond.toFixed(2)+'% · se requiere % de los <strong>derechos del condominio</strong>.';
+  }
   const cn=conclusionTipo(r,cerrada); const cc=$('mesa-concl'); cc.className='concl '+cn.cls; cc.textContent=(cerrada?'':'Tendencia: ')+cn.txt;
-  $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+padron.filter(p=>p.habil!==false).length+' hábiles · base hábil: <strong>'+r.totalHabil.toFixed(2)+'%</strong> · total condominio: '+r.totalCond.toFixed(2)+'%';
   const tb=$('mesa-tbody'); tb.innerHTML='';
   padron.forEach(p=>{ const v=r.map[norm(p.rut)];
     const pill=p.habil===false?'<span class="pill p">inhábil</span>':v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>';
@@ -573,14 +584,19 @@ async function exportarResultados(btn){
     let out='RESULTADOS DE VOTACIÓN\n';
     if(asamblea.condo) out+=asamblea.condo+'\n';
     out+='Tipo de asamblea: '+tipoLabel(asamblea.tipo)+'\nCódigo: '+asamblea.codigo+'\n';
-    out+='Total derechos hábiles: '+padron.filter(p=>p.habil!==false).reduce((a,p)=>a+(parseFloat(p.der)||0),0).toFixed(2)+'% del condominio\n\n';
+    const esOrd=(asamblea.tipo||'ordinaria')==='ordinaria';
+    out+=(esOrd
+      ? 'Adopción de acuerdos: por mayoría de los presentes (conteo de votos).\n\n'
+      : 'Total derechos hábiles: '+padron.filter(p=>p.habil!==false).reduce((a,p)=>a+(parseFloat(p.der)||0),0).toFixed(2)+'% del condominio\n\n');
     for(let i=0;i<puntos.length;i++){
       const p=puntos[i];
       const { data }=await sb.rpc('vv_resultados',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:p.key});
       const r=calc((data&&data.votos)||[]); const cn=conclusionTipo(r,true);
       out+='PUNTO '+(i+1)+': '+p.titulo+'\n';
-      out+='  A favor: '+r.f.toFixed(2)+'%  ·  En contra: '+r.c.toFixed(2)+'%  ·  Abstención: '+r.a.toFixed(2)+'%\n';
-      out+='  Votaron: '+r.n+' copropietarios hábiles\n';
+      out+=(esOrd
+        ? '  A favor: '+r.nf+'  ·  En contra: '+r.nc+'  ·  Abstención: '+r.na+'  (de '+r.habPresentes+' presentes)\n'
+        : '  A favor: '+r.f.toFixed(2)+'%  ·  En contra: '+r.c.toFixed(2)+'%  ·  Abstención: '+r.a.toFixed(2)+'%\n');
+      out+='  Votaron: '+r.n+' de '+r.habPresentes+' copropietarios hábiles\n';
       out+='  Resultado: '+cn.txt+'\n\n';
     }
     if(puntos.length===0) out+='(Aún no hay puntos.)\n';
