@@ -1691,6 +1691,7 @@
           <option value="extraordinaria-abs">Extraordinaria · Mayoría Absoluta (50+1%)</option>
           <option value="extraordinaria-ref">Extraordinaria · Mayoría Reforzada (66%)</option>
         </select>
+        <div id="tipo-lock-note" style="display:none;margin-top:8px;font-size:12.5px;line-height:1.45;color:var(--c-interact);background:#F0F7FB;border:1px solid #CFE0EC;border-radius:8px;padding:8px 10px">🔒 El tipo quedó fijado porque hay una <strong>votación en vivo</strong> en curso (Paso 4). Para cambiarlo, cierre la sala de votación.</div>
       </div>
       <div class="field">
         <label for="modalidad">Modalidad <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
@@ -1972,6 +1973,10 @@
       </div>
       <div id="vv-reminder" role="status" aria-live="polite"></div>
       <div id="vv-temas"></div>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #E2E8E6">
+        <button type="button" class="btn-add-row" style="background:transparent;color:var(--c-text-2);border-color:#CBD5D1;font-size:12.5px;padding:7px 12px" onclick="actaCerrarSala(this)">Cerrar sala de votación</button>
+        <div style="font-size:11.5px;color:var(--c-text-2);margin-top:6px">Termina la votación en vivo y libera el tipo de asamblea para poder cambiarlo.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -4349,6 +4354,8 @@ document.addEventListener('keydown', function(e) {
       if(pi.error) throw pi.error;
       document.getElementById('vv-start').style.display='none';
       document.getElementById('vv-panel').style.display='block';
+      var _tsel=document.getElementById('tipo-asamblea'); if(_tsel) _tsel.disabled=true;
+      var _tnote=document.getElementById('tipo-lock-note'); if(_tnote) _tnote.style.display='block';
       document.getElementById('vv-codigo').textContent=codigo;
       var link=location.origin+'/votacion/?code='+codigo;
       document.getElementById('vv-link').textContent=link;
@@ -4358,6 +4365,21 @@ document.addEventListener('keydown', function(e) {
       pollTimer=setInterval(function(){ if(activo) refrescar(); }, 2500);
     }catch(e){ alert('No se pudo iniciar la sala. Revise su conexión a internet.\n\n'+(e.message||e)); }
     finally{ btn.disabled=false; btn.textContent=_t; }
+  };
+  window.actaCerrarSala=async function(btn){
+    if(!asam){ return; }
+    if(!confirm('¿Cerrar la sala de votación en vivo?\n\nSe detendrá la votación desde los teléfonos y podrá volver a elegir el tipo de asamblea. Si inicia otra sala, se generará un código nuevo. Los votos que ya trajo al acta se conservan.')) return;
+    if(btn){ btn.disabled=true; }
+    try{ if(activo) await cerrar(activo); }catch(e){}
+    if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+    asam=null; activo=null; temasActuales=[];
+    var p=document.getElementById('vv-panel'); if(p) p.style.display='none';
+    var s=document.getElementById('vv-start'); if(s) s.style.display='block';
+    var tt=document.getElementById('vv-temas'); if(tt) tt.innerHTML='';
+    var rem=document.getElementById('vv-reminder'); if(rem){ rem.className=''; rem.innerHTML=''; }
+    var tsel=document.getElementById('tipo-asamblea'); if(tsel) tsel.disabled=false;
+    var tnote=document.getElementById('tipo-lock-note'); if(tnote) tnote.style.display='none';
+    if(btn){ btn.disabled=false; }
   };
   function renderTemas(){
     var cont=document.getElementById('vv-temas'); cont.innerHTML='';
