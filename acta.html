@@ -4389,7 +4389,7 @@ document.addEventListener('keydown', function(e) {
     var tnote=document.getElementById('tipo-lock-note'); if(tnote) tnote.style.display='none';
     if(btn){ btn.disabled=false; btn.textContent=_t; }
     alert(borrado
-      ? '✓ Datos borrados del servidor. El padrón y los votos de esta asamblea ya no existen en la nube.'
+      ? '✓ Padrón y votos borrados de la base de datos activa. (Los respaldos automáticos de Supabase se purgan al vencer su ventana de retención.)'
       : 'Se cerró la sala. No se pudo confirmar el borrado inmediato (revise que corrió el script de retención en Supabase); de todos modos, el barrido automático borrará estos datos.');
   };
   function renderTemas(){
