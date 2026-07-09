@@ -359,7 +359,7 @@ async function abrirPanelMesa(row){
   if(row && row.votacion_abierta){ votacionAbierta=true; puntoActivo=row.punto; mostrarVotacionMesa(); }
   if(mesaTimer) clearInterval(mesaTimer);
   setConn('● en línea','ok');
-  mesaTimer=setInterval(()=>{ if(puntoActivo) cargarVotos(); }, 2500);
+  mesaTimer=setInterval(()=>{ if(puntoActivo) cargarVotos(); }, 6000);
 }
 function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent).then(()=>{ if(btn){ const t=btn.textContent; btn.textContent='¡Copiado!'; setTimeout(()=>btn.textContent=t,1500); } }); }
 
@@ -635,7 +635,7 @@ async function unirse(btn){
     const ri=$('rut-input'); if(ri) setTimeout(()=>{try{ri.focus();}catch(e){}},120);
     setConn('● en línea','ok');
     if(fonoTimer) clearInterval(fonoTimer);
-    fonoTimer=setInterval(pollEstado, 2500);
+    fonoTimer=setInterval(pollEstado, 6000);
   }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revisa tu internet e intenta de nuevo.'; }
   finally{ setBusy(btn,false); }
 }

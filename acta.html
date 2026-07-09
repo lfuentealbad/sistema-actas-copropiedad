@@ -4366,7 +4366,7 @@ document.addEventListener('keydown', function(e) {
       try{ var qr=qrcode(0,'M'); qr.addData(link); qr.make(); document.getElementById('vv-qr').innerHTML=qr.createImgTag(3,8); }catch(e){}
       temasActuales=tms; renderTemas();
       if(pollTimer) clearInterval(pollTimer);
-      pollTimer=setInterval(function(){ if(activo) refrescar(); }, 2500);
+      pollTimer=setInterval(function(){ if(activo) refrescar(); }, 6000);
     }catch(e){ alert('No se pudo iniciar la sala. Revise su conexión a internet.\n\n'+(e.message||e)); }
     finally{ btn.disabled=false; btn.textContent=_t; }
   };
