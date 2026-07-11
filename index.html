@@ -193,25 +193,26 @@
   .show-tab:hover{color:var(--ink);border-color:var(--tx3);}
   .show-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:var(--sh-sm);}
   .window[hidden]{display:none;}
-  /* Vista: foto editorial a sangre (la imagen manda) */
-  .vista-spread{display:grid;grid-template-columns:minmax(280px,400px) minmax(0,1fr);align-items:center;gap:clamp(30px,4.5vw,72px);padding-left:max(26px,calc((100% - 1140px)/2 + 26px));}
-  .vista-copy h2{margin:16px 0 18px;font-size:clamp(30px,3.4vw,44px);}
-  .vista-copy p{font-size:17.5px;color:var(--tx2);line-height:1.62;margin:0 0 30px;max-width:36ch;}
-  .vista-meta{display:block;margin-top:24px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);line-height:1.9;}
+  /* Vista: banda fotográfica con el título sobre la imagen (como el hero) */
+  .vista-band{position:relative;overflow:hidden;background:var(--ink);border-radius:34px;margin:0 clamp(10px,1.6vw,22px);}
+  .vista-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;transform:scale(1.06);transition:transform 2.6s var(--ease);}
+  .vista-band.in .vista-img{transform:scale(1);}
+  .vista-scrim{position:absolute;inset:0;background:
+    linear-gradient(94deg,rgba(8,14,32,.95) 0%,rgba(8,14,32,.84) 38%,rgba(8,14,32,.42) 72%,rgba(8,14,32,.18) 100%),
+    linear-gradient(0deg,rgba(8,14,32,.5),transparent 50%);}
+  .vista-inner{position:relative;z-index:2;display:flex;align-items:center;min-height:clamp(500px,68vh,660px);}
+  .vista-copy{max-width:600px;padding:72px 0;color:#fff;}
+  .vista-copy h2{color:#fff;margin:0 0 18px;text-shadow:0 2px 30px rgba(0,0,0,.25);}
+  .vista-copy h2 em{white-space:nowrap;background:linear-gradient(100deg,#B9C3F9,#96A5F3 60%,#7C8FEE);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .vista-copy p{font-size:18px;color:rgba(255,255,255,.88);line-height:1.6;margin:0 0 32px;max-width:46ch;}
+  .vista-meta{display:block;margin-top:26px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.66);line-height:1.9;}
   .vista-meta span{white-space:nowrap;}
-  .vista-photo{position:relative;margin:0;height:clamp(440px,74vh,680px);border-radius:var(--r-lg) 0 0 var(--r-lg);overflow:hidden;box-shadow:var(--sh-lg);}
-  .vista-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:96% 26%;transform:scale(1.05);transition:transform 2.6s var(--ease);}
-  .vista-photo.in img{transform:scale(1);}
-  .vista-live{position:absolute;top:20px;left:20px;z-index:2;display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:rgba(6,12,30,.55);border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(8px);padding:8px 15px;border-radius:30px;}
-  .vista-live i{width:8px;height:8px;border-radius:50%;background:var(--teal-l);animation:vista-pulse 2.2s var(--ease) infinite;}
-  @keyframes vista-pulse{0%{box-shadow:0 0 0 0 rgba(154,168,242,.55);}70%{box-shadow:0 0 0 9px rgba(154,168,242,0);}100%{box-shadow:0 0 0 0 rgba(154,168,242,0);}}
-  .vista-photo figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:64px 30px 20px;font-size:14px;line-height:1.5;color:rgba(255,255,255,.94);text-shadow:0 1px 12px rgba(0,0,0,.35);background:linear-gradient(0deg,rgba(6,12,30,.74),rgba(6,12,30,.30) 55%,transparent);}
-  @media(max-width:1000px){
-    .vista-spread{grid-template-columns:1fr;gap:28px;padding-left:0;}
-    .vista-photo{order:-1;height:auto;aspect-ratio:4/3;border-radius:0;box-shadow:none;}
-    .vista-photo img{object-position:50% 50%;}
-    .vista-photo figcaption{display:none;}
-    .vista-copy{padding:0 26px;}
+  @media(max-width:820px){
+    .vista-band{border-radius:22px;margin:0 10px;}
+    .vista-img{object-position:100% 30%;}
+    .vista-scrim{background:linear-gradient(180deg,rgba(8,14,32,.68) 0%,rgba(8,14,32,.82) 100%);}
+    .vista-inner{min-height:0;}
+    .vista-copy{padding:60px 0 68px;}
   }
 
   /* FAQ */
@@ -249,7 +250,7 @@
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important;}
     .reveal{opacity:1!important;transform:none!important;}
-    .vista-photo img{transform:none!important;transition:none!important;}
+    .vista-img{transform:none!important;transition:none!important;}
     html{scroll-behavior:auto;}
   }
 </style>
@@ -333,19 +334,18 @@
 </div>
 
 <section class="pad" id="vista">
-  <div class="vista-spread">
-    <div class="vista-copy reveal">
-      <span class="eyebrow">En acción</span>
-      <h2>Así se ve una asamblea <em>votando en vivo.</em></h2>
-      <p>Cada copropietario vota desde su teléfono y el resultado —ponderado por los derechos de cada unidad— se proyecta al instante ante todos.</p>
-      <a class="btn btn-primary" href="/acta">Probar la votación</a>
-      <small class="vista-meta"><span>Quórum en vivo</span> · <span>Mayorías automáticas</span> · <span>Directo al acta</span></small>
+  <div class="vista-band reveal">
+    <img class="vista-img" src="/fotos/votacion.jpg" alt="Asamblea de copropietarios votando desde sus teléfonos; la pantalla proyecta el sistema con el código QR y el resultado en vivo" width="1440" height="1080" loading="lazy">
+    <div class="vista-scrim" aria-hidden="true"></div>
+    <div class="wrap vista-inner">
+      <div class="vista-copy">
+        <span class="hero-eyebrow">En acción · Asamblea real</span>
+        <h2>Así se ve una asamblea <em>votando en vivo.</em></h2>
+        <p>Cada copropietario vota desde su teléfono y el resultado —ponderado por los derechos de cada unidad— se proyecta al instante ante todos.</p>
+        <a class="btn btn-primary" href="/acta">Probar la votación</a>
+        <small class="vista-meta"><span>Quórum en vivo</span> · <span>Mayorías automáticas</span> · <span>Directo al acta</span></small>
+      </div>
     </div>
-    <figure class="vista-photo reveal d1">
-      <img src="/fotos/votacion.jpg" alt="Asamblea de copropietarios votando desde sus teléfonos; la pantalla proyecta el sistema con el código QR y el resultado en vivo" width="1440" height="1080" loading="lazy">
-      <span class="vista-live" aria-hidden="true"><i></i>En vivo</span>
-      <figcaption>Asamblea real: cada teléfono, un voto — y en la pantalla, el resultado al instante.</figcaption>
-    </figure>
   </div>
 </section>
 
