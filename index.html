@@ -174,9 +174,10 @@
   .quote p em{font-style:italic;color:var(--teal-d);}
 
   /* CTA final */
-  .cta{position:relative;background:var(--ink);border-radius:var(--r-lg);padding:80px 60px;text-align:center;color:#fff;overflow:hidden;}
-  .cta::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 90% at 50% 130%,rgba(53,71,193,.55),transparent 60%),radial-gradient(circle at 15% -10%,rgba(110,128,234,.22),transparent 40%);}
-  .cta > *{position:relative;z-index:1;}
+  .cta{position:relative;background:var(--ink);border-radius:var(--r-lg);padding:92px 60px;text-align:center;color:#fff;overflow:hidden;}
+  .cta-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 42%;z-index:0;}
+  .cta::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,13,30,.80),rgba(6,11,26,.90)),radial-gradient(ellipse 70% 90% at 50% 130%,rgba(53,71,193,.42),transparent 60%);}
+  .cta > *:not(.cta-img){position:relative;z-index:2;}
   .cta h2{color:#fff;}
   .cta p{font-size:18.5px;color:rgba(255,255,255,.8);margin:0 auto 30px;max-width:520px;}
 
@@ -192,6 +193,16 @@
   .show-tab:hover{color:var(--ink);border-color:var(--tx3);}
   .show-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:var(--sh-sm);}
   .window[hidden]{display:none;}
+  /* Showcase con foto real */
+  .showcase{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;}
+  .showcase-photo{margin:0;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-lg);border:1px solid var(--line);}
+  .showcase-photo img{display:block;width:100%;height:auto;}
+  .showcase-copy p{font-size:18px;color:var(--tx2);line-height:1.62;margin:0 0 22px;}
+  .showcase-list{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:13px;}
+  .showcase-list li{position:relative;padding-left:34px;font-size:16px;color:var(--tx);font-weight:600;}
+  .showcase-list li::before{content:"";position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:#EAEDFB;}
+  .showcase-list li::after{content:"";position:absolute;left:6px;top:7px;width:9px;height:5px;border-left:2px solid var(--teal-d);border-bottom:2px solid var(--teal-d);transform:rotate(-45deg);}
+  @media(max-width:820px){ .showcase{grid-template-columns:1fr;gap:26px;} }
 
   /* FAQ */
   .faq{max-width:780px;margin:0 auto;}
@@ -264,7 +275,7 @@
 <header id="hdr">
   <div class="wrap nav">
     <a class="brand" href="#top">
-      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14213D"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#14213D"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3547C1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0A132D"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#0A132D"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3547C1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span><b>Actas de Copropiedad</b><small>Ley N° 21.442</small></span>
     </a>
     <nav class="nav-links">
@@ -278,7 +289,7 @@
 
 <a id="top"></a>
 <section class="hero">
-  <img class="hero-img" src="/fotos/comunidad.jpg" alt="Plaza de un condominio con áreas verdes, juegos y familias" width="1600" height="1200">
+  <img class="hero-img" src="/fotos/hero.jpg" alt="Condominio con áreas verdes y camino peatonal, día despejado" width="1600" height="1200" fetchpriority="high">
   <div class="hero-scrim" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <div class="hero-copy">
@@ -314,22 +325,21 @@
   <div class="wrap">
     <div class="head center">
       <span class="eyebrow">En acción</span>
-      <h2>Véalo <em>funcionar.</em></h2>
+      <h2>La votación en vivo, <em>en asambleas reales.</em></h2>
     </div>
-    <div class="show-tabs" role="tablist" aria-label="Demostraciones">
-      <button class="show-tab active" type="button" role="tab" aria-selected="true" data-show="acta">Armar el acta</button>
-      <button class="show-tab" type="button" role="tab" aria-selected="false" data-show="votos">Recibir los votos</button>
-    </div>
-    <div class="window reveal" data-panel="acta">
-      <div class="win-bar"><span class="wd r"></span><span class="wd y"></span><span class="wd g"></span><span class="win-url">actascopropiedad.cl/acta</span></div>
-      <picture>
-        <source media="(prefers-reduced-motion: reduce)" srcset="/preview-acta.png">
-        <img src="/tutorial-acta.gif" alt="Demostración: el acta se completa paso a paso, desde los datos hasta el documento listo para firmar" width="820" height="519">
-      </picture>
-    </div>
-    <div class="window reveal" data-panel="votos" hidden>
-      <div class="win-bar"><span class="wd r"></span><span class="wd y"></span><span class="wd g"></span><span class="win-url">actascopropiedad.cl · votación en vivo</span></div>
-      <img data-src="/tutorial-votacion.gif" alt="Demostración: la Mesa abre un punto, los copropietarios votan desde su teléfono y los votos se traen al acta" width="820" height="628">
+    <div class="showcase">
+      <figure class="showcase-photo reveal">
+        <img src="/fotos/votacion.jpg" alt="Asamblea de copropietarios votando desde sus teléfonos; la pantalla proyecta el sistema con el código QR y el resultado en vivo" width="1440" height="1080" loading="lazy">
+      </figure>
+      <div class="showcase-copy reveal d1">
+        <p>La Mesa abre un punto y proyecta un <strong>código QR</strong>. Cada copropietario vota desde su teléfono con su RUT y el <strong>resultado aparece al instante</strong> —ponderado por los derechos de cada unidad— para llevarlo directo al acta.</p>
+        <ul class="showcase-list">
+          <li>Quórum y mayorías calculados en vivo</li>
+          <li>Participación y resultado a la vista de todos</li>
+          <li>Los votos se vuelcan al acta sin volver a tipear</li>
+        </ul>
+        <a class="btn btn-primary" href="/acta">Probar la votación</a>
+      </div>
     </div>
   </div>
 </section>
@@ -429,6 +439,7 @@
 <section class="pad" style="padding-top:0">
   <div class="wrap">
     <div class="cta reveal">
+      <img class="cta-img" src="/fotos/comunidad.jpg" alt="Familia recorriendo en bicicleta las áreas verdes de su condominio" width="1300" height="975" loading="lazy">
       <span class="eyebrow" style="color:#9AA8F2;justify-content:center;margin-bottom:8px">Empiece hoy</span>
       <h2>¿Listo para su próxima asamblea?</h2>
       <p>Sin contraseñas ni instalaciones. Arme su primera acta en minutos.</p>
@@ -441,7 +452,7 @@
   <div class="wrap foot">
     <div>
       <a class="brand" href="#top">
-        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14213D"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#14213D"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3547C1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0A132D"/><rect x="16" y="12" width="32" height="40" rx="3" fill="#fff"/><rect x="21" y="20" width="22" height="3" rx="1.5" fill="#0A132D"/><rect x="21" y="28" width="22" height="3" rx="1.5" fill="#9AA8BA"/><rect x="21" y="36" width="14" height="3" rx="1.5" fill="#9AA8BA"/><path d="M36 42 l4 4 l8 -9" fill="none" stroke="#3547C1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span><b style="font-family:var(--serif)">Actas de Copropiedad</b></span>
       </a>
       <div class="foot-legal">Herramienta para generar actas de asamblea conforme a la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo. Obra inscrita en el Registro de Propiedad Intelectual N° 2026-A-5167.</div>

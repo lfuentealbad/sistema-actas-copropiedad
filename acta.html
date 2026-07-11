@@ -46,7 +46,7 @@
 <meta name="twitter:title" content="Sistema de Actas de Copropiedad · Ley N° 21.442">
 <meta name="twitter:image" content="https://actascopropiedad.cl/og.png">
 <link rel="canonical" href="https://actascopropiedad.cl/acta">
-<meta name="theme-color" content="#14213D">
+<meta name="theme-color" content="#0A132D">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="fonts/source-sans-3.css" rel="stylesheet">
@@ -60,23 +60,23 @@
   /* ── Variables ─────────────────────────────────────── */
   :root {
     /* Paleta principal — sin cambios */
-    --c-primary:     #14213D;
-    --c-secondary:   #0E1830;
-    --c-interact:    #114C5A;
+    --c-primary:     #0A132D;
+    --c-secondary:   #060C1E;
+    --c-interact:    #3547C1;
     --c-accent:      #B23A2E;
-    --c-bg:          #F1F6F4;
+    --c-bg:          #F3F5FC;
 
     /* Aliases semánticos */
     --c-navy:        var(--c-primary);
     --c-navy-dark:   var(--c-primary);
     --c-navy-mid:    var(--c-secondary);
     --c-navy-soft:   var(--c-interact);
-    --c-navy-pale:   #E7EEEC;
+    --c-navy-pale:   #E7EAF9;
     --c-copper:      var(--c-interact);
     --c-copper-light:#BAD6CF;
-    --c-copper-pale: #ECF1F0;
+    --c-copper-pale: #EEF0FB;
     --c-teal:        var(--c-interact);
-    --c-teal-light:  #CFE0DC;
+    --c-teal-light:  #DBE0F7;
     --c-ok:          #1E7E4A;
     --c-ok-bg:       #D8F3DC;
 
@@ -120,7 +120,7 @@
 
   body {
     font-family: var(--font-body);
-    background: #F1F6F4;
+    background: #F3F5FC;
     color: var(--c-text);
     min-height: 100vh;
     line-height: 1.65;
@@ -317,7 +317,7 @@
 
   /* ── Header ─────────────────────────────────────────── */
   header, header.app-header {
-    background: linear-gradient(130deg, #24365F 0%, #14213D 45%, #0E1830 100%);
+    background: linear-gradient(130deg, #16224A 0%, #0A132D 45%, #060C1E 100%);
     border-bottom: 1px solid rgba(255,255,255,0.10);
     padding: 0;
     margin: 0;
@@ -410,7 +410,7 @@
     letter-spacing: 0.6px;
     font-weight: 700;
   }
-  .header-action-demo:hover { background: #17627A; border-color: #17627A; }
+  .header-action-demo:hover { background: #4152D6; border-color: #4152D6; }
 
   /* Indicador de auto-guardado */
   .save-indicator {
@@ -524,7 +524,7 @@
     background: var(--c-interact);
     border-color: var(--c-interact);
     color: #ffffff;
-    box-shadow: 0 0 0 5px rgba(17,76,90,0.30);
+    box-shadow: 0 0 0 5px rgba(53,71,193,0.30);
     font-size: 14px;
   }
   .step-tab.active .step-label {
@@ -657,7 +657,7 @@
   input:focus, select:focus, textarea:focus {
     border-color: var(--c-interact);
     outline: none;
-    box-shadow: 0 0 0 4px rgba(17,76,90,0.16), 0 1px 4px rgba(17,76,90,0.08);
+    box-shadow: 0 0 0 4px rgba(53,71,193,0.16), 0 1px 4px rgba(53,71,193,0.08);
   }
   input:hover:not(:focus):not(:disabled),
   select:hover:not(:focus):not(:disabled),
@@ -718,11 +718,11 @@
   .btn-gold {
     background: var(--c-interact);
     color: #ffffff;
-    box-shadow: 0 2px 6px rgba(17,76,90,0.22);
+    box-shadow: 0 2px 6px rgba(53,71,193,0.22);
   }
   .btn-gold:hover {
-    background: #11665E;
-    box-shadow: 0 4px 14px rgba(17,76,90,0.28);
+    background: #2E3EAE;
+    box-shadow: 0 4px 14px rgba(53,71,193,0.28);
     transform: translateY(-1px);
   }
   .btn-nav {
@@ -756,7 +756,7 @@
   }
   .btn-add-row:hover {
     background: var(--c-copper-pale);
-    border-color: #11665E;
+    border-color: #2E3EAE;
   }
 
   /* ── Toggle buttons (segment control) ──────────────── */
@@ -786,7 +786,7 @@
   }
   .toggle-btn:last-child { border-right: none; }
   .toggle-btn:hover:not(.active) {
-    background: rgba(17,76,90,0.07);
+    background: rgba(53,71,193,0.07);
     color: var(--c-interact);
   }
   .toggle-btn.active {
@@ -836,7 +836,7 @@
   .table-wrap td select { min-width: 56px; }
   .table-wrap td .rut-asist { width: 116px; }
   th {
-    background: #ECF1F0;
+    background: #EEF0FB;
     color: var(--c-primary);
     font-family: var(--font-body);
     font-weight: 700;
@@ -869,7 +869,7 @@
     box-shadow: var(--shadow-sm);
   }
   .punto-header {
-    background: #ECF1F0;
+    background: #EEF0FB;
     padding: 11px 16px;
     display: flex;
     align-items: center;
@@ -970,7 +970,7 @@
   .import-section {
     margin-top: 14px;
     padding: 15px;
-    background: #ECF1F0;
+    background: #EEF0FB;
     border-radius: var(--r-md);
     border: 1px solid #D3DAD7;
   }
@@ -1003,7 +1003,7 @@
 
   /* ── Quórum: barra de progreso ─────────────────── */
   .quorum-box {
-    background: #ECF1F0;
+    background: #EEF0FB;
     border: 1px solid #D3DAD7;
     border-left: 3px solid var(--c-primary);
     border-radius: var(--r-md);
@@ -1141,7 +1141,7 @@
   .btn-vot-favor   { background: var(--c-ok);      color: #ffffff;         border-color: var(--c-ok); box-shadow: 0 2px 6px rgba(30,126,74,0.20); }
   .btn-vot-contra  { background: var(--c-error-bg); color: var(--c-error);  border-color: rgba(178,58,46,0.40); }
   .btn-vot-abst    { background: var(--c-warn-bg);  color: var(--c-warn);   border-color: rgba(164,106,31,0.35); }
-  .btn-vot-limpiar { background: #ECF1F0;           color: var(--c-text-2); border-color: #D3DAD7; }
+  .btn-vot-limpiar { background: #EEF0FB;           color: var(--c-text-2); border-color: #D3DAD7; }
   .btn-vot-favor:hover  { background: #1a6e40; color: #ffffff; box-shadow: 0 3px 10px rgba(30,126,74,0.28); }
   .btn-vot-contra:hover { background: var(--c-error); color: #ffffff; box-shadow: 0 3px 10px rgba(178,58,46,0.22); }
   .btn-vot-abst:hover   { background: var(--c-warn);  color: #ffffff; box-shadow: 0 3px 10px rgba(164,106,31,0.22); }
@@ -1156,7 +1156,7 @@
     margin-bottom: 14px;
   }
   .punto-vot-lista th {
-    background: #ECF1F0;
+    background: #EEF0FB;
     padding: 10px 12px;
     text-align: left;
     font-size: 12px;
@@ -1177,7 +1177,7 @@
 
   /* ── Resumen de votación ────────────────────────── */
   .punto-vot-resumen {
-    background: #ECF1F0;
+    background: #EEF0FB;
     border: 1px solid #D3DAD7;
     border-radius: var(--r-md);
     padding: 14px 16px;
@@ -1300,7 +1300,7 @@
     margin-top: 8px;
   }
   .acta-section th {
-    background: #ECF1F0;
+    background: #EEF0FB;
     color: var(--c-primary);
     font-weight: 700;
     padding: 7px 10px;
@@ -1422,7 +1422,7 @@
     line-height: 1.50;
     color: var(--c-text);
   }
-  .materias-list li:hover { background: rgba(17,76,90,0.06); }
+  .materias-list li:hover { background: rgba(53,71,193,0.06); }
   .materias-list li.checked { background: var(--c-copper-pale); }
   .materias-list li .mat-chk {
     flex-shrink: 0;
@@ -1462,7 +1462,7 @@
     border-color: var(--c-interact);
     border-style: solid;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(17,76,90,0.13);
+    box-shadow: 0 0 0 3px rgba(53,71,193,0.13);
   }
   .mat-custom-row .btn-add-custom {
     flex-shrink: 0;
@@ -1613,11 +1613,11 @@
   .reg-card .reg-sub{margin:0 0 18px;font-size:14.5px;color:#5C6168;line-height:1.55;}
   .reg-card label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin:12px 0 5px;}
   .reg-card input{width:100%;box-sizing:border-box;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDCFC9;border-radius:10px;min-height:44px;background:#fff;}
-  .reg-card input:focus{outline:none;border-color:var(--c-interact);box-shadow:0 0 0 4px rgba(17,76,90,.15);}
+  .reg-card input:focus{outline:none;border-color:var(--c-interact);box-shadow:0 0 0 4px rgba(53,71,193,.15);}
   #reg-codigo{letter-spacing:9px;text-align:center;font-size:21px;font-weight:700;color:var(--c-primary);}
   #reg-error,#reg-error2{display:none;margin:12px 0 0;font-size:13.5px;color:var(--c-accent);font-weight:600;}
   #reg-btn,#reg-btn2{width:100%;margin-top:18px;font-family:inherit;font-size:15.5px;font-weight:700;color:#fff;background:var(--c-interact);border:none;border-radius:11px;padding:13px 18px;min-height:48px;cursor:pointer;}
-  #reg-btn:hover,#reg-btn2:hover{background:#17627A;}
+  #reg-btn:hover,#reg-btn2:hover{background:#4152D6;}
   #reg-btn:disabled,#reg-btn2:disabled{opacity:.6;cursor:wait;}
   .reg-priv{margin:14px 0 0;font-size:12.5px;color:#8B9094;line-height:1.5;text-align:center;}
   .reg-priv a{color:var(--c-interact);}
@@ -1691,7 +1691,7 @@
           <option value="extraordinaria-abs">Extraordinaria · Mayoría Absoluta (50+1%)</option>
           <option value="extraordinaria-ref">Extraordinaria · Mayoría Reforzada (66%)</option>
         </select>
-        <div id="tipo-lock-note" style="display:none;margin-top:8px;font-size:12.5px;line-height:1.45;color:var(--c-interact);background:#F0F7FB;border:1px solid #CFE0EC;border-radius:8px;padding:8px 10px">🔒 El tipo quedó fijado porque hay una <strong>votación en vivo</strong> en curso (Paso 4). Para cambiarlo, cierre la sala de votación.</div>
+        <div id="tipo-lock-note" style="display:none;margin-top:8px;font-size:12.5px;line-height:1.45;color:var(--c-interact);background:#F3F5FC;border:1px solid #D6DDF5;border-radius:8px;padding:8px 10px">🔒 El tipo quedó fijado porque hay una <strong>votación en vivo</strong> en curso (Paso 4). Para cambiarlo, cierre la sala de votación.</div>
       </div>
       <div class="field">
         <label for="modalidad">Modalidad <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
@@ -1923,7 +1923,7 @@
     <style>
       #vv-card h2.card-title{display:flex;align-items:center;gap:8px}
       .vv-tema{border:1px solid var(--c-border,#D7D6CE);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
-      .vv-tema.activo{border-color:var(--c-interact);background:#F0F7FB}
+      .vv-tema.activo{border-color:var(--c-interact);background:#F3F5FC}
       .vv-tema-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
       .vv-tema-tit{flex:1;font-weight:600;font-size:14.5px;color:var(--c-primary);min-width:160px}
       .vv-tema-acc{display:flex;gap:8px;flex-wrap:wrap}
@@ -1937,9 +1937,9 @@
       .vv-votos{margin-left:auto;font-size:12.5px;color:var(--c-text-2);white-space:nowrap}
       .vv-votos b{color:var(--c-primary);font-size:15px}
       .vv-tema-meta{flex-basis:100%;margin-top:7px;font-size:12px;color:var(--c-text-2);line-height:1.45}
-      #vv-codebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#F0F7FB;border:1px solid #CFE0EC;border-radius:10px;padding:14px}
+      #vv-codebox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#F3F5FC;border:1px solid #D6DDF5;border-radius:10px;padding:14px}
       #vv-qr img{display:block;background:#fff;border-radius:8px;padding:6px;width:104px;height:104px}
-      .vv-guia{background:#F4F8FA;border:1px solid #D6E5EC;border-radius:10px;padding:14px 16px;margin:14px 0}
+      .vv-guia{background:#F3F5FC;border:1px solid #D6E5EC;border-radius:10px;padding:14px 16px;margin:14px 0}
       .vv-guia > strong{display:block;font-size:13px;color:var(--c-primary);margin-bottom:8px}
       .vv-guia ol{margin:0;padding-left:20px}
       .vv-guia li{font-size:13px;color:var(--c-text);line-height:1.55;margin-bottom:6px}
@@ -4124,10 +4124,10 @@ document.addEventListener('keydown', function(e) {
 <div id="modal-instrucciones" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:10px;max-width:660px;width:95%;padding:28px 32px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
     <button onclick="cerrarInstrucciones()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#555" title="Cerrar">✕</button>
-    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#14213D">📋 Instrucciones para completar la plantilla</h3>
+    <h3 style="margin:0 0 16px;font-size:1.1rem;color:#0A132D">📋 Instrucciones para completar la plantilla</h3>
     <table style="width:100%;border-collapse:collapse;font-size:0.88rem">
       <thead>
-        <tr style="background:#14213D;color:#fff">
+        <tr style="background:#0A132D;color:#fff">
           <th style="padding:8px 10px;text-align:left;border-radius:4px 0 0 0">Campo</th>
           <th style="padding:8px 10px;text-align:left">Formato</th>
           <th style="padding:8px 10px;text-align:left;border-radius:0 4px 0 0">Ejemplo</th>
@@ -4170,7 +4170,7 @@ document.addEventListener('keydown', function(e) {
       <strong>⚠️ Antes de importar:</strong> Reemplace los 3 registros de ejemplo con sus datos reales. No elimine ni modifique la fila de encabezado. Agregue una fila por cada copropietario asistente.
     </div>
     <div style="text-align:right;margin-top:18px">
-      <button onclick="cerrarInstrucciones()" style="background:#14213D;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
+      <button onclick="cerrarInstrucciones()" style="background:#0A132D;color:#fff;border:none;padding:8px 22px;border-radius:6px;cursor:pointer;font-size:0.9rem">Cerrar</button>
     </div>
   </div>
 </div>

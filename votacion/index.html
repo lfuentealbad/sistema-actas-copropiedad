@@ -22,7 +22,7 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="canonical" href="https://actascopropiedad.cl/votacion/">
-<meta name="theme-color" content="#14213D">
+<meta name="theme-color" content="#0A132D">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Actas de Copropiedad">
 <meta property="og:locale" content="es_CL">
@@ -38,12 +38,12 @@
 <script src="/vendor/qrcode-generator.js"></script>
 <style>
   :root{
-    --graf:#14213D; --graf2:#0E1830; --graf3:#24365F;
-    --teal:#114C5A; --teal2:#17627A; --teal-pale:#E6F0F2;
+    --graf:#0A132D; --graf2:#060C1E; --graf3:#16224A;
+    --teal:#3547C1; --teal2:#4152D6; --teal-pale:#EAEDFB;
     --ok:#1E7E4A; --ok-bg:#E1F2E8;
     --err:#B23A2E; --err-bg:#F6E6E3;
     --warn:#9A6B1F; --warn-bg:#FBF3E3;
-    --bg:#F1F6F4; --surface:#FFFFFF; --border:#D2DEE3;
+    --bg:#F3F5FC; --surface:#FFFFFF; --border:#D6DDF5;
     --tx:#24282D; --tx2:#5C6168; --tx3:#8B9094; --r:14px;
   }
   *{box-sizing:border-box;}
@@ -72,7 +72,7 @@
   header :focus-visible{outline-color:#fff;}
   @media (prefers-reduced-motion:reduce){ *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;} }
   input[type=text],input[type=number],select{width:100%;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDCFC9;border-radius:11px;min-height:44px;background:#fff;}
-  input:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(17,76,90,.18);}
+  input:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(53,71,193,.18);}
   label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin-bottom:5px;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   @media(max-width:560px){.grid2{grid-template-columns:1fr;}}
@@ -83,7 +83,7 @@
   .role-card h3{margin:0 0 4px;font-size:18px;color:var(--graf);}
   .role-card p{margin:0;font-size:13.5px;color:var(--tx2);}
   @media(max-width:560px){.roles{grid-template-columns:1fr;}}
-  .codebox{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--teal-pale);border:1px solid #CFE0DC;border-radius:12px;padding:16px 18px;}
+  .codebox{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--teal-pale);border:1px solid #DBE0F7;border-radius:12px;padding:16px 18px;}
   .codebig{font-size:30px;font-weight:700;letter-spacing:4px;color:var(--teal);font-variant-numeric:tabular-nums;}
   .codebox #m-qr img{background:#fff;border-radius:8px;padding:6px;display:block;width:104px;height:104px;}
   table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px;}
@@ -108,7 +108,7 @@
   .res-pct{width:66px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;}
   .concl{margin-top:12px;padding:11px 15px;border-radius:10px;font-weight:600;font-size:14.5px;}
   .concl.ap{background:var(--ok-bg);color:var(--ok);} .concl.re{background:var(--err-bg);color:var(--err);} .concl.pe{background:var(--warn-bg);color:var(--warn);}
-  .vote-id{background:var(--teal-pale);border:1px solid #CFE0DC;border-radius:12px;padding:16px 18px;margin-bottom:18px;}
+  .vote-id{background:var(--teal-pale);border:1px solid #DBE0F7;border-radius:12px;padding:16px 18px;margin-bottom:18px;}
   .vote-id .nom{font-size:18px;font-weight:600;color:var(--graf);}
   .vote-id .peso{font-size:15px;margin-top:4px;} .vote-id .peso b{color:var(--teal);font-size:22px;}
   .vbtns{display:grid;gap:12px;}
