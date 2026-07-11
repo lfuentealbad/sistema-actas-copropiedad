@@ -133,9 +133,9 @@
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative;}
   .steps::before{content:"";position:absolute;top:54px;left:16%;right:16%;height:1.5px;background:repeating-linear-gradient(90deg,var(--line) 0 7px,transparent 7px 15px);z-index:0;}
   .step{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:34px 30px;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s;}
-  .step:hover{transform:translateY(-6px);box-shadow:var(--sh);border-color:rgba(17,76,90,.3);}
+  .step:hover{transform:translateY(-6px);box-shadow:var(--sh);border-color:rgba(53,71,193,.3);}
   .step .num{width:54px;height:54px;border-radius:16px;background:linear-gradient(150deg,var(--ink),var(--ink3));color:#fff;font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 500;font-size:24px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;box-shadow:var(--sh-sm);}
-  .step:nth-child(2) .num{background:linear-gradient(150deg,var(--teal-d),var(--teal));box-shadow:0 8px 20px -8px rgba(17,76,90,.5);}
+  .step:nth-child(2) .num{background:linear-gradient(150deg,var(--teal-d),var(--teal));box-shadow:0 8px 20px -8px rgba(53,71,193,.5);}
   .step h3{font-size:20px;color:var(--ink);margin:0 0 9px;font-weight:700;}
   .step p{font-size:15.5px;color:var(--tx2);margin:0;}
 
@@ -193,21 +193,31 @@
   .show-tab:hover{color:var(--ink);border-color:var(--tx3);}
   .show-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:var(--sh-sm);}
   .window[hidden]{display:none;}
-  /* Showcase con foto real */
-  .showcase{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;}
-  .showcase-photo{margin:0;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-lg);border:1px solid var(--line);}
-  .showcase-photo img{display:block;width:100%;height:auto;}
-  .showcase-copy p{font-size:18px;color:var(--tx2);line-height:1.62;margin:0 0 22px;}
-  .showcase-list{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:13px;}
-  .showcase-list li{position:relative;padding-left:34px;font-size:16px;color:var(--tx);font-weight:600;}
-  .showcase-list li::before{content:"";position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:#EAEDFB;}
-  .showcase-list li::after{content:"";position:absolute;left:6px;top:7px;width:9px;height:5px;border-left:2px solid var(--teal-d);border-bottom:2px solid var(--teal-d);transform:rotate(-45deg);}
-  @media(max-width:820px){ .showcase{grid-template-columns:1fr;gap:26px;} }
+  /* Vista: foto editorial a sangre (la imagen manda) */
+  .vista-spread{display:grid;grid-template-columns:minmax(280px,400px) minmax(0,1fr);align-items:center;gap:clamp(30px,4.5vw,72px);padding-left:max(26px,calc((100% - 1140px)/2 + 26px));}
+  .vista-copy h2{margin:16px 0 18px;font-size:clamp(30px,3.4vw,44px);}
+  .vista-copy p{font-size:17.5px;color:var(--tx2);line-height:1.62;margin:0 0 30px;max-width:36ch;}
+  .vista-meta{display:block;margin-top:24px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);line-height:1.9;}
+  .vista-meta span{white-space:nowrap;}
+  .vista-photo{position:relative;margin:0;height:clamp(440px,74vh,680px);border-radius:var(--r-lg) 0 0 var(--r-lg);overflow:hidden;box-shadow:var(--sh-lg);}
+  .vista-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:96% 26%;transform:scale(1.05);transition:transform 2.6s var(--ease);}
+  .vista-photo.in img{transform:scale(1);}
+  .vista-live{position:absolute;top:20px;left:20px;z-index:2;display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:rgba(6,12,30,.55);border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(8px);padding:8px 15px;border-radius:30px;}
+  .vista-live i{width:8px;height:8px;border-radius:50%;background:var(--teal-l);animation:vista-pulse 2.2s var(--ease) infinite;}
+  @keyframes vista-pulse{0%{box-shadow:0 0 0 0 rgba(154,168,242,.55);}70%{box-shadow:0 0 0 9px rgba(154,168,242,0);}100%{box-shadow:0 0 0 0 rgba(154,168,242,0);}}
+  .vista-photo figcaption{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:64px 30px 20px;font-size:14px;line-height:1.5;color:rgba(255,255,255,.94);text-shadow:0 1px 12px rgba(0,0,0,.35);background:linear-gradient(0deg,rgba(6,12,30,.74),rgba(6,12,30,.30) 55%,transparent);}
+  @media(max-width:1000px){
+    .vista-spread{grid-template-columns:1fr;gap:28px;padding-left:0;}
+    .vista-photo{order:-1;height:auto;aspect-ratio:4/3;border-radius:0;box-shadow:none;}
+    .vista-photo img{object-position:50% 50%;}
+    .vista-photo figcaption{display:none;}
+    .vista-copy{padding:0 26px;}
+  }
 
   /* FAQ */
   .faq{max-width:780px;margin:0 auto;}
   .faq details{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
-  .faq details[open]{border-color:rgba(17,76,90,.35);box-shadow:var(--sh-sm);}
+  .faq details[open]{border-color:rgba(53,71,193,.35);box-shadow:var(--sh-sm);}
   .faq summary{list-style:none;cursor:pointer;padding:21px 24px;font-size:17.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:16px;}
   .faq summary::-webkit-details-marker{display:none;}
   .faq summary::after{content:"+";font-size:25px;font-weight:300;color:var(--teal-d);transition:transform .25s var(--ease);line-height:1;flex-shrink:0;}
@@ -239,6 +249,7 @@
   @media(prefers-reduced-motion:reduce){
     *{animation:none!important;}
     .reveal{opacity:1!important;transform:none!important;}
+    .vista-photo img{transform:none!important;transition:none!important;}
     html{scroll-behavior:auto;}
   }
 </style>
@@ -322,25 +333,19 @@
 </div>
 
 <section class="pad" id="vista">
-  <div class="wrap">
-    <div class="head center">
+  <div class="vista-spread">
+    <div class="vista-copy reveal">
       <span class="eyebrow">En acción</span>
-      <h2>La votación en vivo, <em>en asambleas reales.</em></h2>
+      <h2>Así se ve una asamblea <em>votando en vivo.</em></h2>
+      <p>Cada copropietario vota desde su teléfono y el resultado —ponderado por los derechos de cada unidad— se proyecta al instante ante todos.</p>
+      <a class="btn btn-primary" href="/acta">Probar la votación</a>
+      <small class="vista-meta"><span>Quórum en vivo</span> · <span>Mayorías automáticas</span> · <span>Directo al acta</span></small>
     </div>
-    <div class="showcase">
-      <figure class="showcase-photo reveal">
-        <img src="/fotos/votacion.jpg" alt="Asamblea de copropietarios votando desde sus teléfonos; la pantalla proyecta el sistema con el código QR y el resultado en vivo" width="1440" height="1080" loading="lazy">
-      </figure>
-      <div class="showcase-copy reveal d1">
-        <p>La Mesa abre un punto y proyecta un <strong>código QR</strong>. Cada copropietario vota desde su teléfono con su RUT y el <strong>resultado aparece al instante</strong> —ponderado por los derechos de cada unidad— para llevarlo directo al acta.</p>
-        <ul class="showcase-list">
-          <li>Quórum y mayorías calculados en vivo</li>
-          <li>Participación y resultado a la vista de todos</li>
-          <li>Los votos se vuelcan al acta sin volver a tipear</li>
-        </ul>
-        <a class="btn btn-primary" href="/acta">Probar la votación</a>
-      </div>
-    </div>
+    <figure class="vista-photo reveal d1">
+      <img src="/fotos/votacion.jpg" alt="Asamblea de copropietarios votando desde sus teléfonos; la pantalla proyecta el sistema con el código QR y el resultado en vivo" width="1440" height="1080" loading="lazy">
+      <span class="vista-live" aria-hidden="true"><i></i>En vivo</span>
+      <figcaption>Asamblea real: cada teléfono, un voto — y en la pantalla, el resultado al instante.</figcaption>
+    </figure>
   </div>
 </section>
 
