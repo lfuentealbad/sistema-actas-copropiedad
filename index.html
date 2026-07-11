@@ -230,10 +230,10 @@
   .window[hidden]{display:none;}
   /* Vista: texto flotando al centro sobre la foto atenuada */
   .vista-band{position:relative;overflow:hidden;background:var(--ink);border-radius:34px;margin:0 clamp(10px,1.6vw,22px);}
-  .vista-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 32%;filter:saturate(.8);transform:scale(1.06);transition:transform 2.6s var(--ease);}
+  .vista-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 32%;filter:saturate(.92);transform:scale(1.06);transition:transform 2.6s var(--ease);}
   .vista-band.in .vista-img{transform:scale(1);}
-  .vista-veil{position:absolute;inset:0;background:rgba(8,14,32,.68);}
-  .vista-veil::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 80% 90% at 50% 50%,transparent 0%,rgba(6,11,26,.38) 100%);}
+  .vista-veil{position:absolute;inset:0;background:rgba(8,14,32,.52);}
+  .vista-veil::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 78% 88% at 50% 52%,transparent 0%,rgba(6,11,26,.42) 100%);}
   .vista-copy{position:relative;z-index:2;max-width:680px;margin:0 auto;padding:96px 26px 100px;text-align:center;color:#fff;}
   .vista-copy h2{color:#fff;font-size:clamp(30px,3.6vw,46px);margin:18px 0 16px;text-shadow:0 2px 26px rgba(0,0,0,.45);}
   .vista-copy h2 em{white-space:nowrap;background:linear-gradient(100deg,#B9C3F9,#96A5F3 60%,#7C8FEE);-webkit-background-clip:text;background-clip:text;color:transparent;}
