@@ -92,53 +92,34 @@
   .nav .btn{padding:11px 20px;font-size:14.5px;min-height:auto;}
   @media(max-width:820px){ .nav-links a.lnk{display:none;} }
 
-  /* HERO */
-  .hero{position:relative;background:var(--ink);color:#fff;overflow:hidden;border-radius:0 0 38px 38px;}
-  .hero-bg{position:absolute;inset:0;z-index:0;overflow:hidden;}
-  .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.55;will-change:transform;}
-  .blob.b1{width:620px;height:620px;top:-220px;right:-160px;background:radial-gradient(circle,rgba(65,82,214,.6),transparent 65%);animation:drift1 18s var(--ease) infinite alternate;}
-  .blob.b2{width:520px;height:520px;bottom:-260px;left:-120px;background:radial-gradient(circle,rgba(22,34,74,.9),transparent 65%);animation:drift2 22s var(--ease) infinite alternate;}
-  .blob.b3{width:300px;height:300px;top:30%;left:42%;background:radial-gradient(circle,rgba(110,128,234,.4),transparent 70%);animation:drift1 26s var(--ease) infinite alternate;}
-  @keyframes drift1{to{transform:translate(-40px,40px) scale(1.12);}}
-  @keyframes drift2{to{transform:translate(50px,-30px) scale(1.08);}}
-  .hero-grid-lines{position:absolute;inset:0;z-index:0;opacity:.5;
-    background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
-    background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,#000 30%,transparent 75%);}
-  .hero-buildings{position:absolute;left:0;right:0;bottom:0;z-index:0;height:190px;opacity:.6;pointer-events:none;
-    -webkit-mask-image:linear-gradient(to top,#000 32%,transparent);mask-image:linear-gradient(to top,#000 32%,transparent);}
-  .hero-buildings svg{width:100%;height:100%;display:block;}
+  /* HERO fotográfico */
+  .hero{position:relative;overflow:hidden;background:var(--ink);border-radius:0 0 34px 34px;}
+  .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 44%;}
+  .hero-scrim{position:absolute;inset:0;background:
+    linear-gradient(94deg,rgba(8,14,32,.95) 0%,rgba(8,14,32,.84) 38%,rgba(8,14,32,.45) 76%,rgba(8,14,32,.22) 100%),
+    linear-gradient(0deg,rgba(8,14,32,.55),transparent 52%);}
   .hero-inner{position:relative;z-index:2;}
-  .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:54px;align-items:center;padding:84px 0 96px;}
-  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;font-size:clamp(40px,5.6vw,68px);line-height:1.03;letter-spacing:-.025em;margin:0 0 22px;}
-  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,#AEB9F7,#8B9BF0 60%,#6E80EA);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .hero p.lead{font-size:19.5px;color:rgba(255,255,255,.78);margin:0 0 34px;max-width:540px;line-height:1.55;}
+  .hero-copy{max-width:648px;padding:104px 0 130px;color:#fff;}
+  .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#B3BEF8;background:rgba(179,190,248,.12);border:1px solid rgba(179,190,248,.26);padding:7px 14px;border-radius:30px;margin-bottom:24px;}
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;font-size:clamp(40px,5.6vw,66px);line-height:1.04;letter-spacing:-.025em;margin:0 0 22px;text-shadow:0 2px 30px rgba(0,0,0,.25);}
+  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,#B9C3F9,#96A5F3 60%,#7C8FEE);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero p.lead{font-size:19.5px;color:rgba(255,255,255,.88);margin:0 0 34px;max-width:520px;line-height:1.55;}
   .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
-  .hero-note{margin-top:24px;display:flex;gap:20px;flex-wrap:wrap;font-size:13.5px;color:rgba(255,255,255,.55);}
-  .hero-note span{display:inline-flex;align-items:center;gap:7px;}
-  .hero-note svg{width:15px;height:15px;stroke:var(--teal-l);}
-
-  /* Hero visual: mockup flotante con glass + glow */
-  .stage{position:relative;height:430px;perspective:1400px;}
-  .stage .glow{position:absolute;inset:6% 8%;background:radial-gradient(ellipse at 60% 40%,rgba(110,128,234,.42),transparent 70%);filter:blur(30px);}
-  .card-doc{position:absolute;inset:8px 64px 40px 0;background:linear-gradient(160deg,#fff,#f3f5f4);border-radius:18px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.6) inset;padding:26px 26px 22px;transform:rotateY(-13deg) rotateX(4deg) rotate(-2deg);transform-style:preserve-3d;}
-  .card-doc .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);background:rgba(53,71,193,.09);padding:4px 9px;border-radius:6px;margin-bottom:16px;}
-  .card-doc .doc-title{display:block;font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;margin:0 0 14px;color:var(--ink);font-size:17px;}
-  .card-doc .ln{height:8px;border-radius:5px;background:#E7EBEA;margin-bottom:10px;}
-  .card-doc .ln.a{width:94%;} .card-doc .ln.b{width:78%;} .card-doc .ln.c{width:88%;} .card-doc .ln.d{width:62%;}
-  .card-doc .sign{margin-top:20px;display:flex;align-items:center;gap:10px;padding-top:16px;border-top:1px dashed #DDE2E1;}
-  .card-doc .sealed{width:38px;height:38px;border-radius:50%;background:var(--teal-d);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -4px rgba(17,76,90,.55);}
-  .phone{position:absolute;right:-4px;bottom:-10px;width:166px;height:330px;background:linear-gradient(160deg,#1C2E52,#0E1830);border-radius:30px;padding:11px;box-shadow:var(--sh-lg),0 0 0 1px rgba(255,255,255,.08) inset;transform:rotate(5deg);}
-  .phone .notch{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:46px;height:5px;border-radius:4px;background:rgba(255,255,255,.18);}
-  .phone .scr{background:linear-gradient(170deg,#fff,#f6f8f7);border-radius:20px;height:100%;padding:20px 15px;display:flex;flex-direction:column;}
-  .phone .miniq{font-family:var(--serif);font-variation-settings:'opsz' 30,'wght' 600;font-size:13px;color:var(--ink);line-height:1.25;margin-bottom:14px;}
-  .vbtn{border-radius:11px;padding:11px 12px;font-size:12px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:8px;border:1.5px solid transparent;}
-  .vbtn.f{background:#E4F4EC;color:#1E7E4A;border-color:#1E7E4A;box-shadow:0 4px 12px -4px rgba(30,126,74,.4);}
-  .vbtn.c{background:#F7EBE8;color:#B23A2E;} .vbtn.a{background:#FCF4E6;color:#9A6B1F;}
-  .phone .done{margin-top:auto;font-size:10.5px;font-weight:700;color:#1E7E4A;display:flex;align-items:center;gap:6px;}
-  .float-chip{position:absolute;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-radius:13px;padding:11px 15px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--ink);border:1px solid rgba(255,255,255,.8);}
-  .float-chip.c1{top:-4px;left:-12px;}
-  .float-chip .pin{width:30px;height:30px;border-radius:9px;background:var(--teal-d);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
-  .float-chip .pct{font-family:var(--serif);font-variation-settings:'opsz' 30,'wght' 600;color:var(--teal-d);}
+  /* barra flotante de acceso (estilo listing) */
+  .hero-bar{position:relative;z-index:5;margin-top:-56px;margin-bottom:6px;background:var(--surface);border-radius:20px;box-shadow:var(--sh-lg);border:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:2px;padding:14px 16px;align-items:center;}
+  .hb-item{display:flex;align-items:center;gap:13px;padding:8px 18px;}
+  .hb-item+.hb-item{border-left:1px solid var(--line);}
+  .hb-ic{width:44px;height:44px;border-radius:12px;background:#EAEDFB;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .hb-ic svg{width:21px;height:21px;stroke:var(--teal-d);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .hb-item b{display:block;font-size:15.5px;color:var(--ink);line-height:1.2;font-weight:700;}
+  .hb-item small{font-size:12.5px;color:var(--tx2);}
+  .hb-cta{white-space:nowrap;margin-left:8px;}
+  @media(max-width:820px){
+    .hero-copy{padding:66px 0 92px;max-width:none;}
+    .hero-bar{grid-template-columns:1fr;gap:0;}
+    .hb-item{padding:12px 12px;} .hb-item+.hb-item{border-left:none;border-top:1px solid var(--line);}
+    .hb-cta{margin:10px 6px 4px;width:auto;justify-content:center;}
+  }
 
   /* Secciones */
   section.pad{padding:104px 0;}
@@ -239,9 +220,7 @@
   .reveal.d1{transition-delay:.08s;} .reveal.d2{transition-delay:.16s;} .reveal.d3{transition-delay:.24s;}
 
   @media(max-width:820px){
-    .hero{border-radius:0 0 28px 28px;}
-    .hero-grid{grid-template-columns:1fr;gap:18px;padding:60px 0 70px;}
-    .stage{display:none;}
+    .hero{border-radius:0 0 22px 22px;}
     .steps{grid-template-columns:1fr;} .steps::before{display:none;}
     section.pad{padding:68px 0;}
     .cta{padding:54px 28px;}
@@ -299,65 +278,37 @@
 
 <a id="top"></a>
 <section class="hero">
-  <div class="hero-bg" aria-hidden="true">
-    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
-    <div class="hero-buildings">
-      <svg viewBox="0 0 1200 190" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
-        <defs><pattern id="win" width="20" height="24" patternUnits="userSpaceOnUse"><rect x="5" y="6" width="10" height="12" rx="1.5" fill="#7C8DEE" opacity=".55"/></pattern></defs>
-        <g fill="#16224A">
-          <rect x="30" y="72" width="150" height="120"/><rect x="200" y="102" width="120" height="90"/>
-          <rect x="340" y="46" width="170" height="146"/><rect x="530" y="86" width="130" height="106"/>
-          <rect x="680" y="60" width="160" height="132"/><rect x="860" y="106" width="120" height="86"/>
-          <rect x="1000" y="50" width="180" height="142"/>
-        </g>
-        <g fill="url(#win)">
-          <rect x="30" y="72" width="150" height="120"/><rect x="200" y="102" width="120" height="90"/>
-          <rect x="340" y="46" width="170" height="146"/><rect x="530" y="86" width="130" height="106"/>
-          <rect x="680" y="60" width="160" height="132"/><rect x="860" y="106" width="120" height="86"/>
-          <rect x="1000" y="50" width="180" height="142"/>
-        </g>
-      </svg>
-    </div>
-  </div>
-  <div class="hero-grid-lines" aria-hidden="true"></div>
+  <img class="hero-img" src="/fotos/comunidad.jpg" alt="Plaza de un condominio con áreas verdes, juegos y familias" width="1600" height="1200">
+  <div class="hero-scrim" aria-hidden="true"></div>
   <div class="wrap hero-inner">
-    <div class="hero-grid">
-      <div>
-        <h1 class="reveal in">El acta de su asamblea,<br><em>impecable</em> y sin esfuerzo.</h1>
-        <p class="lead reveal in d1">Reciba los votos en vivo desde el teléfono de cada copropietario y descargue el acta lista para firmar.</p>
-        <div class="hero-cta reveal in d2">
-          <a class="btn btn-primary" href="/acta">Entrar al sistema</a>
-          <a class="btn btn-light" href="#como">Ver cómo funciona</a>
-        </div>
-        <div class="hero-note reveal in d3">
-          <span><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Gratis</span>
-          <span><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Sin contraseñas</span>
-          <span><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Computador y teléfono</span>
-        </div>
-      </div>
-      <div class="stage" aria-hidden="true">
-        <div class="glow"></div>
-        <div class="card-doc">
-          <span class="tag">Acta de Asamblea</span>
-          <div class="doc-title">Aprobación del balance anual</div>
-          <div class="ln a"></div><div class="ln b"></div><div class="ln c"></div><div class="ln a"></div><div class="ln d"></div>
-          <div class="sign"><div class="sealed"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><div><div class="ln" style="width:90px;margin:0 0 6px"></div><div class="ln" style="width:60px;margin:0;background:#EEF1F0;height:6px"></div></div></div>
-        </div>
-        <div class="phone">
-          <span class="notch"></span>
-          <div class="scr">
-            <div class="miniq">Aprobación del balance anual</div>
-            <div class="vbtn f">✓ A favor</div>
-            <div class="vbtn c">✕ En contra</div>
-            <div class="vbtn a">○ Abstención</div>
-            <div class="done"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#1E7E4A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg> Su voto quedó registrado</div>
-          </div>
-        </div>
-        <div class="float-chip c1"><span class="pin">68<small style="font-size:8px">%</small></span> <div>A favor<br><span class="pct" style="font-size:15px">Aprobado</span></div></div>
+    <div class="hero-copy">
+      <span class="hero-eyebrow reveal in">Ley N° 21.442 · Copropiedad Inmobiliaria</span>
+      <h1 class="reveal in">El acta de su asamblea,<br><em>impecable</em> y sin esfuerzo.</h1>
+      <p class="lead reveal in d1">Reciba los votos en vivo desde el teléfono de cada copropietario y descargue el acta lista para firmar.</p>
+      <div class="hero-cta reveal in d2">
+        <a class="btn btn-primary" href="/acta">Entrar al sistema</a>
+        <a class="btn btn-light" href="#como">Ver cómo funciona</a>
       </div>
     </div>
   </div>
 </section>
+<div class="wrap">
+  <div class="hero-bar reveal">
+    <div class="hb-item">
+      <span class="hb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+      <div><b>Gratis</b><small>sin costo ni mensualidad</small></div>
+    </div>
+    <div class="hb-item">
+      <span class="hb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 11V7a5 5 0 0 1 10 0v4"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg></span>
+      <div><b>Sin contraseñas</b><small>se confirma con un código</small></div>
+    </div>
+    <div class="hb-item">
+      <span class="hb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+      <div><b>Computador y teléfono</b><small>sin instalar nada</small></div>
+    </div>
+    <a class="btn btn-primary hb-cta" href="/acta">Comenzar →</a>
+  </div>
+</div>
 
 <section class="pad" id="vista">
   <div class="wrap">
