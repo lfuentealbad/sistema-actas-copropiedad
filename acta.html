@@ -759,6 +759,41 @@
     border-color: #2E3EAE;
   }
 
+  /* ── Botonera de herramientas (padrón y cierre) ─────── */
+  .btn-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--c-surface);
+    border: 1.5px solid var(--c-border);
+    color: var(--c-text);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    min-height: 44px;
+    transition: border-color .18s, background .18s, color .18s, box-shadow .18s;
+  }
+  .btn-tool svg { width: 16px; height: 16px; stroke: var(--c-interact); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .btn-tool:hover { border-color: var(--c-interact); background: #F3F5FC; box-shadow: 0 2px 10px -3px rgba(53,71,193,.25); }
+  .btn-tool.primary { background: var(--c-interact); border-color: var(--c-interact); color: #fff; }
+  .btn-tool.primary svg { stroke: #fff; }
+  .btn-tool.primary:hover { background: #2E3EAE; border-color: #2E3EAE; box-shadow: 0 4px 14px -4px rgba(53,71,193,.5); }
+  .btn-tool.danger { color: var(--c-error); }
+  .btn-tool.danger svg { stroke: var(--c-error); }
+  .btn-tool.danger:hover { border-color: var(--c-error); background: var(--c-error-bg); box-shadow: none; }
+
+  /* iconos dentro de botones estándar */
+  .btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; margin-right: 7px; }
+
+  /* zona de cierre de la asamblea (paso 6) */
+  .cierre-datos ul { margin: 0 0 18px; padding-left: 20px; font-size: 14px; color: var(--c-text-2); line-height: 1.65; }
+  .cierre-datos li { margin-bottom: 6px; }
+  .cierre-datos li strong { color: var(--c-text); }
+  .cierre-nota { font-size: 12.5px; color: var(--c-text-2); margin-top: 10px; }
+
   /* ── Toggle buttons (segment control) ──────────────── */
   .toggle-group {
     display: inline-flex;
@@ -1387,6 +1422,7 @@
     main, .main { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
     .section { display: none !important; }
     #step-6   { display: block !important; }
+    #cierre-datos-card { display: none !important; }
     .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
     .card::before { display: none !important; }
     h2.card-title, .card-title, .card-desc { display: none !important; }
@@ -1853,19 +1889,13 @@
         </tbody>
       </table>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
-      <button class="btn-add-row" onclick="addRow()" style="margin-top:0">+ Agregar asistente</button>
-      <label for="excel-import" class="btn-add-row" style="margin-top:0;cursor:pointer;background:transparent;border-color:var(--c-interact);color:var(--c-interact)">
-        📂 Importar Excel / CSV
-      </label>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px">
+      <button type="button" class="btn-tool primary" onclick="addRow()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar asistente</button>
+      <label for="excel-import" class="btn-tool"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Importar Excel / CSV</label>
       <input type="file" id="excel-import" name="excel-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcel(this)" />
-      <button class="btn-add-row" onclick="descargarPlantilla()" style="margin-top:0;background:transparent;border-color:var(--c-ok);color:var(--c-ok)">
-        ⬇️ Descargar plantilla
-      </button>
-      <button class="btn-add-row" onclick="abrirInstrucciones()" style="margin-top:0;background:transparent;border-color:var(--c-accent);color:var(--c-accent)">
-        ❓ Ver instrucciones
-      </button>
-
+      <button type="button" class="btn-tool" onclick="descargarPlantilla()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg>Descargar plantilla</button>
+      <button type="button" class="btn-tool" onclick="abrirInstrucciones()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.4 2.4 0 1 1 3.3 2.25c-.72.3-.9.93-.9 1.6"/><path d="M12 16.6h.01"/></svg>Ver instrucciones</button>
+      <button type="button" class="btn-tool danger" style="margin-left:auto" onclick="limpiarPadron()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v5M14 11v5M6 7l1 12a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-12M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2"/></svg>Limpiar padrón</button>
     </div>
 
     <!-- Quórum de constitución -->
@@ -1968,16 +1998,12 @@
           <li>Cuando llegue el momento de votar un punto, pulse <strong>▶ Abrir</strong> en ese punto. <em>Recién ahí los teléfonos pueden votarlo.</em></li>
           <li>Mantenga abierto <strong>un solo punto a la vez</strong>. Cuando todos hayan votado, pulse <strong>■ Cerrar</strong>.</li>
           <li>Pulse <strong>⤵ Traer al acta</strong> para volcar esos votos al registro del punto.</li>
-          <li>Al terminar la asamblea, pulse <strong>🗑 Cerrar y borrar datos</strong> (al final de esta tarjeta) para eliminar del servidor el padrón y los votos.</li>
+          <li>Al terminar la asamblea, en el <strong>paso 6</strong> (bajo el acta generada) encontrará <strong>Cerrar sala y borrar datos del servidor</strong>.</li>
         </ol>
         <div class="vv-aviso">⚠️ <strong>Al terminar, cierre el último punto.</strong> Si queda abierto, los asistentes podrían seguir votando después de la asamblea.</div>
       </div>
       <div id="vv-reminder" role="status" aria-live="polite"></div>
       <div id="vv-temas"></div>
-      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #E2E8E6">
-        <button type="button" class="btn-add-row" style="background:transparent;color:var(--c-text-2);border-color:#CBD5D1;font-size:12.5px;padding:7px 12px" onclick="actaCerrarSala(this)">🗑 Cerrar y borrar datos</button>
-        <div style="font-size:11.5px;color:var(--c-text-2);margin-top:6px">Al terminar la asamblea: borra del servidor el padrón (RUT) y los votos, y libera el tipo de asamblea. Los votos ya traídos al acta se conservan.</div>
-      </div>
     </div>
   </div>
 </div>
@@ -2106,8 +2132,22 @@
     <div class="card-desc">Revise el contenido antes de guardar el PDF o copiar el texto. Si necesita corregir algo, vuelva al paso correspondiente desde la barra superior.</div>
     <div id="acta-content"></div>
     <div class="print-btn">
-      <button class="btn btn-gold" onclick="savePDF()">💾 Guardar como PDF</button>
-      <button class="btn btn-secondary" onclick="copyActa()">📋 Copiar texto</button>
+      <button class="btn btn-gold" onclick="savePDF()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar como PDF</button>
+      <button class="btn btn-secondary" onclick="copyActa()"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar texto</button>
+    </div>
+  </div>
+
+  <div class="card" id="cierre-datos-card">
+    <h2 class="card-title">Al terminar la asamblea</h2>
+    <div class="card-desc">Con el acta ya guardada, elimine del servidor los datos de la votación en vivo. Es el cierre recomendado (minimización de datos, Ley N° 21.719).</div>
+    <div class="cierre-datos">
+      <ul>
+        <li><strong>Se borra del servidor:</strong> el padrón cargado (RUT y derechos) y los votos de la sala en vivo.</li>
+        <li><strong>Se conserva en este equipo:</strong> el acta que acaba de generar y los resultados ya traídos a ella.</li>
+        <li><strong>Trazabilidad de uso:</strong> el registro de quién usó el sistema (nombre, correo y comuna) se mantiene hasta 90 días y luego se purga automáticamente.</li>
+      </ul>
+      <button type="button" class="btn-tool danger" onclick="actaCerrarSala(this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v5M14 11v5M6 7l1 12a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-12M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2"/></svg>Cerrar sala y borrar datos del servidor</button>
+      <div class="cierre-nota">Si no usó la votación en vivo, no hay nada que borrar: el documento del acta nunca sale de su equipo. En un computador compartido, use además "Limpiar formulario" al terminar.</div>
     </div>
   </div>
 </div>
@@ -2437,6 +2477,25 @@ var msg = nombre
   : '¿Quitar esta fila del registro de asistencia?';
 if (!confirm(msg)) return;
 tr.remove();
+calcularQuorum();
+if (typeof actualizarVotacion === 'function') actualizarVotacion();
+if (typeof autoSave === 'function') autoSave();
+}
+function limpiarPadron() {
+const tbody = document.getElementById('asistentes-tbody');
+const rows = tbody.querySelectorAll('tr');
+var conDatos = 0;
+rows.forEach(function(tr){
+  var llena = Array.prototype.some.call(tr.querySelectorAll('input'), function(i){ return i.value && i.value.trim() !== ''; });
+  if (llena) conDatos++;
+});
+if (conDatos === 0 && rows.length <= 1) { alert('El padrón ya está vacío.'); return; }
+var msg = '¿Borrar TODO el padrón de asistentes?\n\nSe quitarán ' + rows.length + ' fila(s) de la tabla' +
+  (conDatos ? ' (' + conDatos + ' con datos)' : '') +
+  '.\n\nEsto solo limpia este formulario: no borra nada del servidor ni afecta una votación en vivo ya iniciada. La acción no se puede deshacer.';
+if (!confirm(msg)) return;
+tbody.innerHTML = '';
+addRow();
 calcularQuorum();
 if (typeof actualizarVotacion === 'function') actualizarVotacion();
 if (typeof autoSave === 'function') autoSave();
@@ -4373,7 +4432,10 @@ document.addEventListener('keydown', function(e) {
     finally{ btn.disabled=false; btn.textContent=_t; }
   };
   window.actaCerrarSala=async function(btn){
-    if(!asam){ return; }
+    if(!asam){
+      alert('No hay una sala de votación en vivo activa en esta sesión.\n\nSi usó la votación y ya cerró la sala, sus datos ya fueron borrados del servidor. Si no la usó, no hay nada que borrar: el acta se genera solo en este equipo.');
+      return;
+    }
     if(!confirm('¿Cerrar la votación y BORRAR los datos de esta asamblea?\n\nSe eliminarán de forma permanente del servidor el padrón (RUT) y los votos. Es lo recomendado al terminar la asamblea (minimización de datos). Los votos que ya trajo al acta quedan guardados en el acta.')) return;
     var _t = btn ? btn.textContent : '';
     if(btn){ btn.disabled=true; btn.textContent='Borrando…'; }
