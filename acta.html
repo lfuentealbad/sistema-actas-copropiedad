@@ -53,13 +53,13 @@
 <style>
   /* ══════════════════════════════════════════════════════
      SISTEMA VISUAL — Sistema de Actas de Copropiedad
-     Tipografía Source Sans 3 · Paleta institucional v3
+     Tipografía Source Sans 3 · Paleta de colores
      © 2026 Luis Fuentealba Durán
      ══════════════════════════════════════════════════════ */
 
   /* ── Variables ─────────────────────────────────────── */
   :root {
-    /* Paleta principal — sin cambios */
+    /* Paleta principal */
     --c-primary:     #0A132D;
     --c-secondary:   #060C1E;
     --c-interact:    #3547C1;
@@ -343,7 +343,7 @@
   }
   .logo, .app-header-brand { display: flex; align-items: center; gap: 14px; }
   .logo-texts            { display: flex; flex-direction: column; gap: 4px; }
-  .logo-icon, .logo-divider, .logo-sec-img { display: none; }
+  .logo-icon, .logo-divider { display: none; }
   .logo-org, .app-header-org {
     font-family: var(--font-body);
     font-size: 13px;
@@ -2813,10 +2813,6 @@ const n = pc.id.replace('punto-', '');
 const titulo = escapeHtml(_pvau('p'+n+'-titulo'));
 const presentacion = escapeHtml(_pvau('p'+n+'-presentacion'));
 const debate = escapeHtml(_pvau('p'+n+'-debate'));
-if (presentacion && presentacion.length < 10)
-console.warn('Punto ' + n + ': presentación muy breve (' + presentacion.length + ' chars)');
-if (debate && debate.length < 10)
-console.warn('Punto ' + n + ': debate muy breve (' + debate.length + ' chars)');
 const resultado = escapeHtml(_pvau('p'+n+'-resultado'));
 const responsable = escapeHtml(_pvau('p'+n+'-responsable'));
 const plazoRaw = escapeHtml(_pvau('p'+n+'-plazo'));
@@ -4453,8 +4449,8 @@ document.addEventListener('keydown', function(e) {
     var tnote=document.getElementById('tipo-lock-note'); if(tnote) tnote.style.display='none';
     if(btn){ btn.disabled=false; btn.textContent=_t; }
     alert(borrado
-      ? '✓ Padrón y votos borrados de la base de datos activa.\n\nEl acta que está redactando queda guardada en ESTE equipo (para no perder su trabajo). Si es un computador compartido, al terminar use "Limpiar formulario" para no dejar datos en el navegador.\n\n(Los respaldos automáticos de Supabase se purgan al vencer su ventana de retención.)'
-      : 'Se cerró la sala. No se pudo confirmar el borrado inmediato (revise que corrió el script de retención en Supabase); de todos modos, el barrido automático borrará estos datos.');
+      ? '✓ Padrón y votos borrados de la base de datos activa.\n\nEl acta que está redactando queda guardada en ESTE equipo (para no perder su trabajo). Si es un computador compartido, al terminar use "Limpiar formulario" para no dejar datos en el navegador.\n\n(Los respaldos automáticos del servidor se purgan al vencer su ventana de retención.)'
+      : 'Se cerró la sala. No se pudo confirmar el borrado inmediato; de todos modos, el barrido automático borrará estos datos.');
   };
   function renderTemas(){
     var cont=document.getElementById('vv-temas'); cont.innerHTML='';
