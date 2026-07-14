@@ -1,16 +1,5 @@
 <!DOCTYPE html>
-<!--
-  SALA DE VOTACIÓN — v1
-  =====================
-  App de votación en vivo para asambleas de copropietarios (Ley 21.442).
-  - El secretario crea una asamblea (código + QR), carga el padrón
-    (manual o Excel) y abre/cierra la votación de cada punto.
-  - Los copropietarios entran desde su teléfono con el código, se
-    identifican por RUT y votan; el resultado se computa PONDERADO por
-    % de derechos en tiempo real (Supabase Realtime).
-  - Al final, los resultados se exportan para volcar al acta.
-  No requiere SQL adicional: usa las tablas asambleas / padron / votos.
--->
+
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -32,7 +21,7 @@
 <meta property="og:image" content="https://actascopropiedad.cl/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
-<!-- Librerías vendorizadas (sin CDN): integridad verificable + CSP estricta -->
+
 <script src="/vendor/supabase.min.js"></script>
 <script src="/vendor/xlsx.full.min.js"></script>
 <script src="/vendor/qrcode-generator.js"></script>
@@ -134,11 +123,11 @@
 
 <div class="wrap">
 
-  <!-- ====== MESA (solo vía ?rol=mesa o desde el acta) ====== -->
+  
   <section id="screen-mesa" class="hidden">
     <button class="back" onclick="location.href=location.pathname">← Inicio</button>
 
-    <!-- 1. crear / reanudar -->
+    
     <div class="card" id="mesa-crear">
       <h2>1 · Crear la asamblea</h2>
       <div class="grid2" style="margin-top:8px">
@@ -157,7 +146,7 @@
       </div>
     </div>
 
-    <!-- panel principal (tras crear) -->
+    
     <div id="mesa-panel" class="hidden">
       <div class="card">
         <h2>2 · Código de acceso</h2>
@@ -201,7 +190,7 @@
         <div id="m-puntos-lista" style="margin-top:12px"></div>
       </div>
 
-      <!-- votación activa -->
+      
       <div class="card hidden" id="mesa-votacion">
         <h2>5 · Votación en curso</h2>
         <div class="qbox"><div class="q" id="mesa-q">—</div><div class="st" id="mesa-st">—</div></div>
@@ -228,7 +217,7 @@
     </div>
   </section>
 
-  <!-- ====== VOTAR ====== -->
+  
   <section id="screen-votar">
     <button class="back" onclick="location.href=location.pathname">← Inicio</button>
 
@@ -269,12 +258,12 @@
 </div>
 
 <script>
-/* ===== Supabase ===== */
+
 const SUPABASE_URL  = 'https://rujwokagmjbqtrcvosye.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-/* ===== utilidades ===== */
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = r => String(r||'').replace(/[.\-\s]/g,'').toLowerCase();
@@ -300,12 +289,12 @@ function setBusy(btn,busy,txt){ if(!btn||!btn.tagName) return; if(busy){ if(btn.
 function setConn(txt,cls){ const e=$('conn'); if(!e) return; e.textContent=txt; e.className='conn '+(cls||''); }
 function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (50+1% de los derechos)':t==='ext-ref'?'Extraordinaria · reforzada (66%)':'Ordinaria · acuerdos por mayoría de los presentes'; }
 
-/* ===== navegación ===== */
+
 let ROL=null;
 function show(id){ ['mesa','votar'].forEach(x=>$('screen-'+x).classList.toggle('hidden', x!==id)); }
 function entrar(rol){ ROL=rol; $('role-badge').textContent=rol==='mesa'?'MESA':'VOTAR'; show(rol); if(rol==='mesa') initMesa(); if(rol==='votar') initVotar(); }
 
-/* ===================== MESA ===================== */
+
 let asamblea=null, padron=[], puntos=[], puntoActivo=null, votacionAbierta=false, padronDirty=false, autoTimer=null;
 let mesaTimer=null, seqVotos=0;
 const LS = c => 'sala-mesa-'+c;
@@ -363,7 +352,7 @@ async function abrirPanelMesa(row){
 }
 function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent).then(()=>{ if(btn){ const t=btn.textContent; btn.textContent='¡Copiado!'; setTimeout(()=>btn.textContent=t,1500); } }); }
 
-/* ----- padrón ----- */
+
 function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='Cambios sin guardar…'; persistMesa(); clearTimeout(autoTimer); autoTimer=setTimeout(autoGuardarPadron,900); }
 async function persistirPadronDB(filas){
   const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,der:parseFloat(p.der)||0}));
@@ -488,7 +477,7 @@ async function guardarPadron(btn){
   finally{ setBusy(btn,false); }
 }
 
-/* ----- puntos ----- */
+
 function agregarPunto(){ const t=$('m-nuevo-punto').value.trim(); if(!t) return; puntos.push({key:(puntos.length+1)+'. '+t, titulo:t}); $('m-nuevo-punto').value=''; renderPuntos(); persistMesa(); }
 function renderPuntos(){
   const c=$('m-puntos-lista'); c.innerHTML='';
@@ -556,7 +545,7 @@ function conclusionTipo(r,cerrada){
   if(r.n===0) return {cls:'pe',txt:cerrada?'Sin votos registrados.':'Esperando votos…'};
   if(tipo==='ext-abs'){ const ok=r.f>=51; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (alcanza el 51%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere al menos 51% — el 50+1% — de los derechos del condominio).'}; }
   if(tipo==='ext-ref'){ const ok=r.f>=66; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (alcanza el 66%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere 66% de los derechos del condominio).'}; }
-  /* Ordinaria: los acuerdos se adoptan por MAYORÍA DE LOS PRESENTES (conteo de cabezas), no por % de derechos. */
+  
   const minimo=Math.floor(r.habPresentes/2)+1;
   if(r.habPresentes>0 && r.nf>=minimo) return {cls:'ap',txt:'APROBADO — '+r.nf+' de '+r.habPresentes+' presentes a favor (mayoría alcanzada; se requerían '+minimo+').'};
   if(cerrada) return {cls:'re',txt:'NO APROBADO — '+r.nf+' a favor de '+r.habPresentes+' presentes (se requerían '+minimo+' para la mayoría).'};
@@ -566,7 +555,7 @@ function renderResultados(votos){
   const r=calc(votos), cerrada=!votacionAbierta;
   const tipo=asamblea?asamblea.tipo:'ordinaria';
   if(tipo==='ordinaria'){
-    /* Ordinaria: se cuenta por cabezas. La barra muestra la proporción de los votos emitidos; la etiqueta, el número de votos. */
+    
     const setN=(b,pc,cnt)=>{ $(b).style.width=(r.n>0?Math.round(cnt/r.n*100):0)+'%'; $(pc).textContent=String(cnt); };
     setN('bar-favor','pct-favor',r.nf); setN('bar-contra','pct-contra',r.nc); setN('bar-abst','pct-abst',r.na);
     const minimo=Math.floor(r.habPresentes/2)+1;
@@ -612,7 +601,7 @@ async function exportarResultados(btn){
 }
 function copiarResumen(){ const ta=$('m-export'); const go=()=>navigator.clipboard.writeText(ta.value); if(ta.classList.contains('hidden')||!ta.value){ exportarResultados().then(go); } else go(); }
 
-/* ===================== VOTAR ===================== */
+
 let asambleaP=null, yo=null, miVoto=null, estado={isOpen:false,question:''};
 let fonoTimer=null, pollTick=0, seqMiVoto=0;
 
@@ -727,7 +716,7 @@ async function emitir(choice){
   finally{ setTimeout(()=>btns.forEach(b=>b.disabled=false), 400); }
 }
 
-/* /votacion/ es solo para votantes; la Mesa se opera desde el acta o con ?rol=mesa */
+
 (function(){ var _p=new URLSearchParams(location.search); if(_p.get('rol')==='mesa') entrar('mesa'); else entrar('votar'); })();
 </script>
 </body>

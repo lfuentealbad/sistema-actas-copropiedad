@@ -1,26 +1,5 @@
 <!DOCTYPE html>
-<!--
-=======================================================================
-  SISTEMA DE ACTAS DE ASAMBLEA DE COPROPIETARIOS
-  Programa computacional conforme a la Ley N° 21.442
-  sobre Copropiedad Inmobiliaria — Chile
-=======================================================================
-  Autor:    Luis Fuentealba Durán
-  Calidad:  Persona natural — Titular originario del derecho de autor
-            (Art. 7°, Ley N° 17.336 sobre Propiedad Intelectual)
-  Contacto: tslfuentealba@gmail.com
-  Año:      2026
-  Versión:  1.0
-=======================================================================
-  Obra inscrita en el Registro de Propiedad Intelectual de Chile bajo
-  el N° 2026-A-5167 (19 de mayo de 2026), conforme a la Ley N° 17.336.
-  Protegida desde su sola creación (Art. 1°).
-  Queda prohibida su reproducción con fines comerciales, su
-  modificación o su distribución bajo nombre distinto sin
-  autorización expresa y por escrito del autor.
-  © 2026 Luis Fuentealba Durán — Todos los derechos reservados
-=======================================================================
--->
+
 <html lang="es">
 <head>
   <meta name="author" content="Luis Fuentealba Durán">
@@ -51,22 +30,18 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="fonts/source-sans-3.css" rel="stylesheet">
 <style>
-  /* ══════════════════════════════════════════════════════
-     SISTEMA VISUAL — Sistema de Actas de Copropiedad
-     Tipografía Source Sans 3 · Paleta de colores
-     © 2026 Luis Fuentealba Durán
-     ══════════════════════════════════════════════════════ */
+  
 
-  /* ── Variables ─────────────────────────────────────── */
+  
   :root {
-    /* Paleta principal */
+    
     --c-primary:     #0A132D;
     --c-secondary:   #060C1E;
     --c-interact:    #3547C1;
     --c-accent:      #B23A2E;
     --c-bg:          #F3F5FC;
 
-    /* Aliases semánticos */
+    
     --c-navy:        var(--c-primary);
     --c-navy-dark:   var(--c-primary);
     --c-navy-mid:    var(--c-secondary);
@@ -80,17 +55,17 @@
     --c-ok:          #1E7E4A;
     --c-ok-bg:       #D8F3DC;
 
-    /* Neutros */
+    
     --c-surface:     #FFFFFF;
     --c-border:      #D7D6CE;
     --c-white:       #FFFFFF;
 
-    /* Texto */
+    
     --c-text:        #24282D;
     --c-text-2:      #5C6168;
     --c-text-3:      #8B9094;
 
-    /* Estados */
+    
     --c-warn:        #A46A1F;
     --c-warn-bg:     #FBF0DF;
     --c-error:       #B23A2E;
@@ -98,24 +73,24 @@
     --c-info:        #2A5870;
     --c-info-bg:     #E6EEEC;
 
-    /* Sombras refinadas */
+    
     --shadow-sm:  0 1px 2px rgba(20,24,30,0.04), 0 2px 8px rgba(44,49,58,0.05);
     --shadow-md:  0 2px 6px rgba(20,24,30,0.05), 0 6px 20px rgba(44,49,58,0.08);
     --shadow-lg:  0 8px 32px rgba(20,24,30,0.10), 0 2px 8px rgba(44,49,58,0.06);
     --shadow-up:  0 -4px 20px rgba(20,24,30,0.07), 0 -1px 4px rgba(20,24,30,0.04);
 
-    /* Tipografía */
+    
     --font-display: 'Source Sans 3', system-ui, sans-serif;
     --font-body:    'Source Sans 3', system-ui, sans-serif;
 
-    /* Radios — más redondeados = más amigable */
+    
     --r-sm: 8px;
     --r-md: 12px;
     --r-lg: 16px;
     --r-xl: 20px;
   }
 
-  /* ── Reset y base ───────────────────────────────────── */
+  
   *, *::before, *::after { box-sizing: border-box; }
 
   body {
@@ -131,7 +106,7 @@
     font-size: 16px;
   }
 
-  /* ── Tooltips legales (help-tip) ────────────────────── */
+  
   .help-tip {
     display: inline-flex;
     width: 20px;
@@ -195,7 +170,7 @@
     display: block;
   }
   .help-tip-content strong { color: #FFC56F; }
-  /* En tablas, el tooltip va hacia abajo si está cerca del top */
+  
   th .help-tip-content {
     bottom: auto;
     top: calc(100% + 10px);
@@ -207,7 +182,7 @@
     border-bottom-color: #24282D;
   }
 
-  /* ── Estado vacío amigable ─────────────────────────── */
+  
   .empty-state {
     text-align: center;
     padding: 36px 24px;
@@ -236,7 +211,7 @@
     margin: 0 auto 14px;
   }
 
-  /* ── Loading overlay ───────────────────────────────── */
+  
   .loading-overlay {
     position: fixed;
     inset: 0;
@@ -282,7 +257,7 @@
     line-height: 1.5;
   }
 
-  /* ── Texto solo para lectores de pantalla ──────────── */
+  
   .sr-only {
     position: absolute;
     width: 1px;
@@ -295,7 +270,7 @@
     border: 0;
   }
 
-  /* ── Skip link (accesibilidad) ──────────────────────── */
+  
   .skip-link {
     position: absolute;
     top: -100px;
@@ -315,7 +290,7 @@
     outline-offset: -3px;
   }
 
-  /* ── Header ─────────────────────────────────────────── */
+  
   header, header.app-header {
     background: linear-gradient(130deg, #16224A 0%, #0A132D 45%, #060C1E 100%);
     border-bottom: 1px solid rgba(255,255,255,0.10);
@@ -402,7 +377,7 @@
     border-color: rgba(254,202,202,0.55);
     color: #ffffff;
   }
-  /* Botón DEMO: destacado en teal sobre el header oscuro */
+  
   .header-action-demo {
     color: #ffffff;
     background: var(--c-interact);
@@ -412,7 +387,7 @@
   }
   .header-action-demo:hover { background: #4152D6; border-color: #4152D6; }
 
-  /* Indicador de auto-guardado */
+  
   .save-indicator {
     position: fixed;
     bottom: 80px;
@@ -454,7 +429,7 @@
     backdrop-filter: blur(4px);
   }
 
-  /* ── Barra de pasos ─────────────────────────────────── */
+  
   .progress-wrap {
     background: var(--c-secondary);
     border-bottom: 1px solid rgba(0,0,0,0.12);
@@ -539,8 +514,8 @@
   .step-tab.done .step-num {
     background: rgba(255,255,255,0.20);
     border-color: rgba(255,255,255,0.40);
-    color: transparent;   /* oculta el número */
-    font-size: 0;         /* elimina espacio del texto */
+    color: transparent;   
+    font-size: 0;         
     position: relative;
   }
   .step-tab.done .step-num::after {
@@ -554,7 +529,7 @@
     line-height: 1;
   }
 
-  /* ── Layout principal ───────────────────────────────── */
+  
   .main {
     max-width: 1080px;
     margin: 0 auto;
@@ -563,7 +538,7 @@
   .section { display: none; }
   .section.active { display: block; }
 
-  /* ── Barra nav inferior (fija) ──────────────────────── */
+  
   .nav-footer {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -585,7 +560,7 @@
   }
   .nav-buttons { display: flex; gap: 10px; }
 
-  /* ── Cards ──────────────────────────────────────────── */
+  
   .card {
     background: var(--c-surface);
     border-radius: var(--r-xl);
@@ -629,7 +604,7 @@
     line-height: 1.70;
   }
 
-  /* ── Formularios ────────────────────────────────────── */
+  
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field.span2 { grid-column: 1 / -1; }
@@ -678,7 +653,7 @@
     cursor: pointer;
   }
 
-  /* ── Botones ────────────────────────────────────────── */
+  
   .btn {
     padding: 11px 24px;
     border-radius: var(--r-md);
@@ -759,7 +734,7 @@
     border-color: #2E3EAE;
   }
 
-  /* ── Botonera de herramientas (padrón y cierre) ─────── */
+  
   .btn-tool {
     display: inline-flex;
     align-items: center;
@@ -785,16 +760,16 @@
   .btn-tool.danger svg { stroke: var(--c-error); }
   .btn-tool.danger:hover { border-color: var(--c-error); background: var(--c-error-bg); box-shadow: none; }
 
-  /* iconos dentro de botones estándar */
+  
   .btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; margin-right: 7px; }
 
-  /* zona de cierre de la asamblea (paso 6) */
+  
   .cierre-datos ul { margin: 0 0 18px; padding-left: 20px; font-size: 14px; color: var(--c-text-2); line-height: 1.65; }
   .cierre-datos li { margin-bottom: 6px; }
   .cierre-datos li strong { color: var(--c-text); }
   .cierre-nota { font-size: 13px; color: var(--c-text-2); margin-top: 10px; }
 
-  /* ── Toggle buttons (segment control) ──────────────── */
+  
   .toggle-group {
     display: inline-flex;
     gap: 0;
@@ -830,7 +805,7 @@
     font-weight: 600;
   }
 
-  /* ── Tip / info ─────────────────────────────────────── */
+  
   .tip {
     background: var(--c-info-bg);
     border-left: 4px solid var(--c-info);
@@ -843,7 +818,7 @@
     line-height: 1.65;
   }
 
-  /* ── Disclaimer banner ──────────────────────────────── */
+  
   .disclaimer-banner {
     background: #fffbeb;
     border-bottom: 2px solid #fde68a;
@@ -859,7 +834,7 @@
   }
   .disc-icon { font-size: 18px; flex-shrink: 0; }
 
-  /* ── Tabla de asistentes ────────────────────────────── */
+  
   .table-wrap {
     overflow-x: auto;
     border-radius: var(--r-md);
@@ -893,9 +868,9 @@
   tr:hover td { background: #F1F4F2; }
   td input { padding: 5px 8px; font-size: 13px; }
 
-  /* ── Quórum ─────────────────────────────────────────── */
+  
 
-  /* ── Puntos del orden del día ───────────────────────── */
+  
   .punto-card {
     border: 1px solid var(--c-border);
     border-radius: var(--r-md);
@@ -926,7 +901,7 @@
   }
   .punto-body { padding: 16px; }
 
-  /* ── Paso 4: alineación uniforme de secciones ─── */
+  
   .punto-card {
     display: flex;
     flex-direction: column;
@@ -939,7 +914,7 @@
   .punto-card > .form-grid + .form-grid    { padding-top: 14px; }
   .punto-card > .form-grid:last-of-type    { padding-bottom: 18px; }
   .punto-card > .punto-vot-panel           { margin: 0 16px 16px !important; }
-  /* Normalizar <p> usado como label para alinear columnas */
+  
   .punto-card .field > p {
     margin: 0 0 6px !important;
     font-size: 13.5px !important;
@@ -948,7 +923,7 @@
     letter-spacing: 0.1px !important;
   }
 
-  /* ── Panel de votación ──────────────────────────────── */
+  
   .pvot-body { display: none; }
   .pvot-body.open { display: block; }
   .vot-conclusion {
@@ -974,7 +949,7 @@
   .pref-select.encontra  { background: var(--c-error-bg); border-color: var(--c-error); color: var(--c-error); }
   .pref-select.abstencion{ background: var(--c-warn-bg);  border-color: var(--c-warn);  color: var(--c-warn); }
 
-  /* ── Acta final ─────────────────────────────────────── */
+  
   .acta-preview-wrap {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
@@ -995,13 +970,13 @@
   }
   .print-btn { text-align: center; margin-top: 20px; }
 
-  /* ── Mensajes y estados ─────────────────────────────── */
+  
   .msg-ok    { background: var(--c-ok-bg);    border-left: 4px solid var(--c-ok);    color: var(--c-ok);    padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 14.5px; font-family: var(--font-body); line-height: 1.5; }
   .msg-error { background: var(--c-error-bg); border-left: 4px solid var(--c-error); color: var(--c-error); padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 14.5px; font-family: var(--font-body); line-height: 1.5; }
   .msg-warn  { background: var(--c-warn-bg);  border-left: 4px solid var(--c-warn);  color: var(--c-warn);  padding: 12px 16px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 14.5px; font-family: var(--font-body); line-height: 1.5; }
   .required-mark { color: var(--c-error); font-weight: 700; }
 
-  /* ── Importar Excel ─────────────────────────────────── */
+  
   .import-section {
     margin-top: 14px;
     padding: 15px;
@@ -1010,14 +985,14 @@
     border: 1px solid #D3DAD7;
   }
 
-  /* ── Firmas ─────────────────────────────────────────── */
+  
   .firmantes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
 
-  /* ── Footer de autoría ──────────────────────────────── */
+  
   .app-footer a { color: var(--c-interact); text-decoration: none; }
   .app-footer a:hover { text-decoration: underline; }
 
-  /* ── Responsive ─────────────────────────────────────── */
+  
   @media (max-width: 640px) {
     .header-inner, .app-header-inner { padding: 12px 16px; gap: 10px; }
     .logo-region, .app-header-title  { font-size: 16px; }
@@ -1034,9 +1009,9 @@
     .btn-nav { padding: 12px 22px; font-size: 14px; }
   }
 
-  /* ── Print ──────────────────────────────────────────── */
+  
 
-  /* ── Quórum: barra de progreso ─────────────────── */
+  
   .quorum-box {
     background: #EEF0FB;
     border: 1px solid #D3DAD7;
@@ -1085,7 +1060,7 @@
   .quorum-pct   { font-family: var(--font-body); font-size: 13px; font-weight: 700; color: var(--c-primary); }
   .quorum-bar-wrap { flex: 1; background: #D3DAD7; border-radius: 6px; overflow: hidden; height: 10px; margin-top: 4px; }
 
-  /* ── Punto card: cabecera ───────────────────────── */
+  
   .btn-del {
     margin-left: auto;
     padding: 4px 12px;
@@ -1119,7 +1094,7 @@
     letter-spacing: 0.3px;
   }
 
-  /* ── Panel de votación ──────────────────────────── */
+  
   .punto-vot-panel {
     border: 1px solid #D3DAD7;
     border-radius: var(--r-md);
@@ -1182,7 +1157,7 @@
   .btn-vot-abst:hover   { background: var(--c-warn);  color: #ffffff; box-shadow: 0 3px 10px rgba(164,106,31,0.22); }
   .btn-vot-limpiar:hover { background: #D3DAD7; }
 
-  /* ── Tabla de votación ──────────────────────────── */
+  
   .punto-vot-lista {
     width: 100%;
     border-collapse: collapse;
@@ -1210,7 +1185,7 @@
   .punto-vot-lista tr:last-child td { border-bottom: none; }
   .pvot-chk { cursor: pointer; width: 15px; height: 15px; accent-color: var(--c-interact); }
 
-  /* ── Resumen de votación ────────────────────────── */
+  
   .punto-vot-resumen {
     background: #EEF0FB;
     border: 1px solid #D3DAD7;
@@ -1270,7 +1245,7 @@
   .pvr-conclusion.aprobado   { background: var(--c-ok-bg);    color: var(--c-ok);    border-color: rgba(30,126,74,0.20); }
   .pvr-conclusion.rechazado  { background: var(--c-error-bg); color: var(--c-error); border-color: rgba(178,58,46,0.20); }
 
-  /* ── Acta generada (paso 6) ─────────────────────── */
+  
   .acta-header-preview {
     text-align: center;
     padding: 28px 0 22px;
@@ -1376,7 +1351,7 @@
     margin-top: 2px;
   }
 
-  /* ── Footer: visibilidad garantizada ────────────── */
+  
   .app-footer {
     padding: 16px 20px;
     margin-bottom: 60px;
@@ -1426,23 +1401,23 @@
     .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
     .card::before { display: none !important; }
     h2.card-title, .card-title, .card-desc { display: none !important; }
-    /* Asegurar saltos de página correctos */
+    
     .acta-section { page-break-inside: avoid; break-inside: avoid-page; }
     .acta-section-title { page-break-after: avoid; break-after: avoid-page; }
     .acta-signatures { page-break-inside: avoid; break-inside: avoid-page; margin-top: 50px !important; }
     .acta-section table { page-break-inside: auto; }
     .acta-section tr { page-break-inside: avoid; break-inside: avoid; }
-    .acta-section thead { display: table-header-group; } /* repetir cabecera en cada página */
-    /* Forzar colores institucionales en PDF */
+    .acta-section thead { display: table-header-group; } 
+    
     .acta-title, .acta-section-title, .acta-section th {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
-    /* Justificación del cuerpo del acta */
+    
     .acta-section p { text-align: justify; orphans: 3; widows: 3; }
   }
 
-  /* ── Checkboxes de materias (Paso 1) ──────────────── */
+  
   .materias-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
   .materias-list li {
     display: flex;
@@ -1534,7 +1509,7 @@
     margin-right: auto;
   }
 
-  /* ── Botón agregar temas a tabla (verde, distinto de Siguiente) ── */
+  
   .btn-add-temas {
     background: #1E7E4A;
     color: #ffffff;
@@ -1546,7 +1521,7 @@
     transform: translateY(-1px);
   }
 
-  /* ── Toast de confirmación de temas ────────────────── */
+  
   .mat-toast {
     position: fixed;
     bottom: 84px;
@@ -1571,19 +1546,17 @@
     transform: translateX(-50%) translateY(0);
   }
 </style>
-<!-- JSZip para construir .xlsx con estilos -->
+
 <script src="vendor/jszip.min.js"></script>
-<!-- SheetJS para leer archivos Excel .xlsx/.xls -->
+
 <script src="vendor/xlsx.full.min.js"></script>
-<!-- Supabase + QR (votación en vivo; requiere internet) -->
+
 <script src="vendor/supabase.min.js"></script>
 <script src="vendor/qrcode-generator.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
-<!-- ════════════════════════════════════════════
-     ENCABEZADO INSTITUCIONAL
-     ════════════════════════════════════════════ -->
+
 <header class="app-header" role="banner">
   <div class="header-inner app-header-inner">
     <div class="logo">
@@ -1631,7 +1604,7 @@
   <span aria-hidden="true">💾</span><span>Guardado automáticamente</span>
 </div>
 
-<!-- Loading overlay (PDF / operaciones largas) -->
+
 <div class="loading-overlay" id="loading-overlay" role="dialog" aria-live="assertive" aria-label="Operación en proceso">
   <div class="loading-card">
     <div class="loading-spinner" aria-hidden="true"></div>
@@ -1640,7 +1613,7 @@
   </div>
 </div>
 
-<!-- Registro único (nombre, correo, comuna) — se pide una vez por equipo -->
+
 <style>
   #reg-overlay{display:none;position:fixed;inset:0;z-index:12000;background:rgba(33,38,46,.55);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:18px;}
   #reg-overlay.open{display:flex;}
@@ -1687,7 +1660,7 @@
 
 <main class="main" id="main-content">
 
-<!-- ════════════ PASO 1: DATOS GENERALES ════════════ -->
+
 <div class="section active" id="step-1">
   <div class="card">
     <h2 class="card-title">Datos del Condominio y la Sesión</h2>
@@ -1765,7 +1738,7 @@
   </div>
 </div>
 
-<!-- ════════════ PASO 2: CONVOCATORIA ════════════ -->
+
 <div class="section" id="step-2">
   <div class="card">
     <h2 class="card-title">Antecedentes de la Convocatoria</h2>
@@ -1842,7 +1815,7 @@
   </div>
 </div>
 
-<!-- ════════════ PASO 3: TABLA ════════════ -->
+
 <div class="section" id="step-3">
   <div class="card">
     <h2 class="card-title">Registro de Asistencia</h2>
@@ -1898,7 +1871,7 @@
       <button type="button" class="btn-tool danger" style="margin-left:auto" onclick="limpiarPadron()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v5M14 11v5M6 7l1 12a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-12M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2"/></svg>Limpiar padrón</button>
     </div>
 
-    <!-- Quórum de constitución -->
+    
     <div class="quorum-box" id="quorum-box">
       <div class="quorum-box-text">
         <div class="quorum-box-title">Derechos presentes en la asamblea <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre quórum de constitución">?<span class="help-tip-content"><strong>Quórum de constitución:</strong> mínimo de derechos que deben estar presentes para que la asamblea pueda comenzar. Se calcula sobre el total del condominio (hábiles + inhábiles presentes).</span></span></div>
@@ -1911,7 +1884,7 @@
       </div>
     </div>
 
-    <!-- Quórum de adopción de acuerdos (solo visible en asamblea ordinaria) -->
+    
     <div class="quorum-box quorum-box--acuerdos" id="quorum-acuerdos-box" style="display:none">
       <div class="quorum-box-text">
         <div class="quorum-box-title">Quórum de Adopción de Acuerdos <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre quórum de acuerdos">?<span class="help-tip-content"><strong>Quórum de adopción:</strong> mínimo de votos a favor necesarios para que un acuerdo sea válido. Cambia según el tipo de asamblea: <strong>Ordinaria</strong> = mayoría de los hábiles presentes; <strong>Extraordinaria</strong> = 50+1% o 66% del total del condominio.</span></span></div>
@@ -1924,17 +1897,17 @@
       </div>
     </div>
 
-    <!-- Aviso: suma de derechos del padrón (debe ser 100%) -->
+    
     <div id="suma-derechos-aviso" role="status" aria-live="polite" style="display:none;margin-top:12px"></div>
 
-    <!-- Panel de resultado de votación -->
+    
     
   </div>
 </div>
 
 
 
-<!-- ════════════ PASO 4: TABLA ════════════ -->
+
 <div class="section" id="step-4">
   <div class="card">
     <h2 class="card-title">Desarrollo de la Tabla</h2>
@@ -2010,14 +1983,14 @@
 
 
 
-<!-- ════════════ PASO 5: FIRMAS ════════════ -->
+
 <div class="section" id="step-5">
   <div class="card">
     <h2 class="card-title">Firmantes del Acta</h2>
     <div class="card-desc">El acta debe ser firmada dentro de los <strong>30 días corridos</strong> desde la celebración de la asamblea.</div>
 
     <div id="firmantes-container">
-      <!-- Firmante 1 -->
+      
       <div class="form-grid triple" style="margin-bottom:16px">
         <div class="field">
           <label for="f1-nombre">Firmante 1 · Nombre <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
@@ -2038,7 +2011,7 @@
           </select>
         </div>
       </div>
-      <!-- Firmante 2 -->
+      
       <div class="form-grid triple" style="margin-bottom:16px">
         <div class="field">
           <label for="f2-nombre">Firmante 2 · Nombre</label>
@@ -2059,7 +2032,7 @@
           </select>
         </div>
       </div>
-      <!-- Firmante 3 -->
+      
       <div class="form-grid triple" style="margin-bottom:16px">
         <div class="field">
           <label for="f3-nombre">Firmante 3 · Nombre</label>
@@ -2125,7 +2098,7 @@
   </div>
 </div>
 
-<!-- ════════════ PASO 6: ACTA FINAL ════════════ -->
+
 <div class="section" id="step-6">
   <div class="card">
     <h2 class="card-title">Acta Generada</h2>
@@ -2152,7 +2125,7 @@
   </div>
 </div>
 
-</main><!-- /main -->
+</main>
 
 <footer class="app-footer" role="contentinfo">
   Sistema de Actas de Copropiedad · Conforme a la Ley N° 21.442<br>
@@ -2160,20 +2133,20 @@
 </footer>
 
 
-<!-- BOTTOM NAV -->
+
 <div class="nav-footer" role="navigation" aria-label="Navegación entre pasos">
   <button class="btn btn-secondary" id="btn-back" onclick="prevStep()" style="display:none" aria-label="Volver al paso anterior">← Anterior</button>
   <span class="step-info" id="step-label" aria-live="polite">Paso 1 de 6</span>
   <button class="btn btn-primary" id="btn-next" onclick="nextStep()" aria-label="Continuar al siguiente paso">Siguiente →</button>
 </div>
 
-<!-- PDF: generado con ventana popup autónoma, sin dependencias externas -->
 
-<!-- PRINT STYLES (respaldo para navegadores directos) -->
+
+
 
 
 <script>
-/* © 2026 Luis Fuentealba Durán — Persona natural — Todos los derechos reservados */
+
 let currentStep = 1;
 const totalSteps = 6;
 let puntoCount = 0;
@@ -2203,8 +2176,7 @@ if (currentStep < totalSteps) _jlv(currentStep + 1);
 function prevStep() {
 if (currentStep > 1) _jlv(currentStep - 1);
 }
-/* Navegación directa por la barra de pasos (pestañas superiores).
-   Reutiliza _jlv, que valida los pasos intermedios al avanzar. */
+
 function goStep(n) {
 if (n === currentStep) return;
 if (n < 1 || n > totalSteps) return;
@@ -2524,7 +2496,7 @@ var derEl = row.querySelector('.derechos');
 var asisteEl = row.querySelector('.asiste');
 if (!habEl) return;
 var asiste = asisteEl ? asisteEl.value === 'si' : true;
-if (!asiste) return; // no asistió: no cuenta para ningún quórum
+if (!asiste) return; 
 var der = parseFloat(derEl ? derEl.value : 0) || 0;
 countTotal++;
 totalPresentes += der;
@@ -2533,7 +2505,7 @@ totalHabil += der;
 countHabil++;
 }
 });
-/* ── Validación: la suma de derechos del padrón completo debe ser 100% ── */
+
 var sumaPadron = 0;
 document.querySelectorAll('#asistentes-tbody tr .derechos').forEach(function(el) {
   sumaPadron += parseFloat(el.value) || 0;
@@ -2784,7 +2756,7 @@ const habil = row.querySelector('.habil') && row.querySelector('.habil').value =
 ? 'S\u00ed' : 'No';
 const rep = row.querySelector('.representante')
 ? row.querySelector('.representante').value : '';
-// Solo los presentes cuentan para el quórum
+
 if (asiste) {
 totalPresentes += der;
 if (habil === 'S\u00ed') { totalHabil += der; countHabil++; }
@@ -3101,7 +3073,7 @@ if (typeof derRaw === 'number') {
   derNum = derRaw;
 } else {
   var derStr = String(derRaw || '').trim();
-  // Si tiene punto de miles y coma decimal (ej: "1.500,25"), eliminar puntos primero
+  
   if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(derStr)) {
     derStr = derStr.replace(/\./g, '').replace(',', '.');
   } else {
@@ -3405,7 +3377,7 @@ function toggleVotPanel(n) {
 var body = document.getElementById('pvot-body-' + n);
 var toggle = document.getElementById('pvot-toggle-' + n);
 if (!body) return;
-var header = body.previousElementSibling; // .punto-vot-header
+var header = body.previousElementSibling; 
 var isOpen = body.classList.contains('open');
 if (isOpen) {
 body.classList.remove('open');
@@ -3437,7 +3409,7 @@ var uniEl = row.querySelector('.unidad');
 var asisteEl = row.querySelector('.asiste');
 if (!habEl) return;
 var esAsiste = asisteEl ? asisteEl.value === 'si' : true;
-if (!esAsiste) return; // ausente: no aparece en la tabla de votación
+if (!esAsiste) return; 
 var esHabil = habEl.value === 'si';
 var nombre = nomEl ? nomEl.value.trim() : '';
 var unidad = uniEl ? uniEl.value.trim() : '';
@@ -3687,17 +3659,17 @@ function(c) { return c.toUpperCase(); }
 return texto;
 }
 
-/* ── Validación de campos ──────────────────────────────── */
+
 (function() {
 
-  /* a) Solo números enteros */
+  
   function soloNumeros(e) {
     var el = e.target;
     var val = el.value.replace(/[^\d]/g, '');
     if (el.value !== val) el.value = val;
   }
 
-  /* b) Formato RUT chileno XX.XXX.XXX-X */
+  
   function formatRUT(e) {
     var el  = e.target;
     var raw = el.value.toUpperCase().replace(/[^0-9K]/g, '');
@@ -3719,7 +3691,7 @@ return texto;
     }
   }
 
-  /* c) Solo letras — permite tildes, ñ, espacios, guiones, apóstrofes */
+  
   function soloLetras(e) {
     var el  = e.target;
     var val = el.value.replace(/[^a-zA-Z\u00e0-\u00fc\u00c0-\u00dc\s'\-\.]/g, '');
@@ -3727,7 +3699,7 @@ return texto;
     if (el.value !== val) el.value = val;
   }
 
-  /* Bind helper */
+  
   function bind(id, fn, events) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -3735,21 +3707,21 @@ return texto;
   }
 
   function initValidaciones() {
-    /* N° de Acta — solo dígitos */
+    
     bind('acta-numero', soloNumeros);
 
-    /* RUT — todos los campos */
+    
     ['condo-rut','f1-rut','f2-rut','f3-rut','notario-rut'].forEach(function(id) {
       bind(id, formatRUT, ['input', 'blur']);
     });
 
-    /* Nombres de personas — campos estáticos */
+    
     ['nombre-convocante','nombre-presidente','nombre-admin',
      'f1-nombre','f2-nombre','f3-nombre','notario-nombre'].forEach(function(id) {
       bind(id, soloLetras, ['input', 'blur']);
     });
 
-    /* Nombres en tabla asistentes — delegación en tbody */
+    
     var tbody = document.getElementById('asistentes-tbody');
     if (tbody) {
       tbody.addEventListener('input', function(e) {
@@ -3786,7 +3758,7 @@ function addPuntoYRenombrar() {
   actualizarEstadoVacioPuntos();
 }
 
-/* Mostrar/ocultar el estado vacío según haya puntos o no */
+
 function actualizarEstadoVacioPuntos() {
   var empty = document.getElementById('puntos-empty-state');
   var container = document.getElementById('puntos-container');
@@ -3809,12 +3781,7 @@ function cerrarInstrucciones() {
   if (m) m.style.display = 'none';
 }
 
-/* ════════════════════════════════════════════════════════════
-   AUTO-GUARDADO en localStorage
-   - Snapshot del HTML del formulario (incluye tabla y puntos)
-   - Restauración al cargar la página
-   - Indicador visual "Guardado automáticamente"
-   ════════════════════════════════════════════════════════════ */
+
 var STORAGE_KEY = 'sistema_actas_v2';
 var _saveTimer = null;
 var _saveIndicatorTimer = null;
@@ -3824,15 +3791,15 @@ function _captureFieldsSnapshot() {
   var isDyn = function(id) {
     return /^asist-\d+-/.test(id) || /^p\d+-/.test(id) || /^pvot-/.test(id);
   };
-  // Campos estáticos (todo lo que no sea fila de asistente ni punto dinámico)
+  
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el) {
     if (!el.id || isDyn(el.id)) return;
     snap.fields[el.id] = el.value;
   });
-  // Modalidad activa (toggle group)
+  
   var modAct = document.querySelector('#step-1 .toggle-btn.active');
   if (modAct) snap.modalidad = modAct.textContent.trim();
-  // Asistentes: capturados POR CONTENIDO en orden del DOM (sobreviven a borrados intermedios)
+  
   document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
     var g = function(sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
     snap.asistentes.push({
@@ -3840,7 +3807,7 @@ function _captureFieldsSnapshot() {
       habil: g('.habil'), asiste: g('.asiste'), rep: g('.representante')
     });
   });
-  // Puntos: capturados POR CONTENIDO en orden del DOM (la votación por clave unidad|nombre)
+  
   document.querySelectorAll('.punto-card').forEach(function(card) {
     var m = (card.id || '').match(/^punto-(\d+)$/);
     var n = m ? m[1] : null;
@@ -3890,7 +3857,7 @@ function _restoreSnapshot(snap) {
     var asis = snap.asistentes || [];
     var pts  = snap.puntos || [];
 
-    // 1) Asistentes: asegurar N filas y llenarlas POR POSICIÓN
+    
     var needRows = Math.max(asis.length, 1);
     var curRows = document.querySelectorAll('#asistentes-tbody tr').length;
     while (curRows < needRows) { addRow(); curRows++; }
@@ -3902,14 +3869,14 @@ function _restoreSnapshot(snap) {
       set('.habil', a.habil || 'si'); set('.asiste', a.asiste || 'si'); set('.representante', a.rep);
     });
 
-    // 2) Campos estáticos por ID
+    
     var f = snap.fields || {};
     Object.keys(f).forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.value = f[id];
     });
 
-    // 3) Modalidad: vía setModalidad para reproducir visibilidad de plataforma/lugar
+    
     if (snap.modalidad) {
       document.querySelectorAll('#step-1 .toggle-btn').forEach(function(b) {
         if (b.textContent.trim() === snap.modalidad) {
@@ -3920,11 +3887,11 @@ function _restoreSnapshot(snap) {
       });
     }
 
-    // 4) Updates dependientes
+    
     if (typeof updateTipoAsambleaExtended === 'function') updateTipoAsambleaExtended();
     if (typeof calcularQuorum === 'function') calcularQuorum();
 
-    // 5) Puntos: crear N y llenarlos POR POSICIÓN (independiente de la numeración interna)
+    
     var curP = document.querySelectorAll('.punto-card').length;
     while (curP < pts.length) { addPuntoYRenombrar(); curP++; }
     var cards = document.querySelectorAll('.punto-card');
@@ -3980,12 +3947,7 @@ function limpiarFormulario() {
   location.reload();
 }
 
-/* ════════════════════════════════════════════════════════════
-   BORRADOR EN ARCHIVO (.json)
-   Permite guardar el avance como archivo y continuar después,
-   incluso en otro computador. Complementa el auto-guardado del
-   navegador, que solo persiste en este equipo.
-   ════════════════════════════════════════════════════════════ */
+
 function guardarBorrador() {
   try {
     var snap = _captureFieldsSnapshot();
@@ -4039,23 +4001,21 @@ function cargarBorrador() {
   input.click();
 }
 
-/* ════════════════════════════════════════════════════════════
-   DATOS DE EJEMPLO (para presentaciones / demostración)
-   ════════════════════════════════════════════════════════════ */
+
 function cargarDatosEjemplo() {
   if (!confirm('¿Cargar datos de ejemplo en el formulario?\n\nSe reemplazará la información que haya ingresado.')) return;
 
-  // Paso 1: Datos generales
+  
   var f = function(id, v) { var e = document.getElementById(id); if (e) e.value = v; };
   f('acta-numero', '12');
   f('condo-nombre', 'Condominio Las Araucarias');
   f('condo-direccion', 'Av. Los Aromos 1234, Concepción');
   f('condo-rut', '76.523.811-9');
   f('tipo-asamblea', 'ordinaria');
-  // Disparar lógica del select
+  
   if (typeof updateTipoAsambleaExtended === 'function') updateTipoAsambleaExtended();
 
-  // Modalidad presencial (asegurar)
+  
   document.querySelectorAll('#step-1 .toggle-btn').forEach(function(b){ b.classList.remove('active'); });
   var pres = Array.from(document.querySelectorAll('#step-1 .toggle-btn')).find(function(b){
     return b.textContent.toLowerCase().indexOf('presencial') >= 0;
@@ -4063,14 +4023,14 @@ function cargarDatosEjemplo() {
   if (pres) pres.classList.add('active');
   f('modalidad', 'presencial');
 
-  // Fecha actual + 7 días, hora 19:00
+  
   var fecha = new Date(); fecha.setDate(fecha.getDate() + 7);
   var iso = fecha.toISOString().slice(0,10);
   f('fecha-sesion', iso);
   f('hora-inicio', '19:00');
   f('lugar', 'Sala de reuniones del condominio (1er piso)');
 
-  // Paso 2: Convocatoria — la citación se envía hoy (≈7 días antes de la sesión)
+  
   var hoy = new Date().toISOString().slice(0,10);
   f('quien-convoco', 'administrador');
   f('nombre-convocante', 'Patricia Soto López');
@@ -4079,7 +4039,7 @@ function cargarDatosEjemplo() {
   f('nombre-presidente', 'María González Pérez');
   f('nombre-admin', 'Patricia Soto López');
 
-  // Paso 3: Asistentes — 6 filas con datos (con RUT válido para la votación en vivo)
+  
   var ejAsist = [
     { unidad:'101', nombre:'María González Pérez',  rut:'12.345.678-5', derechos:'5.25', habil:'si', asiste:'si', rep:'' },
     { unidad:'102', nombre:'Juan Sepúlveda Rojas',  rut:'11.222.333-9', derechos:'4.80', habil:'si', asiste:'si', rep:'' },
@@ -4088,10 +4048,10 @@ function cargarDatosEjemplo() {
     { unidad:'301', nombre:'Patricia Soto López',   rut:'8.765.432-K', derechos:'5.40', habil:'si', asiste:'si', rep:'Pedro Soto (poder simple)' },
     { unidad:'302', nombre:'Luis Fernández Tapia',  rut:'10.111.222-5', derechos:'4.95', habil:'si', asiste:'si', rep:'' }
   ];
-  // Asegurar cantidad de filas
+  
   var current = document.querySelectorAll('#asistentes-tbody tr').length;
   while (current < ejAsist.length) { addRow(); current++; }
-  // Llenar filas
+  
   ejAsist.forEach(function(a, i) {
     f('asist-'+i+'-unidad',   a.unidad);
     f('asist-'+i+'-nombre',   a.nombre);
@@ -4104,22 +4064,19 @@ function cargarDatosEjemplo() {
   if (typeof calcularQuorum === 'function') calcularQuorum();
   if (typeof actualizarVotacion === 'function') actualizarVotacion();
 
-  // Paso 5: Firmantes
+  
   f('f1-nombre', 'María González Pérez'); f('f1-rut', '12.345.678-5'); f('f1-cargo', 'Presidente del Comité de Administración');
   f('f2-nombre', 'Juan Sepúlveda Rojas'); f('f2-rut', '11.222.333-9'); f('f2-cargo', 'Miembro del Comité de Administración');
   f('f3-nombre', 'Patricia Soto López');  f('f3-rut', '8.765.432-K');  f('f3-cargo', 'Administrador/a del Condominio');
 
-  // Disparar guardado
+  
   if (typeof autoSave === 'function') autoSave();
 
-  // Mensaje
+  
   alert('✓ Listo. Cargamos datos de ejemplo en los Pasos 1, 2, 3 y 5.\n\nLos puntos del orden del día (Paso 4) se agregan manualmente para mostrar cómo funciona la votación.');
 }
 
-/* ════════════════════════════════════════════════════════════
-   Hooks de auto-guardado: cualquier cambio en el formulario
-   dispara autoSave (con debounce de 600ms)
-   ════════════════════════════════════════════════════════════ */
+
 document.addEventListener('input', function(e) {
   var t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) {
@@ -4133,15 +4090,13 @@ document.addEventListener('change', function(e) {
   }
 });
 
-// Restaurar al cargar (si hay datos guardados)
+
 window.addEventListener('load', function() {
   setTimeout(_tryRestore, 350);
   if (window.track) window.track('acta_abierta');
 });
 
-/* ════════════════════════════════════════════════════════════
-   LOADING overlay (operaciones largas)
-   ════════════════════════════════════════════════════════════ */
+
 function showLoading(title, desc) {
   var ov = document.getElementById('loading-overlay');
   if (!ov) return;
@@ -4160,22 +4115,19 @@ function hideLoading() {
   if (ov) ov.classList.remove('show');
 }
 
-/* ════════════════════════════════════════════════════════════
-   ACCESIBILIDAD: navegación por teclado para elementos con
-   role="button" (los <div> con onclick)
-   ════════════════════════════════════════════════════════════ */
+
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   var t = e.target;
   if (!t || !t.getAttribute) return;
   if (t.getAttribute('role') !== 'button') return;
-  if (t.tagName === 'BUTTON' || t.tagName === 'A') return; // ya nativo
+  if (t.tagName === 'BUTTON' || t.tagName === 'A') return; 
   e.preventDefault();
   t.click();
 });
 </script>
 
-<!-- Modal instrucciones de plantilla -->
+
 <div id="modal-instrucciones" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:10px;max-width:660px;width:95%;padding:28px 32px;position:relative;box-shadow:0 8px 32px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
     <button onclick="cerrarInstrucciones()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#555" title="Cerrar">✕</button>
@@ -4231,14 +4183,13 @@ document.addEventListener('keydown', function(e) {
 </div>
 
 <script>
-/* ===== Votación en vivo: puente acta <-> Supabase ===== */
+
 (function(){
   var VV_URL='https://rujwokagmjbqtrcvosye.supabase.co';
   var VV_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
   var sb=null, asam=null, pollTimer=null, activo=null, temasActuales=[];
   function client(){ if(!sb && window.supabase) sb=window.supabase.createClient(VV_URL,VV_ANON); return sb; }
-  /* Geolocalización aproximada (región/ciudad) vía Cloudflare, cacheada por
-     sesión. Best-effort: nunca bloquea ni afecta al acta. */
+  
   var _geo=null;
   try{ var _gs=sessionStorage.getItem('acta_geo'); if(_gs) _geo=JSON.parse(_gs); }catch(e){}
   (function loadGeo(){
@@ -4247,9 +4198,7 @@ document.addEventListener('keydown', function(e) {
       if(g){ _geo=g; try{ sessionStorage.setItem('acta_geo', JSON.stringify(g)); }catch(e){} }
     }).catch(function(){}); }catch(e){}
   })();
-  /* Telemetría de uso ANÓNIMA (fire-and-forget): solo conteos + id de sesión
-     aleatorio + región/ciudad aproximada; nunca RUT/nombres. Si algo falla, no
-     afecta al usuario. */
+  
   function track(tipo, props){
     try{
       var c=client(); if(!c) return;
@@ -4258,14 +4207,13 @@ document.addEventListener('keydown', function(e) {
       var p={}; if(props) for(var k in props) p[k]=props[k];
       if(_geo){ if(_geo.region) p.region=_geo.region; if(_geo.ciudad) p.ciudad=_geo.ciudad; }
       var q=c.rpc('vv_log', { p_tipo:String(tipo).slice(0,40), p_sesion:s, p_props:p });
-      if (q && q.then) q.then(function(){}, function(){});  /* supabase rpc es lazy: .then() dispara el envío y traga el error */
+      if (q && q.then) q.then(function(){}, function(){});  
     }catch(e){}
   }
   window.track=track;
-  /* Registro único (nombre, correo, comuna): se pide una vez por equipo; las
-     visitas siguientes solo actualizan "última visita" en el servidor. */
+  
   function regDatos(){ try{ return JSON.parse(localStorage.getItem('acta_reg')); }catch(e){ return null; } }
-  function regEnviarDatos(cb){ /* inserta/actualiza el registro (exige sesión con correo verificado) */
+  function regEnviarDatos(cb){ 
     try{
       var c=client(), d=regDatos();
       if(!c||!d){ if(cb) cb(false); return; }
@@ -4275,9 +4223,9 @@ document.addEventListener('keydown', function(e) {
       else if(cb) cb(false);
     }catch(e){ if(cb) cb(false); }
   }
-  function regPing(d){ /* visita de alguien ya registrado: marca "última visita" */
+  function regPing(d){ 
     try{
-      if(d && d.pend){ /* el insert quedó pendiente: reintenta con la sesión guardada */
+      if(d && d.pend){ 
         regEnviarDatos(function(ok){ if(ok){ d.pend=0; try{ localStorage.setItem('acta_reg', JSON.stringify(d)); }catch(e){} } });
         return;
       }
@@ -4511,7 +4459,7 @@ document.addEventListener('keydown', function(e) {
     var OK='var(--c-ok)', ER='var(--c-error)', WN='var(--c-warn,#9A6B1F)';
     var big=function(val,color,lab){ return '<span class="vv-pct" style="color:'+color+'">'+val+'</span><span class="vv-pct-lab">'+lab+'</span>'; };
     if(tipo==='ordinaria'){
-      /* Ordinaria: se adopta por MAYORÍA DE LOS PRESENTES (conteo), no por % de derechos. */
+      
       var minimo=Math.floor(habPresentes/2)+1;
       var pasa=(habPresentes>0 && nf>=minimo);
       el.innerHTML=
@@ -4520,7 +4468,7 @@ document.addEventListener('keydown', function(e) {
         '<div class="vv-tema-meta">Asamblea ordinaria: se adopta por <b>mayoría de los presentes</b> — no por % de derechos. '+
         (habPresentes>0?('Se requieren '+minimo+' de '+habPresentes+' votos'+(pasa?' · <b style="color:var(--c-ok)">alcanzado</b>':'')+'.'):'')+'</div>';
     } else {
-      /* Extraordinaria: se adopta por % de los DERECHOS del condominio. */
+      
       var umb=(tipo==='ext-ref')?66:51;
       var pasaE=(f>=umb);
       el.innerHTML=
@@ -4542,7 +4490,7 @@ document.addEventListener('keydown', function(e) {
     var rows=[].slice.call(tbody.querySelectorAll('tr'));
     var aplicados=0;
     Object.keys(voteByRut).forEach(function(rk){
-      // Mapear cada voto por RUT (único), no por unidad|nombre (que puede colisionar).
+      
       var row=null; for(var i=0;i<rows.length;i++){ if(norm(rows[i].dataset.rut||'')===rk){ row=rows[i]; break; } }
       if(!row) return;
       var sel=row.querySelector('.pref-select'); if(!sel) return;
