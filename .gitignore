@@ -10,3 +10,18 @@ _app_check.js
 # Editores
 .vscode/
 .idea/
+
+# Secretos / credenciales (prevención — no subir jamás al repositorio)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa
+id_ed25519
+credentials*.json
+service-account*.json
+.npmrc
+.pypirc
