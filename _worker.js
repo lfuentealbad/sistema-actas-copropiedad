@@ -1,23 +1,17 @@
-// Worker mínimo para geolocalización aproximada (región/ciudad) por IP.
-// Cloudflare sirve los assets estáticos primero; este código solo corre para
-// rutas que NO son un archivo. La única que atendemos es /cf-geo; cualquier
-// otra cosa se delega al servido de assets (fallback a prueba de fallos).
+// RECESO — Sistema de Actas de Copropiedad en pausa temporal.
+// El Worker intercepta TODAS las rutas (run_worker_first) y responde 503,
+// de modo que el sitio no sirve contenido. El código completo se conserva
+// en el repositorio (rama "respaldo-sitio-completo"). Para reactivar: revertir
+// este archivo y quitar "run_worker_first" de wrangler.jsonc.
 export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname === '/cf-geo') {
-      const cf = request.cf || {};
-      return new Response(JSON.stringify({
-        pais: cf.country || null,
-        region: cf.region || null,
-        ciudad: cf.city || null
-      }), {
-        headers: {
-          'content-type': 'application/json; charset=utf-8',
-          'cache-control': 'no-store'
-        }
-      });
-    }
-    return env.ASSETS.fetch(request);
+  async fetch() {
+    return new Response('actascopropiedad.cl — servicio temporalmente no disponible.', {
+      status: 503,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'cache-control': 'no-store',
+        'retry-after': '86400'
+      }
+    });
   }
 };
