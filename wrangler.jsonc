@@ -9,7 +9,10 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": true
+    "run_worker_first": true,
+    // Una direccion inexistente muestra 404.html en vez de la pagina en blanco
+    // de Cloudflare. El Worker cae aqui al final de su fetch.
+    "not_found_handling": "404-page"
   },
   "compatibility_flags": [
     "nodejs_compat"
@@ -29,7 +32,7 @@
   "kv_namespaces": [
     {
       "binding": "PAGOS",
-      "id": "REEMPLAZAR_POR_EL_ID_QUE_ENTREGA_WRANGLER"
+      "id": "a84adbcceda649c288cc76baab3ec03c"
     }
   ]
 

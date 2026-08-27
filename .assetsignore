@@ -2,6 +2,20 @@ _worker.js
 consulta.js
 correo.js
 wrangler.jsonc
+# Estado local de wrangler. Sin esta linea, 'wrangler deploy' publica los
+# temporales de 'wrangler dev' -incluido el source map del Worker y el id
+# de la cuenta de Cloudflare- como archivos servibles del sitio.
+.wrangler
+# El repositorio git y las dependencias tampoco son parte del sitio.
+# Publicar .git dejaria el historial completo descargable.
+.git
+node_modules
+
+# Trabajo en curso. Llevan guion bajo justamente porque no son parte del
+# sitio publicado: el acta de comite a medio hacer y el banco falso de
+# pruebas de pago. Sin estas lineas quedan accesibles en produccion.
+_prueba-comite.html
+_pruebas
 .assetsignore
 .gitignore
 .dev.vars

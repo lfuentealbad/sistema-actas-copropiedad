@@ -1,0 +1,15 @@
+# Los archivos de texto se guardan y se sacan SIEMPRE con finales de linea LF.
+# Sin esto, core.autocrlf=true reescribe el arbol a CRLF en cada checkout y las
+# pruebas -que buscan patrones con \n- fallan sin que nadie haya tocado el
+# codigo. Paso el 27-08-2026 tras un "git checkout main".
+* text=auto eol=lf
+
+# Binarios: que git no los toque nunca.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff  binary
+*.woff2 binary
+*.pdf binary
