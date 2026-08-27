@@ -10,8 +10,15 @@
  *  con folio — sin pasarela de pago, que hoy está cerrada a propósito.
  *
  *  Lo único que aquí se finge es el cobro. En producción el folio lo pone
- *  Postgres y solo si la llave del pago es válida y no se ha usado: dos
- *  triggers reponen 'pagada' y 'folio' si alguien los escribe a mano.
+ *  Postgres y solo si la llave del pago es válida y no se ha usado:
+ *  'pagada', 'folio' y 'orden' no están entre las columnas que el navegador
+ *  tiene permiso de escribir, así que solo las mueve ac_finalizar.
+ *
+ *  (Este simulador copia solo las columnas editables, que es justo lo que
+ *  hacen los privilegios de columna. Ojo: por eso mismo NO puede detectar
+ *  fallas del lado de Postgres —como el trigger que hasta el 27-08-2026
+ *  revertía la finalización—; eso lo vigila Pruebas/prueba-sellado-actas.mjs
+ *  leyendo el .sql.)
  *
  *  Solo corre en localhost: si llegara a producción, se ignora solo.
  * ===================================================================== */
