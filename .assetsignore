@@ -1,4 +1,14 @@
 _worker.js
+consulta.js
+correo.js
 wrangler.jsonc
 .assetsignore
 .gitignore
+.dev.vars
+
+# Capturas y tutoriales de la version anterior: nadie los enlaza y muestran
+# el nombre viejo, la cabecera antigua y un padron sin la columna de correo.
+# Se conservan en el repositorio, pero dejan de servirse.
+preview-acta.png
+tutorial-acta.gif
+tutorial-votacion.gif

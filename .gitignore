@@ -11,9 +11,17 @@ _app_check.js
 .vscode/
 .idea/
 
+# Estado local de wrangler
+.wrangler/
+
 # Secretos / credenciales (prevención — no subir jamás al repositorio)
 .env
 .env.*
+# .dev.vars es donde wrangler guarda los secretos para "wrangler dev".
+# Si se comitea, las credenciales de Flow y el secreto de pago quedan
+# publicados en GitHub y desplegados con el sitio.
+.dev.vars
+.dev.vars.*
 *.pem
 *.key
 *.p12

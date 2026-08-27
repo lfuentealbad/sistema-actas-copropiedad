@@ -13,5 +13,32 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+
+  // RECESO=1 deja el sitio fuera de linea. Poner "0" para reactivarlo.
+  // FLOW_ENTORNO: "sandbox" mientras se prueba, "produccion" para cobrar de verdad.
+  "vars": {
+    "RECESO": "1",
+    "FLOW_ENTORNO": "sandbox",
+    "PRECIO_CLP": "14990",
+    "PRECIO_CONSULTA_CLP": "7990"
+  },
+
+  // Crear con:  wrangler kv namespace create PAGOS
+  // y pegar aqui el id que entrega el comando.
+  "kv_namespaces": [
+    {
+      "binding": "PAGOS",
+      "id": "REEMPLAZAR_POR_EL_ID_QUE_ENTREGA_WRANGLER"
+    }
   ]
+
+  // Secretos (NO van en este archivo, se cargan con "wrangler secret put"):
+  //   FLOW_API_KEY, FLOW_SECRET_KEY, PAGO_SECRET
+  //   SUPABASE_URL, SUPABASE_ANON, CORREO_SECRET  -> respuestas de consulta escrita
+  //   CORREO_FALLBACK -> casilla humana donde caen las respuestas que no se
+  //                      pudieron registrar. Sin esto, se pierden en silencio.
+  //
+  // Ademas hay que enrutar el correo entrante:
+  //   Cloudflare -> Email Routing -> catch-all -> "Send to a Worker"
 }

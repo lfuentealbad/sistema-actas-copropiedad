@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="same-origin">
+<title>Consulta por escrito · actaviva</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#1E3A6E">
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<script src="/vendor/supabase.min.js"></script>
+<script src="/vendor/xlsx.full.min.js"></script>
+<script src="/cuenta.js"></script>
+<style>
+  :root{
+    --graf:#1E3A6E; --graf2:#152A52; --graf3:#2C5091;
+    --teal:#0B6BB5; --teal2:#3E93CE; --teal-pale:#E6F0F8;
+    --ok:#1A6B3F; --ok-bg:#E1F2E8;
+    --err:#B23A2E; --err-bg:#F6E6E3;
+    --warn:#9A6B1F; --warn-bg:#FBF3E3;
+    --bg:#F3F7FB; --surface:#FFFFFF; --border:#CFE1F1;
+    --tx:#24282D; --tx2:#5C6168; --tx3:#6E7276; --r:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Source Sans 3',system-ui,sans-serif;background:var(--bg);color:var(--tx);line-height:1.55;-webkit-font-smoothing:antialiased;}
+  header{background:linear-gradient(130deg,var(--graf3),var(--graf) 45%,var(--graf2));color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  header .sub{font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
+  header .brandline{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+  header .wm{font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:600;letter-spacing:-.02em;line-height:1;color:#fff;}
+  header .wm i{font-style:normal;color:#8CC3E8;}
+  header .wm em{font-style:normal;color:#F2803D;}
+  header h1{font-size:17px;font-weight:700;margin:0;letter-spacing:-.2px;}
+  .wrap{max-width:900px;margin:0 auto;padding:22px 18px 70px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:0 2px 8px rgba(20,24,30,.05);margin-bottom:16px;}
+  .card h2{margin:0 0 4px;font-size:19px;color:var(--graf);font-weight:600;}
+  .card h3{margin:18px 0 8px;font-size:15px;color:var(--graf);font-weight:600;}
+  .muted{color:var(--tx2);font-size:14px;}
+  .btn{font-family:inherit;font-size:15px;font-weight:600;border:none;border-radius:12px;padding:12px 20px;cursor:pointer;transition:background .15s,transform .12s;min-height:46px;}
+  .btn:active{transform:translateY(1px);} .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-primary{background:var(--graf);color:#fff;} .btn-primary:hover{background:var(--graf2);}
+  .btn-teal{background:var(--teal);color:#fff;} .btn-teal:hover{background:var(--teal2);}
+  .btn-ghost{background:transparent;color:var(--graf);border:1.5px solid var(--graf);} .btn-ghost:hover{background:#eef4fa;}
+  .btn-sm{padding:7px 13px;font-size:13px;min-height:auto;border-radius:9px;}
+  :focus-visible{outline:3px solid var(--teal2);outline-offset:2px;border-radius:8px;}
+  header :focus-visible{outline-color:#fff;}
+  input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDCFC9;border-radius:11px;min-height:44px;background:#fff;}
+  textarea{min-height:110px;line-height:1.5;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(11,107,181,.18);}
+  label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin-bottom:5px;}
+  .campo{margin-bottom:14px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .hidden{display:none!important;}
+  .aviso{border-radius:11px;padding:12px 14px;font-size:13.5px;line-height:1.5;margin-top:12px;white-space:pre-wrap;}
+  .aviso.ok{background:var(--ok-bg);color:#155e37;}
+  .aviso.err{background:var(--err-bg);color:var(--err);}
+  .aviso.warn{background:var(--warn-bg);color:var(--warn);}
+  .casilla{background:var(--teal-pale);border:1px dashed var(--teal);border-radius:11px;padding:14px;margin-top:12px;}
+  .casilla code{font-size:16px;font-weight:700;color:var(--graf);word-break:break-all;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:10px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);padding:8px 6px;border-bottom:1.5px solid var(--border);}
+  td{padding:9px 6px;border-bottom:1px solid #EDF3F9;vertical-align:top;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .pill.a{background:var(--ok-bg);color:var(--ok);}
+  .pill.r{background:var(--err-bg);color:var(--err);}
+  .pill.x{background:var(--warn-bg);color:var(--warn);}
+  .pill.n{background:#EEF2F6;color:var(--tx3);}
+  .marcador{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:14px 0 4px;}
+  .mk{background:#F7FAFD;border:1px solid var(--border);border-radius:11px;padding:12px 14px;}
+  .mk b{display:block;font-size:22px;color:var(--graf);line-height:1.2;font-variant-numeric:tabular-nums;}
+  .mk span{font-size:11.5px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+  .barra{height:9px;border-radius:5px;background:#E6EDF4;overflow:hidden;display:flex;margin-top:10px;}
+  .barra i{display:block;height:100%;}
+  .cita{background:#F7FAFD;border-left:3px solid var(--border);padding:8px 11px;font-size:13px;color:var(--tx2);white-space:pre-wrap;margin-top:6px;border-radius:0 6px 6px 0;max-height:120px;overflow:auto;}
+</style>
+</head>
+<body>
+
+<header>
+  <div><div class="brandline"><span class="wm">acta<i>viva</i><em>.</em></span><span class="sub">Ley N° 21.442 · Art. 15</span></div><h1>Consulta por escrito</h1></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span class="pill n" id="estado-pill">Sin consulta</span>
+    <div id="nav-cuenta"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card" id="c-nueva">
+    <h2>Nueva consulta</h2>
+    <p class="muted">La ley exige exponer la propuesta en una sesión informativa previa y fijar un plazo para responder. Ambas cosas quedan registradas aquí.</p>
+
+    <h3>La materia</h3>
+    <div class="campo"><label for="f-condo">Condominio</label><input type="text" id="f-condo" maxlength="120" placeholder="Condominio Los Aromos"></div>
+    <div class="campo"><label for="f-materia">Qué se somete a acuerdo</label><textarea id="f-materia" maxlength="2000" placeholder="Aprobar el gasto extraordinario de $2.400.000 para la reparación de la bomba de agua, según cotización adjunta."></textarea></div>
+    <div class="grid2">
+      <div class="campo"><label for="f-tipo">Quórum aplicable</label>
+        <select id="f-tipo">
+          <option value="ordinaria">Ordinaria — mayoría de los asistentes</option>
+          <option value="ext-abs">Extraordinaria absoluta — 50+1% de los derechos (mínimo 51%)</option>
+          <option value="ext-ref">Extraordinaria reforzada — 66% de los derechos</option>
+        </select></div>
+      <div class="campo"><label for="f-plazo">El plazo vence</label><input type="datetime-local" id="f-plazo"></div>
+    </div>
+
+    <h3>Sesión informativa previa</h3>
+    <p class="muted">No requiere quórum para constituirse, pero debe haberse realizado.</p>
+    <div class="grid3" style="margin-top:10px">
+      <div class="campo"><label for="f-if">Fecha y hora</label><input type="datetime-local" id="f-if"></div>
+      <div class="campo"><label for="f-im">Modalidad</label>
+        <select id="f-im"><option value="presencial">Presencial</option><option value="telematica">Telemática</option><option value="mixta">Mixta</option></select></div>
+      <div class="campo"><label for="f-ia">Asistentes</label><input type="number" id="f-ia" min="0" max="9999" value="0"></div>
+    </div>
+    <div class="campo"><label for="f-io">Observaciones (opcional)</label><input type="text" id="f-io" maxlength="300" placeholder="Se expuso la cotización y se respondieron consultas."></div>
+
+    <button class="btn btn-primary" style="width:100%" data-ac="crear" data-args="@">Crear consulta</button>
+    <div id="nueva-msg" class="aviso hidden"></div>
+
+    <div id="c-pago" class="hidden" style="margin-top:16px">
+      <div id="cta-host"></div>
+      <div id="pago-listo" class="hidden" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:#F7FAFD">
+        <div style="font-weight:700;color:var(--graf);margin-bottom:5px">Active esta asamblea</div>
+        <p class="muted" style="margin:0 0 12px">Un pago por asamblea, que cubre <strong>el acta, esta consulta y la votación en vivo</strong> de la misma reunión. El comprobante llegará a <strong id="p-correo">—</strong>.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-teal btn-sm" data-ac="irAPagar" data-args="@">Ir a pagar</button>
+          <button class="btn btn-ghost btn-sm" data-ac="cerrarPago">Cancelar</button>
+          <button class="btn btn-ghost btn-sm" data-ac="cerrarSesion" data-args="@">No soy yo</button>
+        </div>
+        <div id="pago-msg" class="aviso hidden"></div>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top:16px">¿Ya tiene una consulta en curso? <a href="#" id="lnk-reanudar">Recuperarla</a>.</p>
+    <div id="mis-consultas" class="hidden" style="margin-top:12px;border:1px solid var(--border);border-radius:11px;padding:14px 16px;background:#F7FAFD">
+      <div style="font-size:13px;font-weight:700;color:var(--graf);margin-bottom:8px">Sus consultas</div>
+      <div id="mis-lista"></div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="c-padron">
+    <h2>Padrón de copropietarios</h2>
+    <p class="muted">Los correos deben ser los del <strong>Registro de Copropietarios</strong>: la respuesta vale porque llega desde esa casilla (art. 17 del reglamento).</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">
+      <label class="btn btn-ghost btn-sm" style="display:inline-flex;align-items:center;margin:0">
+        Importar desde Excel <input type="file" id="f-xlsx" accept=".xlsx,.xls,.csv" class="hidden">
+      </label>
+      <button class="btn btn-ghost btn-sm" data-ac="descargarPlantilla">Descargar plantilla Excel</button>
+      <button class="btn btn-ghost btn-sm" data-ac="ejemplo">Ver formato esperado</button>
+    </div>
+    <div class="campo">
+      <label for="f-padron">O pegue aquí las columnas: unidad, nombre, RUT, correo, derechos</label>
+      <textarea id="f-padron" placeholder="101	María Soto	12.345.678-5	maria@correo.cl	2.5&#10;102	Juan Pérez	11.111.111-1	juan@correo.cl	2.5"></textarea>
+    </div>
+    <button class="btn btn-teal" style="width:100%" data-ac="guardarPadron" data-args="@">Guardar padrón</button>
+    <div id="padron-msg" class="aviso hidden"></div>
+  </div>
+
+  <div class="card hidden" id="c-panel">
+    <h2>Consulta <span id="p-codigo" style="letter-spacing:2px"></span></h2>
+    <p class="muted" id="p-materia"></p>
+
+    <div class="casilla">
+      <div style="font-size:12px;font-weight:700;color:var(--graf);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Casilla de respuesta</div>
+      <code id="p-casilla">—</code>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">Envíe la consulta desde el correo de la administración indicando esta dirección como destinatario de respuesta. Cada copropietario responde <strong>desde su casilla registrada</strong> escribiendo «apruebo» o «rechazo».</p>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px" data-ac="copiarTexto" data-args="@">Copiar texto sugerido</button>
+    </div>
+
+    <div class="marcador">
+      <div class="mk"><b id="m-aprueba">0,00%</b><span>Aprueba</span></div>
+      <div class="mk"><b id="m-rechaza">0,00%</b><span>Rechaza</span></div>
+      <div class="mk"><b id="m-falta">0</b><span>Sin responder</span></div>
+      <div class="mk"><b id="m-amb">0</b><span>Por revisar</span></div>
+    </div>
+    <div class="barra"><i id="b-a" style="background:var(--ok);width:0"></i><i id="b-r" style="background:var(--err);width:0"></i></div>
+    <div id="p-veredicto" class="aviso warn" style="margin-top:14px">Esperando respuestas.</div>
+
+    <h3>Respuestas</h3>
+    <div style="overflow-x:auto"><table id="p-tabla"><thead><tr>
+      <th>Unidad</th><th>Copropietario</th><th>Derechos</th><th>Respuesta</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+      <button class="btn btn-ghost btn-sm" data-ac="refrescar" data-args="b:true">Actualizar</button>
+      <button class="btn btn-teal btn-sm" data-ac="generarDocumento" data-args="@">Generar documento</button>
+      <button class="btn btn-primary btn-sm" data-ac="cerrar" data-args="@">Cerrar consulta</button>
+    </div>
+    <div id="panel-msg" class="aviso hidden"></div>
+  </div>
+
+</div>
+
+<script src="/js/acciones.js"></script>
+<script src="/js/consulta-1.js"></script>
+<script src="/js/consulta-2.js"></script>
+</body>
+</html>

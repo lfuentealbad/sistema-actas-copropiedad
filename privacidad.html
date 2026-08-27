@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Aviso de privacidad del Sistema de Actas de Copropiedad: el acta se genera en su equipo, la analítica es anónima y sin cookies, y los datos de la votación los controla la administración de cada comunidad. Conforme a la Ley N° 21.719.">
-<title>Aviso de privacidad · actaviva</title>
+<meta name="description" content="Declaración de privacidad de actaviva: qué datos pedimos, para qué los usamos, con quién los compartimos, cuánto los guardamos y cómo ejercer sus derechos. Conforme a la Ley N° 21.719.">
+<title>Declaración de privacidad · actaviva</title>
 <link rel="canonical" href="https://actascopropiedad.cl/privacidad">
 <meta name="theme-color" content="#1E3A6E">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="actaviva">
 <meta property="og:locale" content="es_CL">
 <meta property="og:url" content="https://actascopropiedad.cl/privacidad">
-<meta property="og:title" content="Aviso de privacidad · actaviva">
-<meta property="og:description" content="El acta se genera en su equipo, la analítica es anónima y sin cookies, y los datos de la votación los controla la administración de cada comunidad.">
+<meta property="og:title" content="Declaración de privacidad · actaviva">
+<meta property="og:description" content="Qué datos pedimos, para qué los usamos, cuánto los guardamos y cómo pedir que los borremos. En preguntas concretas.">
 <meta property="og:image" content="https://actascopropiedad.cl/og.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -23,13 +22,13 @@
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
   :root{
     --ink:#1E3A6E; --teal:#0B6BB5; --teal-d:#0B6BB5; --teal-l:#8CC3E8;
-    --gold:#0B6BB5; --orange:#E5692A; --cream:#F3F7FB; --paper:#FBFAF7; --surface:#FFFFFF;
+    --orange:#E5692A; --cream:#F3F7FB; --surface:#FFFFFF;
     --line:rgba(20,24,30,.09); --line-soft:rgba(20,24,30,.06);
-    --tx:#1A3160; --tx2:#4B5C74; --tx3:#8995A7;
+    --tx:#1A3160; --tx2:#4B5C74; --tx3:#647188;
+    --warn:#9A6B1F; --warn-bg:#FBF3E3; --warn-line:#E7D3A4;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Source Sans 3',system-ui,-apple-system,sans-serif;
     --sh-sm:0 2px 8px rgba(20,24,30,.06);
-    --sh:0 14px 40px -12px rgba(20,24,30,.18);
     --ease:cubic-bezier(.22,.61,.36,1);
   }
   *{box-sizing:border-box;}
@@ -40,124 +39,571 @@
   a{color:var(--teal-d);text-decoration:none;}
   a:hover{text-decoration:underline;}
   :focus-visible{outline:3px solid var(--teal-d);outline-offset:3px;border-radius:5px;}
-  .wrap{max-width:760px;margin:0 auto;padding:0 26px;}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 26px;}
 
-  
-  header{position:sticky;top:0;z-index:100;background:rgba(245,243,238,.82);backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line-soft);}
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:15px 0;max-width:1140px;margin:0 auto;padding-left:26px;padding-right:26px;}
+  /* ---- cabecera del sitio ---- */
+  header.site{position:sticky;top:0;z-index:100;background:rgba(243,247,251,.86);backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line-soft);}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 26px;max-width:1140px;margin:0 auto;}
+  .nav > #nav-cuenta{margin-left:auto;}
   .brand{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);font-size:16.5px;}
-  .brand svg{width:34px;height:34px;flex-shrink:0;filter:drop-shadow(0 4px 8px rgba(20,24,30,.18));}
   .brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 560;font-weight:560;font-size:23px;line-height:1;letter-spacing:-.035em;}
-  .brand b i,.foot-brand b i{font-style:normal;color:var(--orange);}
-  .foot-brand b{font-size:21px;letter-spacing:-.035em;}
+  .brand b i,.foot-brand b i{font-style:normal;color:var(--teal);}
+  .brand b em,.foot-brand b em{font-style:normal;color:var(--orange);}
   .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
-  .nav-cta{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:#1E3A6E;background:linear-gradient(180deg,#8CC3E8 0%,#0B6BB5 100%);padding:10px 18px;border-radius:11px;box-shadow:0 8px 20px -8px rgba(11,107,181,.5);transition:transform .25s var(--ease);}
+  .nav-cta{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:#1E3A6E;background:linear-gradient(180deg,#8CC3E8 0%,#0B6BB5 100%);padding:10px 18px;border-radius:11px;box-shadow:0 8px 20px -8px rgba(11,107,181,.5);transition:transform .25s var(--ease);min-height:44px;}
   .nav-cta:hover{transform:translateY(-2px);text-decoration:none;}
 
-  
-  .doc-head{padding:64px 0 40px;border-bottom:1px solid var(--line);}
-  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-d);margin-bottom:18px;}
+  .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:#fff;padding:12px 18px;border-radius:0 0 10px 0;z-index:200;font-weight:600;}
+  .skip:focus{left:0;text-decoration:none;}
+
+  /* ---- portada del documento ---- */
+  .doc-head{padding:58px 0 34px;max-width:760px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-d);margin-bottom:16px;}
   .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--teal);opacity:.6;}
   h1{font-family:var(--serif);font-variation-settings:'opsz' 120,'wght' 560;font-weight:560;font-size:clamp(32px,6vw,46px);line-height:1.08;letter-spacing:-.02em;color:var(--ink);margin:0 0 14px;}
-  .lede{font-size:19px;color:var(--tx2);max-width:62ch;margin:0;}
-  .updated{margin-top:18px;font-size:13.5px;color:var(--tx2);letter-spacing:.02em;}
+  .lede{font-size:19px;color:var(--tx2);max-width:60ch;margin:0;}
+  .meta{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13.5px;color:var(--tx2);}
+  .meta .sello{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;color:var(--ink);}
+  .meta .sello svg{width:15px;height:15px;color:var(--teal-d);}
 
-  
-  .tldr{margin:34px 0 8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:var(--sh-sm);}
-  .tldr h2{font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-d);margin:0 0 14px;}
-  .tldr ul{margin:0;padding:0;list-style:none;display:grid;gap:12px;}
-  .tldr li{display:flex;gap:12px;align-items:flex-start;font-size:16px;color:var(--tx);}
-  .tldr li svg{width:20px;height:20px;flex-shrink:0;margin-top:2px;color:var(--teal-d);}
+  /* ---- resumen ---- */
+  .resumen{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:var(--sh-sm);max-width:760px;}
+  .resumen h2{font-family:var(--sans);font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-d);margin:0 0 15px;}
+  .resumen ul{margin:0;padding:0;list-style:none;display:grid;gap:12px;}
+  .resumen li{display:flex;gap:12px;align-items:flex-start;font-size:16px;color:var(--tx);line-height:1.55;}
+  .resumen li svg{width:19px;height:19px;flex-shrink:0;margin-top:3px;color:var(--teal-d);}
 
-  
-  .pblocks{margin:34px 0 6px;}
-  .pblock{display:flex;gap:16px;align-items:flex-start;padding:22px 0;border-bottom:1px solid var(--line-soft);}
-  .pblock:last-child{border-bottom:none;}
-  .pblock .ic{flex-shrink:0;width:36px;height:36px;border-radius:10px;background:rgba(11,107,181,.08);display:flex;align-items:center;justify-content:center;margin-top:2px;}
-  .pblock .ic svg{width:19px;height:19px;color:var(--teal-d);}
-  .pblock h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:20px;letter-spacing:-.01em;color:var(--ink);margin:0 0 5px;}
-  .pblock p{margin:0;color:var(--tx2);font-size:16px;line-height:1.6;}
-  strong{color:var(--ink);font-weight:600;}
-  .pclose{margin:24px 0 0;font-size:14px;color:var(--tx2);}
-  .pclose a{color:var(--teal-d);font-weight:600;}
+  /* ---- buscador ---- */
+  .buscador{margin:34px 0 0;max-width:760px;}
+  .bcampo{position:relative;display:flex;align-items:center;}
+  .bcampo svg{position:absolute;left:16px;width:19px;height:19px;color:var(--tx3);pointer-events:none;}
+  .bcampo input{width:100%;font-family:inherit;font-size:16.5px;color:var(--tx);background:var(--surface);
+    border:1.5px solid var(--line);border-radius:13px;padding:13px 46px 13px 45px;min-height:50px;box-shadow:var(--sh-sm);}
+  .bcampo input::placeholder{color:var(--tx3);}
+  .bcampo input:focus{outline:none;border-color:var(--teal-d);box-shadow:0 0 0 4px rgba(11,107,181,.16);}
+  .bcampo button{position:absolute;right:8px;width:34px;height:34px;border:none;background:transparent;color:var(--tx3);
+    cursor:pointer;border-radius:8px;display:none;align-items:center;justify-content:center;font-size:20px;line-height:1;}
+  .bcampo button:hover{color:var(--ink);background:rgba(20,24,30,.05);}
+  .bcampo.tiene button{display:flex;}
+  .bstat{margin:10px 2px 0;font-size:14px;color:var(--tx2);min-height:21px;}
+  mark{background:#FDECC8;color:inherit;border-radius:3px;padding:0 2px;}
 
-  
-  footer.site{border-top:1px solid var(--line);padding:48px 0 44px;margin-top:30px;}
-  footer.site .wrap{max-width:1140px;}
+  /* ---- cuerpo a dos columnas ---- */
+  .cuerpo{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:40px 0 0;}
+  .cuerpo > *{min-width:0;}
+  @media (min-width:1000px){
+    .cuerpo{grid-template-columns:250px minmax(0,1fr);gap:56px;align-items:start;}
+    .indice{position:sticky;top:92px;max-height:calc(100vh - 120px);overflow:auto;}
+  }
+  .indice h2{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin:0 0 12px;}
+  .indice ol{list-style:none;margin:0;padding:0;counter-reset:ix;}
+  .indice li{counter-increment:ix;}
+  .indice a{display:flex;gap:10px;align-items:baseline;padding:8px 10px;border-radius:9px;font-size:14.5px;line-height:1.4;color:var(--tx2);border-left:2px solid transparent;}
+  .indice a::before{content:counter(ix);font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;color:var(--tx3);flex-shrink:0;min-width:14px;}
+  .indice a:hover{background:rgba(11,107,181,.06);color:var(--ink);text-decoration:none;}
+  .indice a.act{color:var(--ink);font-weight:600;border-left-color:var(--teal);background:rgba(11,107,181,.05);}
+  .indice a.act::before{color:var(--teal-d);}
+
+  /* índice como acordeón en móvil */
+  .indice-movil{display:block;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-sm);margin-bottom:28px;}
+  .indice-movil > summary{cursor:pointer;list-style:none;padding:15px 18px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:50px;}
+  .indice-movil > summary::-webkit-details-marker{display:none;}
+  .indice-movil > summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--tx3);border-bottom:2px solid var(--tx3);transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease);flex-shrink:0;}
+  .indice-movil[open] > summary::after{transform:rotate(-135deg) translateY(-2px);}
+  .indice-movil .env{padding:0 10px 12px;}
+  @media (min-width:1000px){ .indice-movil{display:none;} }
+  @media (max-width:999px){ .indice{display:none;} }
+
+  /* ---- preguntas ---- */
+  .preguntas{max-width:760px;min-width:0;}
+  .q{padding:26px 0 24px;border-top:1px solid var(--line);scroll-margin-top:92px;}
+  .q:first-child{border-top:none;padding-top:0;}
+  .q > h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:clamp(21px,3.2vw,25px);line-height:1.25;letter-spacing:-.015em;color:var(--ink);margin:0 0 9px;}
+  .q .sum{margin:0;font-size:17px;color:var(--tx2);line-height:1.6;}
+  .q strong{color:var(--ink);font-weight:600;}
+
+  details.mas{margin-top:14px;}
+  details.mas > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:8px;
+    font-size:14.5px;font-weight:600;color:var(--teal-d);padding:9px 14px;min-height:44px;border-radius:10px;
+    background:rgba(11,107,181,.06);transition:background .18s var(--ease);}
+  details.mas > summary::-webkit-details-marker{display:none;}
+  details.mas > summary:hover{background:rgba(11,107,181,.12);}
+  details.mas > summary::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease);}
+  details.mas[open] > summary::after{transform:rotate(-135deg) translateY(0);}
+  details.mas[open] > summary .cerrado{display:none;}
+  details.mas:not([open]) > summary .abierto{display:none;}
+  .det{padding:18px 0 4px;font-size:16px;color:var(--tx2);line-height:1.68;min-width:0;}
+  .det p{margin:0 0 12px;}
+  .det p:last-child{margin-bottom:0;}
+  .det h3{font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);margin:22px 0 9px;}
+  .det ul{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:9px;}
+  .det ul li{padding-left:19px;position:relative;}
+  .det ul li::before{content:"";position:absolute;left:3px;top:10px;width:5px;height:5px;border-radius:50%;background:var(--teal-l);}
+  .det ol{margin:0 0 12px;padding-left:22px;display:grid;gap:9px;}
+
+  .tabla{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);}
+  table{width:100%;border-collapse:collapse;font-size:15px;min-width:440px;}
+  th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);padding:11px 14px;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+  td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--tx2);}
+  tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);font-weight:600;}
+
+  .ficha{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:17px 19px;margin:0 0 14px;}
+  .ficha b.t{display:block;font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-d);margin-bottom:7px;}
+  .ficha p{margin:0 0 6px;font-size:15.5px;}
+  .ficha p:last-child{margin-bottom:0;}
+
+  .todo{background:var(--warn-bg);border:1px dashed var(--warn-line);border-radius:11px;padding:12px 15px;font-size:14.5px;color:var(--warn);margin:0 0 14px;}
+  .todo b{color:var(--warn);}
+
+  .nota-i{background:#F7FAFD;border-left:3px solid var(--teal);padding:11px 15px;border-radius:0 9px 9px 0;font-size:15.5px;color:var(--tx2);margin:14px 0 0;}
+  .nota{border-left:3px solid var(--teal-l);padding:2px 0 2px 15px;margin:14px 0;font-size:15.5px;color:var(--tx2);}
+
+  /* ---- glosario ---- */
+  .glos{max-width:760px;margin-top:8px;}
+  .glos dl{margin:0;display:grid;gap:0;}
+  .glos dt{font-weight:600;color:var(--ink);font-size:16px;padding-top:14px;}
+  .glos dd{margin:3px 0 0;padding-bottom:14px;border-bottom:1px solid var(--line-soft);color:var(--tx2);font-size:15.5px;}
+  .glos dd:last-child{border-bottom:none;}
+
+  /* ---- contacto ---- */
+  .contacto{max-width:760px;margin:44px 0 0;background:linear-gradient(150deg,#1E3A6E,#152A52);color:#fff;border-radius:20px;padding:32px 30px;}
+  .contacto h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:24px;margin:0 0 8px;color:#fff;letter-spacing:-.015em;}
+  .contacto p{margin:0 0 16px;color:rgba(255,255,255,.82);font-size:16.5px;line-height:1.6;}
+  .contacto a.bt{display:inline-flex;align-items:center;gap:9px;background:#fff;color:var(--ink);font-weight:700;font-size:16px;padding:13px 22px;border-radius:12px;min-height:48px;}
+  .contacto a.bt:hover{text-decoration:none;transform:translateY(-2px);}
+  .contacto a.bt{transition:transform .22s var(--ease);}
+  .contacto small{display:block;margin-top:14px;color:rgba(255,255,255,.6);font-size:13.5px;}
+  .contacto small a{color:rgba(255,255,255,.9);text-decoration:underline;}
+
+  .sinres{display:none;max-width:760px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;text-align:center;color:var(--tx2);}
+  .sinres b{display:block;color:var(--ink);margin-bottom:5px;font-size:17px;}
+
+  /* ---- pie ---- */
+  footer.site{border-top:1px solid var(--line);padding:48px 0 44px;margin-top:56px;}
   .foot-row{display:flex;flex-wrap:wrap;gap:22px;justify-content:space-between;align-items:center;}
   .foot-brand{display:flex;align-items:center;gap:11px;color:var(--ink);font-weight:700;}
-  .foot-brand svg{width:30px;height:30px;}
-  .foot-brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;}
-  .foot-links{display:flex;gap:22px;font-size:14.5px;}
+  .foot-brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;font-size:21px;letter-spacing:-.035em;}
+  .foot-links{display:flex;flex-wrap:wrap;gap:22px;font-size:14.5px;}
   .foot-links a{color:var(--teal-d);font-weight:600;}
   .foot-links a:hover{color:var(--ink);text-decoration:none;}
   .foot-legal{margin-top:22px;font-size:13px;color:var(--tx2);line-height:1.7;}
 
   @media (max-width:560px){
-    .doc-head{padding:44px 0 32px;}
+    body{font-size:16.5px;}
+    .doc-head{padding:40px 0 28px;}
     .brand small{display:none;}
+    .nav-cta{padding:10px 14px;font-size:14px;}
+    .contacto{padding:26px 22px;border-radius:16px;}
   }
-  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *{transition:none!important;animation:none!important;}
+  }
 </style>
 </head>
 <body>
 
-<header>
+<a class="skip" href="#doc">Ir al contenido</a>
+
+<header class="site">
   <div class="nav">
     <a class="brand" href="/">
-      <span><b>acta<i>viva.</i></b><small>Actas y votación en vivo</small></span>
+      <span><b>acta<i>viva</i><em>.</em></b><small>Actas y votación en vivo</small></span>
     </a>
-    <a class="nav-cta" href="/acta">Entrar al sistema →</a>
+    <div id="nav-cuenta"></div>
+    <a class="nav-cta" href="/acta">Comenzar mi acta →</a>
   </div>
 </header>
 
-<main class="wrap">
+<main class="wrap" id="doc">
+
   <div class="doc-head">
-    <span class="eyebrow">Privacidad</span>
-    <h1>Sus datos, en simple.</h1>
-    <p class="lede">Pedimos lo mínimo, medimos de forma anónima y usted mantiene el control. Sin letra chica.</p>
-    <p class="updated">Actualizado en julio de 2026 · Conforme a la Ley N° 21.719</p>
-  </div>
-
-  <div class="pblocks">
-    <div class="pblock">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8V7z"/></svg></span>
-      <div>
-        <h2>El documento del acta no se guarda</h2>
-        <p>El <strong>documento del acta</strong> se redacta y arma en su propio equipo; su contenido <strong>no viaja ni se almacena en ningún servidor</strong>. Nadie —tampoco nosotros— puede pedir una copia. (La votación en vivo, si se usa, es aparte: ver más abajo.)</p>
-      </div>
-    </div>
-    <div class="pblock">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-      <div>
-        <h2>Lo único que guardamos: tres datos</h2>
-        <p>Al entrar por primera vez le pedimos <strong>nombre, correo y comuna</strong>, y confirmamos el correo con un código. Es lo <strong>único que guardamos de usted</strong> —para saber quiénes usan el sistema y mejorarlo—; no lo compartimos ni lo vendemos, y puede <strong>borrarlo cuando quiera</strong>.</p>
-      </div>
-    </div>
-    <div class="pblock">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span>
-      <div>
-        <h2>Medimos el uso de forma anónima</h2>
-        <p>Contamos cuántas personas entran y qué hacen, para mejorar la herramienta, <strong>sin cookies y sin identificar a nadie</strong>.</p>
-      </div>
-    </div>
-    <div class="pblock">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
-      <div>
-        <h2>La votación la maneja su comunidad</h2>
-        <p>Si usa la votación en vivo, el padrón (<strong>RUT y nombres</strong>) y los votos se procesan de forma <strong>temporal en un servidor cifrado</strong>, bajo el control de la <strong>administración de su comunidad</strong>. Se usan solo para esa asamblea y <strong>se borran al terminar</strong> —con un botón, o de forma automática a las 48 horas.</p>
-      </div>
-    </div>
-    <div class="pblock">
-      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8V7z"/></svg></span>
-      <div>
-        <h2>Usted manda sobre sus datos</h2>
-        <p>Puede pedir <strong>ver, corregir o borrar</strong> su registro cuando quiera, escribiendo a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>. Le responderemos a la brevedad.</p>
-      </div>
+    <span class="eyebrow">Centro de privacidad</span>
+    <h1>Declaración de privacidad</h1>
+    <p class="lede">Qué datos le pedimos, para qué los usamos, con quién los compartimos, cuánto los guardamos y cómo puede pedirnos que los borremos. En preguntas concretas y sin letra chica.</p>
+    <div class="meta">
+      <span class="sello"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8V7z"/></svg>Ley N° 21.719</span>
+      <span>Versión 3 · vigente desde el 20 de agosto de 2026</span>
+      <a href="#p14">Ver el historial de cambios</a>
     </div>
   </div>
 
-  <p class="pclose">Si cambiamos algo importante en cómo tratamos sus datos, lo verá actualizado en esta misma página.</p>
+  <div class="resumen">
+    <h2>Lo esencial, en cuatro líneas</h2>
+    <ul>
+      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>El <strong>acta se guarda en su cuenta</strong>, con los nombres, RUT y votos que usted cargue. Solo usted la ve, y puede borrarla cuando quiera.</span></li>
+      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>De su cuenta guardamos <strong>su correo y sus compras</strong>. Nada más. No vendemos datos ni enviamos publicidad.</span></li>
+      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>El padrón y los votos de una asamblea <strong>se borran al terminar</strong>, y de forma automática a las 48 horas.</span></li>
+      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Puede pedirnos <strong>ver, corregir o borrar</strong> sus datos escribiendo a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>.</span></li>
+    </ul>
+  </div>
+
+  <div class="buscador">
+    <div class="bcampo" id="bcampo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <label class="skip" for="q-buscar">Buscar en esta declaración</label>
+      <input type="search" id="q-buscar" placeholder="Buscar en esta declaración: votos, cookies, borrar…" autocomplete="off" spellcheck="false">
+      <button type="button" id="q-limpiar" aria-label="Limpiar la búsqueda">×</button>
+    </div>
+    <p class="bstat" id="q-stat" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="cuerpo">
+
+    <nav class="indice" aria-label="Índice de la declaración">
+      <h2>En esta página</h2>
+      <ol id="ix-esc"></ol>
+    </nav>
+
+    <div>
+
+      <details class="indice-movil">
+        <summary>Ver el índice de preguntas</summary>
+        <div class="env"><nav aria-label="Índice de la declaración"><ol id="ix-mov"></ol></nav></div>
+      </details>
+
+      <div class="preguntas" id="preguntas">
+
+        <!-- 1 -->
+        <section class="q" id="p1">
+          <h2>¿A qué se aplica esta declaración?</h2>
+          <p class="sum">A todo lo que ocurre en <strong>actascopropiedad.cl</strong>: el generador de actas, la votación en vivo, la consulta por escrito y su cuenta.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>Cubre los datos que tratamos nosotros al prestarle el servicio. Es parte de los términos del servicio y se aplica a cualquier persona que use el sitio: administradores, miembros del comité, copropietarios que votan y quienes solo entran a mirar.</p>
+            <h3>Qué queda fuera</h3>
+            <ul>
+              <li>Los sitios de terceros a los que podamos enlazar. Cada uno tiene sus propias reglas.</li>
+              <li>Lo que la administración de su comunidad haga con el padrón fuera de la plataforma: sus planillas, sus correos, su archivo.</li>
+              <li>El correo que usted envíe desde su propio proveedor (Gmail, Outlook u otro). Ese proveedor trata su correo con sus propias condiciones.</li>
+            </ul>
+          </div></details>
+        </section>
+
+        <!-- 2 -->
+        <section class="q" id="p2">
+          <h2>¿Quién responde por sus datos?</h2>
+          <p class="sum">Depende del dato. Por <strong>su cuenta y sus compras</strong> respondemos nosotros. Por el <strong>padrón y los votos</strong> de una asamblea responde la administración de su comunidad.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>La ley distingue entre quien <em>decide</em> para qué se usan los datos —el responsable— y quien solo <em>los procesa por encargo</em>. En actaviva conviven los dos roles.</p>
+
+            <div class="ficha">
+              <b class="t">Responsable de su cuenta y sus compras</b>
+              <p><b>Instrumenta SpA</b>, sociedad constituida en Chile, que opera actascopropiedad.cl.</p>
+              <p>Contacto para materias de privacidad: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a></p>
+            </div>
+            <!-- COMPLETAR ANTES DE PUBLICAR: RUT y domicilio de Instrumenta SpA -->
+            <p class="todo"><b>Pendiente de publicación:</b> el RUT y el domicilio de la sociedad se incorporan aquí una vez constituida.</p>
+
+            <div class="ficha">
+              <b class="t">Responsable de los datos de una asamblea</b>
+              <p>La <b>administración o el comité de administración de cada condominio</b>. Es quien reúne el padrón, decide convocar y para qué se usan esos datos.</p>
+              <p>Frente a esos datos nosotros somos un <b>encargado</b>: los tratamos solo para operar la votación o la consulta, siguiendo sus instrucciones, y no los usamos para nada más.</p>
+            </div>
+
+            <p class="nota">Esto no es un tecnicismo: define a quién le reclama. Si su solicitud es sobre el padrón o su voto, quien debe resolverla es su administración. Si nos escribe a nosotros, la derivamos y se lo avisamos.</p>
+          </div></details>
+        </section>
+
+        <!-- 3 -->
+        <section class="q" id="p3">
+          <h2>¿Qué datos recogemos?</h2>
+          <p class="sum">Los mínimos para que la herramienta funcione: <strong>su correo</strong>, el <strong>padrón</strong> que carga su administración y los <strong>votos</strong> de cada punto.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <div class="tabla"><table>
+              <thead><tr><th>En qué parte</th><th>Qué datos</th></tr></thead>
+              <tbody>
+                <tr><td><b>Su cuenta</b></td><td>Su <b>nombre</b>, su correo electrónico y un identificador técnico de sesión. La cuenta es necesaria para armar el acta, para la votación en vivo y para la consulta por escrito. Si entra con Google, lo único que recibimos de ellos es su correo: nunca vemos su contraseña.</td></tr>
+                <tr><td><b>Su compra</b></td><td>Monto, fecha y número de orden. Los <b>datos de su tarjeta los procesa la pasarela de pagos</b>; no pasan por nuestros servidores ni los guardamos.</td></tr>
+                <tr><td><b>El acta</b></td><td>El acta completa: condominio, fecha, acuerdos, observaciones y el padrón que cargue, con nombres, RUT, unidades, porcentajes de derechos y votos.</td></tr>
+                <tr><td><b>Votación en vivo</b></td><td>Nombre, RUT, unidad y porcentaje de derechos de cada copropietario del padrón; el correo si la administración lo carga; y el voto y la hora en cada punto. <b>El copropietario que vota no necesita cuenta</b>: se identifica con su RUT contra el padrón.</td></tr>
+                <tr><td><b>Consulta por escrito</b></td><td>Lo mismo que arriba, más <b>el texto del correo</b> con que cada copropietario responde.</td></tr>
+                <tr><td><b>Datos técnicos</b></td><td>Dirección IP y datos del navegador que el servidor registra para seguridad, y métricas de uso agregadas que no lo identifican.</td></tr>
+              </tbody>
+            </table></div>
+            <p>No pedimos datos sensibles: ni salud, ni origen, ni afiliación política, sindical o religiosa. Si alguien los escribe dentro de un texto libre, es por decisión suya y no por una casilla nuestra.</p>
+          </div></details>
+        </section>
+
+        <!-- 4 -->
+        <section class="q" id="p4">
+          <h2>¿Qué pasa con el documento del acta?</h2>
+          <p class="sum">Se redacta en su navegador y <strong>se guarda en su cuenta</strong> mientras la escribe, para que pueda retomarla desde otro equipo. Contiene datos de los copropietarios, así que conviene saber exactamente qué pasa con ella.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>El asistente corre en su navegador, pero el borrador <strong>se guarda en su cuenta</strong> a medida que escribe. Es lo que permite retomarlo desde otro equipo, emitirle un folio al finalizarlo y volver a él más adelante.</p>
+
+            <h3>Qué queda guardado</h3>
+            <p>El acta completa, tal como usted la tenga: el condominio, la fecha, los acuerdos, las observaciones y <strong>el padrón que haya cargado — nombres, RUT, unidades, porcentajes de derechos y el voto de cada uno</strong>. No es poca cosa, y por eso lo decimos aquí y no en la letra chica.</p>
+
+            <h3>Quién puede verla</h3>
+            <ul>
+              <li><strong>Solo su cuenta.</strong> La restricción está puesta en la base de datos, fila por fila: no es una comprobación del navegador que se pueda saltar.</li>
+              <li><strong>Nosotros no la leemos</strong> ni la usamos para nada distinto de devolvérsela. No la analizamos, no la cruzamos con otras comunidades y no la entregamos a terceros, salvo orden de autoridad competente.</li>
+              <li>Los copropietarios que aparecen en el padrón <strong>no tienen acceso al acta</strong>: quien la comparte con ellos es la administración, por sus propios medios.</li>
+            </ul>
+
+            <h3>Cuánto dura y cómo se borra</h3>
+            <ul>
+              <li>Se conserva mientras usted mantenga la cuenta. Si la cierra, se eliminan todas sus actas.</li>
+              <li>Puede <strong>borrar cualquier acta desde su panel</strong>, y se elimina de inmediato, incluidas las ya finalizadas.</li>
+              <li>Hay un tope de 100 actas por cuenta.</li>
+            </ul>
+
+            <h3>Quién responde por esos datos</h3>
+            <p>Aquí está la parte que más importa. El padrón lo reúne y lo carga la <strong>administración de su comunidad</strong>, que es quien decide para qué se usa: ante la Ley N° 21.719 el <strong>responsable es ella</strong>. Nosotros somos <strong>encargados</strong>: guardamos esos datos por instrucción suya, con las medidas descritas más arriba, y no los usamos para fines propios.</p>
+            <p>En la práctica eso significa que, si un copropietario quiere saber qué datos suyos hay o pedir que se corrijan, la solicitud la resuelve su administración. Si nos escribe a nosotros, la derivamos a ella y se lo avisamos.</p>
+            <p class="nota-i">Si usted es quien carga el padrón: hágalo con datos del Registro de Copropietarios o de una fuente legítima equivalente, y solo de la asamblea que está levantando. Es su obligación como responsable.</p>
+            </div></details>
+        </section>
+
+        <!-- 5 -->
+        <section class="q" id="p5">
+          <h2>¿Para qué usamos sus datos?</h2>
+          <p class="sum">Para prestarle el servicio, cobrarlo, cumplir la ley y mantener el sistema seguro. <strong>No hacemos perfiles, no enviamos publicidad y no vendemos datos.</strong></p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <div class="tabla"><table>
+              <thead><tr><th>Para qué</th><th>Con qué datos</th><th>Por qué podemos</th></tr></thead>
+              <tbody>
+                <tr><td><b>Crear y mantener su cuenta</b></td><td>Su correo</td><td>Es necesario para ejecutar el contrato que usted celebra con nosotros</td></tr>
+                <tr><td><b>Cobrarle y emitir el comprobante</b></td><td>Correo, monto y orden</td><td>Ejecución del contrato y obligación legal tributaria</td></tr>
+                <tr><td><b>Operar la votación o la consulta</b></td><td>Padrón y votos</td><td>Instrucciones de la comunidad, que a su vez cumple el deber legal de levantar acta (Ley N° 21.442)</td></tr>
+                <tr><td><b>Enviarle la constancia de su voto</b></td><td>Su correo del padrón</td><td>Deja registro de cómo votó y le permite reclamar si alguien votó en su nombre</td></tr>
+                <tr><td><b>Mantener el sistema seguro</b></td><td>IP y registros técnicos</td><td>Interés legítimo en prevenir fraude y abuso</td></tr>
+                <tr><td><b>Mejorar la herramienta</b></td><td>Métricas agregadas</td><td>No permiten identificar a nadie</td></tr>
+              </tbody>
+            </table></div>
+            <h3>Lo que no hacemos</h3>
+            <ul>
+              <li>No vendemos, arrendamos ni cedemos sus datos con fines comerciales.</li>
+              <li>No le enviamos publicidad. Los correos que recibe son operativos: su código de acceso, su comprobante, la constancia de su voto.</li>
+              <li>No construimos perfiles ni tomamos decisiones automatizadas que produzcan efectos sobre usted.</li>
+              <li>No cruzamos los datos de una comunidad con los de otra.</li>
+            </ul>
+          </div></details>
+        </section>
+
+        <!-- 6 -->
+        <section class="q" id="p6">
+          <h2>¿Con quién los compartimos?</h2>
+          <p class="sum">Solo con los <strong>proveedores que hacen funcionar el servicio</strong>, y con quien la ley nos obligue. Ninguno puede usar sus datos para fines propios.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <div class="tabla"><table>
+              <thead><tr><th>Proveedor</th><th>Para qué</th></tr></thead>
+              <tbody>
+                <tr><td><b>Cloudflare</b></td><td>Entrega el sitio y lo protege de ataques</td></tr>
+                <tr><td><b>Supabase</b></td><td>Base de datos de su cuenta, de la votación en vivo y de la consulta por escrito</td></tr>
+                <tr><td><b>Pasarela de pagos</b></td><td>Procesa el cobro. Es ella —no nosotros— quien ve los datos de su tarjeta</td></tr>
+                <tr><td><b>Proveedor de correo</b></td><td>Envía los códigos de acceso, los comprobantes y las constancias de voto</td></tr>
+                <tr><td><b>Google</b></td><td>Solo si usted elige entrar con su cuenta de Google, y solo para confirmar su correo</td></tr>
+              </tbody>
+            </table></div>
+            <p>Cada uno trata los datos por cuenta nuestra, bajo contrato, limitado a lo necesario para su función.</p>
+            <h3>Cuándo más podríamos entregarlos</h3>
+            <ul>
+              <li>Cuando lo ordene un tribunal o una autoridad competente, en el marco de sus atribuciones.</li>
+              <li>Cuando sea necesario para defender un derecho en juicio.</li>
+              <li>Si en el futuro la sociedad se transfiere o fusiona, los datos pasarían al continuador, que queda sujeto a esta misma declaración. Se lo avisaríamos antes.</li>
+            </ul>
+          </div></details>
+        </section>
+
+        <!-- 7 -->
+        <section class="q" id="p7">
+          <h2>¿Sus datos salen de Chile?</h2>
+          <p class="sum">Sí. Los servidores de nuestros proveedores están <strong>fuera de Chile</strong>, principalmente en Estados Unidos. Se lo decimos derechamente porque la ley exige informarlo.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>Es la situación normal de casi cualquier servicio en línea, pero eso no la vuelve invisible: constituye una <strong>transferencia internacional de datos</strong> y usted tiene derecho a saberlo antes de usar la plataforma.</p>
+            <p>La transferencia se rige por los <strong>acuerdos de tratamiento de datos suscritos con cada proveedor</strong>, que los obligan contractualmente a un estándar de protección equivalente al que exige la ley chilena, a tratar los datos solo bajo nuestras instrucciones y a devolverlos o eliminarlos al terminar el servicio.</p>
+            <p class="nota">El documento del acta no se transfiere a ninguna parte, sencillamente porque nunca sale de su equipo.</p>
+          </div></details>
+        </section>
+
+        <!-- 8 -->
+        <section class="q" id="p8">
+          <h2>¿Cuánto tiempo los guardamos?</h2>
+          <p class="sum">Lo menos posible. Los datos de una asamblea <strong>se borran a las 48 horas</strong>. La consulta por escrito dura más, porque es la prueba del acuerdo.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <div class="tabla"><table>
+              <thead><tr><th>Dato</th><th>Cuánto lo guardamos</th></tr></thead>
+              <tbody>
+                <tr><td><b>El acta y su padrón</b></td><td>Mientras mantenga la cuenta. La borra usted cuando quiera desde su panel, y se elimina de inmediato. Al cerrar la cuenta se eliminan todas</td></tr>
+                <tr><td><b>El correo de su cuenta</b></td><td>Mientras mantenga la cuenta abierta. Si pide cerrarla, lo eliminamos</td></tr>
+                <tr><td><b>Comprobantes de compra</b></td><td>El plazo que exige la normativa tributaria, aunque cierre su cuenta</td></tr>
+                <tr><td><b>Padrón y votos de la votación en vivo</b></td><td>Hasta que la Mesa presione «borrar», y en todo caso <b>máximo 48 horas</b> por borrado automático</td></tr>
+                <tr><td><b>Consulta por escrito</b><br><span style="font-size:14px">padrón, respuestas y texto de los correos</span></td><td>El plazo que fije la administración, mientras el acuerdo pueda impugnarse. Vencido ese plazo, se elimina</td></tr>
+                <tr><td><b>Registros técnicos de seguridad</b></td><td>Días, y no se usan para identificarlo</td></tr>
+              </tbody>
+            </table></div>
+            <h3>Por qué la consulta por escrito es distinta</h3>
+            <p>Ahí el <strong>texto del correo es la prueba de la manifestación de voluntad</strong>. Sin ese texto no se puede acreditar el acuerdo ante notario ni defenderlo si alguien lo impugna. Borrarlo a las 48 horas dejaría a la comunidad sin respaldo.</p>
+          </div></details>
+        </section>
+
+        <!-- 9 -->
+        <section class="q" id="p9">
+          <h2>¿Usan cookies?</h2>
+          <p class="sum">No para seguirle el rastro. Solo lo estrictamente necesario para que su sesión se mantenga abierta.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <ul>
+              <li><strong>No hay cookies publicitarias ni de terceros.</strong> Nadie le arma un perfil a partir de su paso por el sitio.</li>
+              <li><strong>La analítica no usa cookies</strong> ni crea un identificador suyo: cuenta visitas y páginas de forma agregada.</li>
+              <li><strong>Si inicia sesión</strong>, su navegador guarda localmente un dato técnico para no pedirle el código en cada pantalla. Desaparece cuando cierra la sesión.</li>
+            </ul>
+            <p>Por eso no verá en este sitio el cartel de aceptación de cookies: no hay nada que aceptar.</p>
+          </div></details>
+        </section>
+
+        <!-- 10 -->
+        <section class="q" id="p10">
+          <h2>¿Cómo protegemos sus datos?</h2>
+          <p class="sum">Cifrado en el transporte, acceso restringido dato por dato, claves que nunca llegan al navegador y borrado automático.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <ul>
+              <li>Todo el tráfico va por <strong>HTTPS obligatorio</strong>. Nadie en la red puede leer lo que envía.</li>
+              <li>La base de datos <strong>deniega el acceso por omisión</strong>: cada consulta debe pasar por una función que verifica quién pregunta. Un participante no puede ver los datos de otro aunque manipule su navegador.</li>
+              <li>Las <strong>claves de administración nunca viajan al navegador</strong>. Lo que el sitio lleva es una clave pública, inútil por sí sola.</li>
+              <li>El <strong>borrado es automático</strong>, no depende de que alguien se acuerde.</li>
+              <li>Revisamos el código y las reglas de acceso de forma periódica.</li>
+            </ul>
+            <p>Ningún sistema es infalible y no vamos a decirle lo contrario. Lo que sí podemos comprometer es que, si algo ocurre, se lo diremos.</p>
+          </div></details>
+        </section>
+
+        <!-- 11 -->
+        <section class="q" id="p11">
+          <h2>¿Y si hay una filtración de datos?</h2>
+          <p class="sum">Le avisamos a usted y a la <strong>Agencia de Protección de Datos Personales</strong>, por el medio más rápido disponible y sin demoras.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>Tenemos un procedimiento escrito para incidentes de seguridad. Si una brecha puede afectarle, el aviso que reciba dirá, en lenguaje claro:</p>
+            <ol>
+              <li>Qué ocurrió y cuándo lo detectamos.</li>
+              <li>Qué datos suyos estuvieron involucrados.</li>
+              <li>Qué consecuencias pueden derivarse.</li>
+              <li>Qué hicimos para contenerlo.</li>
+              <li>Qué le recomendamos hacer a usted.</li>
+            </ol>
+            <p>Cada incidente queda registrado, se le informa también a la administración de su comunidad cuando afecta datos de una asamblea, y el registro queda disponible para la autoridad.</p>
+          </div></details>
+        </section>
+
+        <!-- 12 -->
+        <section class="q" id="p12">
+          <h2>¿Cuáles son sus derechos y cómo los ejerce?</h2>
+          <p class="sum">Acceso, rectificación, supresión, oposición y portabilidad. Un solo canal, gratuito: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a></p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <div class="tabla"><table>
+              <thead><tr><th>Derecho</th><th>Qué le permite pedir</th></tr></thead>
+              <tbody>
+                <tr><td><b>Acceso</b></td><td>Que le digamos qué datos suyos tenemos, de dónde salieron y para qué los usamos</td></tr>
+                <tr><td><b>Rectificación</b></td><td>Que corrijamos un dato equivocado o incompleto</td></tr>
+                <tr><td><b>Supresión</b></td><td>Que eliminemos sus datos cuando ya no sean necesarios o retire su consentimiento</td></tr>
+                <tr><td><b>Oposición</b></td><td>Que dejemos de tratarlos por motivos que le afecten en su situación particular</td></tr>
+                <tr><td><b>Portabilidad</b></td><td>Que le entreguemos sus datos en un formato que pueda llevarse a otro servicio</td></tr>
+              </tbody>
+            </table></div>
+
+            <h3>Cómo se pide</h3>
+            <ol>
+              <li>Escriba a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a> <strong>desde el correo registrado</strong>, indicando qué quiere. Si escribe desde otra casilla, le pediremos acreditar su identidad.</li>
+              <li>Le <strong>acusamos recibo dentro de 2 días hábiles</strong>.</li>
+              <li>Le respondemos dentro del plazo que fija la ley, y en todo caso <strong>lo antes posible</strong>. El trámite es gratuito.</li>
+              <li>Si no podemos acceder a lo que pide, le explicamos por qué y le indicamos cómo reclamar.</li>
+            </ol>
+
+            <p class="nota">Si su solicitud recae sobre el <strong>padrón o los votos de una asamblea</strong>, quien debe resolverla es la administración de su comunidad, que es el responsable de esos datos. Nosotros le derivamos la solicitud y se lo confirmamos por correo.</p>
+
+            <h3>Si no queda conforme</h3>
+            <p>Puede reclamar ante la <strong>Agencia de Protección de Datos Personales</strong>. Ejercer sus derechos no le cuesta nada ni le trae consecuencia alguna en el servicio.</p>
+          </div></details>
+        </section>
+
+        <!-- 13 -->
+        <section class="q" id="p13">
+          <h2>¿Pueden usarlo menores de edad?</h2>
+          <p class="sum">El servicio está dirigido a personas mayores de edad. No pedimos ni buscamos datos de niños, niñas o adolescentes.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>Un copropietario menor de edad actúa a través de su representante legal, que es quien figura en el padrón y quien vota.</p>
+            <p>Si detectamos que se cargaron datos de un menor por error, los eliminamos y avisamos a la administración que hizo la carga.</p>
+          </div></details>
+        </section>
+
+        <!-- 14 -->
+        <section class="q" id="p14">
+          <h2>¿Qué pasa si cambia esta declaración?</h2>
+          <p class="sum">Publicamos la nueva versión en esta misma página, con su fecha. Si el cambio es importante, se lo avisamos por correo antes de que entre en vigencia.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det">
+            <p>Nunca aplicaremos con efecto retroactivo un cambio que amplíe el uso de datos que ya recogimos, sin pedirle antes su consentimiento.</p>
+            <h3>Historial de versiones</h3>
+            <div class="tabla"><table>
+              <thead><tr><th>Versión</th><th>Fecha</th><th>Qué cambió</th></tr></thead>
+              <tbody>
+                <tr><td><b>3</b></td><td>20 de agosto de 2026</td><td>El acta pasa a <b>guardarse siempre</b> en la cuenta, porque es el producto que se cobra. Se detalla qué contiene, quién accede, cuánto dura y cómo se borra, y se explicita que frente al padrón la comunidad es responsable y nosotros encargados.</td></tr>
+                <tr><td><b>2</b></td><td>19 de agosto de 2026</td><td>Se agrega la opción de <b>guardar el acta en la cuenta</b>, apagada por omisión. Se detalla qué se guarda, quién accede, cuánto dura y cómo borrarla. La cuenta pasa a ser necesaria para usar el servicio, salvo para los copropietarios que votan.</td></tr>
+                <tr><td><b>1</b></td><td>17 de agosto de 2026</td><td>Primera versión de la declaración. Reemplaza el aviso de privacidad anterior, con el mismo contenido reorganizado en preguntas y con más detalle sobre plazos de conservación, proveedores y transferencia internacional.</td></tr>
+              </tbody>
+            </table></div>
+          </div></details>
+        </section>
+
+        <!-- 15 -->
+        <section class="q" id="p15">
+          <h2>Glosario</h2>
+          <p class="sum">Las palabras de la ley, en castellano corriente.</p>
+          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
+          <div class="det glos">
+            <dl>
+              <dt>Dato personal</dt>
+              <dd>Cualquier información que permita identificarlo, directa o indirectamente: su nombre, su RUT, su correo, su unidad.</dd>
+              <dt>Titular</dt>
+              <dd>Usted: la persona a quien se refieren los datos.</dd>
+              <dt>Tratamiento</dt>
+              <dd>Cualquier cosa que se haga con un dato: recogerlo, guardarlo, mostrarlo, enviarlo, borrarlo.</dd>
+              <dt>Responsable</dt>
+              <dd>Quien decide para qué y cómo se tratan los datos. Aquí somos nosotros para su cuenta, y su administración para los datos de la asamblea.</dd>
+              <dt>Encargado</dt>
+              <dd>Quien trata datos por cuenta de un responsable, siguiendo sus instrucciones y sin poder usarlos para fines propios.</dd>
+              <dt>Base de licitud</dt>
+              <dd>El motivo legal que permite tratar un dato: un contrato, una obligación legal, su consentimiento o un interés legítimo.</dd>
+              <dt>Brecha de seguridad</dt>
+              <dd>Un incidente que expone, altera o destruye datos sin autorización.</dd>
+              <dt>Transferencia internacional</dt>
+              <dd>Que los datos se alojen o procesen en servidores fuera de Chile.</dd>
+              <dt>Padrón</dt>
+              <dd>La lista de copropietarios con su unidad y su porcentaje de derechos, que la administración carga para la asamblea.</dd>
+            </dl>
+          </div></details>
+        </section>
+
+      </div>
+
+      <div class="sinres" id="q-vacio">
+        <b>No encontramos esa palabra</b>
+        <span>Pruebe con otra, o <a href="#" id="q-todo">vuelva a ver todas las preguntas</a>. Si su duda no está aquí, escríbanos: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>.</span>
+      </div>
+
+      <div class="contacto">
+        <h2>¿Le quedó una duda?</h2>
+        <p>Escríbanos y le respondemos una persona, no un formulario. Es el mismo canal para ejercer cualquiera de sus derechos.</p>
+        <a class="bt" href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>
+        <small>Vea también los <a href="/terminos">términos del servicio</a>.</small>
+      </div>
+
+    </div>
+  </div>
 
 </main>
 
@@ -165,11 +611,12 @@
   <div class="wrap">
     <div class="foot-row">
       <div class="foot-brand">
-        <span><b>acta<i>viva.</i></b></span>
+        <span><b>acta<i>viva</i><em>.</em></b></span>
       </div>
       <div class="foot-links">
         <a href="/">Inicio</a>
-        <a href="/acta">Entrar al sistema</a>
+        <a href="/acta">Comenzar mi acta</a>
+        <a href="/terminos">Términos</a>
       </div>
     </div>
     <div class="foot-legal">
@@ -179,5 +626,10 @@
   </div>
 </footer>
 
+<script src="/js/privacidad-1.js"></script>
+
+<script src="/vendor/supabase.min.js"></script>
+<script src="/cuenta.js"></script>
+<script src="/js/privacidad-2.js"></script>
 </body>
 </html>
