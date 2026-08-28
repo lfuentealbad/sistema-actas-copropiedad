@@ -18,6 +18,13 @@
   var URL_SB  = 'https://rujwokagmjbqtrcvosye.supabase.co';
   var ANON_SB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
 
+  // Interruptor del inicio con Google. Exige que el proveedor este
+  // habilitado en Supabase (Authentication > Providers > Google) con las
+  // credenciales OAuth del proyecto en Google Cloud. Sin eso, Supabase
+  // responde "Unsupported provider: provider is not enabled" y la persona
+  // se queda mirando un error crudo: por eso el boton no se ofrece.
+  var PROVEEDOR_GOOGLE = false;
+
   var sb = null;
   function cliente() {
     if (!sb && global.supabase) sb = global.supabase.createClient(URL_SB, ANON_SB);
@@ -460,10 +467,12 @@
         '<div class="cta-msg" id="cta-msg" role="alert"></div>' +
 
         '<div id="cta-alt">' +
-          '<div class="cta-o" id="cta-o-txt">o inicie sesión con</div>' +
-          '<div class="cta-proveedores">' +
-            '<button type="button" class="cta-prov" id="cta-google" aria-label="Continuar con Google">' + SVG_G + '<span>Google</span></button>' +
-          '</div>' +
+          (PROVEEDOR_GOOGLE
+            ? '<div class="cta-o" id="cta-o-txt">o inicie sesión con</div>' +
+              '<div class="cta-proveedores">' +
+                '<button type="button" class="cta-prov" id="cta-google" aria-label="Continuar con Google">' + SVG_G + '<span>Google</span></button>' +
+              '</div>'
+            : '') +
           '<p class="cta-pie"><a href="#" id="cta-sincl">Prefiero un código por correo</a></p>' +
         '</div>' +
 
@@ -495,7 +504,7 @@
       var entrar = m === 'entrar';
       $('cta-cambia-txt').textContent = entrar ? '¿No tiene cuenta?' : '¿Ya tiene cuenta?';
       $('cta-cambia').textContent = entrar ? 'Regístrese' : 'Inicie sesión';
-      $('cta-o-txt').textContent = entrar ? 'o inicie sesión con' : 'o regístrese con';
+      if ($('cta-o-txt')) $('cta-o-txt').textContent = entrar ? 'o inicie sesión con' : 'o regístrese con';
       $('cta-hacer').textContent = entrar ? 'Entrar' : 'Crear mi cuenta';
       $('cta-clave').setAttribute('autocomplete', entrar ? 'current-password' : 'new-password');
       $('cta-clave').setAttribute('placeholder', entrar ? 'Su clave' : 'Invente una clave');
@@ -637,11 +646,13 @@
       else pedirCodigo(pendiente, listoAviso);
     });
 
-    // ---- Google
-    $('cta-google').addEventListener('click', function () {
-      aviso('');
-      conGoogle(global.location.href, function (err) { if (err) aviso(err); });
-    });
+    // ---- Google (solo si el proveedor esta habilitado)
+    if ($('cta-google')) {
+      $('cta-google').addEventListener('click', function () {
+        aviso('');
+        conGoogle(global.location.href, function (err) { if (err) aviso(err); });
+      });
+    }
 
     // ---- Enter avanza
     $('cta-nombre').addEventListener('keydown', function (e) {

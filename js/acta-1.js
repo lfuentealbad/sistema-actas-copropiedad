@@ -91,12 +91,15 @@ document.getElementById('btn-back').style.display = currentStep > 1 ? 'block' : 
 const btnNext = document.getElementById('btn-next');
 if (currentStep === totalSteps) {
 btnNext.textContent = 'Finalizar acta';
-btnNext.onclick = savePDF;
+btnNext.setAttribute('data-ac', 'savePDF');
 if (typeof renderRevision === 'function') renderRevision();
 } else {
-btnNext.textContent = 'Siguiente';
-btnNext.onclick = nextStep;
+btnNext.textContent = 'Siguiente →';
+btnNext.setAttribute('data-ac', 'nextStep');
 }
+// El manejador vive en el despachador (data-ac). Colgar ademas un onclick
+// hacia que un clic contara por dos y el asistente saltara un paso.
+btnNext.onclick = null;
 }
 function _uzw(step) {
 if (step === 1) {
@@ -212,6 +215,10 @@ materiasHTML += '<input type="text" id="mat-custom-input" aria-label="Tema propi
 materiasHTML += ' data-teclabaja="materiaEnter" data-args="@">';
 materiasHTML += '<button class="btn-add-custom" data-ac="addCustomMateria" aria-label="Agregar tema personalizado" title="Agregar tema">+</button>';
 materiasHTML += '</div>';
+if (tipo === 'extraordinaria-abs') {
+materiasHTML += '<label class="mat-reglamento"><input type="checkbox" id="mat-reglamento" class="mat-reglamento-chk" data-cambio="revisarAvisoNotario">'
++ '<span>Esta sesi\u00f3n acuerda <strong>modificar el reglamento de copropiedad</strong></span></label>';
+}
 materiasHTML += '<div class="mat-actions-row">';
 materiasHTML += '<span class="mat-count" id="mat-count-label">0 tema(s) seleccionado(s)</span>';
 materiasHTML += '<button class="btn btn-add-temas" data-ac="agregarTemasATabla">Agregar temas seleccionados a la tabla \u2192</button>';
@@ -225,6 +232,22 @@ materiasHTML +
 '<div class="aviso-fe" id="aviso-fe-notario" hidden></div>';
 revisarAvisoNotario();
 }
+// Modificar el reglamento exige notario aunque la sesion sea de mayoria
+// absoluta. Detectarlo por la sola palabra "reglamento" daba falsos avisos:
+// un punto puede mencionarlo sin que se acuerde cambiarlo. Se pide, ademas,
+// un verbo de cambio; y como ningun listado de palabras cubre todo, el
+// usuario puede declararlo con la casilla del paso 2.
+var _RX_REGLAMENTO = /reglamento/i;
+var _RX_CAMBIO = /modificaci|modificar|modifica\b|actualizaci|actualizar|reforma|reformar|sustituci|sustituir|reemplaz|derogaci|derogar|enmienda|enmendar|nuevo reglamento|cambio de reglamento/i;
+function tocaModificacionDelReglamento(texto) {
+var t = String(texto || '');
+return _RX_REGLAMENTO.test(t) && _RX_CAMBIO.test(t);
+}
+function reglamentoDeclarado() {
+var c = document.getElementById('mat-reglamento');
+return !!(c && c.checked);
+}
+
 // Ayuda preventiva, no un validador: avisa cuando la ley exige notario.
 // Dos hipotesis (art. 15): las materias de mayoria reforzada (N\u00b0 3), y la
 // modificacion del reglamento (letra a) del N\u00b0 2) aunque la sesion sea de
@@ -236,17 +259,21 @@ if (!aviso) return;
 var tipo = document.getElementById('tipo-asamblea').value;
 if (tipo === 'extraordinaria-ref') {
 aviso.hidden = false;
-aviso.textContent = 'Esta sesi\u00f3n requiere la asistencia de un notario o ministro de fe, quien deber\u00e1 certificar el acta (art. 15, Ley N\u00b0 21.442).';
+aviso.textContent = 'Esta sesi\u00f3n requiere la asistencia de un notario, quien deber\u00e1 certificar el acta (art. 15, Ley N\u00b0 21.442). Solo en condominios de viviendas sociales esa exigencia se cumple con un funcionario municipal designado o el Oficial del Registro Civil (art. 73).';
 return;
 }
 if (tipo === 'extraordinaria-abs') {
+var toca = reglamentoDeclarado();
+if (!toca) {
 var marcadas = document.querySelectorAll('#materias-check-list .mat-chk:checked');
 for (var i = 0; i < marcadas.length; i++) {
-if (/reglamento/i.test(marcadas[i].getAttribute('aria-label') || '')) {
-aviso.hidden = false;
-aviso.textContent = 'La modificaci\u00f3n del reglamento de copropiedad requiere la asistencia de un notario o ministro de fe, quien deber\u00e1 certificar el acta, aunque la sesi\u00f3n sea de mayor\u00eda absoluta (art. 15, letra a) del N\u00b0 2).';
-return;
+if (tocaModificacionDelReglamento(marcadas[i].getAttribute('aria-label') || '')) { toca = true; break; }
 }
+}
+if (toca) {
+aviso.hidden = false;
+aviso.textContent = 'La modificaci\u00f3n del reglamento de copropiedad requiere la asistencia de un notario, quien deber\u00e1 certificar el acta, aunque la sesi\u00f3n sea de mayor\u00eda absoluta (art. 15, letra a) del N\u00b0 2).';
+return;
 }
 }
 aviso.hidden = true;
@@ -361,14 +388,14 @@ const tbody = document.getElementById('asistentes-tbody');
 const n = tbody.querySelectorAll('tr').length;
 const tr = document.createElement('tr');
 tr.innerHTML =
-'<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" aria-label="Unidad, fila '+(n+1)+'" placeholder="101" style="width:64px" class="unidad"></td>' +
+'<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" aria-label="Unidad, fila '+(n+1)+'" placeholder="101" class="unidad"></td>' +
 '<td><input type="text" id="asist-'+n+'-nombre" name="asist-'+n+'-nombre" aria-label="Nombre del copropietario, fila '+(n+1)+'" placeholder="Nombre completo" class="nombre-asist"></td>' +
-'<td><input type="text" id="asist-'+n+'-rut" name="asist-'+n+'-rut" aria-label="RUT, fila '+(n+1)+'" placeholder="12.345.678-5" class="rut-asist" style="width:120px"></td>' +
-'<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" aria-label="Porcentaje de derechos, fila '+(n+1)+'" placeholder="1.0" step="0.01" min="0" max="100" class="derechos" data-cambio="calcularQuorum" data-tecla="calcularQuorum" style="width:72px"></td>' +
+'<td><input type="text" id="asist-'+n+'-rut" name="asist-'+n+'-rut" aria-label="RUT, fila '+(n+1)+'" placeholder="12.345.678-5" class="rut-asist"></td>' +
+'<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" aria-label="Porcentaje de derechos, fila '+(n+1)+'" placeholder="1.0" step="0.01" min="0" max="100" class="derechos" data-cambio="calcularQuorum" data-tecla="calcularQuorum"></td>' +
 '<td><select id="asist-'+n+'-habil" name="asist-'+n+'-habil" aria-label="Hábil, fila '+(n+1)+'" class="habil" data-cambio="quorumYVotacion"><option value="si">Sí</option><option value="no">No</option></select></td>' +
 '<td><select id="asist-'+n+'-asiste" name="asist-'+n+'-asiste" aria-label="Asiste, fila '+(n+1)+'" class="asiste" data-cambio="quorumYVotacion"><option value="si">Sí</option><option value="no">No</option></select></td>' +
 '<td><input type="text" id="asist-'+n+'-rep" name="asist-'+n+'-rep" aria-label="Representante, fila '+(n+1)+'" placeholder="Solo si vota un representante" class="representante"></td>' +
-'<td><input type="text" id="asist-'+n+'-correo" name="asist-'+n+'-correo" aria-label="Correo electrónico, fila '+(n+1)+'" placeholder="opcional" class="correo-asist" style="width:150px" inputmode="email"></td>' +
+'<td><input type="text" id="asist-'+n+'-correo" name="asist-'+n+'-correo" aria-label="Correo electrónico, fila '+(n+1)+'" placeholder="opcional" class="correo-asist" inputmode="email"></td>' +
 '<td><button class="btn-del" data-ac="delRow" data-args="@" aria-label="Quitar esta fila del registro" title="Quitar fila">X</button></td>';
 tbody.appendChild(tr);
 }
@@ -1116,14 +1143,14 @@ if (typeof derRaw === 'number') {
 var repS = String(representante || '').trim();
 var tr = document.createElement('tr');
 tr.innerHTML =
-'<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" aria-label="Unidad, fila '+(n+1)+'" style="width:64px" class="unidad"></td>' +
+'<td><input type="text" id="asist-'+n+'-unidad" name="asist-'+n+'-unidad" aria-label="Unidad, fila '+(n+1)+'" class="unidad"></td>' +
 '<td><input type="text" id="asist-'+n+'-nombre" name="asist-'+n+'-nombre" aria-label="Nombre del copropietario, fila '+(n+1)+'" class="nombre-asist"></td>' +
-'<td><input type="text" id="asist-'+n+'-rut" name="asist-'+n+'-rut" aria-label="RUT, fila '+(n+1)+'" class="rut-asist" style="width:120px"></td>' +
-'<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" aria-label="Porcentaje de derechos, fila '+(n+1)+'" step="0.01" min="0" max="100" class="derechos" data-cambio="calcularQuorum" data-tecla="calcularQuorum" style="width:72px"></td>' +
+'<td><input type="text" id="asist-'+n+'-rut" name="asist-'+n+'-rut" aria-label="RUT, fila '+(n+1)+'" class="rut-asist"></td>' +
+'<td><input type="number" id="asist-'+n+'-derechos" name="asist-'+n+'-derechos" aria-label="Porcentaje de derechos, fila '+(n+1)+'" step="0.01" min="0" max="100" class="derechos" data-cambio="calcularQuorum" data-tecla="calcularQuorum"></td>' +
 '<td><select id="asist-'+n+'-habil" name="asist-'+n+'-habil" aria-label="Hábil, fila '+(n+1)+'" class="habil" data-cambio="quorumYVotacion"><option value="si">Sí</option><option value="no">No</option></select></td>' +
 '<td><select id="asist-'+n+'-asiste" name="asist-'+n+'-asiste" aria-label="Asiste, fila '+(n+1)+'" class="asiste" data-cambio="quorumYVotacion"><option value="si">Sí</option><option value="no">No</option></select></td>' +
 '<td><input type="text" id="asist-'+n+'-rep" name="asist-'+n+'-rep" aria-label="Representante, fila '+(n+1)+'" placeholder="Solo si vota un representante" class="representante"></td>' +
-'<td><input type="text" id="asist-'+n+'-correo" name="asist-'+n+'-correo" aria-label="Correo electrónico, fila '+(n+1)+'" placeholder="opcional" class="correo-asist" style="width:150px" inputmode="email"></td>' +
+'<td><input type="text" id="asist-'+n+'-correo" name="asist-'+n+'-correo" aria-label="Correo electrónico, fila '+(n+1)+'" placeholder="opcional" class="correo-asist" inputmode="email"></td>' +
 '<td><button class="btn-del" data-ac="delRow" data-args="@" aria-label="Quitar esta fila del registro" title="Quitar fila">X</button></td>';
 tbody.appendChild(tr);
 tr.querySelector('.unidad').value = unidadS;
@@ -2813,11 +2840,11 @@ function revisarConsistencia() {
   }
 
   // (d) El notario, cuando la ley lo exige.
-  var hayReglamento = false;
+  var hayReglamento = (typeof reglamentoDeclarado === 'function') && reglamentoDeclarado();
   document.querySelectorAll('.punto-card').forEach(function (pc) {
     var m = (pc.id || '').match(/^punto-(\d+)$/);
     var t = m && document.getElementById('p' + m[1] + '-titulo');
-    if (t && /reglamento/i.test(t.value || '')) hayReglamento = true;
+    if (t && tocaModificacionDelReglamento(t.value || '')) hayReglamento = true;
   });
   var exigeNotario = tipo === 'extraordinaria-ref' || hayReglamento;
   var notarioSi = ((document.getElementById('notario') || {}).value === 'Si');
@@ -2825,8 +2852,8 @@ function revisarConsistencia() {
     items.push({ ok: true, texto: 'Seg\u00fan el tipo de sesi\u00f3n y los puntos de la tabla, no se detecta exigencia de notario.' });
   } else {
     items.push({ ok: notarioSi, texto: notarioSi
-      ? 'La sesi\u00f3n exige notario o ministro de fe y su intervenci\u00f3n est\u00e1 registrada.'
-      : 'Esta sesi\u00f3n exige la asistencia de un notario o ministro de fe (art. 15) y no est\u00e1 registrada en el paso 5.' });
+      ? 'La sesi\u00f3n exige la asistencia de un notario y su intervenci\u00f3n est\u00e1 registrada.'
+      : 'Esta sesi\u00f3n exige la asistencia de un notario (art. 15) y no est\u00e1 registrada en el paso 5.' });
   }
 
   // (e) Cada punto sometido a acuerdo tiene resultado.

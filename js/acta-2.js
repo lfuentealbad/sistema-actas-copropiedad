@@ -88,14 +88,31 @@
     if(USUARIO){
       host.innerHTML=''; listo.style.display='block';
       var t=document.getElementById('vv-correo-txt'); if(t) t.textContent=USUARIO.correo;
-    } else {
-      listo.style.display='none';
-      window.Cuenta.panel('vv-cta-host', {
-        titulo:'Primero, su correo',
-        sub:'Le enviaremos un código para confirmarlo. Con eso queda creada su cuenta y podrá volver a su acta.',
-        alEntrar:function(u){ USUARIO=u; pintarPago(); }
-      });
+      return;
     }
+    // USUARIO se llena al cargar la pagina. La sesion pudo abrirse despues,
+    // desde la cabecera: se vuelve a preguntar antes de pedir el correo, o
+    // le estariamos pidiendo entrar a alguien que ya entro.
+    if(window.Cuenta && !pidiendoSesion){
+      pidiendoSesion=true;
+      window.Cuenta.usuario(function(u){
+        pidiendoSesion=false;
+        if(u){ USUARIO=u; pintarPago(); return; }
+        pedirCorreo();
+      });
+      return;
+    }
+    pedirCorreo();
+  }
+  var pidiendoSesion=false;
+  function pedirCorreo(){
+    var listo=document.getElementById('vv-pago-listo');
+    if(listo) listo.style.display='none';
+    window.Cuenta.panel('vv-cta-host', {
+      titulo:'Primero, su correo',
+      sub:'Le enviaremos un código para confirmarlo. Con eso queda creada su cuenta y podrá volver a su acta.',
+      alEntrar:function(u){ USUARIO=u; pintarPago(); }
+    });
   }
   window.actaCerrarSesion=function(btn){
     btn.disabled=true; var _t=btn.textContent; btn.textContent='Saliendo…';

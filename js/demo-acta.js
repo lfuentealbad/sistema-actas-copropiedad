@@ -315,3 +315,27 @@
   console.info('Simulador del acta activo. Use DEMOA.* para inspeccionarlo.');
 
 })(window);
+
+
+/* El boton de datos de ejemplo salio de la cabecera del producto. Aca si
+ * corresponde: esta pagina ES la demostracion, y sin datos no muestra nada.
+ * Este archivo solo se carga en las paginas -demo, que ya viven tras el
+ * candado de localhost. */
+(function botonEjemplo() {
+  function poner() {
+    var caja = document.querySelector('.app-header-inner .header-right');
+    if (!caja || document.getElementById('demo-ejemplo')) return;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.id = 'demo-ejemplo';
+    b.className = 'header-action';
+    b.textContent = 'Datos de ejemplo';
+    b.title = 'Carga un acta de muestra para recorrer la herramienta';
+    b.addEventListener('click', function () {
+      if (typeof cargarDatosEjemplo === 'function') cargarDatosEjemplo();
+    });
+    caja.insertBefore(b, caja.firstChild);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poner);
+  else poner();
+})();

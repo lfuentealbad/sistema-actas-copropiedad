@@ -335,9 +335,10 @@
     pointer-events: none;
   }
   .header-inner, .app-header-inner {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 18px 32px;
+    /* 288 del rail + 1180 del formulario: el mismo tope que el cuerpo. */
+    max-width: 1468px;
+    margin: 0;
+    padding: 16px 42px 16px 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -414,15 +415,6 @@
     color: #ffffff;
   }
   
-  .header-action-demo {
-    color: #ffffff;
-    background: var(--c-interact);
-    border-color: var(--c-interact);
-    letter-spacing: 0.6px;
-    font-weight: 700;
-  }
-  .header-action-demo:hover { background: #3E93CE; border-color: #3E93CE; }
-
   
   .save-indicator {
     position: fixed;
@@ -880,7 +872,38 @@
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   .table-wrap table { min-width: 880px; }
   .table-wrap td select { min-width: 70px; }
-  .table-wrap td .rut-asist { width: 116px; }
+  /* Anchos de la vista angosta, la que si se desliza. */
+  .table-wrap td .unidad      { width: 64px; }
+  .table-wrap td .rut-asist   { width: 120px; }
+  .table-wrap td .derechos    { width: 72px; }
+  .table-wrap td .correo-asist{ width: 150px; }
+
+  /* El padron cabe entero: reparto proporcional en vez de barra lateral. */
+  @media (min-width: 1001px) {
+    .table-wrap { overflow-x: visible; }
+    .table-wrap table { min-width: 0; table-layout: fixed; width: 100%; }
+    .table-wrap th, .table-wrap td { padding-left: 9px; padding-right: 9px; }
+    /* Se repiten las clases de la vista angosta: sin eso, sus anchos fijos
+       le ganan por especificidad a este reparto y la fila se desborda. */
+    .table-wrap td input,
+    .table-wrap td select,
+    .table-wrap td .btn-del,
+    .table-wrap td .unidad,
+    .table-wrap td .rut-asist,
+    .table-wrap td .derechos,
+    .table-wrap td .correo-asist { width: 100%; min-width: 0; box-sizing: border-box; }
+    .table-wrap th:nth-child(1), .table-wrap td:nth-child(1) { width: 7%; }
+    .table-wrap th:nth-child(2), .table-wrap td:nth-child(2) { width: 17%; }
+    .table-wrap th:nth-child(3), .table-wrap td:nth-child(3) { width: 15%; }
+    .table-wrap th:nth-child(4), .table-wrap td:nth-child(4) { width: 9%; }
+    .table-wrap th:nth-child(5), .table-wrap td:nth-child(5) { width: 9.5%; }
+    .table-wrap th:nth-child(6), .table-wrap td:nth-child(6) { width: 9.5%; }
+    .table-wrap th:nth-child(7), .table-wrap td:nth-child(7) { width: 14%; }
+    .table-wrap th:nth-child(8), .table-wrap td:nth-child(8) { width: 12%; }
+    .table-wrap th:nth-child(9), .table-wrap td:nth-child(9) { width: 7%; }
+    /* Los encabezados largos ya no fuerzan el ancho de su columna. */
+    .table-wrap th { white-space: normal; word-break: break-word; }
+  }
   th {
     background: #EAF2F9;
     color: var(--c-primary);
@@ -1735,7 +1758,7 @@
     border-left: none;
     letter-spacing: -.02em;
   }
-  .card-desc { padding-left: 0; max-width: 62ch; }
+  .card-desc { padding-left: 0; max-width: 92ch; }
   .card::before { display: none; }
   .card { border-color: rgba(16,24,48,.10); border-radius: var(--r-lg); }
 
@@ -1776,7 +1799,6 @@
       </div>
     </div>
     <div class="header-right">
-      <button type="button" class="header-action header-action-demo" data-ac="cargarDatosEjemplo" title="Carga datos de ejemplo para ver cómo funciona la herramienta">▶ DEMO</button>
       <span class="header-badge">Ley N° 21.442</span>
       <div id="nav-cuenta"></div>
     </div>
@@ -2031,10 +2053,10 @@
         </thead>
         <tbody id="asistentes-tbody">
           <tr>
-            <td><input type="text" id="asist-0-unidad" name="asist-0-unidad" aria-label="Unidad, fila 1" placeholder="101" style="width:60px" class="unidad" /></td>
+            <td><input type="text" id="asist-0-unidad" name="asist-0-unidad" aria-label="Unidad, fila 1" placeholder="101" class="unidad" /></td>
             <td><input type="text" id="asist-0-nombre" name="asist-0-nombre" aria-label="Nombre del copropietario, fila 1" placeholder="Nombre completo" class="nombre-asist" /></td>
-            <td><input type="text" id="asist-0-rut" name="asist-0-rut" aria-label="RUT, fila 1" placeholder="12.345.678-5" class="rut-asist" style="width:120px" /></td>
-            <td><input type="number" id="asist-0-derechos" name="asist-0-derechos" aria-label="Porcentaje de derechos, fila 1" placeholder="1.5" step="0.01" min="0" max="100" class="derechos" data-cambio="calcularQuorum" data-tecla="calcularQuorum" style="width:70px" /></td>
+            <td><input type="text" id="asist-0-rut" name="asist-0-rut" aria-label="RUT, fila 1" placeholder="12.345.678-5" class="rut-asist" /></td>
+            <td><input type="number" id="asist-0-derechos" name="asist-0-derechos" aria-label="Porcentaje de derechos, fila 1" placeholder="1.5" step="0.01" min="0" max="100" class="derechos" data-cambio="calcularQuorum" data-tecla="calcularQuorum" /></td>
             <td>
               <select id="asist-0-habil" name="asist-0-habil" aria-label="Hábil, fila 1" class="habil" style="min-width:70px" data-cambio="quorumYVotacion">
                 <option value="si">Sí</option>
@@ -2048,7 +2070,7 @@
               </select>
             </td>
             <td><input type="text" id="asist-0-rep" name="asist-0-rep" aria-label="Representante, fila 1" placeholder="Solo si vota un representante" class="representante" /></td>
-            <td><input type="text" id="asist-0-correo" name="asist-0-correo" aria-label="Correo electrónico, fila 1" placeholder="opcional" class="correo-asist" style="width:150px" inputmode="email" /></td>
+            <td><input type="text" id="asist-0-correo" name="asist-0-correo" aria-label="Correo electrónico, fila 1" placeholder="opcional" class="correo-asist" inputmode="email" /></td>
             <td><button class="btn-del" data-ac="delRow" data-args="@" aria-label="Quitar esta fila del registro" title="Quitar fila">✕</button></td>
           </tr>
         </tbody>
@@ -2160,6 +2182,8 @@
       .rev-item .rev-ic{flex:none;font-weight:700}
       .rev-item.ok .rev-ic{color:#1A6B3F}
       .rev-item.warn .rev-ic{color:#9A6B1F}
+      .mat-reglamento{display:flex;gap:9px;align-items:flex-start;margin:10px 0 2px;padding:9px 11px;border:1px solid #E7D3A4;border-radius:8px;background:#FDFAF2;font-size:13px;line-height:1.45;cursor:pointer}
+      .mat-reglamento input{margin-top:2px;flex:none}
       .aviso-fe{background:#FBF3E3;border:1px solid #E7D3A4;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5417;line-height:1.5;margin:12px 0}
       #vv-reminder{display:none;background:#E1F2E8;border:1px solid #A9D9BE;border-radius:8px;padding:10px 13px;font-size: 13px;color:#166a3a;line-height:1.5;margin:12px 0}
       #vv-reminder.show{display:block}
@@ -2230,7 +2254,7 @@
 
     <div class="form-grid" style="margin-top:8px">
       <div class="field">
-        <label for="notario">¿Interviene Ministro de Fe? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre Ministro de Fe">?<span class="help-tip-content">El <strong>Ministro de Fe</strong> es un Notario Público o, en condominios sociales, un funcionario municipal o del Registro Civil. Su asistencia es obligatoria en las sesiones sobre materias de mayoría reforzada (N° 3 del art. 15) y también cuando se trata la modificación del reglamento de copropiedad (letra a) del N° 2), aunque esta sea de mayoría absoluta.</span></span></label>
+        <label for="notario">¿Asistió un notario o ministro de fe? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre Ministro de Fe">?<span class="help-tip-content">La ley exige la asistencia de un <strong>notario</strong>, quien certificará el acta, en las sesiones sobre materias de mayoría reforzada (N° 3 del art. 15) y también cuando se trata la modificación del reglamento de copropiedad (letra a) del N° 2), aunque esta sea de mayoría absoluta. <strong>Solo</strong> en condominios de viviendas sociales el art. 73 permite cumplirla con un funcionario municipal designado o el Oficial del Registro Civil.</span></span></label>
         <div class="tip" style="margin-bottom:8px;margin-top:6px;font-size: 13px">
           <strong>Art. 73 Ley 21.442:</strong> En condominios de viviendas sociales, la exigencia de notario se cumple con un funcionario municipal designado o el Oficial del Registro Civil.
         </div>
