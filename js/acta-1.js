@@ -2985,23 +2985,19 @@ function puertaRecuperar(btn) {
 }
 
 function revisarPuertaDePago() {
-  var puerta = document.getElementById('puerta-pago');
-  if (!puerta) return;
+  var raiz = document.documentElement;
+  raiz.classList.remove('acta-abierta');
+
   // La demostracion vive en localhost y trae su propio simulador de pagos:
   // ahi la puerta estorba, porque el pago es justamente lo que muestra.
-  if (window.DEMOA) return;
-  if (hayPagoDelActa()) return;
-
-  puerta.hidden = false;
-  var cuerpo = document.querySelector('.app-cuerpo');
-  var pasos = document.querySelector('.nav-footer');
-  if (cuerpo) cuerpo.hidden = true;
-  if (pasos) pasos.hidden = true;
+  if (window.DEMOA || hayPagoDelActa()) {
+    raiz.classList.add('acta-abierta');
+    return;
+  }
   document.title = 'Pague su acta antes de la asamblea \u00b7 actaviva';
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', revisarPuertaDePago);
-} else {
-  revisarPuertaDePago();
-}
+// Se llama aqui mismo, no en DOMContentLoaded: este archivo se evalua al
+// final del cuerpo, con el documento ya leido y antes de pintar. Esperar
+// al evento dejaba un instante con el asistente a la vista.
+revisarPuertaDePago();

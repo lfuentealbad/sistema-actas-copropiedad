@@ -1619,6 +1619,38 @@
 
   .app-cuerpo { display: flex; align-items: flex-start; }
 
+  /* --- La puerta del pago ------------------------------------------
+     El asistente esta cerrado mientras la raiz no lleve .acta-abierta,
+     que acta-1.js pone solo si hay pago. Por omision se ve la puerta:
+     si algo falla, se muestra de mas la explicacion, nunca el acta.
+     Ojo: no basta con el atributo hidden, porque estas dos reglas
+     traen display:flex y se lo comen. */
+  .app-cuerpo, .nav-footer { display: none; }
+  html.acta-abierta .app-cuerpo { display: flex; }
+  html.acta-abierta .nav-footer { display: flex; }
+  html.acta-abierta #puerta-pago { display: none; }
+
+  #puerta-pago{max-width:680px;margin:0 auto;padding:48px 22px 90px}
+  .puerta-caja{background:#fff;border:1px solid rgba(16,24,48,.10);border-radius:16px;padding:34px 36px;box-shadow:0 8px 32px rgba(20,24,30,.08)}
+  .puerta-ceja{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c-text-3);margin-bottom:10px}
+  .puerta-tit{font-family:'Fraunces',Georgia,serif;font-size:29px;font-weight:600;letter-spacing:-.02em;color:var(--c-primary);margin:0 0 12px;line-height:1.2}
+  .puerta-txt{font-size:15px;line-height:1.65;color:var(--c-text-2);text-align:justify;hyphens:auto;margin:0 0 18px}
+  .puerta-lista{margin:0 0 22px;padding-left:20px}
+  .puerta-lista li{font-size:14.5px;line-height:1.6;color:var(--c-text);margin-bottom:7px}
+  .puerta-precio{font-size:15px;color:var(--c-text-2);margin:0 0 16px}
+  .puerta-precio b{font-size:22px;color:var(--c-primary);font-variant-numeric:tabular-nums}
+  .puerta-btn{display:inline-flex;align-items:center;min-height:44px}
+  .puerta-pie{font-size:13.5px;line-height:1.6;color:var(--c-text-2);text-align:justify;hyphens:auto;margin:26px 0 10px;padding-top:20px;border-top:1px solid rgba(16,24,48,.10)}
+  .puerta-rescate{display:flex;gap:10px;flex-wrap:wrap}
+  .puerta-rescate input{flex:1;min-width:180px;min-height:44px;padding:9px 12px;border:1px solid var(--c-border);border-radius:8px;font-family:inherit;font-size:14px}
+  .puerta-rescate .btn{min-height:44px}
+  .puerta-msg{margin-top:12px;font-size:13.5px;line-height:1.5}
+  .puerta-msg.err{color:var(--c-error)}
+  .puerta-msg.ok{color:#1A6B3F}
+  .puerta-nota{font-size:13px;line-height:1.6;color:var(--c-text-3);text-align:justify;hyphens:auto;margin:22px 0 0}
+  @media(max-width:640px){.puerta-caja{padding:26px 20px}.puerta-tit{font-size:24px}}
+
+
   .progress-wrap {
     width: 288px;
     flex-shrink: 0;
@@ -1806,7 +1838,7 @@
   </div>
 </header>
 
-<div id="puerta-pago" hidden>
+<div id="puerta-pago">
   <div class="puerta-caja">
     <span class="puerta-ceja">Acta de asamblea</span>
     <h1 class="puerta-tit">El pago va antes de la asamblea</h1>
@@ -2215,26 +2247,7 @@
       .rev-item.warn .rev-ic{color:#9A6B1F}
       .mat-reglamento{display:flex;gap:9px;align-items:flex-start;margin:10px 0 2px;padding:9px 11px;border:1px solid #E7D3A4;border-radius:8px;background:#FDFAF2;font-size:13px;line-height:1.45;cursor:pointer}
       .mat-reglamento input{margin-top:2px;flex:none}
-          #puerta-pago{max-width:680px;margin:0 auto;padding:48px 22px 90px}
-      .puerta-caja{background:#fff;border:1px solid rgba(16,24,48,.10);border-radius:16px;padding:34px 36px;box-shadow:0 8px 32px rgba(20,24,30,.08)}
-      .puerta-ceja{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c-text-3);margin-bottom:10px}
-      .puerta-tit{font-family:'Fraunces',Georgia,serif;font-size:29px;font-weight:600;letter-spacing:-.02em;color:var(--c-primary);margin:0 0 12px;line-height:1.2}
-      .puerta-txt{font-size:15px;line-height:1.65;color:var(--c-text-2);text-align:justify;hyphens:auto;margin:0 0 18px}
-      .puerta-lista{margin:0 0 22px;padding-left:20px}
-      .puerta-lista li{font-size:14.5px;line-height:1.6;color:var(--c-text);margin-bottom:7px}
-      .puerta-precio{font-size:15px;color:var(--c-text-2);margin:0 0 16px}
-      .puerta-precio b{font-size:22px;color:var(--c-primary);font-variant-numeric:tabular-nums}
-      .puerta-btn{display:inline-flex;align-items:center;min-height:44px}
-      .puerta-pie{font-size:13.5px;line-height:1.6;color:var(--c-text-2);text-align:justify;hyphens:auto;margin:26px 0 10px;padding-top:20px;border-top:1px solid rgba(16,24,48,.10)}
-      .puerta-rescate{display:flex;gap:10px;flex-wrap:wrap}
-      .puerta-rescate input{flex:1;min-width:180px;min-height:44px;padding:9px 12px;border:1px solid var(--c-border);border-radius:8px;font-family:inherit;font-size:14px}
-      .puerta-rescate .btn{min-height:44px}
-      .puerta-msg{margin-top:12px;font-size:13.5px;line-height:1.5}
-      .puerta-msg.err{color:var(--c-error)}
-      .puerta-msg.ok{color:#1A6B3F}
-      .puerta-nota{font-size:13px;line-height:1.6;color:var(--c-text-3);text-align:justify;hyphens:auto;margin:22px 0 0}
-      @media(max-width:640px){.puerta-caja{padding:26px 20px}.puerta-tit{font-size:24px}}
-  .aviso-fe{background:#FBF3E3;border:1px solid #E7D3A4;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5417;line-height:1.5;margin:12px 0}
+      .aviso-fe{background:#FBF3E3;border:1px solid #E7D3A4;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5417;line-height:1.5;margin:12px 0}
       #vv-reminder{display:none;background:#E1F2E8;border:1px solid #A9D9BE;border-radius:8px;padding:10px 13px;font-size: 13px;color:#166a3a;line-height:1.5;margin:12px 0}
       #vv-reminder.show{display:block}
     </style>
