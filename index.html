@@ -121,6 +121,13 @@
     linear-gradient(0deg,rgba(11,19,40,.62),transparent 48%);}
   /* En el teléfono la columna de texto ocupa todo el ancho: el velo debe
      cubrir parejo, si no el titular cae sobre la parte clara de la foto. */
+  /* En pantallas muy anchas la foto (1440 px) se estiraba 1.3x -borrosa- y
+     el recorte vertical dejaba visible solo la mitad: la composicion se
+     rompia, con el QR y el recuento gigantes y cortados. El hero deja de
+     estirarse y pasa a ser una pildora centrada, como el menu flotante. */
+  @media(min-width:1640px){
+    .hero{max-width:1600px;margin:14px auto 0;border-radius:34px;}
+  }
   @media(max-width:820px){
     .hero-img{object-position:62% 46%;}
     .hero-scrim{background:
