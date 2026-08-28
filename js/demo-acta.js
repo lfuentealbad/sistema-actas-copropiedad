@@ -90,6 +90,25 @@
   //   select(campos).eq('id', id).single()
   // No pretende ser PostgREST; pretende que acta-1.js corra sin tocarlo.
   function tabla(nombre) {
+    // El acta del comité es gratis y el panel solo la lista: a la demo le
+    // basta una tabla vacía, que muestra el estado inicial con su botón.
+    // Los métodos de filtro y orden aceptan y devuelven el mismo objeto,
+    // como el cliente real: sin .order() aquí, el panel quedaba esperando
+    // una promesa que nunca resolvía.
+    if (nombre === 'actas_comite') {
+      var apiC = {
+        select: function () { return apiC; },
+        delete: function () { return apiC; },
+        insert: function () { return apiC; },
+        eq: function () { return apiC; },
+        is: function () { return apiC; },
+        order: function () { return apiC; },
+        limit: function () { return apiC; },
+        then: function (ok, mal) { return Promise.resolve({ data: [], error: null }).then(ok, mal); }
+      };
+      return apiC;
+    }
+
     if (nombre !== 'actas_guardadas') {
       return promesaDe(function () { return fallar('tabla_no_simulada: ' + nombre); });
     }
@@ -102,6 +121,9 @@
       select: function () { if (!q.accion) q.accion = 'select'; return api; },
       delete: function () { q.accion = 'delete'; return api; },
       eq: function (col, val) { if (col === 'id') q.id = val; return api; },
+      is: function () { return api; },
+      order: function () { return api; },
+      limit: function () { return api; },
       single: function () { q.unico = true; return api; },
       then: function (ok, mal) { return ejecutar(q).then(ok, mal); }
     };

@@ -222,6 +222,7 @@
     marcarRail();
     pintarServicios();
     pintarActas();
+    pintarComite();
     pintarSala();
     pintarConsultas();
     pintarPagos();
@@ -321,6 +322,63 @@
         });
       });
     }
+  }
+
+  // ---- actas del comité ----
+  // El servicio es gratis y no tiene RPC de listado: la tabla se consulta
+  // directo, con RLS de por medio (cada quien ve solo lo suyo). La app en
+  // /acta-comite retoma sola la más reciente SIN cerrar; por eso el botón de
+  // un borrador dice «Continuar» sin llevar id. Un acta cerrada no se puede
+  // reabrir —a propósito: es un documento numerado—, así que su única acción
+  // aquí es borrarla.
+  function pintarComite(){
+    var host = $('p-comite');
+    var c = Cuenta.cliente();
+    if(!c){ host.innerHTML = noDisponible('actas del comité'); return; }
+
+    c.from('actas_comite')
+      .select('id,condominio,fecha_reunion,folio,actualizada')
+      .order('fecha_reunion', { ascending: false, nullsFirst: false })
+      .then(function(r){
+        if(r.error){ host.innerHTML = fallo(r.error, 'actas del comité'); return; }
+        var l = r.data || [];
+        if(!l.length){
+          host.innerHTML = vacio('El comité aún no tiene actas',
+            'Es gratis: escriba la de su próxima reunión y quedará numerada al cerrarla.',
+            { href:'/acta-comite', txt:'Escribir la primera' });
+          return;
+        }
+        host.innerHTML = lista(l.map(function(a){
+          var sello = a.folio
+            ? '<span class="pill ok">' + esc(a.folio) + '</span>'
+            : '<span class="pill esp">borrador</span>';
+          var accion = a.folio
+            ? ''
+            : '<a class="btn btn-p btn-sm" href="/acta-comite">Continuar</a>';
+          return '<div class="it">' +
+            '<div class="info">' +
+              '<b>' + esc(a.condominio || 'Acta sin condominio') + sello + '</b>' +
+              '<span>' + (a.fecha_reunion ? 'Reunión del ' + esc(fecha(a.fecha_reunion)) + ' · ' : '') +
+              (a.folio ? 'Cerrada' : 'Sin cerrar') + ' · Actualizada el ' + esc(fechaCorta(a.actualizada)) + '</span>' +
+            '</div>' +
+            '<div class="acc">' + accion +
+              '<button type="button" class="btn btn-d btn-sm" data-borrar-comite="' + esc(a.id) + '">Borrar</button>' +
+            '</div>' +
+          '</div>';
+        }).join(''));
+
+        [].slice.call(host.querySelectorAll('[data-borrar-comite]')).forEach(function(b){
+          b.addEventListener('click', function(){
+            var id = b.getAttribute('data-borrar-comite');
+            if(!confirm('¿Borrar esta acta del comité?\n\nSe elimina de nuestros servidores y no se puede deshacer.')) return;
+            b.disabled = true; b.textContent = 'Borrando…';
+            Cuenta.cliente().from('actas_comite').delete().eq('id', id).then(function(r2){
+              if(r2.error){ b.disabled = false; b.textContent = 'Borrar'; alert('No pudimos borrarla. Intente de nuevo.'); return; }
+              pintarComite();
+            });
+          });
+        });
+      }, function(e){ host.innerHTML = fallo(e, 'actas del comité'); });
   }
 
   // ---- sala abierta ----

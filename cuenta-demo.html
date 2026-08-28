@@ -228,6 +228,7 @@
         <nav id="rail-nav">
           <a href="#s-servicios" class="act"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Servicios</a>
           <a href="#s-actas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>Mis actas</a>
+          <a href="#s-comite"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4a3 3 0 0 1 6 0"/><path d="M9 11h6M9 15h4"/></svg>Comité</a>
           <a href="#s-consultas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Consultas</a>
           <a href="#s-asambleas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9"/></svg>Asambleas</a>
           <a href="#s-cuenta"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5.5 21a7 7 0 0 1 13 0"/></svg>Mi cuenta</a>
@@ -240,7 +241,7 @@
         <!-- ============ servicios ============ -->
         <section class="seccion" id="s-servicios">
           <h2>Qué puede hacer</h2>
-          <p class="sub">Dos servicios. El acta es para la asamblea que se reúne; la consulta por escrito es para acordar algo sin reunir a nadie.</p>
+          <p class="sub">Dos servicios y un regalo. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar algo sin reunir a nadie; y el acta del comité es gratis, porque sus reuniones también deben quedar por escrito.</p>
           <article class="sv sv-principal">
             <span class="ic"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
             <h3>Acta de asamblea</h3>
@@ -279,14 +280,32 @@
             </div>
             <div id="p-pago-consulta-msg" class="msg" hidden></div>
           </article>
+
+          <article class="sv sv-principal" style="margin-top:26px">
+            <span class="ic"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4a3 3 0 0 1 6 0"/><path d="M9 11h6M9 15h4"/></svg></span>
+            <h3>Acta de reunión del comité</h3>
+            <p>El comité de administración también sesiona y acuerda cosas, y el artículo 17 de la Ley N° 21.442 manda dejarlas en un libro de actas. Escriba el acta mientras la reunión ocurre —quién asistió, qué se acordó, quién quedó a cargo— y llévese el documento numerado, listo para imprimir y firmar.</p>
+            <div class="pie">
+              <span class="precio"><b>Gratis</b> para los comités</span>
+              <span><a class="btn btn-p" href="/acta-comite">Escribir el acta</a></span>
+            </div>
+          </article>
         </section>
 
         <!-- ============ actas ============ -->
         <section class="seccion" id="s-actas">
           <h2>Mis actas</h2>
-          <p class="sub">Todas sus actas, con su folio si ya las finalizó. Puede borrar cualquiera y se elimina de inmediato.</p>
+          <p class="sub">Sus actas de asamblea, con su folio si ya las finalizó. Puede borrar cualquiera y se elimina de inmediato.</p>
           <div id="p-actas"><div class="lista"><div class="cargando">Buscando…</div></div></div>
           <p class="aclara">El acta se guarda en su cuenta mientras la escribe, para que pueda retomarla desde otro equipo. Contiene <strong>nombres, RUT y votos</strong> de los copropietarios: solo su cuenta puede verla, y el responsable de esos datos ante la ley sigue siendo la administración de su comunidad. Está explicado en la <a href="/privacidad#p4">declaración de privacidad</a>.</p>
+        </section>
+
+        <!-- ============ actas del comité ============ -->
+        <section class="seccion" id="s-comite">
+          <h2>Actas del comité</h2>
+          <p class="sub">Las reuniones del comité de administración, con su número si ya las cerró. Un acta cerrada no se edita: para corregir algo se hace una nueva.</p>
+          <div id="p-comite"><div class="lista"><div class="cargando">Buscando…</div></div></div>
+          <p class="aclara">Estas actas guardan <strong>nombres y cargos</strong> de quienes asistieron —sin RUT ni votos—. Solo su cuenta puede verlas, y puede borrarlas desde aquí cuando quiera.</p>
         </section>
 
         <!-- ============ consultas ============ -->
