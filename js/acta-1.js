@@ -220,7 +220,35 @@ tip.innerHTML =
 '<b>Qu\u00f3rum de constituci\u00f3n:</b> ' + d.qConst + '<br>' +
 '<b>Qu\u00f3rum de acuerdos:</b> ' + d.qAcuerdo + '<br><br>' +
 '<b>Materias propias de esta sesi\u00f3n:</b>' +
-materiasHTML;
+materiasHTML +
+'<div class="aviso-fe" id="aviso-fe-notario" hidden></div>';
+revisarAvisoNotario();
+}
+// Ayuda preventiva, no un validador: avisa cuando la ley exige notario.
+// Dos hipotesis (art. 15): las materias de mayoria reforzada (N\u00b0 3), y la
+// modificacion del reglamento (letra a) del N\u00b0 2) aunque la sesion sea de
+// mayoria absoluta. La segunda se detecta por la materia marcada; con un
+// tema propio que mencione el reglamento tambien se sugiere, sin bloquear.
+function revisarAvisoNotario() {
+var aviso = document.getElementById('aviso-fe-notario');
+if (!aviso) return;
+var tipo = document.getElementById('tipo-asamblea').value;
+if (tipo === 'extraordinaria-ref') {
+aviso.hidden = false;
+aviso.textContent = 'Esta sesi\u00f3n requiere la asistencia de un notario o ministro de fe, quien deber\u00e1 certificar el acta (art. 15, Ley N\u00b0 21.442).';
+return;
+}
+if (tipo === 'extraordinaria-abs') {
+var marcadas = document.querySelectorAll('#materias-check-list .mat-chk:checked');
+for (var i = 0; i < marcadas.length; i++) {
+if (/reglamento/i.test(marcadas[i].getAttribute('aria-label') || '')) {
+aviso.hidden = false;
+aviso.textContent = 'La modificaci\u00f3n del reglamento de copropiedad requiere la asistencia de un notario o ministro de fe, quien deber\u00e1 certificar el acta, aunque la sesi\u00f3n sea de mayor\u00eda absoluta (art. 15, letra a) del N\u00b0 2).';
+return;
+}
+}
+}
+aviso.hidden = true;
 }
 function toggleMatCheck(id) {
 var cb = document.getElementById(id);
@@ -233,6 +261,7 @@ function updateMatCount() {
 var checks = document.querySelectorAll('#materias-check-list .mat-chk:checked');
 var label = document.getElementById('mat-count-label');
 if (label) label.textContent = checks.length + ' tema(s) seleccionado(s)';
+revisarAvisoNotario();
 }
 function addCustomMateria() {
 var input = document.getElementById('mat-custom-input');
@@ -1348,7 +1377,7 @@ function descargarPlantilla() {
     ['Nombre del copropietario', 'Nombre completo de quien figura como propietario de esa unidad.', 'Sí'],
     ['RUT', 'Con puntos o sin ellos, da lo mismo: al importar el sistema lo deja como 12.345.678-5 y avisa si el dígito verificador no calza. La columna viene como texto para que Excel no le cambie el formato.', 'Sí'],
     ['% Derechos', 'Porcentaje sobre los bienes comunes, según el reglamento de copropiedad. Escríbalo como número (1,5), no como texto. La columna ya viene con dos decimales. La suma de todas las unidades debe dar 100.', 'Sí'],
-    ['Hábil', 'Escriba Sí o No. Es hábil quien está al día en sus gastos comunes. Solo los hábiles votan (art. 21, Ley N° 21.442); los inhábiles asisten pero no votan.', 'Sí'],
+    ['Hábil', 'Escriba Sí o No. Es hábil quien está al día en sus obligaciones económicas con el condominio, o quien mantiene vigente y al día un convenio de pago (recupera la habilidad desde la primera cuota pagada). Solo los hábiles votan (art. 21, Ley N° 21.442); los inhábiles asisten pero no votan. Esta calidad la acredita la administración.', 'Sí'],
     ['Representante', 'Complete solo si vota otra persona con poder. Escriba su nombre y el tipo de poder.', 'No'],
     ['Correo', 'Correo del Registro de Copropietarios. Si lo completa, esa persona recibe por correo la constancia de su voto: le sirve de respaldo y permite detectar si alguien votó en su nombre.', 'No'],
     [''],

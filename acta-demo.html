@@ -1883,7 +1883,7 @@
 
     <div class="form-grid" style="margin-top:20px">
       <div class="field">
-        <label for="tipo-asamblea">Tipo de Asamblea <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span><span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre tipos de asamblea">?<span class="help-tip-content"><strong>Ordinaria:</strong> obligatoria una vez al año, trata materias generales (presupuesto, balance, comité). <strong>Extraordinaria Absoluta (50+1%):</strong> reformas importantes. <strong>Extraordinaria Reforzada (66%):</strong> venta de bienes comunes, modificación del reglamento.</span></span></label>
+        <label for="tipo-asamblea">Tipo de Asamblea <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span><span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre tipos de asamblea">?<span class="help-tip-content"><strong>Ordinaria:</strong> obligatoria una vez al año, trata materias generales (presupuesto, balance, comité). <strong>Extraordinaria Absoluta (50+1%):</strong> p. ej., modificación del reglamento de copropiedad (salvo materias de quórum reforzado) o remoción del comité. <strong>Extraordinaria Reforzada (66%):</strong> p. ej., enajenación de bienes comunes o cambio de destino de las unidades.</span></span></label>
         <select id="tipo-asamblea" data-cambio="updateTipoAsambleaExtended">
           <option value="">— Seleccione —</option>
           <option value="ordinaria">Ordinaria</option>
@@ -2022,7 +2022,7 @@
             <th>Nombre del Copropietario</th>
             <th>RUT del Propietario</th>
             <th>% Derechos <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre porcentaje de derechos">?<span class="help-tip-content">Porcentaje de propiedad que cada copropietario tiene sobre los <strong>bienes comunes</strong>, según el reglamento de copropiedad. La suma de todos debe dar 100%.</span></span></th>
-            <th>Hábil <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre copropietario hábil">?<span class="help-tip-content">Es <strong>hábil</strong> el copropietario que está al día con sus gastos comunes. Solo los hábiles pueden votar (Art. 21, Ley 21.442). Los inhábiles asisten pero no votan.</span></span></th>
+            <th>Hábil <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre copropietario hábil">?<span class="help-tip-content">Es <strong>hábil</strong> el copropietario al día en sus obligaciones económicas con el condominio, o que mantiene vigente y al día un convenio de pago (recupera la habilidad desde la primera cuota pagada). Solo los hábiles votan (art. 21, Ley N° 21.442); los inhábiles asisten pero no votan. La calidad de hábil la acredita la administración.</span></span></th>
             <th>Asiste <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre asistencia">?<span class="help-tip-content">Marque <strong>Sí</strong> a quienes están presentes (físicamente o por videoconferencia). Solo los presentes cuentan para el quórum de constitución.</span></span></th>
             <th>Representante</th>
             <th>Correo <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre el correo del copropietario">?<span class="help-tip-content"><strong>Opcional.</strong> Si lo completa, al cerrar cada punto el copropietario recibe una <strong>constancia de su voto</strong>. Le sirve de respaldo y permite detectar si alguien votó en su nombre. Use el correo del <strong>Registro de Copropietarios</strong>.</span></span></th>
@@ -2142,6 +2142,7 @@
       .vv-estado{font-size: 13px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;margin-left:8px;flex-shrink:0}
       .vv-estado.cerrado{background:#EDEDE8;color:#5C6168}
       .vv-estado.abierto{background:#E1F2E8;color:#1A6B3F}
+      .aviso-fe{background:#FBF3E3;border:1px solid #E7D3A4;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5417;line-height:1.5;margin:12px 0}
       #vv-reminder{display:none;background:#E1F2E8;border:1px solid #A9D9BE;border-radius:8px;padding:10px 13px;font-size: 13px;color:#166a3a;line-height:1.5;margin:12px 0}
       #vv-reminder.show{display:block}
     </style>
@@ -2264,7 +2265,7 @@
 
     <div class="form-grid" style="margin-top:8px">
       <div class="field">
-        <label for="notario">¿Interviene Ministro de Fe? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre Ministro de Fe">?<span class="help-tip-content">El <strong>Ministro de Fe</strong> es un Notario Público o, en condominios sociales, un funcionario municipal o del Registro Civil. Su presencia es obligatoria cuando se tratan materias de mayoría reforzada.</span></span></label>
+        <label for="notario">¿Interviene Ministro de Fe? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre Ministro de Fe">?<span class="help-tip-content">El <strong>Ministro de Fe</strong> es un Notario Público o, en condominios sociales, un funcionario municipal o del Registro Civil. Su asistencia es obligatoria en las sesiones sobre materias de mayoría reforzada (N° 3 del art. 15) y también cuando se trata la modificación del reglamento de copropiedad (letra a) del N° 2), aunque esta sea de mayoría absoluta.</span></span></label>
         <div class="tip" style="margin-bottom:8px;margin-top:6px;font-size: 13px">
           <strong>Art. 73 Ley 21.442:</strong> En condominios de viviendas sociales, la exigencia de notario se cumple con un funcionario municipal designado o el Oficial del Registro Civil.
         </div>
@@ -2406,7 +2407,7 @@
         </tr>
         <tr style="background:#F4F4F0">
           <td style="padding:8px 10px;font-weight:600">Habil</td>
-          <td style="padding:8px 10px"><strong>Si</strong> = al día con gastos comunes<br><strong>No</strong> = adeuda 3 o más cuotas continuas o discontinuas (Art. 10, Ley N°21.442). Solo los Hábiles cuentan para quórum de acuerdos.</td>
+          <td style="padding:8px 10px"><strong>Si</strong> = al día en sus obligaciones económicas con el condominio, o con convenio de pago vigente y al día<br><strong>No</strong> = con obligaciones económicas pendientes y sin convenio al día. Solo los Hábiles cuentan para el quórum de acuerdos; esta calidad la acredita la administración.</td>
           <td style="padding:8px 10px;font-family:monospace">Si<br>No</td>
         </tr>
         <tr>
