@@ -2669,6 +2669,32 @@ function _kbxoTodos(n, el) {
 
 var _firmSeq = 0;
 
+// La ley solo nombra un cargo -el Presidente del Comite de Administracion-;
+// los demas son descripciones de quien firma. Por eso el menu ofrece las
+// calidades habituales y deja "Otro" para escribir la que corresponda, en
+// vez de obligar a encasillar a todo el mundo en dos etiquetas.
+var CARGOS_FIRMA = [
+  'Presidente del Comit\u00e9 de Administraci\u00f3n',
+  'Miembro del Comit\u00e9 de Administraci\u00f3n',
+  'Secretario/a del Comit\u00e9 de Administraci\u00f3n',
+  'Tesorero/a del Comit\u00e9 de Administraci\u00f3n',
+  'Copropietario/a designado/a por la Asamblea',
+  'Administrador/a del Condominio'
+];
+var OTRO_CARGO = 'Otro (escribir)';
+
+// "Otro" abre el campo libre; cualquier otra opcion lo guarda y lo oculta.
+function firmCargoCambio(sel) {
+  var row = sel && sel.closest ? sel.closest('.firm-row') : null;
+  if (!row) return;
+  var libre = row.querySelector('.firm-cargo-otro');
+  if (!libre) return;
+  var otro = sel.value === OTRO_CARGO;
+  libre.hidden = !otro;
+  if (otro) { try { libre.focus(); } catch (e) {} }
+  if (typeof autoSave === 'function') autoSave();
+}
+
 function firmAlternativa() {
   var el = document.querySelector('input[name="firm-alt"]:checked');
   return el ? el.value : 'comite';
@@ -2679,12 +2705,14 @@ function firmLeer() {
   var out = [];
   document.querySelectorAll('#firmantes-lista .firm-row').forEach(function (row) {
     var g = function (sel) { var e = row.querySelector(sel); return e ? String(e.value || '').trim() : ''; };
+    var cargo = g('.firm-cargo');
+    if (cargo === OTRO_CARGO) cargo = g('.firm-cargo-otro');
     out.push({
       nombre: g('.firm-nombre'),
       rut: g('.firm-rut'),
       cargo: alt === 'designados'
         ? 'Copropietario/a designado/a por la Asamblea'
-        : (g('.firm-cargo') || 'Miembro del Comit\u00e9 de Administraci\u00f3n')
+        : (cargo || CARGOS_FIRMA[1])
     });
   });
   return out;
@@ -2719,13 +2747,16 @@ function addFirmante(datos) {
     dCargo.innerHTML = '<label>Calidad</label><div class="firm-cargo-fijo">Copropietario/a designado/a por la Asamblea</div>';
   } else {
     var esperado = datos.cargo || (document.querySelectorAll('#firmantes-lista .firm-row').length === 0
-      ? 'Presidente del Comit\u00e9 de Administraci\u00f3n' : 'Miembro del Comit\u00e9 de Administraci\u00f3n');
-    var ops = ['Presidente del Comit\u00e9 de Administraci\u00f3n', 'Miembro del Comit\u00e9 de Administraci\u00f3n'];
-    if (ops.indexOf(esperado) < 0) ops.push(esperado); // cargos heredados de borradores antiguos
-    dCargo.innerHTML = '<label for="firm-' + n + '-cargo">Cargo en el comit\u00e9</label>' +
-      '<select class="firm-cargo" id="firm-' + n + '-cargo">' +
-      ops.map(function (o) { return '<option' + (o === esperado ? ' selected' : '') + '>' + o + '</option>'; }).join('') +
-      '</select>';
+      ? CARGOS_FIRMA[0] : CARGOS_FIRMA[1]);
+    var conocido = CARGOS_FIRMA.indexOf(esperado) >= 0;
+    dCargo.innerHTML = '<label for="firm-' + n + '-cargo">Cargo o calidad</label>' +
+      '<select class="firm-cargo" id="firm-' + n + '-cargo" data-cambio="firmCargoCambio" data-args="@">' +
+      CARGOS_FIRMA.map(function (o) { return '<option' + (o === esperado ? ' selected' : '') + '>' + o + '</option>'; }).join('') +
+      '<option value="' + OTRO_CARGO + '"' + (conocido ? '' : ' selected') + '>' + OTRO_CARGO + '</option>' +
+      '</select>' +
+      '<input type="text" class="firm-cargo-otro" id="firm-' + n + '-cargo-otro" maxlength="70"' +
+      ' placeholder="Escriba el cargo o la calidad" aria-label="Cargo o calidad del firmante"' +
+      (conocido ? ' hidden' : ' value="' + String(esperado).replace(/"/g, '&quot;') + '"') + '>';
   }
 
   var del = document.createElement('button');
@@ -2890,3 +2921,87 @@ function renderRevision() {
 
 // Dos filas vacias para empezar; un borrador restaurado las reemplaza.
 firmInicial();
+
+
+/* =====================================================================
+ *  Puerta de pago
+ *
+ *  El acta se paga antes de la asamblea. Si el cobro aparece recien al
+ *  finalizar, la reunion se detiene mientras alguien saca la tarjeta y
+ *  espera la confirmacion, con la sala llena esperando.
+ *
+ *  Esto NO es el candado: el candado vive en Postgres, que valida la
+ *  firma de la llave antes de abrir la sala o de entregar el folio.
+ *  Esto es el orden correcto de las cosas, y un aviso honesto.
+ * ===================================================================== */
+
+var LLAVE_ACTA = 'acta_pago_llave';
+
+function hayPagoDelActa() {
+  try { return !!localStorage.getItem(LLAVE_ACTA); } catch (e) { return false; }
+}
+
+function puertaMsg(texto, malo) {
+  var el = document.getElementById('puerta-msg');
+  if (!el) return;
+  el.hidden = !texto;
+  el.className = 'puerta-msg ' + (malo ? 'err' : 'ok');
+  el.textContent = texto || '';
+}
+
+function puertaRecuperar(btn) {
+  var campo = document.getElementById('puerta-orden');
+  if (!campo) return;
+  var orden = String(campo.value || '').trim().toUpperCase();
+  if (!/^AV-[A-Z0-9]{1,32}$/.test(orden)) {
+    puertaMsg('Revise el n\u00famero: empieza con AV- y viene en el comprobante del pago.', true);
+    campo.focus();
+    return;
+  }
+  btn.disabled = true;
+  var _t = btn.textContent;
+  btn.textContent = 'Buscando\u2026';
+  puertaMsg('');
+  fetch('/api/pago/estado?orden=' + encodeURIComponent(orden))
+    .then(function (r) { return r.json().catch(function () { return null; }); })
+    .then(function (d) {
+      btn.disabled = false; btn.textContent = _t;
+      if (!d || d.estado !== 'pagado' || !d.llave) {
+        puertaMsg('No encontramos un pago confirmado con ese n\u00famero. Si acaba de pagarlo, espere un momento y vuelva a intentar.', true);
+        return;
+      }
+      if ((d.producto || 'acta') !== 'acta') {
+        puertaMsg('Ese pago corresponde a una consulta por escrito, no a un acta de asamblea.', true);
+        return;
+      }
+      try { localStorage.setItem(LLAVE_ACTA, d.llave); } catch (e) {}
+      puertaMsg('Pago encontrado. Abriendo su acta\u2026');
+      setTimeout(function () { location.reload(); }, 900);
+    })
+    .catch(function () {
+      btn.disabled = false; btn.textContent = _t;
+      puertaMsg('No pudimos consultar el pago. Revise su conexi\u00f3n e int\u00e9ntelo otra vez.', true);
+    });
+}
+
+function revisarPuertaDePago() {
+  var puerta = document.getElementById('puerta-pago');
+  if (!puerta) return;
+  // La demostracion vive en localhost y trae su propio simulador de pagos:
+  // ahi la puerta estorba, porque el pago es justamente lo que muestra.
+  if (window.DEMOA) return;
+  if (hayPagoDelActa()) return;
+
+  puerta.hidden = false;
+  var cuerpo = document.querySelector('.app-cuerpo');
+  var pasos = document.querySelector('.nav-footer');
+  if (cuerpo) cuerpo.hidden = true;
+  if (pasos) pasos.hidden = true;
+  document.title = 'Pague su acta antes de la asamblea \u00b7 actaviva';
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', revisarPuertaDePago);
+} else {
+  revisarPuertaDePago();
+}
