@@ -18,10 +18,11 @@
     "nodejs_compat"
   ],
 
-  // RECESO=1 deja el sitio fuera de linea. Poner "0" para reactivarlo.
+  // RECESO=1 suspende el sitio: el Worker responde 404 a todo.
+  // Poner "0" y volver a desplegar para reactivarlo.
   // FLOW_ENTORNO: "sandbox" mientras se prueba, "produccion" para cobrar de verdad.
   "vars": {
-    "RECESO": "0",
+    "RECESO": "1",
     "FLOW_ENTORNO": "sandbox",
     "PRECIO_CLP": "14990",
     "PRECIO_CONSULTA_CLP": "7990"

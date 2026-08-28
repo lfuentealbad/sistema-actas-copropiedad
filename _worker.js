@@ -440,13 +440,21 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
+    // Sitio suspendido. Responde 404 a todo: para quien llegue de fuera, la
+    // direccion sencillamente no existe.
+    //
+    // No se sirve el 404.html del sitio: va con la marca y con diez enlaces
+    // que caerian todos aqui mismo. Un cuerpo minimo y a otra cosa.
+    //
+    // Ojo con el correo: esto solo gobierna fetch(). El email() de arriba
+    // sigue recibiendo las respuestas de las consultas por escrito, que es lo
+    // que se quiere -no se pierde el voto de nadie mientras el sitio duerme-.
     if (String(env.RECESO) === '1') {
-      return new Response('actascopropiedad.cl — servicio temporalmente no disponible.', {
-        status: 503,
+      return new Response('404 — no encontrado', {
+        status: 404,
         headers: {
           'content-type': 'text/plain; charset=utf-8',
-          'cache-control': 'no-store',
-          'retry-after': '86400'
+          'cache-control': 'no-store'
         }
       });
     }
