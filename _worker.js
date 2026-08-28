@@ -432,6 +432,14 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Nada viaja en claro. La zona no fuerza HTTPS por si sola (comprobado en
+    // vivo el 27-08-2026: http:// entregaba la pagina completa con 200), y el
+    // HSTS solo protege a quien ya nos visito. 301 y a otra cosa.
+    if (url.protocol === 'http:') {
+      url.protocol = 'https:';
+      return Response.redirect(url.toString(), 301);
+    }
+
     if (String(env.RECESO) === '1') {
       return new Response('actascopropiedad.cl — servicio temporalmente no disponible.', {
         status: 503,
