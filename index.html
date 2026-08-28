@@ -405,6 +405,12 @@
   .faq summary::after{content:"+";font-size:25px;font-weight:300;color:var(--teal-d);transition:transform .25s var(--ease);line-height:1;flex-shrink:0;}
   .faq details[open] summary::after{transform:rotate(45deg);}
   .faq details > div{padding:0 24px 22px;font-size:15.5px;color:var(--tx2);line-height:1.65;}
+  /* La respuesta de precios: tres filas dicen mas que un parrafo denso. */
+  .faq table.precios{width:100%;border-collapse:collapse;margin:2px 0 14px;}
+  .faq table.precios td{padding:10px 2px;border-bottom:1px solid var(--line-soft);vertical-align:top;}
+  .faq table.precios td:last-child{text-align:right;white-space:nowrap;color:var(--ink);}
+  .faq table.precios b{font-size:16.5px;}
+  .faq table.precios span{display:block;font-size:13px;color:var(--tx3);}
   @media(max-width:680px){ .win-url{display:none;} .faq summary{font-size:16px;padding:18px 19px;} }
 
   
@@ -473,7 +479,7 @@
         { "@type": "Question", "name": "¿Cómo votan los copropietarios?", "acceptedAnswer": { "@type": "Answer", "text": "Usted proyecta un código QR. Cada copropietario entra desde su teléfono, se identifica con su RUT y vota; el resultado se calcula ponderado por los derechos de cada unidad. Solo votan quienes están hábiles." } },
         { "@type": "Question", "name": "¿Es seguro? ¿Quién ve mis datos?", "acceptedAnswer": { "@type": "Answer", "text": "Su acta se guarda en su cuenta y solo usted puede verla: la restricción está en la base de datos, fila por fila. Los datos de la votación en vivo viajan cifrados y se borran al terminar la asamblea." } },
         { "@type": "Question", "name": "¿El acta cumple con la Ley N° 21.442?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El sistema aplica el quórum, las mayorías y los plazos de la ley vigente, y entrega un documento listo para firmar." } },
-        { "@type": "Question", "name": "¿Cuánto cuesta?", "acceptedAnswer": { "@type": "Answer", "text": "El acta de asamblea cuesta $14.990, con impuestos incluidos, e incluye la votación en vivo desde el teléfono. La consulta por escrito es un servicio aparte y cuesta $7.990: sirve para acordar algo sin convocar a asamblea. No hay mensualidad ni suscripción: se paga solo cuando se usa." } }
+        { "@type": "Question", "name": "¿Cuánto cuesta?", "acceptedAnswer": { "@type": "Answer", "text": "Acta de asamblea: $14.990 por asamblea, con la votación en vivo incluida. Consulta por escrito: $7.990 por consulta. Acta de reunión del comité: gratis. Impuestos incluidos; sin mensualidad ni suscripción, se paga solo cuando se usa." } }
       ]
     }
   ]
@@ -695,7 +701,7 @@
       <div style="flex:1 1 380px;min-width:280px">
         <span class="eyebrow">Gratis para los comités</span>
         <h2 id="tit-comite" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">¿Y las reuniones <em>del comité?</em></h2>
-        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0;max-width:56ch">También deben quedar por escrito: el artículo 17 exige un libro de actas del comité de administración. Escríbala mientras la reunión ocurre y llévesela numerada, lista para firmar. <strong style="color:var(--ink)">Sin costo</strong> — solo necesita su cuenta.</p>
+        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0;max-width:56ch">Los acuerdos del comité de administración también deben quedar registrados en el Libro de Actas. Ingrese lo tratado durante la reunión y obtenga el registro listo para incorporar al libro. <strong style="color:var(--ink)">Sin costo</strong> — solo necesita su cuenta.</p>
       </div>
       <div style="flex:0 0 auto">
         <a class="btn btn-ink" href="/acta-comite">Escribir el acta del comité</a>
@@ -717,7 +723,13 @@
       <details class="reveal"><summary>¿Sirve para asambleas telemáticas o mixtas?</summary><div>Sí, funciona igual en asambleas presenciales, por videollamada o mixtas.</div></details>
       <details class="reveal"><summary>¿El acta cumple con la Ley N° 21.442?</summary><div>Sí. Aplica el quórum, las mayorías y los plazos de la ley, y entrega el documento listo para firmar.</div></details>
       <details class="reveal"><summary>¿Se puede acordar algo sin convocar a asamblea?</summary><div>Sí. El artículo 15 de la Ley N° 21.442 permite la <strong>consulta por escrito</strong>: se expone la propuesta en una sesión informativa previa, se envía la consulta a los correos del Registro de Copropietarios y se fija un plazo para responder. Queda aprobada cuando las respuestas a favor suman el porcentaje de derechos que la ley exige para esa materia. Tratándose de cambios al reglamento, desafectación de bienes comunes o cambio de destino, el acuerdo debe además ser certificado por un notario.</div></details>
-      <details class="reveal"><summary>¿Cuánto cuesta?</summary><div>El <strong>acta de asamblea</strong> cuesta <strong>$14.990</strong>, impuestos incluidos, e incluye la <strong>votación en vivo</strong> desde el teléfono: sin acta, una sala de votación no tiene para qué existir. La <strong>consulta por escrito</strong> va aparte, <strong>$7.990</strong>, porque reemplaza a la asamblea: se usa para acordar algo sin reunir a nadie. <strong>No hay mensualidad ni suscripción</strong>: se paga solo cuando se usa.</div></details>
+      <details class="reveal"><summary>¿Cuánto cuesta?</summary><div>
+        <table class="precios">
+          <tr><td>Acta de asamblea <span>incluye la votación en vivo</span></td><td><b>$14.990</b> por asamblea</td></tr>
+          <tr><td>Consulta por escrito <span>acordar sin reunir a todos</span></td><td><b>$7.990</b> por consulta</td></tr>
+          <tr><td>Acta de reunión del comité</td><td><b>Gratis</b></td></tr>
+        </table>
+        Impuestos incluidos. <strong>Sin mensualidad ni suscripción</strong>: se paga solo cuando se usa.</div></details>
     </div>
   </div>
 </section>
