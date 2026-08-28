@@ -345,7 +345,7 @@
         if(!l.length){
           host.innerHTML = vacio('El comité aún no tiene actas',
             'Es gratis: escriba la de su próxima reunión y quedará numerada al cerrarla.',
-            { href:'/acta-comite', txt:'Escribir la primera' });
+            { href:'/acta-comite', txt:'Registrar los primeros acuerdos' });
           return;
         }
         host.innerHTML = lista(l.map(function(a){

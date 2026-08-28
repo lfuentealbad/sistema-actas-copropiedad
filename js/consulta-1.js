@@ -519,8 +519,8 @@ async function generarDocumento(btn){
       '<div class="firma"><b>Administrador</b>Nombre y firma</div>' +
       '</div>' +
       '<p style="margin-top:26px;font-size:9pt;color:#5C6168;">Documento generado el ' + fmtFecha(new Date().toISOString()) +
-      '. Tratándose de las materias del numeral 3 del artículo 15 de la Ley N° 21.442, la adopción del acuerdo ' +
-      'por esta vía debe ser certificada por un notario.</p>' +
+      '. Cuando el acuerdo verse sobre las materias señaladas en la letra a) del N° 2 o en el N° 3 del ' +
+      'artículo 15 de la Ley N° 21.442, deberá además reducirse a escritura pública.</p>' +
       '</body></html>';
 
     const w = window.open('', '_blank');
