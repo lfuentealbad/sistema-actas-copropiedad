@@ -2141,6 +2141,24 @@
       .vv-estado{font-size: 13px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;margin-left:8px;flex-shrink:0}
       .vv-estado.cerrado{background:#EDEDE8;color:#5C6168}
       .vv-estado.abierto{background:#E1F2E8;color:#1A6B3F}
+      .firm-alt{border:1px solid var(--c-line, #D8DCE3);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+      .firm-alt legend{font-weight:600;padding:0 6px}
+      .firm-alt-op{display:block;margin:6px 2px;cursor:pointer}
+      .firm-alt-op input{margin-right:8px}
+      .firm-row{display:grid;grid-template-columns:2fr 1.2fr 1.6fr auto;gap:12px 18px;align-items:end;margin-bottom:12px}
+      @media(max-width:760px){.firm-row{grid-template-columns:1fr 1fr;}.firm-row .firm-cargo-wrap{grid-column:1 / -1}}
+      .firm-row .btn-del-firm{border:1px solid #D8DCE3;background:#fff;border-radius:8px;min-width:44px;min-height:44px;cursor:pointer;color:#8B3A30;font-size:16px}
+      .firm-row .btn-del-firm:hover{background:#F6E6E3}
+      .btn-add-firm{display:inline-flex;align-items:center;gap:8px;margin-top:2px}
+      .firm-cargo-fijo{font-size:14px;color:#4B5C74;padding:11px 2px}
+      .rev-box{border:1px solid #E7D3A4;background:#FDFAF2;border-radius:12px;padding:16px 18px;margin:18px 0}
+      .rev-box.rev-todo-ok{border-color:#A9D9BE;background:#F3FAF5}
+      .rev-box h3{margin:0 0 4px;font-size:15px}
+      .rev-box .rev-nota{font-size:12.5px;color:#647188;margin:0 0 12px}
+      .rev-item{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:7px 0;line-height:1.5}
+      .rev-item .rev-ic{flex:none;font-weight:700}
+      .rev-item.ok .rev-ic{color:#1A6B3F}
+      .rev-item.warn .rev-ic{color:#9A6B1F}
       .aviso-fe{background:#FBF3E3;border:1px solid #E7D3A4;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5417;line-height:1.5;margin:12px 0}
       #vv-reminder{display:none;background:#E1F2E8;border:1px solid #A9D9BE;border-radius:8px;padding:10px 13px;font-size: 13px;color:#166a3a;line-height:1.5;margin:12px 0}
       #vv-reminder.show{display:block}
@@ -2197,69 +2215,16 @@
     <div class="card-desc">El acta debe ser firmada dentro de los <strong>30 días corridos</strong> desde la celebración de la asamblea.</div>
 
     <div id="firmantes-container">
-      
-      <div class="form-grid triple" style="margin-bottom:16px">
-        <div class="field">
-          <label for="f1-nombre">Firmante 1 · Nombre <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
-          <input type="text" id="f1-nombre" name="f1-nombre" placeholder="Nombre completo" />
-        </div>
-        <div class="field">
-          <label for="f1-rut">Firmante 1 · RUT</label>
-          <input type="text" id="f1-rut" name="f1-rut" placeholder="Ej: 12.345.678-5" />
-        </div>
-        <div class="field">
-          <label for="f1-cargo">Firmante 1 · Cargo</label>
-          <select id="f1-cargo" name="f1-cargo">
-            <option value="Presidente del Comité de Administración">Presidente del Comité de Administración</option>
-            <option value="Miembro del Comité de Administración">Miembro del Comité de Administración</option>
-            <option value="Administrador/a del Condominio">Administrador/a del Condominio</option>
-            <option value="Copropietario/a designado/a por la Asamblea">Copropietario/a designado/a por la Asamblea</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="form-grid triple" style="margin-bottom:16px">
-        <div class="field">
-          <label for="f2-nombre">Firmante 2 · Nombre</label>
-          <input type="text" id="f2-nombre" name="f2-nombre" placeholder="Nombre completo" />
-        </div>
-        <div class="field">
-          <label for="f2-rut">Firmante 2 · RUT</label>
-          <input type="text" id="f2-rut" name="f2-rut" placeholder="Ej: 12.345.678-5" />
-        </div>
-        <div class="field">
-          <label for="f2-cargo">Firmante 2 · Cargo</label>
-          <select id="f2-cargo" name="f2-cargo">
-            <option value="Miembro del Comité de Administración">Miembro del Comité de Administración</option>
-            <option value="Presidente del Comité de Administración">Presidente del Comité de Administración</option>
-            <option value="Administrador/a del Condominio">Administrador/a del Condominio</option>
-            <option value="Copropietario/a designado/a por la Asamblea">Copropietario/a designado/a por la Asamblea</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="form-grid triple" style="margin-bottom:16px">
-        <div class="field">
-          <label for="f3-nombre">Firmante 3 · Nombre</label>
-          <input type="text" id="f3-nombre" name="f3-nombre" placeholder="Nombre completo (opcional)" />
-        </div>
-        <div class="field">
-          <label for="f3-rut">Firmante 3 · RUT</label>
-          <input type="text" id="f3-rut" name="f3-rut" placeholder="Ej: 12.345.678-5" />
-        </div>
-        <div class="field">
-          <label for="f3-cargo">Firmante 3 · Cargo</label>
-          <select id="f3-cargo" name="f3-cargo">
-            <option value="Administrador/a del Condominio">Administrador/a del Condominio</option>
-            <option value="Miembro del Comité de Administración">Miembro del Comité de Administración</option>
-            <option value="Presidente del Comité de Administración">Presidente del Comité de Administración</option>
-            <option value="Copropietario/a designado/a por la Asamblea">Copropietario/a designado/a por la Asamblea</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </div>
-      </div>
+
+      <fieldset class="firm-alt">
+        <legend>¿Quiénes firmarán el acta? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre quiénes firman">?<span class="help-tip-content">El artículo 15 de la Ley N° 21.442 exige que el acta la firmen <strong>todos los miembros del comité de administración</strong> o, en su lugar, <strong>los copropietarios que la asamblea designe</strong>. Elija la alternativa que acordó su asamblea y agregue a todas las personas que correspondan.</span></span></legend>
+        <label class="firm-alt-op"><input type="radio" name="firm-alt" value="comite" checked data-ac="firmCambioAlternativa" data-args="@"> Todos los miembros del comité de administración</label>
+        <label class="firm-alt-op"><input type="radio" name="firm-alt" value="designados" data-ac="firmCambioAlternativa" data-args="@"> Copropietarios designados por la asamblea</label>
+      </fieldset>
+
+      <div id="firmantes-lista"></div>
+
+      <button type="button" class="btn btn-secondary btn-add-firm" data-ac="addFirmante"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg> Agregar firmante</button>
     </div>
 
     <div class="form-grid" style="margin-top:8px">
@@ -2311,6 +2276,7 @@
     <h2 class="card-title">Acta Generada</h2>
     <div class="card-desc">Revise el contenido antes de guardar el PDF o copiar el texto. Si necesita corregir algo, vuelva al paso correspondiente desde la barra superior.</div>
     <div id="acta-content"></div>
+    <div id="lista-revision" class="rev-box" hidden></div>
     <p class="print-pista">Al finalizar, su acta recibe un <strong>folio</strong> y queda cerrada. Se abrirá el cuadro de impresión: elija <strong>«Guardar como PDF»</strong> como destino. Mientras no la finalice, el documento sale marcado como borrador.</p>
     <div class="print-btn">
       <button class="btn btn-gold" data-ac="savePDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Finalizar y guardar como PDF</button>

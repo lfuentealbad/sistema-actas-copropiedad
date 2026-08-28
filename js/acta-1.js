@@ -92,6 +92,7 @@ const btnNext = document.getElementById('btn-next');
 if (currentStep === totalSteps) {
 btnNext.textContent = 'Finalizar acta';
 btnNext.onclick = savePDF;
+if (typeof renderRevision === 'function') renderRevision();
 } else {
 btnNext.textContent = 'Siguiente';
 btnNext.onclick = nextStep;
@@ -792,16 +793,16 @@ resumenRows +=
 '<tr><td>' + (idx+1) + '</td><td>' + titulo + '</td><td>' + resultadoResumen +
 '</td><td>' + (responsable || '\u2014') + '</td><td>' + plazoText + '</td></tr>';
 });
-var firmasHTML = '<div class="acta-signatures">';
-[['f1'],['f2'],['f3']].forEach(function(pair) {
-var fn = pair[0];
-var fnombre = escapeHtml(_pvau(fn+'-nombre'));
-var fcargo = _pvau(fn+'-cargo');
-var frut = escapeHtml(_pvau(fn+'-rut'));
-if (fnombre) {
-firmasHTML += '<div class="sig-line"><div style="height:40px"></div>' + fnombre;
-if (frut) firmasHTML += '<br><small>RUT: ' + frut + '</small>';
-firmasHTML += '<br><small>' + fcargo + '</small></div>';
+var firmAlt = firmAlternativa();
+var firmasHTML = '<p style="margin-top:30px">' + (firmAlt === 'designados'
+  ? 'Firman la presente acta los copropietarios designados al efecto por la asamblea (art. 15, Ley N\u00b0 21.442):'
+  : 'Firman la presente acta los miembros del comit\u00e9 de administraci\u00f3n (art. 15, Ley N\u00b0 21.442):') + '</p>';
+firmasHTML += '<div class="acta-signatures">';
+firmLeer().forEach(function(fr) {
+if (fr.nombre) {
+firmasHTML += '<div class="sig-line"><div style="height:40px"></div>' + escapeHtml(fr.nombre);
+if (fr.rut) firmasHTML += '<br><small>RUT: ' + escapeHtml(fr.rut) + '</small>';
+firmasHTML += '<br><small>' + escapeHtml(fr.cargo) + '</small></div>';
 }
 });
 var notarioRut = escapeHtml(_pvau('notario-rut'));
@@ -972,6 +973,10 @@ return { html: doc, nombre: 'acta_' + nombreCondo + '_' + fecha };
 // iframe con el mismo CSS: el destino "Guardar como PDF" del navegador entrega
 // un PDF de verdad, con texto seleccionable y paginado A4.
 function savePDF() {
+  if (typeof revisarConsistencia === 'function') {
+    var _adv = revisarConsistencia().filter(function (x) { return !x.ok; });
+    if (_adv.length && !confirm('La revisi\u00f3n de consistencia encontr\u00f3 ' + _adv.length + ' advertencia(s):\n\n\u2022 ' + _adv.map(function (x) { return x.texto; }).join('\n\u2022 ') + '\n\n\u00bfFinalizar de todos modos?')) return;
+  }
   var btn = document.querySelector('.print-btn .btn-gold');
   if (btn) btn.disabled = true;
   showLoading('Finalizando el acta…', 'Estamos cerrando el documento y asignándole su folio.');
@@ -1890,7 +1895,7 @@ return texto;
     bind('acta-numero', soloNumeros);
 
     
-    ['condo-rut','f1-rut','f2-rut','f3-rut','notario-rut'].forEach(function(id) {
+    ['condo-rut','notario-rut'].forEach(function(id) {
       bind(id, formatRUT, ['input', 'blur']);
       var el = document.getElementById(id);
       if (el) el.addEventListener('blur', function() { marcarRut(el); });
@@ -1898,7 +1903,7 @@ return texto;
 
     
     ['nombre-convocante','nombre-presidente','nombre-admin',
-     'f1-nombre','f2-nombre','f3-nombre','notario-nombre'].forEach(function(id) {
+     'notario-nombre'].forEach(function(id) {
       bind(id, soloLetras, ['input', 'blur']);
     });
 
@@ -1915,6 +1920,18 @@ return texto;
       }, true);
     }
   }
+
+  // Las filas de firmantes se crean despues, desde fuera de este modulo;
+  // este puente les presta el formateo de RUT y de nombres de aca adentro.
+  window.firmBindCampos = function (rutEl, nombreEl) {
+    if (rutEl) {
+      ['input', 'blur'].forEach(function (ev) { rutEl.addEventListener(ev, formatRUT); });
+      rutEl.addEventListener('blur', function () { marcarRut(rutEl); });
+    }
+    if (nombreEl) {
+      ['input', 'blur'].forEach(function (ev) { nombreEl.addEventListener(ev, soloLetras); });
+    }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initValidaciones);
@@ -2046,7 +2063,7 @@ var _saveIndicatorTimer = null;
 function _captureFieldsSnapshot() {
   var snap = { fields: {}, asistentes: [], puntos: [] };
   var isDyn = function(id) {
-    return /^asist-\d+-/.test(id) || /^p\d+-/.test(id) || /^pvot-/.test(id);
+    return /^asist-\d+-/.test(id) || /^p\d+-/.test(id) || /^pvot-/.test(id) || /^firm-\d+-/.test(id);
   };
   
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el) {
@@ -2056,6 +2073,8 @@ function _captureFieldsSnapshot() {
   
   var modAct = document.querySelector('#step-1 .toggle-btn.active');
   if (modAct) snap.modalidad = modAct.textContent.trim();
+
+  if (typeof firmSnapshot === 'function') snap.firmantes = firmSnapshot();
   
   document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
     var g = function(sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
@@ -2139,6 +2158,8 @@ function _restoreSnapshot(snap) {
       var el = document.getElementById(id);
       if (el) el.value = f[id];
     });
+
+    if (typeof firmRestaurar === 'function') firmRestaurar(snap);
 
     
     if (snap.modalidad) {
@@ -2341,9 +2362,10 @@ function cargarDatosEjemplo() {
   if (typeof actualizarVotacion === 'function') actualizarVotacion();
 
   
-  f('f1-nombre', 'María González Pérez'); f('f1-rut', '12.345.678-5'); f('f1-cargo', 'Presidente del Comité de Administración');
-  f('f2-nombre', 'Juan Sepúlveda Rojas'); f('f2-rut', '11.222.333-9'); f('f2-cargo', 'Miembro del Comité de Administración');
-  f('f3-nombre', 'Patricia Soto López');  f('f3-rut', '8.765.432-K');  f('f3-cargo', 'Administrador/a del Condominio');
+  if (typeof firmRestaurar === 'function') firmRestaurar({ firmantes: { alternativa: 'comite', lista: [
+    { nombre: 'María González Pérez', rut: '12.345.678-5', cargo: 'Presidente del Comité de Administración' },
+    { nombre: 'Juan Sepúlveda Rojas', rut: '11.222.333-9', cargo: 'Miembro del Comité de Administración' }
+  ] } });
 
   
   if (typeof autoSave === 'function') autoSave();
@@ -2602,3 +2624,242 @@ function materiaEnter(el, ev) {
 function _kbxoTodos(n, el) {
   _kbxo(n, !!(el && el.checked));
 }
+
+
+/* =====================================================================
+ *  Firmantes dinamicos (art. 15) y revision de consistencia
+ *
+ *  La ley da dos alternativas para firmar el acta: todos los miembros
+ *  del comite de administracion, o los copropietarios que la asamblea
+ *  designe. Antes habia tres bloques fijos -insuficientes para un
+ *  comite de cinco- y un "Administrador/a" que la ley no exige. Ahora
+ *  la alternativa se elige y las personas se agregan segun haga falta.
+ *
+ *  La revision de consistencia mira SOLO lo que la plataforma conoce:
+ *  datos ingresados. No verifica citaciones, poderes ni la autenticidad
+ *  del padron, y por eso jamas dice "valido": dice "revise".
+ * ===================================================================== */
+
+var _firmSeq = 0;
+
+function firmAlternativa() {
+  var el = document.querySelector('input[name="firm-alt"]:checked');
+  return el ? el.value : 'comite';
+}
+
+function firmLeer() {
+  var alt = firmAlternativa();
+  var out = [];
+  document.querySelectorAll('#firmantes-lista .firm-row').forEach(function (row) {
+    var g = function (sel) { var e = row.querySelector(sel); return e ? String(e.value || '').trim() : ''; };
+    out.push({
+      nombre: g('.firm-nombre'),
+      rut: g('.firm-rut'),
+      cargo: alt === 'designados'
+        ? 'Copropietario/a designado/a por la Asamblea'
+        : (g('.firm-cargo') || 'Miembro del Comit\u00e9 de Administraci\u00f3n')
+    });
+  });
+  return out;
+}
+
+function firmSnapshot() {
+  return { alternativa: firmAlternativa(), lista: firmLeer() };
+}
+
+function addFirmante(datos) {
+  var lista = document.getElementById('firmantes-lista');
+  if (!lista) return;
+  datos = datos || {};
+  var n = ++_firmSeq;
+  var alt = firmAlternativa();
+  var row = document.createElement('div');
+  row.className = 'firm-row';
+
+  var dNom = document.createElement('div');
+  dNom.className = 'field';
+  dNom.innerHTML = '<label for="firm-' + n + '-nombre">Nombre</label>' +
+    '<input type="text" class="firm-nombre" id="firm-' + n + '-nombre" placeholder="Nombre completo">';
+
+  var dRut = document.createElement('div');
+  dRut.className = 'field';
+  dRut.innerHTML = '<label for="firm-' + n + '-rut">RUT</label>' +
+    '<input type="text" class="firm-rut" id="firm-' + n + '-rut" placeholder="Ej: 12.345.678-5">';
+
+  var dCargo = document.createElement('div');
+  dCargo.className = 'field firm-cargo-wrap';
+  if (alt === 'designados') {
+    dCargo.innerHTML = '<label>Calidad</label><div class="firm-cargo-fijo">Copropietario/a designado/a por la Asamblea</div>';
+  } else {
+    var esperado = datos.cargo || (document.querySelectorAll('#firmantes-lista .firm-row').length === 0
+      ? 'Presidente del Comit\u00e9 de Administraci\u00f3n' : 'Miembro del Comit\u00e9 de Administraci\u00f3n');
+    var ops = ['Presidente del Comit\u00e9 de Administraci\u00f3n', 'Miembro del Comit\u00e9 de Administraci\u00f3n'];
+    if (ops.indexOf(esperado) < 0) ops.push(esperado); // cargos heredados de borradores antiguos
+    dCargo.innerHTML = '<label for="firm-' + n + '-cargo">Cargo en el comit\u00e9</label>' +
+      '<select class="firm-cargo" id="firm-' + n + '-cargo">' +
+      ops.map(function (o) { return '<option' + (o === esperado ? ' selected' : '') + '>' + o + '</option>'; }).join('') +
+      '</select>';
+  }
+
+  var del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'btn-del-firm';
+  del.title = 'Quitar firmante';
+  del.setAttribute('aria-label', 'Quitar firmante');
+  del.textContent = '\u2715';
+  del.addEventListener('click', function () {
+    var quien = (row.querySelector('.firm-nombre') || {}).value || '';
+    if (quien.trim() && !confirm('\u00bfQuitar a ' + quien.trim() + ' de los firmantes?')) return;
+    row.remove();
+    if (typeof autoSave === 'function') autoSave();
+  });
+
+  row.appendChild(dNom); row.appendChild(dRut); row.appendChild(dCargo); row.appendChild(del);
+  lista.appendChild(row);
+
+  var iNom = row.querySelector('.firm-nombre');
+  var iRut = row.querySelector('.firm-rut');
+  if (iNom && datos.nombre) iNom.value = datos.nombre;
+  if (iRut && datos.rut) iRut.value = datos.rut;
+  if (typeof window.firmBindCampos === 'function') window.firmBindCampos(iRut, iNom);
+  return row;
+}
+
+function firmCambioAlternativa() {
+  // Se reconstruyen las filas conservando nombres, RUT y el cargo que ya
+  // estaba elegido: lo que cambia entre alternativas es la calidad en que
+  // se firma, no las personas.
+  var lista = document.getElementById('firmantes-lista');
+  if (!lista) return;
+  var actuales = [];
+  lista.querySelectorAll('.firm-row').forEach(function (row) {
+    var g = function (sel) { var e = row.querySelector(sel); return e ? String(e.value || '').trim() : ''; };
+    actuales.push({ nombre: g('.firm-nombre'), rut: g('.firm-rut'), cargo: g('.firm-cargo') || undefined });
+  });
+  lista.innerHTML = '';
+  if (actuales.length === 0) actuales = [{}, {}];
+  actuales.forEach(function (fr) { addFirmante(fr); });
+  if (typeof autoSave === 'function') autoSave();
+}
+
+function firmRestaurar(snap) {
+  var lista = document.getElementById('firmantes-lista');
+  if (!lista) return;
+  var fs = snap && snap.firmantes;
+
+  // Migracion: los borradores anteriores guardaban f1/f2/f3 en fields.
+  if ((!fs || !fs.lista || !fs.lista.length) && snap && snap.fields && snap.fields['f1-nombre'] !== undefined) {
+    var migrada = [];
+    ['f1', 'f2', 'f3'].forEach(function (fn) {
+      var nom = String(snap.fields[fn + '-nombre'] || '').trim();
+      if (nom) migrada.push({ nombre: nom, rut: snap.fields[fn + '-rut'] || '', cargo: snap.fields[fn + '-cargo'] || '' });
+    });
+    fs = { alternativa: 'comite', lista: migrada };
+  }
+  if (!fs) { firmInicial(); return; }
+
+  var alt = fs.alternativa === 'designados' ? 'designados' : 'comite';
+  var radio = document.querySelector('input[name="firm-alt"][value="' + alt + '"]');
+  if (radio) radio.checked = true;
+
+  lista.innerHTML = '';
+  var items = (fs.lista && fs.lista.length) ? fs.lista : [{}, {}];
+  items.forEach(function (fr) { addFirmante(fr); });
+}
+
+function firmInicial() {
+  var lista = document.getElementById('firmantes-lista');
+  if (!lista || lista.children.length) return;
+  addFirmante({}); addFirmante({});
+}
+
+/* ---- Revision de consistencia (paso final) ------------------------- */
+
+function revisarConsistencia() {
+  var items = [];
+  var num = function (v) { return parseFloat(String(v || '').replace(',', '.')) || 0; };
+
+  // (a) Los derechos cargados suman 100.
+  var suma = 0, presentes = 0;
+  document.querySelectorAll('#asistentes-tbody tr').forEach(function (row) {
+    var g = function (sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
+    var d = num(g('.derechos'));
+    suma += d;
+    if (String(g('.asiste')).toLowerCase() !== 'no') presentes += d;
+  });
+  var sumaOk = suma > 99.5 && suma < 100.5;
+  items.push({ ok: sumaOk, texto: sumaOk
+    ? 'Los derechos del padr\u00f3n suman ' + suma.toFixed(2).replace('.', ',') + ' %.'
+    : 'Los derechos del padr\u00f3n suman ' + suma.toFixed(2).replace('.', ',') + ' % y debieran sumar 100 %.' });
+
+  // (b) El quorum de constitucion del tipo elegido.
+  var tipo = (document.getElementById('tipo-asamblea') || {}).value || '';
+  var minReq = 33, cumple = presentes >= 33, etiqueta = '33 % (ordinaria, primera citaci\u00f3n)';
+  if (tipo === 'extraordinaria-abs') { minReq = 50; cumple = presentes > 50; etiqueta = 'm\u00e1s del 50 %'; }
+  if (tipo === 'extraordinaria-ref') { minReq = 66; cumple = presentes >= 66; etiqueta = '66 %'; }
+  items.push({ ok: cumple, texto: (cumple
+    ? 'Los derechos presentes (' + presentes.toFixed(2).replace('.', ',') + ' %) alcanzan el m\u00ednimo de '
+    : 'Los derechos presentes (' + presentes.toFixed(2).replace('.', ',') + ' %) no alcanzan el m\u00ednimo de ') + etiqueta + '.' });
+
+  // (c) Firmantes con nombre.
+  var firmantes = firmLeer().filter(function (fr) { return fr.nombre; });
+  var alt = firmAlternativa();
+  if (firmantes.length === 0) {
+    items.push({ ok: false, texto: 'No hay firmantes con nombre. La ley exige que firmen todos los miembros del comit\u00e9 o los copropietarios designados por la asamblea.' });
+  } else if (alt === 'comite' && firmantes.length < 2) {
+    items.push({ ok: false, texto: 'Hay un solo firmante y la alternativa elegida es "todos los miembros del comit\u00e9": revise si falta alguien.' });
+  } else {
+    items.push({ ok: true, texto: firmantes.length + ' firmante(s) registrado(s), en calidad de ' + (alt === 'designados' ? 'copropietarios designados por la asamblea.' : 'miembros del comit\u00e9 de administraci\u00f3n.') });
+  }
+
+  // (d) El notario, cuando la ley lo exige.
+  var hayReglamento = false;
+  document.querySelectorAll('.punto-card').forEach(function (pc) {
+    var m = (pc.id || '').match(/^punto-(\d+)$/);
+    var t = m && document.getElementById('p' + m[1] + '-titulo');
+    if (t && /reglamento/i.test(t.value || '')) hayReglamento = true;
+  });
+  var exigeNotario = tipo === 'extraordinaria-ref' || hayReglamento;
+  var notarioSi = ((document.getElementById('notario') || {}).value === 'Si');
+  if (!exigeNotario) {
+    items.push({ ok: true, texto: 'Seg\u00fan el tipo de sesi\u00f3n y los puntos de la tabla, no se detecta exigencia de notario.' });
+  } else {
+    items.push({ ok: notarioSi, texto: notarioSi
+      ? 'La sesi\u00f3n exige notario o ministro de fe y su intervenci\u00f3n est\u00e1 registrada.'
+      : 'Esta sesi\u00f3n exige la asistencia de un notario o ministro de fe (art. 15) y no est\u00e1 registrada en el paso 5.' });
+  }
+
+  // (e) Cada punto sometido a acuerdo tiene resultado.
+  var cards = document.querySelectorAll('.punto-card');
+  var pendientes = 0;
+  cards.forEach(function (pc) {
+    if ((pc.dataset.requiere || 'si') === 'si' && (pc.dataset.votAprobado || 'pendiente') === 'pendiente') pendientes++;
+  });
+  if (!cards.length) {
+    items.push({ ok: false, texto: 'La tabla no tiene puntos: un acta sin puntos tratados queda vac\u00eda.' });
+  } else {
+    items.push({ ok: pendientes === 0, texto: pendientes === 0
+      ? 'Los ' + cards.length + ' punto(s) de la tabla tienen su resultado registrado.'
+      : pendientes + ' punto(s) sometidos a acuerdo siguen sin resultado registrado.' });
+  }
+
+  return items;
+}
+
+function renderRevision() {
+  var box = document.getElementById('lista-revision');
+  if (!box) return;
+  var items = revisarConsistencia();
+  var advertencias = items.filter(function (x) { return !x.ok; }).length;
+  box.hidden = false;
+  box.classList.toggle('rev-todo-ok', advertencias === 0);
+  box.innerHTML =
+    '<h3>Revisi\u00f3n de consistencia' + (advertencias ? ' \u00b7 ' + advertencias + ' advertencia(s)' : ' \u00b7 todo en orden') + '</h3>' +
+    '<p class="rev-nota">Revisa los datos ingresados en esta acta. No verifica la citaci\u00f3n, los poderes ni la calidad de los datos del padr\u00f3n, y no certifica la validez legal de la asamblea.</p>' +
+    items.map(function (x) {
+      return '<div class="rev-item ' + (x.ok ? 'ok' : 'warn') + '"><span class="rev-ic">' + (x.ok ? '\u2713' : '\u26a0') + '</span><span>' + x.texto + '</span></div>';
+    }).join('');
+}
+
+// Dos filas vacias para empezar; un borrador restaurado las reemplaza.
+firmInicial();
