@@ -15,6 +15,7 @@ node_modules
 # sitio publicado: el acta de comite a medio hacer y el banco falso de
 # pruebas de pago. Sin estas lineas quedan accesibles en produccion.
 _prueba-comite.html
+_heroes.html
 _pruebas
 .assetsignore
 .gitignore
