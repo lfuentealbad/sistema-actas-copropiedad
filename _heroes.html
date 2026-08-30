@@ -4,370 +4,255 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Propuestas de portada · actaviva</title>
+<title>Portada · el instrumento · actaviva</title>
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
 
+  /* =====================================================================
+     DIRECCIÓN · «El instrumento»
+
+     Una asamblea de copropietarios se juega entera en una pregunta: ¿se
+     constituye o no? Y esa pregunta es una medición — la suma de los
+     derechos presentes contra un mínimo que fija la ley.
+
+     Así que la portada no ilustra el producto: LO EJERCE. La franja que
+     cruza la pantalla es el condominio completo, unidad por unidad, con
+     su porcentaje real de derechos. La línea vertical es el 33% que exige
+     la ley para una ordinaria en primera citación. Todo lo que queda a la
+     derecha de esa línea es la asamblea constituyéndose.
+
+     Nadie más puede hacer esta portada, porque hay que saber qué es un
+     quórum ponderado para que se le ocurra a uno.
+
+     Registro tipográfico y proporciones: Diseño/BIBLIOTECA-DE-ESTILOS.md
+     (valores medidos en gov.uk, mercury.com, pentagram.com, klim.co.nz).
+     De ahí: interlínea de titular 1,05 · titular por DEBAJO de medium ·
+     cuerpo de 19 px · fondo con temperatura · un solo acento · y las tres
+     prohibiciones — sin degradados, sin píldoras, sin ornamento.
+     ===================================================================== */
+
   :root{
-    --ink:#1E3A6E; --ink2:#152A52; --noche:#0E1B33;
-    --naranja:#E5692A; --ambar:#F2A46B; --arena:#FBE3CF;
-    --papel:#F6F1E7; --papel2:#EFE8DA; --crema:#F3F7FB;
-    --tx:#16233A; --tx2:#4B5C74; --tx3:#7A879B;
+    --papel:#F4F1E9;          /* papel de oficio, con temperatura */
+    --papel-alto:#FBF9F4;
+    --tinta:#141C2E;          /* casi negro, con azul */
+    --tinta-2:rgba(20,28,46,.74);
+    --tinta-3:rgba(20,28,46,.62);
+    --filete:rgba(20,28,46,.22);
+    --hilo:rgba(20,28,46,.13);
+    --acento:#C4380A;         /* naranja quemado: tinta, no marca */
     --serif:'Fraunces',Georgia,serif;
     --sans:'Source Sans 3',system-ui,sans-serif;
-    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-family:var(--sans);background:#E7E3DC;color:var(--tx);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;}
-  .wrap{width:min(1180px,92vw);margin:0 auto;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);
+    font-size:19px;line-height:1.32;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  .wrap{width:min(1180px,90vw);margin:0 auto;}
 
-  /* ---- andamiaje de la comparación (no es parte de ninguna propuesta) ---- */
-  .marco{padding:38px 0 10px;}
-  .marco h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 500;font-size:30px;margin:0 0 6px;letter-spacing:-.02em;color:var(--ink2);}
-  .marco p{margin:0;color:var(--tx2);max-width:62ch;}
-  .rotulo{position:sticky;top:0;z-index:40;display:flex;align-items:baseline;gap:14px;
-    background:var(--noche);color:#fff;padding:9px 20px;font-size:12.5px;font-weight:700;
-    letter-spacing:.16em;text-transform:uppercase;}
-  .rotulo span{font-weight:400;letter-spacing:.02em;text-transform:none;color:rgba(255,255,255,.62);font-size:13px;}
-  .pieza{margin-bottom:52px;box-shadow:0 30px 70px -40px rgba(10,16,30,.6);}
+  /* Grano de papel. Textura, no efecto: es lo que separa un fondo plano de
+     una superficie. Muy por debajo del umbral de "decoración". */
+  body::before{content:"";position:fixed;inset:0;z-index:99;pointer-events:none;opacity:.045;
+    mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");}
 
-  /* =====================================================================
-     A · EXPEDIENTE
-     La página se comporta como la primera hoja de un documento: margen
-     reglado, folio arriba, sello al canto. El producto ES un documento;
-     la portada lo dice sin fotos de gente reunida.
-     ===================================================================== */
-  .a{background:var(--papel);color:var(--ink2);position:relative;overflow:hidden;padding:0;}
-  .a::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
-    background-image:linear-gradient(var(--papel2) 1px,transparent 1px);background-size:100% 34px;}
-  .a-rejilla{position:relative;display:grid;grid-template-columns:96px 1fr;min-height:600px;}
-  .a-margen{border-right:1.5px solid rgba(229,105,42,.34);position:relative;}
-  .a-folio{position:absolute;top:44px;left:50%;transform:translateX(-50%) rotate(-90deg);transform-origin:center;
-    white-space:nowrap;font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--tx3);text-transform:uppercase;}
-  .a-nota{position:absolute;bottom:70px;left:50%;transform:translateX(-50%) rotate(-90deg);white-space:nowrap;
-    font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(229,105,42,.85);font-weight:700;}
-  .a-cuerpo{padding:74px 60px 66px 54px;position:relative;}
-  .a-ceja{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;
-    text-transform:uppercase;color:var(--tx3);margin-bottom:30px;}
-  .a-ceja b{color:var(--naranja);font-weight:700;}
-  .a-ceja i{flex:1;height:1px;background:rgba(22,35,58,.16);max-width:180px;}
-  .a h2{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 430;font-weight:430;
-    font-size:clamp(38px,4.9vw,62px);line-height:1.02;letter-spacing:-.03em;margin:0 0 8px;max-width:15ch;}
-  .a h2 .sub{display:block;font-variation-settings:'opsz' 144,'wght' 380;font-style:italic;color:var(--naranja);position:relative;}
-  .a-raya{display:block;width:min(430px,90%);margin:2px 0 30px;color:var(--naranja);}
-  .a p.bajada{font-size:19px;line-height:1.55;color:var(--tx2);max-width:44ch;margin:0 0 36px;}
-  .a-acc{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:44px;}
-  .btn-solido{background:var(--ink2);color:#fff;border:none;font-family:var(--sans);font-size:16px;font-weight:700;
-    padding:15px 30px;border-radius:2px;cursor:pointer;letter-spacing:.01em;transition:transform .18s,background .18s;}
-  .btn-solido:hover{background:var(--naranja);transform:translateY(-1px);}
-  .enlace-sub{font-size:16px;font-weight:600;color:var(--ink2);border-bottom:2px solid var(--naranja);padding-bottom:2px;}
-  .a-ficha{display:grid;grid-template-columns:repeat(3,1fr);border-top:1.5px solid rgba(22,35,58,.2);}
-  .a-ficha div{padding:20px 24px 4px 0;border-right:1px solid rgba(22,35,58,.12);}
-  .a-ficha div:last-child{border-right:none;padding-right:0;}
-  .a-ficha dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--tx3);margin-bottom:7px;}
-  .a-ficha dd{margin:0;font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 560;font-size:25px;
-    letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink2);}
-  .a-ficha dd small{font-family:var(--sans);font-size:13.5px;font-weight:500;color:var(--tx2);display:block;letter-spacing:0;}
-  .a-sello{position:absolute;right:46px;top:64px;width:154px;height:154px;border:2px solid rgba(229,105,42,.5);
-    border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;transform:rotate(-13deg);
-    font-family:var(--mono);font-size:10px;line-height:1.5;letter-spacing:.14em;text-transform:uppercase;
-    color:rgba(229,105,42,.85);padding:14px;}
-  .a-sello::after{content:"";position:absolute;inset:7px;border:1px solid rgba(229,105,42,.32);border-radius:50%;}
+  /* ---------------- andamiaje de revisión ---------------- */
+  .aviso{background:var(--tinta);color:#fff;font-size:14px;line-height:1.55;padding:15px 0;}
+  .aviso .wrap{display:flex;gap:30px;flex-wrap:wrap;}
+  .aviso p{margin:0;max-width:58ch;}
+  .aviso b{color:#F2A46B;}
+
+  /* ================================================================
+     PORTADA
+     ================================================================ */
+  .hero{padding:76px 0 0;position:relative;}
+
+  .rotulo{display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-3);margin:0 0 30px;}
+  .rotulo::after{content:"";flex:1;height:1px;background:var(--hilo);max-width:220px;}
+
+  .titular{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px 60px;align-items:end;}
+
+  /* Peso 440 en 88 px. Una serif variable a este tamaño y por debajo de
+     medium es lo contrario de una portada por defecto. */
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 440;font-weight:440;
+    font-size:clamp(42px,7.1vw,88px);line-height:1.02;letter-spacing:-.032em;margin:0;max-width:11ch;}
+  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 400;color:var(--acento);}
+
+  .apertura{max-width:34ch;}
+  .apertura p{font-size:19px;line-height:1.58;color:var(--tinta-2);margin:0 0 26px;}
+  .acciones{display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
+  .btn{font-family:var(--sans);font-size:18px;font-weight:600;background:var(--tinta);color:var(--papel-alto);
+    border:none;border-radius:3px;padding:0 28px;min-height:54px;display:inline-flex;align-items:center;
+    cursor:pointer;transition:background .16s;}
+  .btn:hover{background:var(--acento);}
+  .btn:focus-visible{outline:3px solid var(--acento);outline-offset:3px;}
+  .liga{font-size:18px;font-weight:600;color:var(--tinta);text-decoration:none;min-height:44px;
+    display:inline-flex;align-items:center;border-bottom:2px solid var(--filete);padding-bottom:2px;}
+  .liga:hover{border-bottom-color:var(--acento);}
+
+  /* ================================================================
+     EL INSTRUMENTO · a sangre, rompiendo la columna de texto
+     ================================================================ */
+  .instrumento{margin-top:74px;padding-bottom:70px;position:relative;}
+
+  .instr-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;
+    flex-wrap:wrap;margin-bottom:60px;}   /* aire para el rotulo del minimo, que sube 60 px */
+  .instr-cab p{margin:0;font-size:13px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--tinta-3);}
+
+  /* La franja sale del ancho de contenido y llega a los dos bordes: el
+     condominio no cabe en una columna de texto. */
+  .franja-full{width:100vw;margin-left:calc(50% - 50vw);position:relative;}
+
+  .franja{position:relative;display:grid;height:112px;border-top:2px solid var(--tinta);
+    border-bottom:2px solid var(--tinta);
+    /* Los derechos reales de las seis unidades. Suman 100. */
+    grid-template-columns:18.5fr 16.8fr 17.1fr 15.75fr 16.4fr 15.45fr;}
+
+  .seg{position:relative;border-right:1px solid rgba(244,241,233,.34);
+    display:flex;align-items:flex-end;padding:0 0 12px 14px;overflow:hidden;
+    background:var(--tinta);color:var(--papel-alto);
+    transform-origin:left center;
+    animation:crece .62s cubic-bezier(.16,.84,.3,1) backwards;}
+  .seg:last-child{border-right:none;}
+  .seg:nth-child(1){animation-delay:.10s;} .seg:nth-child(2){animation-delay:.19s;}
+  .seg:nth-child(3){animation-delay:.28s;} .seg:nth-child(4){animation-delay:.37s;}
+  .seg:nth-child(5){animation-delay:.46s;} .seg:nth-child(6){animation-delay:.55s;}
+  @keyframes crece{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+
+  /* La unidad ausente no se rellena: se raya. Es una tara de imprenta, no
+     un color más. Se ve a un metro que ahí falta alguien. */
+  .seg.ausente{background:transparent;color:var(--tinta-3);
+    background-image:repeating-linear-gradient(-45deg,
+      rgba(20,28,46,.16) 0 1.5px, transparent 1.5px 9px);
+    border-right-color:var(--filete);}
+
+  .seg .der{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 500;
+    font-size:clamp(15px,1.5vw,22px);font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+    white-space:nowrap;}
+  .seg .uni{position:absolute;top:11px;left:14px;font-size:12px;font-weight:600;
+    letter-spacing:.1em;color:rgba(251,249,244,.66);}
+  .seg.ausente .uni{color:var(--tinta-3);}
+  .seg.ausente .der::after{content:" ausente";font-family:var(--sans);font-size:12.5px;
+    font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+
+  /* El mínimo legal: la única línea que importa de verdad en la pantalla. */
+  .minimo{position:absolute;top:-16px;bottom:-16px;left:33%;width:2px;background:var(--acento);
+    z-index:3;transform-origin:top;
+    animation:baja .5s cubic-bezier(.16,.84,.3,1) .78s backwards;}
+  @keyframes baja{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+  .minimo span{position:absolute;top:-34px;left:0;white-space:nowrap;font-size:12.5px;
+    font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--acento);
+    border-left:2px solid var(--acento);padding-left:8px;margin-left:-2px;
+    animation:aparece .4s ease-out 1.1s backwards;}
+  @keyframes aparece{from{opacity:0;}to{opacity:1;}}
+
+  .instr-pie{display:grid;grid-template-columns:1fr auto;gap:26px;align-items:end;margin-top:26px;}
+  .leyenda{font-size:16px;line-height:1.55;color:var(--tinta-2);max-width:46ch;margin:0;}
+  .leyenda b{color:var(--tinta);font-weight:600;}
+
+  .total{text-align:right;animation:sube .55s cubic-bezier(.16,.84,.3,1) 1.2s backwards;}
+  @keyframes sube{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .total dt{font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--tinta-3);margin-bottom:2px;}
+  .total dd{margin:0;font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 520;
+    font-size:clamp(48px,6.4vw,80px);line-height:.92;letter-spacing:-.04em;
+    font-variant-numeric:tabular-nums;}
+  .total .veredicto{display:block;font-family:var(--sans);font-size:14px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--acento);margin-top:9px;}
+
   @media(max-width:900px){
-    .a-rejilla{grid-template-columns:1fr;}
-    .a-margen{display:none;}
-    .a-cuerpo{padding:52px 26px 48px;}
-    .a-sello{display:none;}
-    .a-ficha{grid-template-columns:1fr;}
-    .a-ficha div{border-right:none;border-bottom:1px solid rgba(22,35,58,.12);padding-right:0;padding-bottom:16px;}
+    .hero{padding:48px 0 0;}
+    .titular{grid-template-columns:1fr;gap:30px;align-items:start;}
+    h1{max-width:none;}
+    .apertura{max-width:none;}
+    .instrumento{margin-top:48px;}
+    .franja{height:92px;}
+    .seg{padding-left:9px;}
+    .seg .uni{left:9px;font-size:11px;}
+    .instr-pie{grid-template-columns:1fr;}
+    .total{text-align:left;}
   }
-
-  /* =====================================================================
-     B · QUÓRUM EN VIVO
-     Sin foto: la portada muestra el instrumento funcionando. La cifra que
-     el administrador mira toda la asamblea, en la serif de la marca, que
-     es lo que nadie hace con un dato.
-     ===================================================================== */
-  .b{background:var(--noche);color:#fff;position:relative;overflow:hidden;padding:78px 0 74px;}
-  .b::before{content:"";position:absolute;inset:0;opacity:.55;
-    background-image:radial-gradient(rgba(255,255,255,.13) 1px,transparent 1px);background-size:26px 26px;
-    -webkit-mask-image:radial-gradient(ellipse 78% 62% at 76% 42%,#000 12%,transparent 72%);
-            mask-image:radial-gradient(ellipse 78% 62% at 76% 42%,#000 12%,transparent 72%);}
-  .b-rejilla{position:relative;display:grid;grid-template-columns:1.02fr .98fr;gap:64px;align-items:center;}
-  .b-ceja{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.2em;
-    text-transform:uppercase;color:var(--ambar);margin-bottom:26px;}
-  .b-ceja::before{content:"";width:26px;height:1.5px;background:var(--naranja);}
-  .b h2{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 450;font-weight:450;
-    font-size:clamp(38px,4.7vw,60px);line-height:1.05;letter-spacing:-.03em;margin:0 0 20px;}
-  .b h2 em{font-style:italic;color:var(--ambar);font-variation-settings:'opsz' 144,'wght' 420;}
-  .b p.bajada{font-size:18.5px;line-height:1.58;color:rgba(255,255,255,.76);max-width:38ch;margin:0 0 34px;}
-  .b-acc{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:22px;}
-  .btn-naranja{background:var(--naranja);color:#fff;border:none;font-family:var(--sans);font-size:16px;font-weight:700;
-    padding:15px 28px;border-radius:9px;cursor:pointer;box-shadow:0 12px 30px -12px rgba(229,105,42,.8);transition:transform .18s;}
-  .btn-naranja:hover{transform:translateY(-2px);}
-  .btn-fantasma{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.28);font-family:var(--sans);
-    font-size:16px;font-weight:600;padding:14px 24px;border-radius:9px;cursor:pointer;transition:border-color .18s;}
-  .btn-fantasma:hover{border-color:rgba(255,255,255,.6);}
-  .b-pie{font-size:14px;color:rgba(255,255,255,.5);}
-  .b-pie b{color:#fff;}
-
-  .instr{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.13);border-radius:18px;
-    padding:26px 28px 22px;backdrop-filter:blur(6px);}
-  .instr-top{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;
-    letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.46);margin-bottom:16px;}
-  .instr-vivo{display:inline-flex;align-items:center;gap:7px;color:#8FE0B0;}
-  .instr-vivo::before{content:"";width:7px;height:7px;border-radius:50%;background:#8FE0B0;animation:pulso 1.9s ease-in-out infinite;}
-  @keyframes pulso{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.8);}}
-  .cifra{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 600;font-size:clamp(58px,7.4vw,88px);
-    line-height:.94;letter-spacing:-.045em;font-variant-numeric:tabular-nums;margin:0;}
-  .cifra sup{font-size:.38em;font-variation-settings:'opsz' 60,'wght' 500;vertical-align:super;margin-left:4px;letter-spacing:0;}
-  .instr-lab{font-size:13.5px;color:rgba(255,255,255,.58);margin:6px 0 18px;}
-  .barra{height:9px;border-radius:20px;background:rgba(255,255,255,.11);overflow:hidden;position:relative;}
-  .barra i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--naranja),var(--ambar));
-    width:84.25%;transform-origin:left;animation:llena 1.5s cubic-bezier(.2,.7,.3,1) both;}
-  @keyframes llena{from{transform:scaleX(0);}to{transform:scaleX(1);}}
-  .barra-min{position:absolute;left:33%;top:-5px;bottom:-5px;width:2px;background:rgba(255,255,255,.55);}
-  .instr-min{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.44);margin-top:9px;}
-  .instr-min b{color:#8FE0B0;}
-  .padron{margin-top:20px;border-top:1px solid rgba(255,255,255,.1);}
-  .padron div{display:grid;grid-template-columns:52px 1fr auto 22px;gap:12px;align-items:center;
-    padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:14px;
-    opacity:0;animation:sube .5s var(--e,.3s) ease-out both;}
-  @keyframes sube{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:none;}}
-  .padron div:nth-child(1){--e:.55s;} .padron div:nth-child(2){--e:.7s;}
-  .padron div:nth-child(3){--e:.85s;} .padron div:nth-child(4){--e:1s;}
-  .padron u{text-decoration:none;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.42);}
-  .padron span{color:rgba(255,255,255,.86);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .padron b{font-variant-numeric:tabular-nums;color:#fff;font-weight:600;}
-  .padron em{font-style:normal;color:#8FE0B0;font-size:15px;}
-  .padron .no em{color:rgba(255,255,255,.28);}
-  .padron .no span,.padron .no b{color:rgba(255,255,255,.34);}
-  @media(max-width:900px){
-    .b-rejilla{grid-template-columns:1fr;gap:38px;}
-    .b{padding:56px 0 52px;}
-  }
-
-  /* =====================================================================
-     C · LA HOJA
-     Lo que se compra es el documento. Aquí el documento es la portada:
-     una hoja física, girada, con su folio. Nada de gente sonriendo.
-     ===================================================================== */
-  .c{background:linear-gradient(168deg,#FFFDF9 0%,var(--papel) 62%,#EBE3D4 100%);color:var(--ink2);
-    position:relative;overflow:hidden;padding:70px 0 0;}
-  .c-rejilla{display:grid;grid-template-columns:1fr .96fr;gap:50px;align-items:end;}
-  .c-copy{padding-bottom:78px;}
-  .c-ceja{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.19em;text-transform:uppercase;
-    color:var(--naranja);border:1.5px solid rgba(229,105,42,.34);border-radius:30px;padding:6px 15px;margin-bottom:26px;}
-  .c h2{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 440;font-weight:440;
-    font-size:clamp(38px,4.8vw,60px);line-height:1.03;letter-spacing:-.03em;margin:0 0 20px;max-width:13ch;}
-  .c h2 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 400;
-    background:linear-gradient(96deg,var(--naranja),#C0491B);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .c p.bajada{font-size:19px;line-height:1.56;color:var(--tx2);max-width:40ch;margin:0 0 34px;}
-  .c-acc{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:26px;}
-  .btn-tinta{background:var(--ink2);color:#fff;border:none;font-family:var(--sans);font-size:16px;font-weight:700;
-    padding:15px 28px;border-radius:10px;cursor:pointer;box-shadow:0 14px 32px -16px rgba(21,42,82,.9);transition:transform .18s;}
-  .btn-tinta:hover{transform:translateY(-2px);}
-  .btn-borde{background:transparent;color:var(--ink2);border:1.5px solid rgba(21,42,82,.24);font-family:var(--sans);
-    font-size:16px;font-weight:600;padding:14px 24px;border-radius:10px;cursor:pointer;}
-  .c-datos{display:flex;gap:26px;flex-wrap:wrap;font-size:14px;color:var(--tx2);}
-  .c-datos b{color:var(--ink2);}
-  /* La hoja se corta abajo a proposito: el documento sigue mas alla del
-     borde, que es lo que hace un papel de verdad apoyado en la mesa. Sin
-     esto el hero se iba a 1.200 px de alto. */
-  .c-hoja{position:relative;transform:rotate(-2.2deg);margin-bottom:-30px;height:520px;overflow:hidden;border-radius:3px;
-    box-shadow:0 2px 0 rgba(0,0,0,.05),0 40px 80px -34px rgba(20,24,30,.55);border:1px solid rgba(22,35,58,.1);}
-  .c-hoja img{display:block;width:100%;height:auto;}
-  .c-hoja::after{content:"";position:absolute;left:0;right:0;bottom:0;height:120px;pointer-events:none;
-    background:linear-gradient(transparent,rgba(240,233,220,.9));}
-  .c-hoja::before{content:"";position:absolute;inset:8px 8px -8px -8px;background:rgba(21,42,82,.05);border-radius:3px;z-index:-1;}
-  .c-marco{position:relative;}
-  .c-timbre{position:absolute;top:-16px;right:-14px;z-index:3;background:var(--naranja);color:#fff;
-    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    padding:9px 14px;border-radius:3px;transform:rotate(4deg);box-shadow:0 10px 24px -10px rgba(229,105,42,.9);}
-  @media(max-width:900px){
-    .c-rejilla{grid-template-columns:1fr;gap:30px;}
-    .c-copy{padding-bottom:10px;}
-    .c{padding:52px 0 0;}
-    .c-hoja{transform:none;margin-bottom:0;height:400px;}
-    .c-timbre{right:8px;}
-  }
-
-  /* =====================================================================
-     D · FICHA OFICIAL
-     Retícula dura, filetes de un pixel, rótulos en versalitas. El producto
-     es un trámite legal y la portada se comporta como un formulario bien
-     compuesto. Naranja solo donde se actúa.
-     ===================================================================== */
-  .d{background:#FCFBF8;color:#111826;padding:0;border-top:2px solid #111826;}
-  .d-rejilla{display:grid;grid-template-columns:1fr 1fr 1fr;border-left:1px solid rgba(17,24,38,.16);}
-  .d-celda{border-right:1px solid rgba(17,24,38,.16);border-bottom:1px solid rgba(17,24,38,.16);padding:22px 24px;min-height:112px;}
-  .d-rot{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#7A879B;margin-bottom:9px;}
-  .d-val{font-size:15.5px;font-weight:600;line-height:1.35;}
-  .d-val b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;font-size:23px;font-variant-numeric:tabular-nums;}
-  .d-titular{grid-column:1 / -1;padding:56px 24px 46px;border-right:1px solid rgba(17,24,38,.16);
-    border-bottom:1px solid rgba(17,24,38,.16);position:relative;}
-  .d-titular::after{content:"01";position:absolute;top:20px;right:24px;font-family:var(--mono);font-size:11px;
-    letter-spacing:.2em;color:#B9C1CC;}
-  .d h2{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 400;font-weight:400;
-    font-size:clamp(40px,6.2vw,80px);line-height:.98;letter-spacing:-.035em;margin:0;max-width:17ch;}
-  .d h2 mark{background:none;color:var(--naranja);font-style:italic;font-variation-settings:'opsz' 144,'wght' 400;}
-  .d-bajada{grid-column:1 / 3;padding:26px 24px;border-right:1px solid rgba(17,24,38,.16);
-    border-bottom:1px solid rgba(17,24,38,.16);font-size:18.5px;line-height:1.55;color:#3B475C;}
-  .d-accion{grid-column:3 / 4;border-right:1px solid rgba(17,24,38,.16);border-bottom:1px solid rgba(17,24,38,.16);
-    display:flex;flex-direction:column;}
-  .d-boton{flex:1;background:var(--naranja);color:#fff;border:none;font-family:var(--sans);font-size:17px;font-weight:700;
-    cursor:pointer;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;padding:0 24px;gap:12px;
-    transition:background .18s;min-height:78px;}
-  .d-boton:hover{background:#C0491B;}
-  .d-boton span{font-family:var(--mono);font-size:19px;}
-  .d-ver{padding:16px 24px;font-size:15px;font-weight:600;border-top:1px solid rgba(17,24,38,.16);
-    display:flex;justify-content:space-between;align-items:center;}
-  .d-ver i{font-style:normal;color:var(--naranja);}
-  @media(max-width:900px){
-    .d-rejilla{grid-template-columns:1fr;}
-    .d-bajada,.d-accion{grid-column:1 / -1;}
-    .d h2{font-size:clamp(34px,9vw,48px);}
+  @media(max-width:560px){
+    /* En el teléfono los números no se leen a ese ancho, pero la MEDICIÓN sí:
+       se conservan los seis tramos con su proporción y el rayado del ausente,
+       y lo que se va son los rótulos. Esconder tramos haría mentir a la
+       franja, que es lo único que esta portada no puede permitirse. */
+    .franja{height:64px;}
+    .seg{padding:0;}
+    .seg .uni,.seg .der{display:none;}
+    .instr-cab{margin-bottom:54px;}
   }
 
   @media(prefers-reduced-motion:reduce){
-    *{animation:none !important;transition:none !important;}
-    .barra i{transform:none;}
-    .padron div{opacity:1;}
+    .seg,.minimo,.minimo span,.total{animation:none;transform:none;opacity:1;}
   }
 </style>
 </head>
 <body>
 
-<div class="wrap marco">
-  <h1>Cuatro portadas para actaviva</h1>
-  <p>La misma promesa, el mismo precio y los mismos botones en las cuatro. Lo que cambia es la
-  idea. Ninguna usa foto de gente reunida: esa es justamente la parte que se ve hecha en serie.</p>
-</div>
-
-<!-- ============================ A ============================ -->
-<div class="pieza">
-<div class="rotulo">A · Expediente <span>El producto es un documento, y la portada se comporta como uno: margen reglado, folio y sello.</span></div>
-<section class="a">
-  <div class="a-rejilla">
-    <div class="a-margen">
-      <div class="a-folio">Acta N° 000001 · Registro</div>
-      <div class="a-nota">Ley N° 21.442</div>
-    </div>
-    <div class="a-cuerpo">
-      <div class="a-ceja"><b>Asamblea</b> <i></i> Quórum · Votación · Acta</div>
-      <h2>De la reunión al acta<span class="sub">firmada el mismo día</span></h2>
-      <svg class="a-raya" viewBox="0 0 430 14" fill="none" aria-hidden="true">
-        <path d="M3 9C74 3 168 2 246 6c46 2 92 3 181 1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity=".75"/>
-        <path d="M14 13c92-5 190-6 292-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
-      </svg>
-      <p class="bajada">Usted dirige la asamblea. El sistema lleva el quórum sobre los derechos,
-      aplica la mayoría que corresponde a cada punto y entrega el documento con folio.</p>
-      <div class="a-acc">
-        <button class="btn-solido">Comenzar mi acta</button>
-        <a class="enlace-sub" href="#a">Ver un acta de ejemplo</a>
-      </div>
-      <dl class="a-ficha">
-        <div><dt>Quórum</dt><dd>84,25<small>ponderado por derechos</small></dd></div>
-        <div><dt>Precio</dt><dd>$14.990<small>por asamblea, sin mensualidad</small></dd></div>
-        <div><dt>Entrega</dt><dd>Mismo día<small>con folio, listo para firmar</small></dd></div>
-      </dl>
-      <div class="a-sello">Conforme a la<br>Ley N° 21.442<br>· Chile ·</div>
-    </div>
-  </div>
-</section>
-</div>
-
-<!-- ============================ B ============================ -->
-<div class="pieza">
-<div class="rotulo">B · Quórum en vivo <span>La portada muestra el instrumento funcionando: la cifra que el administrador mira toda la reunión.</span></div>
-<section class="b">
-  <div class="wrap b-rejilla">
-    <div>
-      <div class="b-ceja">Ley N° 21.442 · Copropiedad</div>
-      <h2>El quórum se calcula solo.<br>Usted <em>dirige la reunión.</em></h2>
-      <p class="bajada">Cada voto entra desde el teléfono, se pondera por los derechos del padrón
-      y el resultado queda escrito en el acta. Sin contar manos, sin planillas aparte.</p>
-      <div class="b-acc">
-        <button class="btn-naranja">Comenzar mi acta</button>
-        <button class="btn-fantasma">Ver un acta de ejemplo</button>
-      </div>
-      <p class="b-pie">Sin instalar nada · <b>$14.990 por asamblea</b></p>
-    </div>
-
-    <div class="instr">
-      <div class="instr-top"><span>Quórum de constitución</span><span class="instr-vivo">En vivo</span></div>
-      <p class="cifra">84,25<sup>%</sup></p>
-      <p class="instr-lab">de los derechos presentes · asamblea ordinaria</p>
-      <div class="barra"><i></i><span class="barra-min"></span></div>
-      <div class="instr-min"><span>mínimo 33%</span><b>✓ Alcanza</b></div>
-      <div class="padron">
-        <div><u>101</u><span>María González Pérez</span><b>18,50%</b><em>✓</em></div>
-        <div><u>102</u><span>Juan Sepúlveda Rojas</span><b>16,80%</b><em>✓</em></div>
-        <div class="no"><u>202</u><span>Carlos Vega Soto</span><b>15,75%</b><em>—</em></div>
-        <div><u>301</u><span>Patricia Soto López</span><b>16,40%</b><em>✓</em></div>
-      </div>
-    </div>
-  </div>
-</section>
-</div>
-
-<!-- ============================ C ============================ -->
-<div class="pieza">
-<div class="rotulo">C · La hoja <span>Lo que se compra es el documento; el documento es la portada.</span></div>
-<section class="c">
-  <div class="wrap c-rejilla">
-    <div class="c-copy">
-      <span class="c-ceja">Acta de asamblea · Ley N° 21.442</span>
-      <h2>Esto es lo que <em>se lleva.</em></h2>
-      <p class="bajada">El acta redactada con la estructura que exige la ley: asistencia, quórum,
-      cada acuerdo con su resultado y su folio. Se arma mientras usted dirige la reunión.</p>
-      <div class="c-acc">
-        <button class="btn-tinta">Comenzar mi acta</button>
-        <button class="btn-borde">Ver el ejemplo completo</button>
-      </div>
-      <p class="c-datos"><span>Sin instalar nada</span><span><b>$14.990</b> por asamblea</span><span>Votación en vivo incluida</span></p>
-    </div>
-    <div class="c-marco">
-      <span class="c-timbre">Folio 000001</span>
-      <div class="c-hoja">
-        <img src="/fotos/acta-ejemplo.png" alt="Acta de asamblea generada por el sistema, con el registro de asistencia y el quórum" width="900" height="1160">
-      </div>
-    </div>
-  </div>
-</section>
-</div>
-
-<!-- ============================ D ============================ -->
-<div class="pieza">
-<div class="rotulo">D · Ficha oficial <span>Retícula dura y filetes de un pixel: el trámite legal compuesto con oficio.</span></div>
-<section class="d">
+<div class="aviso">
   <div class="wrap">
-  <div class="d-rejilla">
-    <div class="d-titular">
-      <h2>El acta que la ley exige, <mark>lista el mismo día.</mark></h2>
-    </div>
-    <div class="d-bajada">
-      Quórum ponderado por derechos, mayorías aplicadas punto por punto y el documento con folio.
-      Usted conduce la asamblea; el registro se escribe solo.
-    </div>
-    <div class="d-accion">
-      <button class="d-boton">Comenzar mi acta <span>→</span></button>
-      <div class="d-ver">Ver un acta de ejemplo <i>→</i></div>
+    <p><b>Dirección: «el instrumento».</b> La franja es el condominio completo, unidad por
+    unidad, con sus derechos reales. La línea naranja es el 33% que exige la ley.</p>
+    <p>La portada no ilustra el producto: lo ejerce. Nadie puede copiarla sin saber
+    antes qué es un quórum ponderado.</p>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="wrap">
+
+    <p class="rotulo">Acta de asamblea · Ley N° 21.442</p>
+
+    <div class="titular">
+      <h1>El quórum no se estima. <em>Se mide.</em></h1>
+
+      <div class="apertura">
+        <p>Usted dirige la asamblea; el sistema pondera cada voto por los derechos de su
+        unidad, aplica la mayoría que la ley pide para cada punto y entrega el acta con
+        folio, firmada el mismo día.</p>
+        <div class="acciones">
+          <button class="btn">Comenzar mi acta</button>
+          <a class="liga" href="#">Ver un acta de ejemplo</a>
+        </div>
+      </div>
     </div>
 
-    <div class="d-celda"><div class="d-rot">Precio</div><div class="d-val"><b>$14.990</b> por asamblea<br><span style="color:#7A879B;font-weight:400;font-size:14px">sin mensualidad</span></div></div>
-    <div class="d-celda"><div class="d-rot">Quórum</div><div class="d-val"><b>84,25%</b> en vivo<br><span style="color:#7A879B;font-weight:400;font-size:14px">ponderado por derechos</span></div></div>
-    <div class="d-celda"><div class="d-rot">Marco legal</div><div class="d-val">Ley N° <b>21.442</b><br><span style="color:#7A879B;font-weight:400;font-size:14px">Copropiedad Inmobiliaria</span></div></div>
-  </div>
+    <div class="instrumento">
+      <div class="instr-cab">
+        <p>Condominio Las Araucarias · 6 unidades · 100% de los derechos</p>
+        <p>Asamblea ordinaria · primera citación</p>
+      </div>
+
+      <div class="franja-full">
+        <div class="franja">
+          <div class="seg"><span class="uni">101</span><span class="der">18,50</span></div>
+          <div class="seg"><span class="uni">102</span><span class="der">16,80</span></div>
+          <div class="seg"><span class="uni">201</span><span class="der">17,10</span></div>
+          <div class="seg ausente"><span class="uni">202</span><span class="der">15,75</span></div>
+          <div class="seg"><span class="uni">301</span><span class="der">16,40</span></div>
+          <div class="seg"><span class="uni">302</span><span class="der">15,45</span></div>
+          <div class="minimo" aria-hidden="true"><span>Mínimo legal 33%</span></div>
+        </div>
+      </div>
+
+      <div class="wrap instr-pie">
+        <p class="leyenda">Cada tramo es una unidad y mide lo que pesa su voto. El rayado es
+        quien no llegó: la unidad 202, con <b>15,75%</b> de los derechos, no suma al quórum.
+        Todo lo que queda a la derecha de la línea naranja es la asamblea <b>constituida</b>.</p>
+
+        <dl class="total">
+          <dt>Quórum de constitución</dt>
+          <dd>84,25 %<span class="veredicto">Alcanza · se constituye</span></dd>
+        </dl>
+      </div>
+    </div>
+
   </div>
 </section>
-</div>
-
-<div class="wrap" style="padding:0 0 70px;color:#4B5C74;font-size:15px">
-  Dígame cuál toma el camino correcto y la llevo a la portada real, con sus variantes.
-</div>
 
 </body>
 </html>
