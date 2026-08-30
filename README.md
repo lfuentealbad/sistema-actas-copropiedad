@@ -4,7 +4,7 @@ Sistema para elaborar el acta de una asamblea de copropietarios conforme a la
 **Ley N° 21.442** sobre Copropiedad Inmobiliaria (Chile), con votación en vivo
 desde el teléfono y consulta por escrito del artículo 15.
 
-Operado por **Instrumenta SpA** · [actascopropiedad.cl](https://actascopropiedad.cl)
+Operado por **Soluciones CLB SpA** · [actascopropiedad.cl](https://actascopropiedad.cl)
 
 > **Estado:** el sitio está en receso. El Worker responde 503 a todas las rutas
 > mientras `RECESO=1`. Ver [INSTALACION.md](../INSTALACION.md) para publicarlo.
@@ -117,6 +117,6 @@ node ../Pruebas/correr.mjs
 - **SheetJS Community Edition** — Apache 2.0
 - **Source Sans 3**, **Fraunces** — SIL Open Font License 1.1
 
-El código propio es de Instrumenta SpA. Queda prohibida su reproducción con
+El código propio es de Soluciones CLB SpA. Queda prohibida su reproducción con
 fines comerciales, su modificación o su distribución bajo nombre distinto sin
 autorización expresa.
