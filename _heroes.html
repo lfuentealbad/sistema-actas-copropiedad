@@ -4,198 +4,116 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Portada · el instrumento · actaviva</title>
+<title>Portada · confianza cálida · actaviva</title>
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
 
   /* =====================================================================
-     DIRECCIÓN · «El instrumento»
+     REGISTRO · Confianza cálida
+     Familia 3 de Diseño/BIBLIOTECA-DE-ESTILOS.md, medida en mercury.com.
 
-     Una asamblea de copropietarios se juega entera en una pregunta: ¿se
-     constituye o no? Y esa pregunta es una medición — la suma de los
-     derechos presentes contra un mínimo que fija la ley.
+       fondo  #FCFCFA — papel, nunca blanco de fábrica
+       titular  Fraunces peso 460, por debajo de medium
+       interlínea 1,05
+       un acento, usado DOS veces en toda la página
 
-     Así que la portada no ilustra el producto: LO EJERCE. La franja que
-     cruza la pantalla es el condominio completo, unidad por unidad, con
-     su porcentaje real de derechos.
-
-     ADVERTENCIA SOBRE ESTA PIEZA — el rótulo decía «MÍNIMO LEGAL 33%», y
-     eso es falso: no existe un mínimo legal único. El 33% rige para la
-     ordinaria en primera citación; la extraordinaria de mayoría absoluta
-     pide más del 50%, la reforzada 66%, y la sesión informativa previa a
-     una consulta por escrito no exige quórum alguno. El propio sistema
-     siempre ata el porcentaje al tipo de sesión; fue esta portada la que
-     inventó un mínimo universal para que funcionara un momento gráfico.
-
-     Queda corregido a «33% · ordinaria, 1ª citación», pero el defecto es
-     de raíz: dramatizar un umbral variable en la portada invita justo a
-     la generalización equivocada. Ver Diseño/BIBLIOTECA-DE-ESTILOS.md,
-     sección «Lo que la portada no puede afirmar».
-
-     Registro tipográfico y proporciones: Diseño/BIBLIOTECA-DE-ESTILOS.md
-     (valores medidos en gov.uk, mercury.com, pentagram.com, klim.co.nz).
-     De ahí: interlínea de titular 1,05 · titular por DEBAJO de medium ·
-     cuerpo de 19 px · fondo con temperatura · un solo acento · y las tres
-     prohibiciones — sin degradados, sin píldoras, sin ornamento.
+     Y la regla que pesa más que todas (sección «Lo que la portada no puede
+     afirmar»): aquí no se enuncia ninguna obligación legal. El quórum
+     cambia según el tipo de sesión, así que la portada dice lo que el
+     sistema HACE —calcularlo— y no lo que la ley exige. Ningún porcentaje,
+     ningún «mínimo», ninguna cifra que dependa del caso.
      ===================================================================== */
 
   :root{
-    --papel:#F4F1E9;          /* papel de oficio, con temperatura */
-    --papel-alto:#FBF9F4;
-    --tinta:#141C2E;          /* casi negro, con azul */
-    --tinta-2:rgba(20,28,46,.74);
-    --tinta-3:rgba(20,28,46,.62);
-    --filete:rgba(20,28,46,.22);
-    --hilo:rgba(20,28,46,.13);
-    --acento:#C4380A;         /* naranja quemado: tinta, no marca */
+    --papel:#FCFCFA;
+    --tinta:#171B26;              /* casi negro, cálido */
+    --tinta-2:rgba(23,27,38,.74);
+    --tinta-3:rgba(23,27,38,.62);
+    --filete:rgba(23,27,38,.14);
+    --acento:#C4451A;             /* el único color. Se usa dos veces. */
     --serif:'Fraunces',Georgia,serif;
     --sans:'Source Sans 3',system-ui,sans-serif;
   }
   *{box-sizing:border-box;}
   html{-webkit-text-size-adjust:100%;}
   body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);
-    font-size:19px;line-height:1.32;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-  .wrap{width:min(1180px,90vw);margin:0 auto;}
+    font-size:19px;line-height:1.32;-webkit-font-smoothing:antialiased;}
+  .wrap{width:min(1140px,90vw);margin:0 auto;}
 
-  /* Grano de papel. Textura, no efecto: es lo que separa un fondo plano de
-     una superficie. Muy por debajo del umbral de "decoración". */
-  body::before{content:"";position:fixed;inset:0;z-index:99;pointer-events:none;opacity:.045;
-    mix-blend-mode:multiply;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");}
-
-  /* ---------------- andamiaje de revisión ---------------- */
-  .aviso{background:var(--tinta);color:#fff;font-size:14px;line-height:1.55;padding:15px 0;}
-  .aviso .wrap{display:flex;gap:30px;flex-wrap:wrap;}
-  .aviso p{margin:0;max-width:58ch;}
+  /* --- andamiaje de revisión --- */
+  .aviso{background:var(--tinta);color:#fff;font-size:14px;line-height:1.55;padding:14px 0;}
+  .aviso p{margin:0;max-width:82ch;}
   .aviso b{color:#F2A46B;}
 
-  /* ================================================================
-     PORTADA
-     ================================================================ */
-  .hero{padding:76px 0 0;position:relative;}
+  /* ================= PORTADA ================= */
+  .hero{padding:96px 0 0;overflow:hidden;}
+  .rejilla{display:grid;grid-template-columns:1.08fr .92fr;gap:0 76px;align-items:start;}
 
-  .rotulo{display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;
-    letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-3);margin:0 0 30px;}
-  .rotulo::after{content:"";flex:1;height:1px;background:var(--hilo);max-width:220px;}
+  .rotulo{font-size:13px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--tinta-3);margin:0 0 28px;}
 
-  .titular{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px 60px;align-items:end;}
+  /* Peso 460 con el eje óptico en 144. Es el hallazgo de la referencia:
+     en un titular grande, bajar el peso por debajo de medium es lo que
+     separa una página compuesta de una página por defecto. */
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 460;font-weight:460;
+    font-size:clamp(40px,5.1vw,62px);line-height:1.05;letter-spacing:-.026em;
+    margin:0 0 26px;max-width:15ch;}
+  /* Uso 1 de 2 del acento. */
+  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 420;color:var(--acento);}
 
-  /* Peso 440 en 88 px. Una serif variable a este tamaño y por debajo de
-     medium es lo contrario de una portada por defecto. */
-  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 440;font-weight:440;
-    font-size:clamp(42px,7.1vw,88px);line-height:1.02;letter-spacing:-.032em;margin:0;max-width:11ch;}
-  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 400;color:var(--acento);}
+  .bajada{font-size:19px;line-height:1.6;color:var(--tinta-2);max-width:44ch;margin:0 0 38px;}
 
-  .apertura{max-width:34ch;}
-  .apertura p{font-size:19px;line-height:1.58;color:var(--tinta-2);margin:0 0 26px;}
-  .acciones{display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
-  .btn{font-family:var(--sans);font-size:18px;font-weight:600;background:var(--tinta);color:var(--papel-alto);
-    border:none;border-radius:3px;padding:0 28px;min-height:54px;display:inline-flex;align-items:center;
+  .acciones{display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-bottom:46px;}
+  /* Uso 2 de 2 del acento. No hay un tercero en toda la página. */
+  .btn{font-family:var(--sans);font-size:18px;font-weight:600;background:var(--acento);color:#fff;
+    border:none;border-radius:7px;padding:0 28px;min-height:54px;display:inline-flex;align-items:center;
     cursor:pointer;transition:background .16s;}
-  .btn:hover{background:var(--acento);}
-  .btn:focus-visible{outline:3px solid var(--acento);outline-offset:3px;}
-  .liga{font-size:18px;font-weight:600;color:var(--tinta);text-decoration:none;min-height:44px;
-    display:inline-flex;align-items:center;border-bottom:2px solid var(--filete);padding-bottom:2px;}
-  .liga:hover{border-bottom-color:var(--acento);}
+  .btn:hover{background:#A5380F;}
+  .btn:focus-visible{outline:3px solid var(--tinta);outline-offset:3px;}
+  .liga{font-size:18px;font-weight:600;color:var(--tinta);text-decoration:none;
+    min-height:44px;display:inline-flex;align-items:center;gap:9px;
+    border-bottom:2px solid var(--filete);padding-bottom:2px;transition:border-color .16s;}
+  .liga:hover{border-bottom-color:var(--tinta);}
+  .liga svg{width:17px;height:17px;stroke:currentColor;stroke-width:2;fill:none;
+    stroke-linecap:round;stroke-linejoin:round;}
 
-  /* ================================================================
-     EL INSTRUMENTO · a sangre, rompiendo la columna de texto
-     ================================================================ */
-  .instrumento{margin-top:74px;padding-bottom:70px;position:relative;}
+  /* Hechos, no promesas. Ninguno depende del tipo de sesión. */
+  .hechos{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--filete);}
+  .hechos div{padding:20px 22px 0 0;}
+  .hechos div+div{border-left:1px solid var(--filete);padding-left:22px;}
+  .hechos div:last-child{padding-right:0;}
+  .hechos dt{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--tinta-3);margin-bottom:6px;}
+  .hechos dd{margin:0;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .hechos dd small{display:block;font-size:15px;font-weight:400;color:var(--tinta-2);margin-top:3px;}
 
-  .instr-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;
-    flex-wrap:wrap;margin-bottom:60px;}   /* aire para el rotulo del minimo, que sube 60 px */
-  .instr-cab p{margin:0;font-size:13px;font-weight:600;letter-spacing:.14em;
-    text-transform:uppercase;color:var(--tinta-3);}
-
-  /* La franja sale del ancho de contenido y llega a los dos bordes: el
-     condominio no cabe en una columna de texto. */
-  .franja-full{width:100vw;margin-left:calc(50% - 50vw);position:relative;}
-
-  .franja{position:relative;display:grid;height:112px;border-top:2px solid var(--tinta);
-    border-bottom:2px solid var(--tinta);
-    /* Los derechos reales de las seis unidades. Suman 100. */
-    grid-template-columns:18.5fr 16.8fr 17.1fr 15.75fr 16.4fr 15.45fr;}
-
-  .seg{position:relative;border-right:1px solid rgba(244,241,233,.34);
-    display:flex;align-items:flex-end;padding:0 0 12px 14px;overflow:hidden;
-    background:var(--tinta);color:var(--papel-alto);
-    transform-origin:left center;
-    animation:crece .62s cubic-bezier(.16,.84,.3,1) backwards;}
-  .seg:last-child{border-right:none;}
-  .seg:nth-child(1){animation-delay:.10s;} .seg:nth-child(2){animation-delay:.19s;}
-  .seg:nth-child(3){animation-delay:.28s;} .seg:nth-child(4){animation-delay:.37s;}
-  .seg:nth-child(5){animation-delay:.46s;} .seg:nth-child(6){animation-delay:.55s;}
-  @keyframes crece{from{transform:scaleX(0);}to{transform:scaleX(1);}}
-
-  /* La unidad ausente no se rellena: se raya. Es una tara de imprenta, no
-     un color más. Se ve a un metro que ahí falta alguien. */
-  .seg.ausente{background:transparent;color:var(--tinta-3);
-    background-image:repeating-linear-gradient(-45deg,
-      rgba(20,28,46,.16) 0 1.5px, transparent 1.5px 9px);
-    border-right-color:var(--filete);}
-
-  .seg .der{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 500;
-    font-size:clamp(15px,1.5vw,22px);font-variant-numeric:tabular-nums;letter-spacing:-.02em;
-    white-space:nowrap;}
-  .seg .uni{position:absolute;top:11px;left:14px;font-size:12px;font-weight:600;
-    letter-spacing:.1em;color:rgba(251,249,244,.66);}
-  .seg.ausente .uni{color:var(--tinta-3);}
-  .seg.ausente .der::after{content:" ausente";font-family:var(--sans);font-size:12.5px;
-    font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
-
-  /* El mínimo legal: la única línea que importa de verdad en la pantalla. */
-  .minimo{position:absolute;top:-16px;bottom:-16px;left:33%;width:2px;background:var(--acento);
-    z-index:3;transform-origin:top;
-    animation:baja .5s cubic-bezier(.16,.84,.3,1) .78s backwards;}
-  @keyframes baja{from{transform:scaleY(0);}to{transform:scaleY(1);}}
-  .minimo span{position:absolute;top:-34px;left:0;white-space:nowrap;font-size:12.5px;
-    font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--acento);
-    border-left:2px solid var(--acento);padding-left:8px;margin-left:-2px;
-    animation:aparece .4s ease-out 1.1s backwards;}
-  @keyframes aparece{from{opacity:0;}to{opacity:1;}}
-
-  .instr-pie{display:grid;grid-template-columns:1fr auto;gap:26px;align-items:end;margin-top:26px;}
-  .leyenda{font-size:16px;line-height:1.55;color:var(--tinta-2);max-width:46ch;margin:0;}
-  .leyenda b{color:var(--tinta);font-weight:600;}
-
-  .total{text-align:right;animation:sube .55s cubic-bezier(.16,.84,.3,1) 1.2s backwards;}
-  @keyframes sube{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
-  .total dt{font-size:12.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--tinta-3);margin-bottom:2px;}
-  .total dd{margin:0;font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 520;
-    font-size:clamp(48px,6.4vw,80px);line-height:.92;letter-spacing:-.04em;
-    font-variant-numeric:tabular-nums;}
-  .total .veredicto{display:block;font-family:var(--sans);font-size:14px;font-weight:700;
-    letter-spacing:.14em;text-transform:uppercase;color:var(--acento);margin-top:9px;}
+  /* --- El documento. Derecho, quieto, apoyado. Sin girar, sin timbre, sin
+         sombra dramática: es un papel sobre una mesa, no un truco. --- */
+  .documento{margin-top:6px;}
+  .hoja{position:relative;height:min(560px,52vw);overflow:hidden;border-radius:2px;
+    background:#fff;border:1px solid rgba(23,27,38,.11);
+    box-shadow:0 1px 2px rgba(23,27,38,.05),0 18px 40px -24px rgba(23,27,38,.30);}
+  .hoja img{display:block;width:100%;height:auto;}
+  /* El papel se desvanece hacia abajo: la hoja sigue, no termina. */
+  .hoja::after{content:"";position:absolute;left:0;right:0;bottom:0;height:130px;
+    background:linear-gradient(rgba(252,252,250,0),var(--papel));pointer-events:none;}
+  .pie-doc{margin:16px 0 0;font-size:15px;line-height:1.5;color:var(--tinta-3);}
 
   @media(max-width:900px){
-    .hero{padding:48px 0 0;}
-    .titular{grid-template-columns:1fr;gap:30px;align-items:start;}
+    .hero{padding:56px 0 0;}
+    .rejilla{grid-template-columns:1fr;gap:44px 0;}
     h1{max-width:none;}
-    .apertura{max-width:none;}
-    .instrumento{margin-top:48px;}
-    .franja{height:92px;}
-    .seg{padding-left:9px;}
-    .seg .uni{left:9px;font-size:11px;}
-    .instr-pie{grid-template-columns:1fr;}
-    .total{text-align:left;}
+    .bajada{max-width:none;}
+    .hoja{height:400px;}
+    .hechos{grid-template-columns:repeat(3,1fr);}
   }
   @media(max-width:560px){
-    /* En el teléfono los números no se leen a ese ancho, pero la MEDICIÓN sí:
-       se conservan los seis tramos con su proporción y el rayado del ausente,
-       y lo que se va son los rótulos. Esconder tramos haría mentir a la
-       franja, que es lo único que esta portada no puede permitirse. */
-    .franja{height:64px;}
-    .seg{padding:0;}
-    .seg .uni,.seg .der{display:none;}
-    .instr-cab{margin-bottom:54px;}
-  }
-
-  @media(prefers-reduced-motion:reduce){
-    .seg,.minimo,.minimo span,.total{animation:none;transform:none;opacity:1;}
+    .hechos{display:grid;grid-template-columns:1fr;}
+    .hechos div,.hechos div+div{border-left:none;border-bottom:1px solid var(--filete);
+      padding:16px 0;}
+    .hechos div:last-child{border-bottom:none;}
   }
 </style>
 </head>
@@ -203,67 +121,50 @@
 
 <div class="aviso">
   <div class="wrap">
-    <p><b>Corregido:</b> el rótulo decía «mínimo legal 33%» y eso es falso — no hay un
-    mínimo único. El 33% es de la ordinaria en primera citación.</p>
-    <p>La portada no ilustra el producto: lo ejerce. Nadie puede copiarla sin saber
-    antes qué es un quórum ponderado.</p>
+    <p><b>Registro: confianza cálida</b> (medido en mercury.com). Papel en vez de blanco ·
+    titular Fraunces en peso 460 · interlínea 1,05 · un acento usado dos veces: la palabra
+    en cursiva y el botón. <b>Sin ninguna cifra legal:</b> el quórum cambia según el tipo
+    de sesión, así que la portada dice lo que el sistema hace, no lo que la ley exige.</p>
   </div>
 </div>
 
 <section class="hero">
-  <div class="wrap">
+  <div class="wrap rejilla">
 
-    <p class="rotulo">Acta de asamblea · Ley N° 21.442</p>
+    <div>
+      <p class="rotulo">Acta de asamblea · Ley N° 21.442</p>
 
-    <div class="titular">
-      <h1>El quórum no se estima. <em>Se mide.</em></h1>
+      <h1>El acta se escribe <em>mientras usted dirige</em> la reunión.</h1>
 
-      <div class="apertura">
-        <p>Usted dirige la asamblea; el sistema pondera cada voto por los derechos de su
-        unidad, aplica la mayoría que la ley pide para cada punto y entrega el acta con
-        folio, firmada el mismo día.</p>
-        <div class="acciones">
-          <button class="btn">Comenzar mi acta</button>
-          <a class="liga" href="#">Ver un acta de ejemplo</a>
-        </div>
+      <p class="bajada">El sistema pondera cada voto por los derechos de su unidad, aplica
+      el quórum que corresponde al tipo de sesión que usted convocó y entrega el documento
+      con folio, redactado y listo para firmar.</p>
+
+      <div class="acciones">
+        <button class="btn">Comenzar mi acta</button>
+        <a class="liga" href="#">Ver un acta de ejemplo
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
       </div>
+
+      <dl class="hechos">
+        <div><dt>Precio</dt><dd>$14.990<small>por asamblea</small></dd></div>
+        <div><dt>Incluye</dt><dd>Votación en vivo<small>desde el teléfono</small></dd></div>
+        <div><dt>Requisitos</dt><dd>Ninguno<small>funciona en el navegador</small></dd></div>
+      </dl>
     </div>
 
-    <div class="instrumento">
-      <div class="instr-cab">
-        <p>Condominio Las Araucarias · 6 unidades · 100% de los derechos</p>
-        <p>Asamblea ordinaria · primera citación</p>
+    <div class="documento">
+      <div class="hoja">
+        <img src="/fotos/acta-ejemplo.png" alt="Acta de asamblea generada por el sistema: encabezado, registro de asistencia y quórum" width="760" height="1035">
       </div>
-
-      <div class="franja-full">
-        <div class="franja">
-          <div class="seg"><span class="uni">101</span><span class="der">18,50</span></div>
-          <div class="seg"><span class="uni">102</span><span class="der">16,80</span></div>
-          <div class="seg"><span class="uni">201</span><span class="der">17,10</span></div>
-          <div class="seg ausente"><span class="uni">202</span><span class="der">15,75</span></div>
-          <div class="seg"><span class="uni">301</span><span class="der">16,40</span></div>
-          <div class="seg"><span class="uni">302</span><span class="der">15,45</span></div>
-          <div class="minimo" aria-hidden="true"><span>33% · ordinaria, 1ª citación</span></div>
-        </div>
-      </div>
-
-      <div class="wrap instr-pie">
-        <p class="leyenda">Cada tramo es una unidad y mide lo que pesa su voto. El rayado es
-        quien no llegó: la unidad 202, con <b>15,75%</b> de los derechos, no suma al quórum.
-        Todo lo que queda a la derecha de la línea naranja es la asamblea <b>constituida</b>.
-        El umbral cambia con el tipo de sesión: <b>33%</b> en esta ordinaria en primera
-        citación, más del <b>50%</b> en una extraordinaria de mayoría absoluta, <b>66%</b>
-        en una reforzada.</p>
-
-        <dl class="total">
-          <dt>Quórum de constitución</dt>
-          <dd>84,25 %<span class="veredicto">Alcanza · se constituye</span></dd>
-        </dl>
-      </div>
+      <p class="pie-doc">Un acta real generada por el sistema. Los datos son ficticios.</p>
     </div>
 
   </div>
 </section>
+
+<div style="height:96px"></div>
 
 </body>
 </html>
