@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>B · Referente real · Servicio</title>
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  @font-face{font-family:'Fraunces';src:url('/fonts/fraunces.woff2') format('woff2');font-weight:100 900;font-display:swap;}
+
+  /* =====================================================================
+     LÓGICA 2 · 🏆 Referente real (estándar del mundo)
+
+     GOV.UK — Government Digital Service. Verificado: ganó el Designs of
+     the Year 2013 del Design Museum y un Black Pencil de D&AD 2013, el
+     primero otorgado en esa categoría. Es el referente más pertinente que
+     existe para actaviva: un servicio del Estado que gente común, no
+     técnica, debe usar para cumplir una obligación legal.
+
+     Medido en vivo hoy en gov.uk/browse/driving:
+       titular 32px / 35px → ratio 1,09 · peso 700 · tinta #0B0C0C
+       enlaces 19px en NEGRITA, color #1A65A6 — no 16px, no regular
+       fondo blanco puro · cero decoración · cero tarjetas
+
+     ADN transferido: la página no vende, OFRECE PUERTAS. El hero es una
+     lista de decisiones en enlaces grandes y negros, no un titular con dos
+     botones. Barra superior sólida. Cuerpo de 19px porque la gente que
+     hace trámites no tiene veinte años.
+
+     ADN adaptado: el azul de enlace pasa al azul marino de la marca y el
+     naranjo queda para la acción principal — un solo acento.
+
+     Motivo del contenido (form推导 #5): actaviva no hace una cosa, hace
+     tres, y una es gratis. Un cartel las esconde; una lista de puertas las
+     muestra. Ningún quórum, ninguna cifra legal.
+     ===================================================================== */
+
+  :root{
+    --tinta:#0F1A2E; --tinta-2:#3E4A5C;
+    --enlace:#1E3A6E; --naranjo:#C4501C;
+    --filete:#B9BFC7; --hilo:#E4E7EB;
+    --serif:'Fraunces',Georgia,serif;
+    --sans:'Source Sans 3',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#fff;color:var(--tinta);font-family:var(--sans);
+    font-size:19px;line-height:1.32;-webkit-font-smoothing:antialiased;}
+  a,button{touch-action:manipulation;}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 26px;}
+
+  .marco{background:var(--tinta);color:#fff;font-size:13.5px;line-height:1.5;padding:12px 0;}
+  .marco b{color:#F2A46B;}
+
+  /* Barra superior sólida, como la de GOV.UK. */
+  .barra{background:#0B0C0C;color:#fff;padding:13px 0;}
+  .barra .wrap{display:flex;align-items:baseline;gap:14px;}
+  .barra b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;
+    font-size:21px;letter-spacing:-.02em;}
+  .barra span{font-size:14px;color:rgba(255,255,255,.72);}
+
+  /* Franja de la ley: el equivalente del "phase banner". */
+  .franja{border-bottom:1px solid var(--hilo);padding:14px 0;}
+  .franja .wrap{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;}
+  .franja em{font-style:normal;background:var(--enlace);color:#fff;font-size:12.5px;
+    font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:2px;}
+  .franja span{font-size:15px;color:var(--tinta-2);}
+
+  main{padding:52px 0 64px;}
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 500;font-weight:500;
+    font-size:clamp(34px,4.3vw,50px);line-height:1.09;letter-spacing:-.024em;
+    margin:0 0 22px;max-width:19ch;text-wrap:balance;}
+  .lead{font-size:19px;line-height:1.55;color:var(--tinta-2);max-width:60ch;margin:0 0 44px;}
+
+  /* El corazón: la lista de puertas. Enlaces de 19px en negrita. */
+  .puertas{border-top:2px solid var(--tinta);max-width:760px;}
+  .puerta{display:block;text-decoration:none;color:inherit;padding:22px 0;
+    border-bottom:1px solid var(--hilo);}
+  .puerta:last-child{border-bottom:2px solid var(--tinta);}
+  .puerta b{display:inline-block;font-size:19px;font-weight:700;color:var(--enlace);
+    text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1.5px;}
+  .puerta:hover b{color:var(--naranjo);}
+  .puerta:focus-visible{outline:3px solid var(--naranjo);outline-offset:3px;}
+  .puerta p{margin:7px 0 0;font-size:17px;line-height:1.5;color:var(--tinta-2);max-width:56ch;}
+  .puerta .marca{display:inline-block;margin-left:10px;font-size:13px;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;color:#1E7E4A;vertical-align:2px;}
+
+  .accion{margin-top:38px;}
+  .btn{background:var(--naranjo);color:#fff;border:none;font-family:var(--sans);
+    font-size:19px;font-weight:700;border-radius:3px;padding:0 30px;min-height:54px;
+    display:inline-flex;align-items:center;cursor:pointer;
+    box-shadow:0 2px 0 #8C3813;transition:background .14s;}
+  .btn:hover{background:#A5410F;}
+  .btn:focus-visible{outline:3px solid var(--tinta);outline-offset:3px;}
+  .nota{margin:18px 0 0;font-size:17px;color:var(--tinta-2);}
+  .nota b{color:var(--tinta);font-variant-numeric:tabular-nums;}
+
+  @media(max-width:700px){
+    main{padding:36px 0 44px;}
+    .puerta p{font-size:16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="marco"><div class="wrap"><b>B · Lógica 2 — 🏆 Referente real.</b> GOV.UK
+(Designs of the Year 2013 del Design Museum + Black Pencil de D&amp;AD 2013). Medido hoy en vivo:
+titular 32/35 px, enlaces de <b>19 px en negrita</b>, blanco puro, cero decoración.
+Lo transferido es la idea de fondo: la página no vende, ofrece puertas.</div></div>
+
+<div class="barra"><div class="wrap"><b>actaviva</b><span>Actas de copropiedad · Chile</span></div></div>
+
+<div class="franja"><div class="wrap">
+  <em>Ley N° 21.442</em>
+  <span>Copropiedad inmobiliaria · toda asamblea debe quedar en acta</span>
+</div></div>
+
+<main>
+  <div class="wrap">
+    <h1>Deje la asamblea por escrito, como la ley lo pide.</h1>
+
+    <p class="lead">Usted conduce la reunión y el sistema lleva el registro: pondera cada voto por
+    los derechos de la unidad, aplica la mayoría que corresponde al punto que se trata y entrega
+    el documento con folio, listo para firmar.</p>
+
+    <div class="puertas">
+      <a class="puerta" href="#">
+        <b>Levantar el acta de una asamblea</b>
+        <p>Asistencia, quórum, cada punto con su resultado y el documento redactado. Con votación
+        en vivo desde el teléfono si la quiere usar.</p>
+      </a>
+      <a class="puerta" href="#">
+        <b>Registrar una reunión del comité</b><span class="marca">Gratis</span>
+        <p>Los acuerdos del comité de administración también deben quedar por escrito. Esa acta no
+        se cobra.</p>
+      </a>
+      <a class="puerta" href="#">
+        <b>Hacer una consulta por escrito</b>
+        <p>Para acordar algo sin reunir a nadie: la propuesta se envía y las respuestas se
+        contabilizan según los derechos de cada unidad.</p>
+      </a>
+    </div>
+
+    <div class="accion">
+      <button class="btn">Comenzar mi acta</button>
+      <p class="nota"><b>$14.990</b> por asamblea · sin mensualidad · no hay nada que instalar</p>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

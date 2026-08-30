@@ -16,6 +16,7 @@ node_modules
 # pruebas de pago. Sin estas lineas quedan accesibles en produccion.
 _prueba-comite.html
 _heroes.html
+_portada
 _pruebas
 .assetsignore
 .gitignore

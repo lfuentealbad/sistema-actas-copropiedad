@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>A · Ruleta 15 · Ficha técnica</title>
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  @font-face{font-family:'Fraunces';src:url('/fonts/fraunces.woff2') format('woff2');font-weight:100 900;font-display:swap;}
+
+  /* =====================================================================
+     LÓGICA 1 · 🎲 Ruleta de segundos → 54 % 20 + 1 = estilo web N° 15
+     «Utility-First Colorful Docs» (referencia: Tailwind CSS Docs)
+
+     ADN tomado: esqueleto de documentación de tres columnas, barra de color
+     por categoría funcional, alta densidad deliberada, filetes de 1px,
+     rótulos en monoespaciada, precisión de hoja de datos.
+
+     ADN DESCARTADO y por qué: el azul cielo #38BDF8, el degradado cian del
+     hero y la tipografía Inter son la firma de Tailwind, no de actaviva.
+     Usarlos sería diluir la marca — que es justo lo que el skill llama
+     slop. Se conserva la ESTRUCTURA y se ejecuta en la paleta propia.
+
+     Motivo visual sacado del contenido (form推导 #5): los tres tipos de
+     asamblea SON categorías funcionales reales del sistema. La barra de
+     color por categoría, que en Tailwind clasifica utilidades CSS, aquí
+     clasifica lo único que de verdad cambia todo en este producto.
+     Sin una sola cifra: los tipos se nombran, los quórums no.
+     ===================================================================== */
+
+  :root{
+    --tinta:#152A52; --tinta-2:rgba(21,42,82,.76); --tinta-3:rgba(21,42,82,.62);
+    --papel:#F7F8FA; --blanco:#FFFFFF;
+    --filete:rgba(21,42,82,.16); --hilo:rgba(21,42,82,.09);
+    --naranjo:#E5692A;
+    /* Categorías: los tres tipos de sesión. Colores del propio sistema. */
+    --ord:#1E7E4A; --abs:#B0761A; --ref:#A8402C;
+    --serif:'Fraunces',Georgia,serif;
+    --sans:'Source Sans 3',system-ui,sans-serif;
+    --mono:ui-monospace,'SF Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);
+    font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a,button{touch-action:manipulation;}
+
+  .marco{background:var(--tinta);color:#fff;font-size:13.5px;line-height:1.5;padding:12px 26px;}
+  .marco b{color:#F2A46B;}
+
+  /* Tres columnas, como una página de documentación. */
+  .doc{display:grid;grid-template-columns:250px minmax(0,1fr) 268px;
+    max-width:1400px;margin:0 auto;min-height:600px;}
+
+  /* --- Columna izquierda: las categorías funcionales --- */
+  .rail{border-right:1px solid var(--filete);padding:44px 26px 44px 30px;background:var(--blanco);}
+  .rail-t{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--tinta-3);margin:0 0 18px;}
+  .cat{display:flex;gap:11px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--hilo);}
+  .cat:last-of-type{border-bottom:none;}
+  .cat i{width:3px;align-self:stretch;flex:none;border-radius:2px;margin-top:3px;}
+  .cat.ord i{background:var(--ord);} .cat.abs i{background:var(--abs);} .cat.ref i{background:var(--ref);}
+  .cat b{display:block;font-size:15px;font-weight:600;line-height:1.3;}
+  .cat span{display:block;font-size:13.5px;color:var(--tinta-2);margin-top:3px;line-height:1.45;}
+  .rail-pie{margin-top:22px;padding-top:18px;border-top:1px solid var(--filete);
+    font-size:13.5px;color:var(--tinta-2);line-height:1.5;}
+
+  /* --- Columna central: el mensaje --- */
+  .centro{padding:56px 52px 48px;}
+  .ruta{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--tinta-3);margin:0 0 26px;}
+  .ruta em{font-style:normal;color:var(--naranjo);}
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;
+    font-size:clamp(34px,3.9vw,52px);line-height:1.06;letter-spacing:-.025em;
+    margin:0 0 20px;text-wrap:balance;max-width:16ch;}
+  .lead{font-size:18px;line-height:1.6;color:var(--tinta-2);max-width:52ch;margin:0 0 30px;}
+  .acc{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:38px;}
+  .btn{background:var(--naranjo);color:#fff;border:none;font-family:var(--sans);font-size:16.5px;
+    font-weight:600;border-radius:6px;padding:0 24px;min-height:48px;display:inline-flex;
+    align-items:center;cursor:pointer;transition:background .15s;}
+  .btn:hover{background:#C4501C;}
+  .btn:focus-visible{outline:3px solid var(--tinta);outline-offset:2px;}
+  .btn2{background:var(--blanco);color:var(--tinta);border:1px solid var(--filete);
+    font-family:var(--sans);font-size:16.5px;font-weight:600;border-radius:6px;padding:0 22px;
+    min-height:48px;display:inline-flex;align-items:center;cursor:pointer;text-decoration:none;}
+  .btn2:hover{border-color:var(--tinta);}
+
+  /* Bloque de precisión: la cita de la ley como si fuera un bloque de código. */
+  .cita{background:var(--blanco);border:1px solid var(--filete);border-left:3px solid var(--naranjo);
+    border-radius:5px;padding:16px 20px;font-size:15px;line-height:1.6;color:var(--tinta-2);
+    max-width:56ch;}
+  .cita b{font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--tinta-3);display:block;margin-bottom:6px;font-weight:600;}
+
+  /* --- Columna derecha: la hoja de datos --- */
+  .toc{border-left:1px solid var(--filete);padding:44px 30px 44px 26px;background:var(--blanco);}
+  .toc-t{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--tinta-3);margin:0 0 16px;}
+  .fila{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+    padding:11px 0;border-bottom:1px solid var(--hilo);font-size:14.5px;}
+  .fila:last-of-type{border-bottom:none;}
+  .fila span{color:var(--tinta-2);}
+  .fila b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .doc-mini{margin-top:22px;border:1px solid var(--filete);border-radius:4px;overflow:hidden;
+    height:190px;position:relative;background:#fff;}
+  .doc-mini img{display:block;width:100%;height:auto;}
+  .doc-mini::after{content:"";position:absolute;inset:auto 0 0 0;height:60px;
+    background:linear-gradient(rgba(255,255,255,0),#fff);}
+  .doc-pie{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--tinta-3);margin:9px 0 0;}
+
+  @media(max-width:1100px){
+    .doc{grid-template-columns:1fr;}
+    .rail,.toc{border:none;border-bottom:1px solid var(--filete);padding:32px 26px;}
+    .centro{padding:36px 26px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="marco"><b>A · Lógica 1 — 🎲 Ruleta de segundos.</b> Salió 54 → estilo web N° 15,
+«Utility-First Colorful Docs» (Tailwind CSS Docs). Se toma el esqueleto de documentación de tres
+columnas y la clasificación por color; se descarta su azul cielo y su Inter, que son firma de
+Tailwind y no de actaviva.</div>
+
+<div class="doc">
+
+  <aside class="rail">
+    <p class="rail-t">Tipos de sesión</p>
+    <div class="cat ord"><i></i><div><b>Ordinaria</b><span>La anual: presupuesto, balance, comité.</span></div></div>
+    <div class="cat abs"><i></i><div><b>Extraordinaria · absoluta</b><span>Reglamento, gastos extraordinarios, remoción del comité.</span></div></div>
+    <div class="cat ref"><i></i><div><b>Extraordinaria · reforzada</b><span>Bienes comunes, cambio de destino, reconstrucción.</span></div></div>
+    <p class="rail-pie">Cada una tiene su propio quórum y sus propias mayorías.
+    El sistema aplica los que correspondan a la que usted convocó.</p>
+  </aside>
+
+  <main class="centro">
+    <p class="ruta">Acta de asamblea <em>/</em> Ley N° 21.442 <em>/</em> Copropiedad inmobiliaria</p>
+
+    <h1>El acta se escribe mientras usted dirige la reunión.</h1>
+
+    <p class="lead">Usted conduce la asamblea. El sistema pondera cada voto por los derechos de
+    su unidad, aplica la mayoría que corresponde al punto que se está tratando y entrega el
+    documento con folio, redactado y listo para firmar.</p>
+
+    <div class="acc">
+      <button class="btn">Comenzar mi acta</button>
+      <a class="btn2" href="#">Ver un acta de ejemplo</a>
+    </div>
+
+    <div class="cita">
+      <b>Por qué importa el tipo de sesión</b>
+      No es lo mismo aprobar el presupuesto anual que enajenar un bien común: cambia el quórum
+      para constituirse y cambia la mayoría para acordar. Elegir mal el tipo es lo que después
+      deja un acuerdo impugnable.
+    </div>
+  </main>
+
+  <aside class="toc">
+    <p class="toc-t">Qué incluye</p>
+    <div class="fila"><span>Precio</span><b>$14.990</b></div>
+    <div class="fila"><span>Votación en vivo</span><b>Incluida</b></div>
+    <div class="fila"><span>Padrón desde Excel</span><b>Sí</b></div>
+    <div class="fila"><span>Instalación</span><b>Ninguna</b></div>
+    <div class="fila"><span>Mensualidad</span><b>No</b></div>
+
+    <div class="doc-mini">
+      <img src="/fotos/acta-ejemplo.png" alt="Acta generada por el sistema" width="760" height="1035">
+    </div>
+    <p class="doc-pie">Salida real · datos ficticios</p>
+  </aside>
+
+</div>
+
+</body>
+</html>

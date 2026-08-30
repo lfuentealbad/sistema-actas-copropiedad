@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>C · Mejor diseñador · El objeto</title>
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  @font-face{font-family:'Fraunces';src:url('/fonts/fraunces.woff2') format('woff2');font-weight:100 900;font-display:swap;}
+  @font-face{font-family:'Fraunces';src:url('/fonts/fraunces-italic.woff2') format('woff2');font-weight:100 900;font-display:swap;font-style:italic;}
+
+  /* =====================================================================
+     LÓGICA 3 · 🧠 El mejor diseñador posible, sin techo de presupuesto
+
+     IRMA BOOM. No un estudio de marcas: la diseñadora de LIBROS más
+     reconocida del mundo (medalla Gutenberg, la más joven en recibirla;
+     su obra está en la colección permanente del MoMA).
+
+     Por qué ella y no Pentagram o Collins: actaviva no entrega una
+     interfaz, entrega un DOCUMENTO. Boom lleva cuarenta años sosteniendo
+     que el diseño de un libro no es decorarlo — es entender qué objeto
+     tiene que ser, y dejar que la estructura del contenido mande. Su libro
+     para SHV no tiene número de página ni índice porque el contenido no lo
+     pedía. Ese es exactamente el criterio que este producto necesita.
+
+     Su pensamiento aplicado aquí:
+       · el objeto manda — el acta ocupa la mayor parte del lienzo
+       · el texto es pequeño y exacto, nunca grita
+       · el margen no es sobra, es la mitad del diseño
+       · nada de ornamento; la única jerarquía es escala y posición
+       · el papel tiene temperatura, la tinta no es negra
+
+     Motivo del contenido (form推导 #5): un acta es una hoja que alguien
+     firma. La portada es esa hoja, entrando en cuadro.
+     Ninguna cifra legal en toda la página.
+     ===================================================================== */
+
+  :root{
+    --papel:#EFEBE3;
+    --tinta:#1C1A17;
+    --tinta-2:rgba(28,26,23,.72);
+    --tinta-3:rgba(28,26,23,.58);
+    --filete:rgba(28,26,23,.20);
+    --naranjo:#B23F12;
+    --serif:'Fraunces',Georgia,serif;
+    --sans:'Source Sans 3',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);
+    font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a,button{touch-action:manipulation;}
+
+  .marco{background:var(--tinta);color:#fff;font-size:13.5px;line-height:1.55;padding:12px 28px;}
+  .marco b{color:#E9A87C;}
+
+  /* El objeto ocupa dos tercios. El texto vive en el margen: eso es el
+     diseño, no un accidente del layout. */
+  .pliego{display:grid;grid-template-columns:minmax(300px,.86fr) 1.14fr;
+    min-height:640px;align-items:stretch;}
+
+  .palabra{padding:64px 46px 54px 58px;display:flex;flex-direction:column;
+    border-right:1px solid var(--filete);}
+
+  /* Folio arriba, como en una página impresa. */
+  .folio{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--tinta-3);
+    padding-bottom:12px;border-bottom:1px solid var(--filete);margin-bottom:52px;}
+
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 430;font-weight:430;
+    font-size:clamp(32px,3.5vw,46px);line-height:1.08;letter-spacing:-.024em;
+    margin:0 0 auto;max-width:17ch;text-wrap:balance;}
+  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 400;}
+
+  /* El cuerpo es pequeño y exacto. Nunca grita. */
+  .cuerpo{margin:44px 0 0;font-size:15px;line-height:1.62;color:var(--tinta-2);max-width:38ch;}
+  .cuerpo + .cuerpo{margin-top:14px;}
+
+  .acciones{margin-top:40px;display:flex;flex-direction:column;align-items:flex-start;gap:16px;}
+  .btn{background:var(--tinta);color:var(--papel);border:none;font-family:var(--sans);
+    font-size:16px;font-weight:600;border-radius:0;padding:0 26px;min-height:50px;
+    display:inline-flex;align-items:center;cursor:pointer;letter-spacing:.01em;
+    transition:background .15s;}
+  .btn:hover{background:var(--naranjo);}
+  .btn:focus-visible{outline:2px solid var(--naranjo);outline-offset:3px;}
+  .liga{font-size:15px;color:var(--tinta);text-decoration:none;
+    border-bottom:1px solid var(--naranjo);padding-bottom:2px;min-height:44px;
+    display:inline-flex;align-items:center;}
+
+  .pie{margin-top:44px;padding-top:14px;border-top:1px solid var(--filete);
+    display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--tinta-3);
+    letter-spacing:.04em;}
+  .pie b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums;}
+
+  /* La hoja: entra en cuadro y se sale por abajo y por la derecha. */
+  .objeto{position:relative;overflow:hidden;background:var(--papel);}
+  .hoja{position:absolute;top:56px;left:44px;right:-90px;bottom:-120px;
+    background:#fff;border:1px solid rgba(28,26,23,.14);
+    box-shadow:0 1px 0 rgba(28,26,23,.05),0 30px 70px -34px rgba(28,26,23,.42);
+    overflow:hidden;}
+  .hoja img{display:block;width:100%;height:auto;}
+  .rotulo{position:absolute;left:44px;bottom:22px;font-size:11.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--tinta-3);z-index:2;}
+
+  @media(max-width:960px){
+    .pliego{grid-template-columns:1fr;}
+    .palabra{border-right:none;border-bottom:1px solid var(--filete);padding:44px 26px 40px;}
+    .objeto{height:380px;}
+    .hoja{top:30px;left:26px;right:-40px;bottom:-60px;}
+    .rotulo{left:26px;}
+    h1{margin-bottom:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="marco"><b>C · Lógica 3 — 🧠 El mejor diseñador posible.</b> Irma Boom, la diseñadora de
+libros más reconocida del mundo (medalla Gutenberg; obra en la colección permanente del MoMA).
+Elegida porque actaviva no entrega una interfaz: entrega un <b>documento</b>. Su criterio —
+el objeto manda, el margen es la mitad del diseño, el texto es pequeño y exacto, cero ornamento.</div>
+
+<div class="pliego">
+
+  <section class="palabra">
+    <div class="folio">
+      <span>Acta de asamblea</span>
+      <span>Ley N° 21.442</span>
+    </div>
+
+    <h1>Usted dirige la reunión. Nosotros dejamos <em>constancia.</em></h1>
+
+    <p class="cuerpo">El sistema pondera cada voto por los derechos de la unidad que lo emite y
+    aplica la mayoría que corresponde al punto que se está tratando.</p>
+    <p class="cuerpo">Al cerrar la sesión entrega el documento con folio, redactado con la
+    estructura que la ley pide, listo para revisar y firmar.</p>
+
+    <div class="acciones">
+      <button class="btn">Comenzar mi acta</button>
+      <a class="liga" href="#">Ver un acta de ejemplo</a>
+    </div>
+
+    <div class="pie">
+      <span><b>$14.990</b> por asamblea</span>
+      <span>Votación en vivo incluida</span>
+      <span>Sin instalar nada</span>
+    </div>
+  </section>
+
+  <section class="objeto">
+    <div class="hoja">
+      <img src="/fotos/acta-ejemplo.png" alt="Acta de asamblea generada por el sistema: encabezado, registro de asistencia y desarrollo de la tabla" width="760" height="1035">
+    </div>
+    <span class="rotulo">Salida real del sistema · datos ficticios</span>
+  </section>
+
+</div>
+
+</body>
+</html>
