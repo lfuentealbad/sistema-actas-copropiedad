@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Hero actual · solo la tipografía</title>
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  @font-face{font-family:'Fraunces';src:url('/fonts/fraunces.woff2') format('woff2');font-weight:100 900;font-display:swap;font-style:normal;}
+  @font-face{font-family:'Fraunces';src:url('/fonts/fraunces-italic.woff2') format('woff2');font-weight:100 900;font-display:swap;font-style:italic;}
+
+  /* =====================================================================
+     Esto NO es una portada nueva. Es la de hoy, dos veces, con la misma
+     foto, la misma maqueta, el mismo texto y los mismos botones.
+     Lo único que cambia entre arriba y abajo son cuatro números de
+     tipografía — los de la versión B, que fue lo que al usuario le gustó.
+
+                          HOY          B (propuesto)
+       peso del titular   470          510
+       tamaño máximo      66 px        54 px
+       interlínea         1,04         1,09
+       medida             sin tope     19 caracteres
+       sombra del texto   sí           no (el velo ya separa)
+
+     Por qué esos cuatro: a 66 px el titular ocupa el ancho de un cartel y
+     compite con la foto; a 54 px con más peso se lee como el encabezado de
+     un documento y deja respirar la imagen. La sombra era una muleta para
+     despegar el texto del fondo — con el velo actual no hace falta, y
+     quitarla limpia los bordes de las letras.
+     ===================================================================== */
+
+  :root{
+    --ink:#1E3A6E; --serif:'Fraunces',Georgia,serif;
+    --sans:'Source Sans 3',system-ui,sans-serif;
+    --orange:#E5692A; --amber:#F2A46B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#E9EBEF;font-family:var(--sans);font-size:17px;
+    line-height:1.6;color:#16233A;-webkit-font-smoothing:antialiased;}
+  .wrap{width:min(1140px,92vw);margin:0 auto;padding:0 26px;}
+
+  .rot{background:#0F1A2E;color:#fff;padding:11px 0;
+    font-size:13.5px;line-height:1.5;}
+  .rot b{color:var(--amber);}
+  .rot .wrap{padding:0 26px;}
+
+  /* ---- la portada de hoy, copiada tal cual ---- */
+  .hero{position:relative;overflow:hidden;background:var(--ink);}
+  .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 42%;}
+  .hero-scrim{position:absolute;inset:0;background:
+    linear-gradient(94deg,rgba(11,19,40,.96) 0%,rgba(11,19,40,.90) 34%,rgba(11,19,40,.62) 62%,rgba(11,19,40,.34) 100%),
+    linear-gradient(0deg,rgba(11,19,40,.62),transparent 48%);}
+  .hero-inner{position:relative;z-index:2;}
+  .hero-copy{max-width:648px;padding:104px 0 96px;color:#fff;}
+  .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:#A9CDEA;background:rgba(179,190,248,.12);
+    border:1px solid rgba(179,190,248,.26);padding:7px 14px;border-radius:30px;margin-bottom:24px;}
+  h1{font-family:var(--serif);margin:0 0 22px;text-wrap:balance;}
+  h1 em{font-style:italic;background:linear-gradient(100deg,#FBE3CF,#F2A46B 58%,#E5692A);
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  .lead{color:rgba(255,255,255,.9);margin:0 0 34px;line-height:1.55;}
+  .cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .btn{font-family:var(--sans);font-size:16.5px;font-weight:700;border:none;border-radius:12px;
+    padding:0 26px;min-height:52px;display:inline-flex;align-items:center;cursor:pointer;text-decoration:none;}
+  .b1{background:var(--orange);color:#fff;}
+  .b2{background:rgba(255,255,255,.10);color:#fff;border:1px solid rgba(255,255,255,.28);}
+  .nota{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:26px;font-size:14px;
+    font-weight:500;color:rgba(255,255,255,.74);}
+  .nota i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.5);}
+  .nota b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums;}
+
+  /* ======== HOY ======== */
+  .hoy h1{font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;
+    font-size:clamp(40px,5.6vw,66px);line-height:1.04;letter-spacing:-.025em;
+    text-shadow:0 2px 30px rgba(0,0,0,.25);}
+  .hoy .lead{font-size:19.5px;max-width:29em;}
+
+  /* ======== B: los cuatro números de la versión que le gustó ======== */
+  .beta h1{font-variation-settings:'opsz' 144,'wght' 510;font-weight:510;
+    font-size:clamp(36px,4.5vw,54px);line-height:1.09;letter-spacing:-.022em;
+    max-width:19ch;}
+  .beta .lead{font-size:19px;max-width:34em;}
+
+  @media(max-width:820px){ .hero-copy{padding:76px 0 68px;max-width:none;} }
+</style>
+</head>
+<body>
+
+<div class="rot"><div class="wrap"><b>Arriba: la portada de hoy.</b> Abajo: la misma, con los
+cuatro números de tipografía de la versión B. Misma foto, misma maqueta, mismo texto, mismos
+botones — solo cambia el titular.</div></div>
+
+<section class="hero hoy">
+  <img class="hero-img" src="/fotos/votacion.jpg" alt="" width="1440" height="1080">
+  <div class="hero-scrim"></div>
+  <div class="wrap hero-inner"><div class="hero-copy">
+    <span class="hero-eyebrow">Ley N°&nbsp;21.442 · Copropiedad inmobiliaria</span>
+    <h1>De la reunión al acta lista para firmar, <em>el mismo día.</em></h1>
+    <p class="lead">Usted dirige la asamblea con tranquilidad. El sistema lleva el quórum, cuenta
+    los votos ponderados por derechos y genera el acta con la estructura prevista en la
+    Ley N°&nbsp;21.442.</p>
+    <div class="cta">
+      <a class="btn b1" href="#">Comenzar mi acta</a>
+      <a class="btn b2" href="#">Ver un acta de ejemplo</a>
+    </div>
+    <p class="nota"><span>Sin instalar nada</span><i></i><span>Se paga solo cuando se usa</span>
+      <i></i><b>$14.990&nbsp;por acta</b></p>
+  </div></div>
+</section>
+
+<div class="rot"><div class="wrap"><b>Misma portada, tipografía de la B:</b> peso 510 en vez de 470 ·
+54 px en vez de 66 · interlínea 1,09 en vez de 1,04 · medida de 19 caracteres · sin sombra en el
+texto, que era una muleta que el velo ya no necesita.</div></div>
+
+<section class="hero beta">
+  <img class="hero-img" src="/fotos/votacion.jpg" alt="" width="1440" height="1080">
+  <div class="hero-scrim"></div>
+  <div class="wrap hero-inner"><div class="hero-copy">
+    <span class="hero-eyebrow">Ley N°&nbsp;21.442 · Copropiedad inmobiliaria</span>
+    <h1>De la reunión al acta lista para firmar, <em>el mismo día.</em></h1>
+    <p class="lead">Usted dirige la asamblea con tranquilidad. El sistema lleva el quórum, cuenta
+    los votos ponderados por derechos y genera el acta con la estructura prevista en la
+    Ley N°&nbsp;21.442.</p>
+    <div class="cta">
+      <a class="btn b1" href="#">Comenzar mi acta</a>
+      <a class="btn b2" href="#">Ver un acta de ejemplo</a>
+    </div>
+    <p class="nota"><span>Sin instalar nada</span><i></i><span>Se paga solo cuando se usa</span>
+      <i></i><b>$14.990&nbsp;por acta</b></p>
+  </div></div>
+</section>
+
+<div style="height:60px"></div>
+
+</body>
+</html>
