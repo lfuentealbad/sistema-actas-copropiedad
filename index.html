@@ -148,11 +148,16 @@
     padding-right:max(26px,env(safe-area-inset-right));}
   .hero-copy{max-width:648px;padding:158px 0 130px;color:#fff;}
   .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#A9CDEA;background:rgba(179,190,248,.12);border:1px solid rgba(179,190,248,.26);padding:7px 14px;border-radius:30px;margin-bottom:24px;}
-  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 470;font-weight:470;font-size:clamp(40px,5.6vw,66px);line-height:1.04;letter-spacing:-.025em;margin:0 0 22px;text-shadow:0 2px 30px rgba(0,0,0,.25);text-wrap:balance;}
+  /* Tipografia de la version B (referente medido: GOV.UK). A 66 px el
+     titular ocupaba el ancho de un cartel y competia con la foto; a 54 px
+     con mas peso se lee como el encabezado de un documento y deja respirar
+     la imagen. La sombra era una muleta para despegarlo del fondo: el velo
+     ya hace ese trabajo, y sin ella el borde de las letras queda limpio. */
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 510;font-weight:510;font-size:clamp(36px,4.5vw,54px);line-height:1.09;letter-spacing:-.022em;margin:0 0 22px;max-width:19ch;text-wrap:balance;}
   /* El realce del titular va en cálido: es el color de la acción (el botón),
      y sobre la foto destaca más que el azul, que se confunde con el velo. */
   h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,#FBE3CF,#F2A46B 58%,#E5692A);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .hero p.lead{font-size:19.5px;color:rgba(255,255,255,.9);margin:0 0 34px;max-width:29em;line-height:1.55;}
+  .hero p.lead{font-size:19px;color:rgba(255,255,255,.9);margin:0 0 34px;max-width:34em;line-height:1.55;}
   .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
   /* Las tres objeciones que frenan la compra, respondidas bajo los botones. */
   .hero-nota{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:26px;font-size:14px;font-weight:500;color:rgba(255,255,255,.74);}
