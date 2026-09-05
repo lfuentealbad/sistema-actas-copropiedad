@@ -1,0 +1,2217 @@
+/* =====================================================================
+ *  Gestion economica del condominio  ·  Ley N° 21.442
+ *
+ *  Modulo de cuentas del comite: reparte los gastos del mes entre las
+ *  unidades segun su alicuota, lleva el fondo comun de reserva (art. 39) y
+ *  emite la liquidacion que exige el art. 31.
+ *
+ *  Ojo con el art. 6: la regla es contribuir "en proporcion al derecho que
+ *  le corresponda en los bienes de dominio comun", pero termina con "salvo
+ *  que el reglamento de copropiedad establezca otra forma de contribucion".
+ *  Esta herramienta solo sabe repartir por alicuota. Un condominio cuyo
+ *  reglamento reparta de otra manera no puede usarla tal cual, y la pagina
+ *  se lo tiene que decir.
+ *
+ *  Los datos viven en el navegador de quien administra (localStorage).
+ *  No se suben: el respaldo lo baja y lo guarda la propia persona.
+ *
+ *  Sin manejadores en linea: los botones llevan data-ac= y los resuelve
+ *  js/acciones.js. Toda funcion invocada desde el HTML tiene que ser
+ *  global (declarada con "function" en el nivel superior de este archivo).
+ * ===================================================================== */
+
+
+/* ============ ESTADO Y PERSISTENCIA ============ */
+const STORAGE_KEY = 'actaviva_finanzas_v1';
+const CATEGORIAS_EGRESO = [
+  // Los cuatro tipos de gasto común ordinario (de administración, de
+  // mantención, de reparación y de uso o consumo) y el extraordinario los
+  // define el art. 2 de la Ley. El art. 9 es otra cosa: el primer reglamento
+  // de copropiedad. El resto de las categorías es uso corriente del rubro.
+  { grupo:'ordinario', cat:'Administración', desc:'Honorarios, remuneraciones, conserjería, cotizaciones previsionales' },
+  { grupo:'ordinario', cat:'Mantención', desc:'Aseo, mantención áreas comunes, ascensores, equipos' },
+  { grupo:'ordinario', cat:'Reparación', desc:'Arreglo de desperfectos en bienes comunes' },
+  { grupo:'ordinario', cat:'Servicios básicos', desc:'Agua, luz, gas, telecomunicaciones (uso o consumo)' },
+  { grupo:'ordinario', cat:'Mantenimiento de bombas', desc:'Sistema de bombeo y agua potable' },
+  { grupo:'ordinario', cat:'Jardinería', desc:'Servicio de jardinería y áreas verdes' },
+  { grupo:'ordinario', cat:'Seguros', desc:'Prima seguro colectivo contra incendio (art. 43 Ley)' },
+  { grupo:'ordinario', cat:'Caja chica', desc:'Gastos menores con boletas' },
+  { grupo:'ordinario', cat:'Reemplazo de conserjería', desc:'Turnos de reemplazo' },
+  { grupo:'ordinario', cat:'Avances de personal', desc:'Adelantos de remuneraciones' },
+  { grupo:'ordinario', cat:'Liquidaciones', desc:'Liquidaciones mensuales del personal' },
+  { grupo:'ordinario', cat:'Finiquitos', desc:'Indemnizaciones por término de contrato' },
+  { grupo:'ordinario', cat:'Previred', desc:'Pago cotizaciones previsionales' },
+  { grupo:'ordinario', cat:'Artículos de limpieza', desc:'Insumos de aseo' },
+  { grupo:'ordinario', cat:'Uso o consumo', desc:'Software administrativo, otros consumos' },
+  { grupo:'extraordinario', cat:'Gastos extraordinarios', desc:'Gastos imprevistos no presupuestados' },
+];
+
+const estadoInicial = {
+  config:{
+    condNombre:'', condRut:'', condDir:'', condComuna:'',
+    admNombre:'', admRut:'', admCorreo:'', admTel:'', admRegistro:'', admFirma:'',
+    porcFondo:5, tasaMora:1.5, diaVenc:18,
+    // El tope de la mora (art. 7) es la mitad del interés corriente bancario,
+    // que publica la CMF y cambia todos los meses. No se puede saber sin red,
+    // así que se pide: con ese dato el sistema aplica el tope solo.
+    interesCorriente:0,
+    banco:'', bancoTipo:'Cuenta corriente', bancoNum:'', bancoTitular:'',
+    obs:'',
+    segCia:'', segPoliza:'', segVig:'', segPrima:0, segCuotas:0, segCuotaAct:0,
+  },
+  unidades: [],
+  cobros: [],
+  egresos: [],
+  ingresos: [],
+  fondo: [], // movimientos del fondo común de reserva
+  mantenciones: [],
+  contadorFolio: 1000,
+  foliosLiq: {},   // "unidadId|periodo" -> folio ya emitido, para que no cambie
+};
+let estado = JSON.parse(JSON.stringify(estadoInicial));
+
+function cargar(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      estado = Object.assign(JSON.parse(JSON.stringify(estadoInicial)), data);
+      estado.config = Object.assign({}, estadoInicial.config, data.config||{});
+    }
+  }catch(e){ console.error(e); }
+}
+function guardar(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+}
+
+/* ============ UTILIDADES ============ */
+const fmtCLP = n => '$ ' + (Math.round(n||0)).toLocaleString('es-CL').replace(/,/g,'.');
+// % Alícuota sin ceros sobrantes a la derecha y con coma decimal chilena
+const fmtPct = n => {
+  const v = Number(n||0);
+  if(!v) return '0%';
+  const s = parseFloat(v.toFixed(4)).toString();
+  return s.replace('.', ',') + '%';
+};
+// Cualquier número entero con separador de miles (ej. folios)
+const fmtNum = n => Number(n||0).toLocaleString('es-CL').replace(/,/g,'.');
+// RUT chileno con puntos cada 3 dígitos y guion al DV
+const fmtRut = s => {
+  if(!s) return '';
+  const clean = String(s).replace(/\./g,'').replace(/\s/g,'').toUpperCase();
+  // Si tiene guión: separar cuerpo y DV
+  let cuerpo, dv;
+  const idx = clean.indexOf('-');
+  if(idx >= 0){ cuerpo = clean.slice(0, idx); dv = clean.slice(idx+1); }
+  else if(clean.length >= 2){ cuerpo = clean.slice(0,-1); dv = clean.slice(-1); }
+  else return clean;
+  cuerpo = cuerpo.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return cuerpo ? cuerpo + '-' + dv : dv;
+};
+// Un "2026-09-04" suelto lo interpreta Date como medianoche UTC, que en Chile
+// son las 20:00 del día ANTERIOR: al formatearlo en hora local, toda fecha
+// guardada salía impresa un día antes. Se arman los componentes a mano.
+const fmtFecha = s => {
+  if(!s) return '';
+  const p = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  const d = p ? new Date(+p[1], +p[2]-1, +p[3]) : new Date(s);
+  return isNaN(d) ? '' : d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
+};
+const fmtPeriodoLargo = s => {
+  if(!s) return '';
+  const [y,m] = s.split('-');
+  const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${meses[parseInt(m,10)-1]} ${y}`;
+};
+const fmtPeriodoCorto = s => {
+  if(!s) return '';
+  const [y,m] = s.split('-');
+  const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${meses[parseInt(m,10)-1]} '${y.slice(2)}`;
+};
+// Fechas en hora local, nunca en UTC. toISOString() convierte a UTC, y Chile
+// va tres o cuatro horas atras: un egreso anotado a las 21:00 del 31 de marzo
+// quedaba con fecha 1 de abril y caia en el periodo equivocado. Se arma el
+// texto a mano desde los campos locales del Date.
+const dosCifras = n => String(n).padStart(2, '0');
+const aFechaLocal = d => `${d.getFullYear()}-${dosCifras(d.getMonth()+1)}-${dosCifras(d.getDate())}`;
+const aPeriodoLocal = d => `${d.getFullYear()}-${dosCifras(d.getMonth()+1)}`;
+const periodoActual = () => aPeriodoLocal(new Date());
+const fechaHoy = () => aFechaLocal(new Date());
+const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const escapeHtml = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const periodosUlt = (n, hasta) => {
+  const arr=[]; const [y,m] = (hasta||periodoActual()).split('-').map(Number);
+  let d = new Date(y, m-1, 1);
+  for(let i=0;i<n;i++){ arr.unshift(aPeriodoLocal(d)); d.setMonth(d.getMonth()-1); }
+  return arr;
+};
+
+/* === TOAST con variantes e icono === */
+const TOAST_ICONS = {
+  default: '',
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+  danger:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+  warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+};
+let _toastTimer;
+function toast(msg, variant='default'){
+  const t = document.getElementById('toast');
+  t.className = 'toast';
+  if(variant !== 'default') t.classList.add(variant);
+  t.innerHTML = (TOAST_ICONS[variant]||'') + '<span>'+escapeHtml(msg)+'</span>';
+  // Force reflow para reiniciar la animación
+  void t.offsetWidth;
+  t.classList.add('show');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), variant==='danger'?4000:2600);
+}
+
+/* === FOCUS TRAP para modales === */
+const _focusTraps = new Map();
+function getFocusable(el){
+  return [...el.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(n=>n.offsetParent !== null);
+}
+function trapFocus(modal){
+  if(_focusTraps.has(modal.id)) return;
+  const lastFocused = document.activeElement;
+  const handler = e=>{
+    if(e.key === 'Escape'){
+      // Excepción: si es el modal de confirmación, cancela
+      if(modal.id === 'mConfirm'){ document.getElementById('mConfirmCancel').click(); return; }
+      cerrarModal(modal.id);
+      return;
+    }
+    if(e.key !== 'Tab') return;
+    const focusable = getFocusable(modal);
+    if(!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length-1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  };
+  modal.addEventListener('keydown', handler);
+  _focusTraps.set(modal.id, {handler, lastFocused});
+  // Mover foco al primer elemento focusable del modal
+  setTimeout(()=>{
+    const focusable = getFocusable(modal);
+    if(focusable.length) focusable[0].focus();
+    else modal.querySelector('.panel')?.focus?.();
+  }, 50);
+}
+function releaseFocus(modal){
+  const trap = _focusTraps.get(modal.id);
+  if(!trap) return;
+  modal.removeEventListener('keydown', trap.handler);
+  _focusTraps.delete(modal.id);
+  // Restaurar foco al elemento que abrió el modal
+  if(trap.lastFocused && trap.lastFocused.focus) trap.lastFocused.focus();
+}
+
+/* === CONFIRM accesible (reemplaza window.confirm) === */
+function confirmar(opciones){
+  // opciones = { titulo, mensaje, okText, cancelText, variant: 'danger'|'warning'|'primary' }
+  return new Promise((resolve)=>{
+    const modal = document.getElementById('mConfirm');
+    const title = document.getElementById('mConfirmTitle');
+    const desc  = document.getElementById('mConfirmDesc');
+    const icon  = document.getElementById('mConfirmIcon');
+    const ok    = document.getElementById('mConfirmOk');
+    const cancel= document.getElementById('mConfirmCancel');
+    title.textContent = opciones.titulo || 'Confirmar acción';
+    desc.textContent  = opciones.mensaje || '';
+    ok.textContent    = opciones.okText || 'Confirmar';
+    cancel.textContent= opciones.cancelText || 'Cancelar';
+    const variant = opciones.variant || 'primary';
+    icon.className = 'confirm-icon ' + variant;
+    ok.className = 'btn ' + (variant==='danger'?'danger':variant==='warning'?'primary':'primary');
+    if(variant==='danger') ok.classList.add('danger');
+    const cleanup = (val)=>{
+      ok.onclick = null; cancel.onclick = null;
+      cerrarModal('mConfirm');
+      resolve(val);
+    };
+    ok.onclick = ()=>cleanup(true);
+    cancel.onclick = ()=>cleanup(false);
+    abrirModal('mConfirm');
+  });
+}
+
+/* ============ NAVEGACIÓN con hash routing ============ */
+const PANE_RENDERERS = {
+  dashboard: ()=>renderDashboard(),
+  unidades:  ()=>renderUnidades(),
+  cobros:    ()=>renderCobros(),
+  egresos:   ()=>renderEgresos(),
+  ingresos:  ()=>renderIngresos(),
+  fondo:     ()=>renderFondo(),
+  liquidacion: ()=>prepLiquidacion(),
+  presupuesto: ()=>renderPresupuesto(),
+  config:    ()=>cargarConfig(),
+  datos:     ()=>{},
+  legal:     ()=>{}
+};
+function navegarA(pane){
+  if(!PANE_RENDERERS[pane]) pane = 'dashboard';
+  document.querySelectorAll('.nav a').forEach(x=>{
+    const isActive = x.dataset.pane === pane;
+    x.classList.toggle('active', isActive);
+    if(isActive) x.setAttribute('aria-current','page');
+    else x.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('show'));
+  const p = document.querySelector(`.pane[data-pane="${pane}"]`);
+  if(p) p.classList.add('show');
+  PANE_RENDERERS[pane]();
+  // Mover foco al main para lectores de pantalla
+  document.getElementById('main-content').focus({preventScroll:true});
+}
+function manejarHash(){
+  const hash = (location.hash || '#dashboard').slice(1).split('/')[0];
+  navegarA(hash);
+}
+window.addEventListener('hashchange', manejarHash);
+document.querySelectorAll('.nav a').forEach(a=>{
+  // Los <a href="#xxx"> ya disparan hashchange; solo evitamos scroll automático
+  a.addEventListener('click', e=>{
+    // Permitir Cmd/Ctrl+click para abrir en nueva pestaña (no aplica acá pero buena práctica)
+    if(e.metaKey || e.ctrlKey) return;
+  });
+});
+
+/* ============ MODAL HELPERS (con focus trap y ESC) ============ */
+function abrirModal(id){
+  const m = document.getElementById(id);
+  m.classList.add('show');
+  trapFocus(m);
+}
+function cerrarModal(id){
+  const m = document.getElementById(id);
+  m.classList.remove('show');
+  releaseFocus(m);
+}
+document.querySelectorAll('.modal').forEach(m=>{
+  m.addEventListener('click', e=>{
+    if(e.target===m){
+      if(m.id==='mConfirm'){ document.getElementById('mConfirmCancel').click(); return; }
+      cerrarModal(m.id);
+    }
+  });
+});
+
+/* ============ CONFIGURACIÓN ============ */
+function cargarConfig(){
+  const c = estado.config;
+  Object.entries({
+    cfgCondNombre:'condNombre', cfgCondRut:'condRut', cfgCondDir:'condDir', cfgCondComuna:'condComuna',
+    cfgAdmNombre:'admNombre', cfgAdmRut:'admRut', cfgAdmCorreo:'admCorreo', cfgAdmTel:'admTel',
+    cfgAdmRegistro:'admRegistro', cfgAdmFirma:'admFirma',
+    cfgPorcFondo:'porcFondo', cfgTasaMora:'tasaMora', cfgDiaVenc:'diaVenc',
+    cfgInteresCorriente:'interesCorriente',
+    cfgBanco:'banco', cfgBancoTipo:'bancoTipo', cfgBancoNum:'bancoNum', cfgBancoTitular:'bancoTitular',
+    cfgObs:'obs',
+    cfgSegCia:'segCia', cfgSegPoliza:'segPoliza', cfgSegVig:'segVig', cfgSegPrima:'segPrima',
+    cfgSegCuotas:'segCuotas', cfgSegCuotaAct:'segCuotaAct'
+  }).forEach(([id,k])=>{
+    const el=document.getElementById(id); if(el) el.value=c[k]??'';
+  });
+  // Formatear RUTs cargados
+  ['cfgCondRut','cfgAdmRut'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && el.value) el.value = fmtRut(el.value);
+  });
+}
+function guardarConfig(){
+  const c = estado.config;
+  Object.entries({
+    cfgCondNombre:'condNombre', cfgCondRut:'condRut', cfgCondDir:'condDir', cfgCondComuna:'condComuna',
+    cfgAdmNombre:'admNombre', cfgAdmRut:'admRut', cfgAdmCorreo:'admCorreo', cfgAdmTel:'admTel',
+    cfgAdmRegistro:'admRegistro', cfgAdmFirma:'admFirma',
+    cfgBanco:'banco', cfgBancoTipo:'bancoTipo', cfgBancoNum:'bancoNum', cfgBancoTitular:'bancoTitular',
+    cfgObs:'obs',
+    cfgSegCia:'segCia', cfgSegPoliza:'segPoliza', cfgSegVig:'segVig'
+  }).forEach(([id,k])=>{
+    const el=document.getElementById(id); if(el) c[k]=el.value;
+  });
+  ['porcFondo','tasaMora','diaVenc','interesCorriente','segPrima','segCuotas','segCuotaAct'].forEach(k=>{
+    const el=document.getElementById('cfg'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el) c[k] = parseFloat(el.value)||0;
+  });
+  const avisos = [];
+  // Validación art. 39: mínimo 5%
+  if(c.porcFondo < 5){
+    c.porcFondo = 5;
+    document.getElementById('cfgPorcFondo').value = 5;
+    avisos.push('El fondo de reserva se ajustó al mínimo legal del 5% (art. 39).');
+  }
+  // Validación art. 7: la mora no puede pasar del 50% del interés corriente
+  // bancario. Ese dato lo publica la CMF y aquí lo escribe la administración;
+  // sin él no hay tope que calcular y solo se avisa.
+  const topeMora = c.interesCorriente > 0 ? c.interesCorriente / 2 : 0;
+  if(topeMora > 0 && c.tasaMora > topeMora){
+    c.tasaMora = Math.round(topeMora * 100) / 100;
+    document.getElementById('cfgTasaMora').value = c.tasaMora;
+    avisos.push(`El interés por mora se ajustó a ${fmtPct(c.tasaMora)}, el tope del art. 7.`);
+  } else if(c.tasaMora > 0 && topeMora === 0){
+    avisos.push('Falta el interés corriente bancario: sin ese dato no se puede comprobar el tope del art. 7.');
+  }
+  if(avisos.length) toast(avisos.join(' '), 'warning');
+  else toast('Configuración guardada', 'success');
+  guardar();
+  renderDashboard();
+}
+
+/* ============ UNIDADES ============ */
+let unidadEditId = null;
+function abrirUnidad(id){
+  unidadEditId = id||null;
+  const u = id ? estado.unidades.find(x=>x.id===id) : {tipo:'departamento'};
+  document.getElementById('uCodigo').value = u.codigo||'';
+  document.getElementById('uTipo').value = u.tipo||'departamento';
+  document.getElementById('uPropietario').value = u.propietario||'';
+  document.getElementById('uResidente').value = u.residente||'';
+  document.getElementById('uCorreo').value = u.correo||'';
+  document.getElementById('uTel').value = u.tel||'';
+  document.getElementById('uAlicuota').value = u.alicuota||'';
+  abrirModal('mUnidad');
+}
+function guardarUnidad(){
+  const data = {
+    codigo: document.getElementById('uCodigo').value.trim(),
+    tipo: document.getElementById('uTipo').value,
+    propietario: document.getElementById('uPropietario').value.trim(),
+    residente: document.getElementById('uResidente').value.trim(),
+    correo: document.getElementById('uCorreo').value.trim(),
+    tel: document.getElementById('uTel').value.trim(),
+    alicuota: parseFloat(document.getElementById('uAlicuota').value)||0,
+  };
+  if(!data.codigo){ toast('El código es obligatorio'); return; }
+  if(unidadEditId){
+    const i = estado.unidades.findIndex(x=>x.id===unidadEditId);
+    estado.unidades[i] = Object.assign({}, estado.unidades[i], data);
+  } else {
+    estado.unidades.push(Object.assign({id:id()}, data));
+  }
+  guardar(); renderUnidades(); cerrarModal('mUnidad');
+  toast(unidadEditId ? 'Unidad actualizada' : 'Unidad agregada');
+  unidadEditId = null;
+}
+async function eliminarUnidad(id){
+  const u = estado.unidades.find(x=>x.id===id);
+  const ok = await confirmar({
+    titulo:`Eliminar unidad ${u.codigo}`,
+    mensaje:`Se eliminará la unidad y todos sus cobros (pendientes y pagados).\nEsta acción no se puede deshacer.`,
+    okText:'Eliminar',
+    variant:'danger'
+  });
+  if(!ok) return;
+  estado.unidades = estado.unidades.filter(x=>x.id!==id);
+  estado.cobros = estado.cobros.filter(x=>x.unidadId!==id);
+  guardar(); renderUnidades();
+  toast(`Unidad ${u.codigo} eliminada`, 'success');
+}
+function balanceUnidad(uid){
+  const cob = estado.cobros.filter(c=>c.unidadId===uid);
+  const adeudado = cob.filter(c=>c.estado==='pendiente').reduce((s,c)=>s+(c.adeudado||0), 0);
+  const pagado = cob.filter(c=>c.estado==='pagado').reduce((s,c)=>s+(c.montoPagado||c.adeudado||0), 0);
+  return { adeudado, pagado };
+}
+function renderUnidades(){
+  const tb = document.querySelector('#tablaUnidades tbody');
+  if(!estado.unidades.length){
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="et">Sin copropietarios cargados</div><div class="ed">Descarga la plantilla, llénala con los datos de tus unidades y vuelve a importar — o agrégalos uno por uno.</div></div></td></tr>`;
+    document.getElementById('alicTotal').textContent = '0%';
+    return;
+  }
+  let totAlic = 0;
+  estado.unidades.forEach(u=>totAlic += u.alicuota||0);
+  // Render: simple si <=200, virtualizado si más
+  const renderRow = u => {
+    const b = balanceUnidad(u.id);
+    const badge = b.adeudado>0
+      ? `<span class="badge danger">Deudor ${fmtCLP(b.adeudado)}</span>`
+      : `<span class="badge success">Al día</span>`;
+    return `<tr>
+      <td><strong>${escapeHtml(u.codigo)}</strong></td>
+      <td>${escapeHtml(u.tipo)}</td>
+      <td>${escapeHtml(u.propietario||'—')}</td>
+      <td>${escapeHtml(u.residente||u.propietario||'—')}<br><span class="muted" style="font-size:var(--fs-xs)">${escapeHtml(u.correo||'')}</span></td>
+      <td class="num">${fmtPct(u.alicuota)}</td>
+      <td class="num">${badge}</td>
+      <td><div class="btn-row">
+        <button class="btn sm" data-ac="abrirUnidad" data-args="${u.id}" aria-label="Editar unidad ${escapeHtml(u.codigo)}">Editar</button>
+        <button class="btn sm danger" data-ac="eliminarUnidad" data-args="${u.id}" aria-label="Eliminar unidad ${escapeHtml(u.codigo)}">Eliminar</button>
+      </div></td>
+    </tr>`;
+  };
+  if(estado.unidades.length <= 200){
+    tb.innerHTML = estado.unidades.map(renderRow).join('');
+  } else {
+    // Virtualización ligera: renderiza primeras 100, oculta resto bajo botón "Mostrar más"
+    const lote = window._unidadesLote || 100;
+    tb.innerHTML = estado.unidades.slice(0, lote).map(renderRow).join('') +
+      `<tr><td colspan="7" style="text-align:center;padding:var(--sp-4)">
+        <button class="btn ghost" data-ac="mostrarMasUnidades" data-args="n:${lote+100}">
+          Mostrar 100 más (${fmtNum(estado.unidades.length - lote)} restantes)
+        </button>
+      </td></tr>`;
+  }
+  const span = document.getElementById('alicTotal');
+  span.textContent = fmtPct(totAlic);
+  span.style.color = (Math.abs(totAlic-100) < 0.01) ? 'var(--success)' : 'var(--warning)';
+}
+
+/* CSV import / template */
+function abrirImportCSV(){ abrirModal('mImportCSV'); }
+
+const PLANTILLA_HEADERS = ['Unidad','Tipo','Propietario','RUT','Residente','Correo','Teléfono','% Alícuota'];
+const PLANTILLA_WIDTHS  = [12, 16, 38, 18, 38, 32, 20, 14]; // anchos en unidades Excel
+const PLANTILLA_EJEMPLOS = [
+  ['A-101','departamento','Juan Pérez González','12.345.678-9','Juan Pérez González','juan.perez@ejemplo.cl','+56 9 1111 1111',1.5],
+  ['A-102','departamento','María López Soto','9.876.543-2','Arrendatario s/i','maria.lopez@ejemplo.cl','+56 9 2222 2222',0.85],
+  ['B-303','casa','Carlos Ramírez Fuentes','15.234.567-8','Carlos Ramírez Fuentes','carlos.r@ejemplo.cl','+56 9 3333 3333',2.1],
+  ['L-01','local','Comercial XYZ Ltda.','76.000.000-1','','contacto@xyz.cl','+56 2 2555 5555',0.5],
+];
+
+/* === Generación XLSX nativo (sin dependencias) ===
+   Construye un .xlsx real (ZIP de XMLs) con anchos de columna y encabezado
+   estilizado. Sin advertencia de "extensión no coincide" en Excel. */
+function descargarPlantilla(){
+  // La plantilla se arma con SheetJS (vendor/xlsx.full.min.js), que ya viene
+  // con el sitio. Antes esto era un generador de ZIP y XML escrito a mano:
+  // 200 lineas para hacer lo que la libreria hace bien y ya estaba pagada.
+  if(!window.XLSX){ toast('No se pudo cargar el generador de Excel', 'danger'); return; }
+
+  var filas = [
+    PLANTILLA_HEADERS,
+    ['↓ BORRE las filas de ejemplo y escriba sus datos. La alicuota sale del reglamento de copropiedad y la suma debe dar 100%.','','','','','','',''],
+  ];
+  PLANTILLA_EJEMPLOS.forEach(function(f){ filas.push(f); });
+  for(var i=0;i<25;i++) filas.push(['','','','','','','','']);
+
+  var hoja = XLSX.utils.aoa_to_sheet(filas);
+  hoja['!cols'] = PLANTILLA_WIDTHS.map(function(w){ return {wch:w}; });
+  hoja['!freeze'] = {xSplit:0, ySplit:2};
+
+  var libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Unidades');
+  XLSX.writeFile(libro, 'plantilla_unidades_condominio.xlsx');
+  toast('Plantilla descargada', 'success');
+}
+
+async function borrarTodasUnidades(){
+  if(!estado.unidades.length){ toast('No hay unidades cargadas'); return; }
+  const n = estado.unidades.length;
+  const cobrosCount = estado.cobros.length;
+  const ok1 = await confirmar({
+    titulo:`Eliminar todas las unidades`,
+    mensaje:`Se eliminarán ${fmtNum(n)} unidades del condominio y ${fmtNum(cobrosCount)} cobros asociados (pendientes y pagados).\nEsta acción no se puede deshacer.`,
+    okText:'Continuar',
+    variant:'danger'
+  });
+  if(!ok1) return;
+  const ok2 = await confirmar({
+    titulo:`Confirmación final`,
+    mensaje:`¿Confirmar el borrado de ${fmtNum(n)} unidades y ${fmtNum(cobrosCount)} cobros?`,
+    okText:'Sí, borrar todo',
+    variant:'danger'
+  });
+  if(!ok2) return;
+  estado.unidades = [];
+  estado.cobros = [];
+  guardar(); renderUnidades();
+  toast(`${fmtNum(n)} unidades eliminadas`, 'success');
+}
+
+
+function detectarSeparador(linea){
+  // Si hay más ; que ,, usa ;. Default ,
+  const c1 = (linea.match(/;/g)||[]).length;
+  const c2 = (linea.match(/,/g)||[]).length;
+  return c1 > c2 ? ';' : ',';
+}
+function parsearLineaCSV(linea, sep){
+  // Soporta campos entrecomillados con sep dentro
+  const out = []; let cur = ''; let dentro = false;
+  for(let i=0;i<linea.length;i++){
+    const ch = linea[i];
+    if(ch==='"'){
+      if(dentro && linea[i+1]==='"'){ cur+='"'; i++; }
+      else dentro = !dentro;
+    } else if(ch===sep && !dentro){
+      out.push(cur); cur='';
+    } else cur+=ch;
+  }
+  out.push(cur);
+  return out.map(c=>c.trim());
+}
+function aNumeroCSV(s){
+  if(!s) return 0;
+  // Acepta "1,5000" o "1.5000" o "1.234,50"
+  let t = String(s).trim().replace(/\s/g,'');
+  if(t.includes(',') && t.includes('.')){
+    // formato es-CL: 1.234,50 → quitar puntos miles, coma decimal
+    t = t.replace(/\./g,'').replace(',','.');
+  } else if(t.includes(',')){
+    t = t.replace(',','.');
+  }
+  return parseFloat(t)||0;
+}
+
+async function procesarImportacion(){
+  const f = document.getElementById('csvFile').files[0];
+  if(!f){ toast('Selecciona un archivo'); return; }
+  try{
+    let filas;
+    if(f.name.toLowerCase().endsWith('.xlsx')){
+      const buf = await f.arrayBuffer();
+      filas = await parsearXlsx(buf);
+    } else {
+      const txt = await f.text();
+      filas = parsearTextoCSV(txt);
+    }
+    if(!filas || !filas.length){ toast('Archivo vacío'); return; }
+    procesarFilasUnidades(filas);
+  } catch(err){
+    console.error(err);
+    await confirmar({
+      titulo:'Error al leer el archivo',
+      mensaje:`${err.message}\n\nSi cargaste un Excel y falla, intenta guardarlo como CSV UTF-8 desde Excel y vuelve a importar.`,
+      okText:'Entendido', cancelText:'Cerrar',
+      variant:'warning'
+    });
+  }
+}
+
+function parsearTextoCSV(txt){
+  if(txt.charCodeAt(0)===0xFEFF) txt = txt.slice(1); // BOM
+  const lines = txt.split(/\r?\n/)
+    .map(l=>l.trim())
+    .filter(l => l && !l.startsWith('#'));
+  if(!lines.length) return [];
+  const sep = detectarSeparador(lines[0]);
+  return lines.map(l=>parsearLineaCSV(l, sep));
+}
+
+/* === Parser XLSX (lee la plantilla descargada o cualquier .xlsx con
+   estructura estándar). Usa DecompressionStream del navegador para deflate. === */
+async function parsearXlsx(arrayBuffer){
+  if(!window.XLSX) throw new Error('No se pudo cargar el lector de Excel');
+  var libro = XLSX.read(arrayBuffer, {type:'array'});
+  var hoja  = libro.Sheets[libro.SheetNames[0]];
+  if(!hoja) throw new Error('El archivo no tiene ninguna hoja');
+  // header:1 devuelve filas como arreglos, que es lo que espera el importador.
+  return XLSX.utils.sheet_to_json(hoja, {header:1, raw:true, defval:''})
+              .map(function(f){ return f.map(function(c){ return c==null ? '' : String(c); }); })
+              .filter(function(f){ return f.some(function(c){ return c !== ''; }); });
+}
+
+function procesarFilasUnidades(filas){
+    let count = 0, omitidos = 0, sinAlicuota = 0;
+    if(!filas.length){ toast('Archivo vacío'); return; }
+
+    // Detectar encabezado
+    const headerJoined = filas[0].join(' ');
+    const esEncabezado = /unidad|c[óo]digo|propietario|alicuota|al[íi]cuota|tipo/i.test(headerJoined);
+
+    let layoutExtendido;
+    if(esEncabezado){
+      layoutExtendido = /\brut\b/i.test(headerJoined);
+    } else {
+      const maxCols = Math.max(...filas.map(f=>f.length));
+      layoutExtendido = maxCols >= 8;
+    }
+
+    const dataLines = esEncabezado ? filas.slice(1) : filas;
+    const tiposValidos = ['departamento','casa','local','bodega','estacionamiento','oficina'];
+
+    dataLines.forEach(cols=>{
+      if(!cols[0]) return;
+      // Ignorar la fila de instrucción de la plantilla
+      if(String(cols[0]).startsWith('↓') || String(cols[0]).toUpperCase().includes('BORRA')) return;
+      let codigo, tipo, propietario, rut, residente, correo, tel, alic;
+      if(layoutExtendido){
+        [codigo, tipo, propietario, rut, residente, correo, tel] = cols;
+        alic = cols[7];
+      } else {
+        [codigo, tipo, propietario, residente, correo, tel] = cols;
+        rut = '';
+        alic = cols[6];
+      }
+      tipo = String(tipo||'departamento').toLowerCase().trim();
+      if(!tiposValidos.includes(tipo)) tipo = 'departamento';
+      const correoT = String(correo||'').trim();
+      if(correoT && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoT)){ omitidos++; return; }
+      const alicNum = aNumeroCSV(alic);
+      if(alicNum<=0) sinAlicuota++;
+      estado.unidades.push({
+        id:id(), codigo:String(codigo).trim(), tipo,
+        propietario:String(propietario||'').trim(), rut:String(rut||'').trim(),
+        residente:String(residente||'').trim(),
+        correo:correoT, tel:String(tel||'').trim(),
+        alicuota: alicNum
+      });
+      count++;
+    });
+    if(sinAlicuota === count && count>0){
+      confirmar({
+        titulo:'Alícuotas en cero',
+        mensaje:`Se importaron ${fmtNum(count)} unidades, pero ninguna tiene alícuota mayor a 0.\nVerifica que la columna "% Alícuota" esté correctamente llenada en tu archivo.`,
+        okText:'Entendido', cancelText:'Cerrar',
+        variant:'warning'
+      });
+    } else if(sinAlicuota > 0){
+      console.warn(`${sinAlicuota} unidades quedaron con alícuota 0.`);
+    }
+    guardar(); renderUnidades(); cerrarModal('mImportCSV');
+    toast(`${count} unidades importadas${omitidos?` · ${omitidos} omitidas (correo inválido)`:''}`);
+}
+
+// Compatibilidad con el HTML antiguo si llegara a llamarse
+function procesarCSV(){ return procesarImportacion(); }
+
+/* ============ COBROS ============ */
+let cobroEditId = null;
+function abrirCobro(id){
+  cobroEditId = id||null;
+  const c = id ? estado.cobros.find(x=>x.id===id) : {tipo:'ordinaria', estado:'pendiente', periodo:periodoActual()};
+  const sel = document.getElementById('cUnidad');
+  sel.innerHTML = estado.unidades.map(u=>`<option value="${u.id}">${escapeHtml(u.codigo)} — ${escapeHtml(u.propietario||'')}</option>`).join('');
+  if(c.unidadId) sel.value = c.unidadId;
+  document.getElementById('cPeriodo').value = c.periodo||periodoActual();
+  document.getElementById('cTipo').value = c.tipo||'ordinaria';
+  document.getElementById('cConcepto').value = c.concepto||'';
+  document.getElementById('cMonto').value = c.adeudado||'';
+  document.getElementById('cEstado').value = c.estado||'pendiente';
+  document.getElementById('cFechaPago').value = c.fechaPago||'';
+  document.getElementById('cMontoPagado').value = c.montoPagado||'';
+  abrirModal('mCobro');
+}
+function guardarCobro(){
+  const monto = parseFloat(document.getElementById('cMonto').value)||0;
+  if(monto<=0){ toast('Monto debe ser mayor a 0'); return; }
+  const data = {
+    unidadId: document.getElementById('cUnidad').value,
+    periodo: document.getElementById('cPeriodo').value,
+    tipo: document.getElementById('cTipo').value,
+    concepto: document.getElementById('cConcepto').value.trim() || (document.getElementById('cTipo').value === 'ordinaria' ? 'Gasto común mensual' : ''),
+    adeudado: monto,
+    estado: document.getElementById('cEstado').value,
+    fechaPago: document.getElementById('cFechaPago').value,
+    montoPagado: parseFloat(document.getElementById('cMontoPagado').value)||0,
+  };
+  if(data.estado==='pagado' && !data.fechaPago) data.fechaPago = fechaHoy();
+  if(data.estado==='pagado' && !data.montoPagado) data.montoPagado = data.adeudado;
+  if(data.estado==='pagado' && !estado.cobros.find(c=>c.id===cobroEditId)?.folioBoleta){
+    estado.contadorFolio++;
+    data.folioBoleta = estado.contadorFolio;
+  }
+  if(cobroEditId){
+    const i = estado.cobros.findIndex(x=>x.id===cobroEditId);
+    estado.cobros[i] = Object.assign({}, estado.cobros[i], data);
+  } else {
+    estado.cobros.push(Object.assign({id:id()}, data));
+  }
+  guardar(); renderCobros(); cerrarModal('mCobro');
+  toast('Cobro guardado');
+  cobroEditId = null;
+}
+async function eliminarCobro(id){
+  const ok = await confirmar({
+    titulo:'Eliminar cobro',
+    mensaje:'¿Eliminar este cobro? La acción no se puede deshacer.',
+    okText:'Eliminar',
+    variant:'danger'
+  });
+  if(!ok) return;
+  estado.cobros = estado.cobros.filter(c=>c.id!==id);
+  guardar(); renderCobros();
+  toast('Cobro eliminado', 'success');
+}
+async function generarCobrosMes(){
+  if(!estado.unidades.length){ toast('No hay unidades cargadas', 'warning'); return; }
+  const totalAlic = estado.unidades.reduce((s,u)=>s+(u.alicuota||0),0);
+  if(Math.abs(totalAlic-100) > 0.01){
+    const ok = await confirmar({
+      titulo:'Alícuotas no suman 100%',
+      mensaje:`Las alícuotas registradas suman ${fmtPct(totalAlic)}. Lo correcto es que sumen 100% (art. 6 Ley 21.442).\n\n¿Continuar de todos modos? (Recomendado: revisar primero las alícuotas en Copropietarios.)`,
+      okText:'Continuar',
+      variant:'warning'
+    });
+    if(!ok) return;
+  }
+  document.getElementById('genPeriodo').value = periodoActual();
+  document.getElementById('genIncluyeFondo').checked = true;
+  document.getElementById('genIncluyeSeguro').checked = !!estado.config.segPrima;
+  actualizarSugerenciaTotal();
+  abrirModal('mGenerarCobros');
+}
+
+function actualizarSugerenciaTotal(){
+  const periodo = document.getElementById('genPeriodo').value;
+  if(!periodo){
+    document.getElementById('genBreakdown').innerHTML = '';
+    actualizarPreviewCobros();
+    return;
+  }
+  // Sumar egresos registrados para este período
+  const egPeriodo = estado.egresos.filter(e=>e.periodo===periodo);
+  const sumEg = egPeriodo.reduce((s,e)=>s+e.monto,0);
+  const breakdown = document.getElementById('genBreakdown');
+
+  if(egPeriodo.length){
+    // Auto-fill con suma de egresos del período
+    document.getElementById('genTotal').value = sumEg;
+    const porCat = {};
+    egPeriodo.forEach(e=>{ porCat[e.categoria] = (porCat[e.categoria]||0) + e.monto; });
+    const items = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+    breakdown.innerHTML = `
+      <div style="font-size:11px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Egresos registrados para ${escapeHtml(fmtPeriodoLargo(periodo))} · ${egPeriodo.length} ítems</div>
+      ${items.map(([cat,m])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>${escapeHtml(cat)}</span><span style="font-variant-numeric:tabular-nums;color:var(--ink-soft)">${fmtCLP(m)}</span></div>`).join('')}
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0 0;border-top:1px solid var(--line);margin-top:8px;font-weight:700;color:var(--primary)"><span>Total egresos del período</span><span>${fmtCLP(sumEg)}</span></div>
+    `;
+  } else {
+    // No hay egresos: ofrecer promedio últimos 3 meses como sugerencia
+    const ult3 = periodosUlt(4, periodo).slice(0,-1);
+    const sumUlt3 = estado.egresos.filter(e=>ult3.includes(e.periodo)).reduce((s,e)=>s+e.monto,0);
+    const ult3conData = ult3.filter(p=>estado.egresos.some(e=>e.periodo===p)).length;
+    const promedio = ult3conData ? Math.round(sumUlt3/ult3conData) : 0;
+    document.getElementById('genTotal').value = promedio || '';
+    breakdown.innerHTML = `
+      <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5">
+        <strong style="color:var(--warning)">Sin egresos registrados para ${escapeHtml(fmtPeriodoLargo(periodo))}.</strong><br>
+        Lo recomendado es <strong>registrar primero todos los gastos del mes</strong> en la pestaña "Egresos del condominio" y luego generar los cobros. Así el sistema usa la suma exacta como base de prorrateo (art. 22 Ley 21.442).<br>
+        ${promedio ? `<br>Sugerencia (promedio últimos 3 meses con datos): <strong>${fmtCLP(promedio)}</strong>. Puedes editarlo abajo.` : 'Ingresa el monto manualmente.'}
+      </div>
+    `;
+  }
+  actualizarPreviewCobros();
+}
+
+function actualizarPreviewCobros(){
+  const total = parseFloat(document.getElementById('genTotal').value)||0;
+  const incFondo = document.getElementById('genIncluyeFondo').checked;
+  const incSeguro = document.getElementById('genIncluyeSeguro').checked;
+  const porcFondo = estado.config.porcFondo/100;
+  const tb = document.querySelector('#previewCobros tbody');
+  document.getElementById('genTotalFmt').textContent = total ? fmtCLP(total) : '$ 0';
+  if(!total){
+    tb.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:20px">Ingresa un monto total para ver la distribución</td></tr>`;
+    document.getElementById('previewSumGC').textContent = '$ 0';
+    document.getElementById('previewSumFR').textContent = '$ 0';
+    document.getElementById('previewSumSeg').textContent = '$ 0';
+    document.getElementById('previewSumTot').textContent = '$ 0';
+    return;
+  }
+  let sumGC=0, sumFR=0, sumSeg=0, sumTot=0;
+  tb.innerHTML = estado.unidades.map(u=>{
+    const cuota = Math.round(total * (u.alicuota||0)/100);
+    const fondo = incFondo ? Math.round(cuota * porcFondo) : 0;
+    const seguro = (incSeguro && estado.config.segPrima>0) ? Math.round(estado.config.segPrima * (u.alicuota||0)/100) : 0;
+    const tot = cuota+fondo+seguro;
+    sumGC+=cuota; sumFR+=fondo; sumSeg+=seguro; sumTot+=tot;
+    return `<tr>
+      <td><strong>${escapeHtml(u.codigo)}</strong> · ${fmtPct(u.alicuota)}</td>
+      <td class="num">${fmtCLP(cuota)}</td>
+      <td class="num">${fondo?fmtCLP(fondo):'—'}</td>
+      <td class="num">${seguro?fmtCLP(seguro):'—'}</td>
+      <td class="num"><strong>${fmtCLP(tot)}</strong></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('previewSumGC').textContent = fmtCLP(sumGC);
+  document.getElementById('previewSumFR').textContent = fmtCLP(sumFR);
+  document.getElementById('previewSumSeg').textContent = fmtCLP(sumSeg);
+  document.getElementById('previewSumTot').textContent = fmtCLP(sumTot);
+}
+
+async function limpiarCobros(){
+  const pend = estado.cobros.filter(c=>c.estado==='pendiente').length;
+  const pag  = estado.cobros.filter(c=>c.estado==='pagado').length;
+  if(!estado.cobros.length){ toast('No hay cobros', 'warning'); return; }
+  if(pend && pag){
+    const ok = await confirmar({
+      titulo:`Eliminar cobros pendientes`,
+      mensaje:`Estado actual: ${fmtNum(pend)} pendientes y ${fmtNum(pag)} pagados.\nSe eliminarán SOLO los pendientes. El historial de pagos se conserva.`,
+      okText:`Eliminar ${fmtNum(pend)} pendientes`,
+      variant:'danger'
+    });
+    if(!ok) return;
+    estado.cobros = estado.cobros.filter(c=>c.estado==='pagado');
+    guardar(); renderCobros();
+    toast(`${fmtNum(pend)} cobros pendientes eliminados`, 'success');
+  } else if(pend){
+    const ok = await confirmar({
+      titulo:'Eliminar cobros pendientes',
+      mensaje:`Se eliminarán ${fmtNum(pend)} cobros pendientes. La acción no se puede deshacer.`,
+      okText:'Eliminar',
+      variant:'danger'
+    });
+    if(!ok) return;
+    estado.cobros = [];
+    guardar(); renderCobros();
+    toast(`${fmtNum(pend)} cobros eliminados`, 'success');
+  } else {
+    const ok1 = await confirmar({
+      titulo:'Borrar historial',
+      mensaje:`Solo hay cobros pagados (${fmtNum(pag)}). Borrarlos elimina el historial.\nNo es recomendable.`,
+      okText:'Continuar',
+      variant:'danger'
+    });
+    if(!ok1) return;
+    const ok2 = await confirmar({
+      titulo:'Confirmación final',
+      mensaje:`¿Borrar definitivamente el historial de ${fmtNum(pag)} cobros pagados?`,
+      okText:'Sí, borrar',
+      variant:'danger'
+    });
+    if(!ok2) return;
+    estado.cobros = [];
+    guardar(); renderCobros();
+    toast(`${fmtNum(pag)} cobros eliminados`, 'success');
+  }
+}
+
+async function confirmarGenerarCobros(){
+  const periodo = document.getElementById('genPeriodo').value;
+  const total = parseFloat(document.getElementById('genTotal').value)||0;
+  const incFondo = document.getElementById('genIncluyeFondo').checked;
+  const incSeguro = document.getElementById('genIncluyeSeguro').checked;
+  if(!periodo){ toast('Selecciona un período', 'warning'); return; }
+  if(total<=0){ toast('Ingresa el monto total a recaudar', 'warning'); return; }
+
+  // Verificar duplicados
+  const yaExiste = estado.unidades.some(u=>estado.cobros.find(c=>c.unidadId===u.id && c.periodo===periodo && c.tipo==='ordinaria'));
+  if(yaExiste){
+    const ok = await confirmar({
+      titulo:'Cobros existentes',
+      mensaje:`Ya hay cobros generados para ${fmtPeriodoLargo(periodo)}.\n\nLos cobros pendientes serán reemplazados. Los pagados se conservan.`,
+      okText:'Reemplazar',
+      variant:'warning'
+    });
+    if(!ok) return;
+    estado.cobros = estado.cobros.filter(c=>!(c.periodo===periodo && c.estado==='pendiente'));
+  }
+
+  const porcFondo = estado.config.porcFondo/100;
+  let count = 0;
+  estado.unidades.forEach(u=>{
+    if(!u.alicuota) return;
+    const cuota = Math.round(total * u.alicuota/100);
+    if(cuota<=0) return;
+    estado.cobros.push({
+      id:id(), unidadId:u.id, periodo,
+      tipo:'ordinaria', concepto:`Gasto común ${fmtPeriodoLargo(periodo)}`,
+      adeudado: cuota, estado:'pendiente'
+    });
+    if(incFondo){
+      const fondo = Math.round(cuota * porcFondo);
+      if(fondo>0){
+        estado.cobros.push({
+          id:id(), unidadId:u.id, periodo,
+          tipo:'fondo', concepto:`Fondo de reserva (${estado.config.porcFondo}%)`,
+          adeudado: fondo, estado:'pendiente'
+        });
+      }
+    }
+    if(incSeguro && estado.config.segPrima>0){
+      const prima = Math.round(estado.config.segPrima * u.alicuota/100);
+      if(prima>0){
+        estado.cobros.push({
+          id:id(), unidadId:u.id, periodo,
+          tipo:'seguro', concepto:`Prima seguro incendio (${estado.config.segCuotaAct||1}/${estado.config.segCuotas||10})`,
+          adeudado: prima, estado:'pendiente'
+        });
+      }
+    }
+    count++;
+  });
+  guardar(); renderCobros(); cerrarModal('mGenerarCobros');
+  toast(`Cobros generados para ${count} unidades del período ${fmtPeriodoLargo(periodo)}`);
+}
+function pagarCobro(id){
+  const c = estado.cobros.find(x=>x.id===id);
+  if(!c) return;
+  c.estado = 'pagado';
+  c.fechaPago = fechaHoy();
+  c.montoPagado = c.adeudado;
+  if(!c.folioBoleta){
+    estado.contadorFolio++;
+    c.folioBoleta = estado.contadorFolio;
+  }
+  guardar(); renderCobros();
+  toast('Cobro marcado como pagado');
+}
+function renderCobros(){
+  const wrap = document.getElementById('tablaCobrosWrap');
+  const fM = document.getElementById('cobroFiltroMes').value;
+  const fE = document.getElementById('cobroFiltroEstado').value;
+  const fV = document.getElementById('cobroFiltroVista').value || 'agrupada';
+  const fQ = (document.getElementById('cobroFiltroQ').value||'').toLowerCase().trim();
+
+  let cobros = [...estado.cobros];
+  if(fM) cobros = cobros.filter(c=>c.periodo===fM);
+  if(fQ){
+    cobros = cobros.filter(c=>{
+      const u = estado.unidades.find(x=>x.id===c.unidadId);
+      const haystack = `${u?.codigo||''} ${u?.propietario||''} ${u?.residente||''} ${c.folioBoleta||''} ${c.concepto||''}`.toLowerCase();
+      return haystack.includes(fQ);
+    });
+  }
+
+  if(!cobros.length){
+    wrap.innerHTML = `<div class="empty"><div class="et">Sin cuotas que mostrar</div><div class="ed">${estado.cobros.length?'Ajusta los filtros o búsqueda.':'Genera cobros del mes con el botón superior, o crea uno manual.'}</div></div>`;
+    return;
+  }
+
+  if(fV === 'detalle'){
+    // Vista detalle clásica
+    cobros.sort((a,b)=>(b.periodo||'').localeCompare(a.periodo||''));
+    if(fE) cobros = cobros.filter(c=>c.estado===fE);
+    const tipos = {ordinaria:'Cuota ordinaria',extraordinaria:'Cuota extraordinaria',fondo:'Fondo reserva',seguro:'Seguro',multa:'Multa',interes:'Interés'};
+    wrap.innerHTML = `<table class="table">
+      <thead><tr><th>Período</th><th>Unidad</th><th>Concepto</th><th>Tipo</th><th class="num">Adeudado</th><th class="num">Pagado</th><th>Estado</th><th></th></tr></thead>
+      <tbody>${cobros.map(c=>{
+        const u = estado.unidades.find(x=>x.id===c.unidadId);
+        const estadoBadge = c.estado==='pagado'
+          ? `<span class="badge success">Pagado · F${c.folioBoleta?fmtNum(c.folioBoleta):''}</span>`
+          : `<span class="badge danger">Pendiente</span>`;
+        return `<tr>
+          <td>${fmtPeriodoLargo(c.periodo)}</td>
+          <td><strong>${escapeHtml(u?.codigo||'?')}</strong> · ${escapeHtml(u?.propietario||'')}</td>
+          <td>${escapeHtml(c.concepto||'—')}</td>
+          <td>${tipos[c.tipo]||c.tipo}</td>
+          <td class="num">${fmtCLP(c.adeudado)}</td>
+          <td class="num">${c.estado==='pagado'?fmtCLP(c.montoPagado||c.adeudado):'—'}</td>
+          <td>${estadoBadge}</td>
+          <td><div class="btn-row">
+            ${c.estado==='pendiente'?`<button class="btn sm success" data-ac="pagarCobro" data-args="${c.id}" aria-label="Marcar como pagado">Marcar pagado</button>`:''}
+            <button class="btn sm" data-ac="abrirCobro" data-args="${c.id}" aria-label="Editar cobro">Editar</button>
+            <button class="btn sm danger" data-ac="eliminarCobro" data-args="${c.id}" aria-label="Eliminar cobro">Eliminar</button>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+    return;
+  }
+
+  // Vista AGRUPADA por unidad+período (recomendada)
+  const grupos = {};
+  cobros.forEach(c=>{
+    const k = `${c.unidadId}__${c.periodo}`;
+    if(!grupos[k]) grupos[k] = {unidadId:c.unidadId, periodo:c.periodo, items:[]};
+    grupos[k].items.push(c);
+  });
+  let lista = Object.values(grupos);
+  // Filtro de estado a nivel grupo
+  if(fE){
+    lista = lista.filter(g=>{
+      const allPagados = g.items.every(c=>c.estado==='pagado');
+      const algunoPagado = g.items.some(c=>c.estado==='pagado');
+      if(fE==='pagado') return allPagados;
+      if(fE==='pendiente') return !algunoPagado;
+      if(fE==='parcial') return algunoPagado && !allPagados;
+      return true;
+    });
+  }
+  lista.sort((a,b)=>{
+    if(a.periodo !== b.periodo) return (b.periodo||'').localeCompare(a.periodo||'');
+    const ua = estado.unidades.find(x=>x.id===a.unidadId);
+    const ub = estado.unidades.find(x=>x.id===b.unidadId);
+    return (ua?.codigo||'').localeCompare(ub?.codigo||'', 'es', {numeric:true});
+  });
+
+  wrap.innerHTML = `<table class="table">
+    <thead><tr><th style="width:32px"></th><th>Período</th><th>Unidad · Propietario</th><th class="num">Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>${lista.map(g=>{
+      const u = estado.unidades.find(x=>x.id===g.unidadId);
+      const total = g.items.reduce((s,c)=>s+c.adeudado, 0);
+      const pagado = g.items.filter(c=>c.estado==='pagado').reduce((s,c)=>s+(c.montoPagado||c.adeudado), 0);
+      const pend = g.items.filter(c=>c.estado==='pendiente');
+      const totPend = pend.reduce((s,c)=>s+c.adeudado, 0);
+      const allPag = pend.length === 0;
+      const algunoPag = g.items.some(c=>c.estado==='pagado');
+      let estadoBadge;
+      if(allPag){
+        const folios = [...new Set(g.items.map(c=>c.folioBoleta).filter(Boolean))];
+        estadoBadge = `<span class="badge success">Pagado${folios.length?` · F${fmtNum(folios[0])}`:''}</span>`;
+      } else if(algunoPag){
+        estadoBadge = `<span class="badge warning">Parcial · falta ${fmtCLP(totPend)}</span>`;
+      } else {
+        estadoBadge = `<span class="badge danger">Pendiente</span>`;
+      }
+      const groupId = `g_${g.unidadId}_${g.periodo}`;
+      const subRows = g.items.map(c=>{
+        const tipos = {ordinaria:'Cuota ordinaria',extraordinaria:'Cuota extraordinaria',fondo:'Fondo de reserva',seguro:'Prima seguro',multa:'Multa',interes:'Interés mora'};
+        const sBadge = c.estado==='pagado'
+          ? `<span class="badge success">Pagado${c.folioBoleta?` · F${fmtNum(c.folioBoleta)}`:''}</span>`
+          : `<span class="badge danger">Pendiente</span>`;
+        return `<tr>
+          <td></td><td colspan="2" style="padding-left:var(--sp-8);font-size:var(--fs-sm)">
+            ${escapeHtml(c.concepto||tipos[c.tipo]||c.tipo)}
+            <span class="muted" style="font-size:var(--fs-xs)"> · ${tipos[c.tipo]||c.tipo}</span>
+          </td>
+          <td class="num" style="font-size:var(--fs-sm)">${fmtCLP(c.adeudado)}</td>
+          <td>${sBadge}</td>
+          <td><div class="btn-row">
+            ${c.estado==='pendiente'?`<button class="btn sm success" data-ac="pagarCobro" data-args="${c.id}" aria-label="Marcar este concepto como pagado">Marcar pagado</button>`:''}
+            <button class="btn sm" data-ac="abrirCobro" data-args="${c.id}" aria-label="Editar concepto">Editar</button>
+            <button class="btn sm danger" data-ac="eliminarCobro" data-args="${c.id}" aria-label="Eliminar concepto">Eliminar</button>
+          </div></td>
+        </tr>`;
+      }).join('');
+      return `
+        <tr style="cursor:pointer" data-ac="toggleGrupoCobro" data-args="${groupId}">
+          <td>
+            <button class="btn sm ghost" aria-label="Ver detalle" id="${groupId}_btn" style="padding:2px 6px;min-height:auto" data-ac="toggleGrupoCobro" data-args="${groupId}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transition:transform var(--dur-fast) var(--ease-out)"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </td>
+          <td>${fmtPeriodoLargo(g.periodo)}</td>
+          <td><strong>${escapeHtml(u?.codigo||'?')}</strong> · ${escapeHtml(u?.propietario||'—')}<br><span class="muted" style="font-size:var(--fs-xs)">${g.items.length} concepto${g.items.length>1?'s':''}: ${[...new Set(g.items.map(c=>c.tipo))].join(' + ')}</span></td>
+          <td class="num"><strong>${fmtCLP(total)}</strong>${algunoPag&&!allPag?`<br><span class="muted" style="font-size:var(--fs-xs)">Pagado: ${fmtCLP(pagado)}</span>`:''}</td>
+          <td>${estadoBadge}</td>
+          <td>
+            <div class="btn-row">
+              ${!allPag?`<button class="btn sm success" data-ac="pagarTodoGrupo" data-args="${g.unidadId}|${g.periodo}" aria-label="Marcar todo del mes como pagado para ${escapeHtml(u?.codigo||'')}">Marcar todo pagado</button>`:''}
+              <button class="btn sm ghost" data-ac="abrirLiquidacionDirecta" data-args="${g.unidadId}|${g.periodo}" aria-label="Ver liquidación">Ver liquidación</button>
+            </div>
+          </td>
+        </tr>
+        <tr id="${groupId}_detail" style="display:none;background:var(--bg-subtle)">
+          <td colspan="6" style="padding:0">
+            <table class="table" style="margin:0">
+              <tbody>${subRows}</tbody>
+            </table>
+          </td>
+        </tr>
+      `;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function toggleGrupoCobro(id){
+  const det = document.getElementById(id+'_detail');
+  const btn = document.getElementById(id+'_btn');
+  if(!det) return;
+  const isOpen = det.style.display !== 'none';
+  det.style.display = isOpen ? 'none' : 'table-row';
+  if(btn){
+    const svg = btn.querySelector('svg');
+    if(svg) svg.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+  }
+}
+
+async function pagarTodoGrupo(unidadId, periodo){
+  const items = estado.cobros.filter(c=>c.unidadId===unidadId && c.periodo===periodo && c.estado==='pendiente');
+  if(!items.length){ toast('Ya no hay conceptos pendientes', 'warning'); return; }
+  const u = estado.unidades.find(x=>x.id===unidadId);
+  const total = items.reduce((s,c)=>s+c.adeudado, 0);
+  const ok = await confirmar({
+    titulo:`Marcar todo pagado · ${u?.codigo||''}`,
+    // confirmar() escribe con textContent, no con innerHTML: escapar aqui
+    // no protege de nada y ademas se ve, un apellido con "&" saldria "&amp;".
+    mensaje:`Se marcarán ${items.length} conceptos como pagados para ${u?.propietario||u?.codigo||''} (${fmtPeriodoLargo(periodo)}).\n\nTotal: ${fmtCLP(total)}.\nSe asignará un folio único.`,
+    okText:'Sí, marcar pagado',
+    variant:'primary'
+  });
+  if(!ok) return;
+  estado.contadorFolio++;
+  const folio = estado.contadorFolio;
+  const fecha = fechaHoy();
+  items.forEach(c=>{
+    c.estado = 'pagado';
+    c.fechaPago = fecha;
+    c.montoPagado = c.adeudado;
+    c.folioBoleta = folio;
+  });
+  guardar(); renderCobros();
+  toast(`${items.length} conceptos pagados · folio ${fmtNum(folio)}`, 'success');
+}
+
+function abrirLiquidacionDirecta(unidadId, periodo){
+  location.hash = '#liquidacion';
+  setTimeout(()=>{
+    document.getElementById('liqUnidad').value = unidadId;
+    document.getElementById('liqMes').value = periodo;
+    renderLiquidacion();
+  }, 100);
+}
+
+['cobroFiltroMes','cobroFiltroEstado','cobroFiltroVista'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderCobros);
+});
+document.getElementById('cobroFiltroQ').addEventListener('input', renderCobros);
+
+/* ============ EGRESOS ============ */
+let egresoEditId = null;
+function abrirEgreso(id){
+  egresoEditId = id||null;
+  const e = id ? estado.egresos.find(x=>x.id===id) : {fecha:fechaHoy()};
+  document.getElementById('eFecha').value = e.fecha||fechaHoy();
+  const sel = document.getElementById('eCategoria');
+  sel.innerHTML = CATEGORIAS_EGRESO.map(c=>`<option value="${escapeHtml(c.cat)}">${escapeHtml(c.cat)}</option>`).join('');
+  sel.value = e.categoria || CATEGORIAS_EGRESO[0].cat;
+  document.getElementById('eSubcat').value = e.subcat||'';
+  document.getElementById('eContraparte').value = e.contraparte||'';
+  document.getElementById('eDoc').value = e.numDoc||'';
+  document.getElementById('eMonto').value = e.monto||'';
+  document.getElementById('eDesc').value = e.descripcion||'';
+  document.getElementById('eBoletaURL').value = e.boletaURL||'';
+  document.getElementById('eMontoFmt').textContent = fmtCLP(e.monto||0);
+  abrirModal('mEgreso');
+}
+function guardarEgreso(){
+  const monto = parseFloat(document.getElementById('eMonto').value)||0;
+  if(monto<=0){ toast('Monto debe ser mayor a 0', 'warning'); return; }
+  const fecha = document.getElementById('eFecha').value;
+  const data = {
+    fecha,
+    periodo: fecha.slice(0,7),
+    categoria: document.getElementById('eCategoria').value,
+    subcat: document.getElementById('eSubcat').value.trim(),
+    contraparte: document.getElementById('eContraparte').value.trim(),
+    numDoc: document.getElementById('eDoc').value.trim(),
+    monto,
+    descripcion: document.getElementById('eDesc').value.trim(),
+    boletaURL: document.getElementById('eBoletaURL').value.trim(),
+  };
+  if(egresoEditId){
+    const i = estado.egresos.findIndex(x=>x.id===egresoEditId);
+    estado.egresos[i] = Object.assign({}, estado.egresos[i], data);
+  } else {
+    estado.egresos.push(Object.assign({id:id()}, data));
+  }
+  guardar(); renderEgresos(); cerrarModal('mEgreso');
+  toast('Egreso registrado');
+  egresoEditId = null;
+}
+async function eliminarEgreso(id){
+  const ok = await confirmar({
+    titulo:'Eliminar gasto',
+    mensaje:'¿Eliminar este gasto del condominio? La acción no se puede deshacer.',
+    okText:'Eliminar',
+    variant:'danger'
+  });
+  if(!ok) return;
+  estado.egresos = estado.egresos.filter(e=>e.id!==id);
+  guardar(); renderEgresos();
+  toast('Gasto eliminado', 'success');
+}
+function renderEgresos(){
+  const sel = document.getElementById('egFiltroCat');
+  if(!sel.options.length){
+    sel.innerHTML = '<option value="">Todas</option>' + CATEGORIAS_EGRESO.map(c=>`<option>${escapeHtml(c.cat)}</option>`).join('');
+  }
+  const fM = document.getElementById('egFiltroMes').value;
+  const fC = document.getElementById('egFiltroCat').value;
+  const fQ = document.getElementById('egFiltroQ').value.toLowerCase();
+  let egs = [...estado.egresos];
+  if(fM) egs = egs.filter(e=>e.periodo===fM);
+  if(fC) egs = egs.filter(e=>e.categoria===fC);
+  if(fQ) egs = egs.filter(e=>(e.contraparte+' '+e.descripcion+' '+e.numDoc+' '+e.subcat).toLowerCase().includes(fQ));
+  egs.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  const tb = document.querySelector('#tablaEgresos tbody');
+  if(!egs.length){
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="et">Sin egresos</div><div class="ed">Registra los gastos del condominio.</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = egs.map(e=>`
+    <tr>
+      <td>${fmtFecha(e.fecha)}</td>
+      <td><strong>${escapeHtml(e.categoria)}</strong>${e.subcat?'<br><span class="muted" style="font-size:11px">'+escapeHtml(e.subcat)+'</span>':''}</td>
+      <td>${escapeHtml(e.contraparte||'—')}</td>
+      <td>${escapeHtml(e.descripcion||'—')}</td>
+      <td>${escapeHtml(e.numDoc||'—')}${e.boletaURL?` <a href="${escapeHtml(e.boletaURL)}" target="_blank" rel="noopener" title="Ver boleta" aria-label="Abrir respaldo digital" style="display:inline-block;margin-left:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71"/></svg></a>`:''}</td>
+      <td class="num">${fmtCLP(e.monto)}</td>
+      <td><div class="btn-row"><button class="btn sm" data-ac="abrirEgreso" data-args="${e.id}" aria-label="Editar gasto">Editar</button><button class="btn sm danger" data-ac="eliminarEgreso" data-args="${e.id}" aria-label="Eliminar gasto">Eliminar</button></div></td>
+    </tr>`).join('');
+}
+['egFiltroMes','egFiltroCat','egFiltroQ'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderEgresos);
+});
+
+// Listener: formatear monto en vivo en modal egreso
+document.addEventListener('DOMContentLoaded', ()=>{
+  const eMonto = document.getElementById('eMonto');
+  if(eMonto) eMonto.addEventListener('input', e=>{
+    document.getElementById('eMontoFmt').textContent = fmtCLP(parseFloat(e.target.value)||0);
+  });
+});
+
+/* ============ INGRESOS ============ */
+let ingresoEditId = null;
+function abrirIngreso(id){
+  ingresoEditId = id||null;
+  const i = id ? estado.ingresos.find(x=>x.id===id) : {fecha:fechaHoy()};
+  document.getElementById('iFecha').value = i.fecha||fechaHoy();
+  document.getElementById('iCategoria').value = i.categoria||'Arriendo bienes comunes';
+  document.getElementById('iContraparte').value = i.contraparte||'';
+  document.getElementById('iMonto').value = i.monto||'';
+  document.getElementById('iDesc').value = i.descripcion||'';
+  abrirModal('mIngreso');
+}
+function guardarIngreso(){
+  const monto = parseFloat(document.getElementById('iMonto').value)||0;
+  if(monto<=0){ toast('Monto debe ser mayor a 0'); return; }
+  const fecha = document.getElementById('iFecha').value;
+  const data = {
+    fecha, periodo: fecha.slice(0,7),
+    categoria: document.getElementById('iCategoria').value,
+    contraparte: document.getElementById('iContraparte').value.trim(),
+    monto,
+    descripcion: document.getElementById('iDesc').value.trim(),
+  };
+  if(ingresoEditId){
+    const i = estado.ingresos.findIndex(x=>x.id===ingresoEditId);
+    estado.ingresos[i] = Object.assign({}, estado.ingresos[i], data);
+  } else {
+    estado.ingresos.push(Object.assign({id:id()}, data));
+  }
+  guardar(); renderIngresos(); cerrarModal('mIngreso');
+  toast('Ingreso registrado');
+  ingresoEditId = null;
+}
+async function eliminarIngreso(id){
+  const ok = await confirmar({
+    titulo:'Eliminar ingreso',
+    mensaje:'¿Eliminar este ingreso? La acción no se puede deshacer.',
+    okText:'Eliminar',
+    variant:'danger'
+  });
+  if(!ok) return;
+  estado.ingresos = estado.ingresos.filter(x=>x.id!==id);
+  guardar(); renderIngresos();
+  toast('Ingreso eliminado', 'success');
+}
+function renderIngresos(){
+  const tb = document.querySelector('#tablaIngresos tbody');
+  const ings = [...estado.ingresos].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  if(!ings.length){
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="et">Sin ingresos extraordinarios</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = ings.map(e=>`
+    <tr>
+      <td>${fmtFecha(e.fecha)}</td>
+      <td>${escapeHtml(e.categoria)}</td>
+      <td>${escapeHtml(e.contraparte||'—')}</td>
+      <td>${escapeHtml(e.descripcion||'—')}</td>
+      <td class="num">${fmtCLP(e.monto)}</td>
+      <td><div class="btn-row"><button class="btn sm" data-ac="abrirIngreso" data-args="${e.id}">Editar</button><button class="btn sm danger" data-ac="eliminarIngreso" data-args="${e.id}">Eliminar</button></div></td>
+    </tr>`).join('');
+}
+
+/* ============ FONDO COMÚN DE RESERVA ============ */
+function abrirMovFondo(tipo){
+  document.getElementById('fTipo').value = tipo;
+  document.getElementById('mFondoTitulo').textContent = tipo==='ingreso' ? 'Aporte adicional al fondo' : 'Uso del fondo (gasto urgente / extraordinario)';
+  document.getElementById('fFecha').value = fechaHoy();
+  document.getElementById('fMonto').value = '';
+  document.getElementById('fOrigen').value = '';
+  document.getElementById('fDesc').value = '';
+  abrirModal('mFondo');
+}
+function guardarMovFondo(){
+  const monto = parseFloat(document.getElementById('fMonto').value)||0;
+  if(monto<=0){ toast('Monto debe ser mayor a 0'); return; }
+  const fecha = document.getElementById('fFecha').value;
+  estado.fondo.push({
+    id:id(), tipo:document.getElementById('fTipo').value,
+    fecha, periodo:fecha.slice(0,7), monto,
+    origen: document.getElementById('fOrigen').value.trim(),
+    descripcion: document.getElementById('fDesc').value.trim()
+  });
+  guardar(); renderFondo(); cerrarModal('mFondo');
+  toast('Movimiento registrado');
+}
+async function eliminarMovFondo(id){
+  const ok = await confirmar({
+    titulo:'Eliminar movimiento',
+    mensaje:'¿Eliminar este movimiento del fondo de reserva?',
+    okText:'Eliminar',
+    variant:'danger'
+  });
+  if(!ok) return;
+  estado.fondo = estado.fondo.filter(m=>m.id!==id);
+  guardar(); renderFondo();
+  toast('Movimiento eliminado', 'success');
+}
+// Lo que entra al fondo común de reserva NO es caja del condominio: el art. 39
+// lo manda a una cuenta separada y solo se toca con autorización del comité.
+// Estos tres tipos de cobro alimentan el fondo, así que se cuentan allá y se
+// descuentan acá. Antes se sumaban en los dos lados y la misma plata aparecía
+// dos veces: el saldo de caja del art. 31 salía inflado por el fondo entero.
+const esDelFondo = c => c.tipo==='fondo' || c.tipo==='multa' || c.tipo==='interes';
+
+function calcSaldoFondo(hastaPeriodo){
+  // saldo del fondo = aportes recaudados (cobros tipo fondo pagados) + multas + intereses + aportes manuales − egresos manuales
+  let saldo = 0;
+  estado.cobros.filter(c=>c.estado==='pagado' && esDelFondo(c))
+    .filter(c=>!hastaPeriodo || c.periodo<=hastaPeriodo)
+    .forEach(c=>saldo += c.montoPagado||c.adeudado||0);
+  estado.fondo.filter(m=>!hastaPeriodo || m.periodo<=hastaPeriodo).forEach(m=>{
+    if(m.tipo==='ingreso') saldo += m.monto;
+    else saldo -= m.monto;
+  });
+  return saldo;
+}
+function renderFondo(){
+  const periodo = periodoActual();
+  document.getElementById('fondoSaldo').textContent = fmtCLP(calcSaldoFondo());
+  const aportesPeriodo = estado.cobros.filter(c=>c.estado==='pagado' && (c.tipo==='fondo'||c.tipo==='multa'||c.tipo==='interes') && c.periodo===periodo)
+    .reduce((s,c)=>s+(c.montoPagado||c.adeudado||0),0)
+    + estado.fondo.filter(m=>m.tipo==='ingreso' && m.periodo===periodo).reduce((s,m)=>s+m.monto,0);
+  const egresosPeriodo = estado.fondo.filter(m=>m.tipo==='egreso' && m.periodo===periodo).reduce((s,m)=>s+m.monto,0);
+  document.getElementById('fondoAportes').textContent = fmtCLP(aportesPeriodo);
+  document.getElementById('fondoEgresos').textContent = fmtCLP(egresosPeriodo);
+  document.getElementById('fondoAportesSub').textContent = fmtPeriodoLargo(periodo);
+  document.getElementById('fondoEgresosSub').textContent = fmtPeriodoLargo(periodo);
+
+  const tb = document.querySelector('#tablaFondo tbody');
+  const movs = [...estado.fondo].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  if(!movs.length){
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="et">Sin movimientos manuales</div><div class="ed">Los aportes mensuales se registran automáticamente al pagarse el cobro tipo "fondo".</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = movs.map(m=>`
+    <tr>
+      <td>${fmtFecha(m.fecha)}</td>
+      <td>${m.tipo==='ingreso' ? '<span class="badge success">Aporte</span>' : '<span class="badge warning">Uso</span>'}</td>
+      <td>${escapeHtml(m.origen||'—')}</td>
+      <td>${escapeHtml(m.descripcion||'—')}</td>
+      <td class="num">${fmtCLP(m.monto)}</td>
+      <td><button class="btn sm danger" data-ac="eliminarMovFondo" data-args="${m.id}">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+/* ============ DASHBOARD ============ */
+function calcMes(periodo){
+  const pagados = estado.cobros.filter(c=>c.estado==='pagado' && c.periodo===periodo);
+  const recaudado = pagados.filter(c=>!esDelFondo(c))
+    .reduce((s,c)=>s+(c.montoPagado||c.adeudado||0),0);
+  const aportesFondo = pagados.filter(esDelFondo)
+    .reduce((s,c)=>s+(c.montoPagado||c.adeudado||0),0);
+  const ingresosExtra = estado.ingresos.filter(i=>i.periodo===periodo).reduce((s,i)=>s+i.monto,0);
+  const egresos = estado.egresos.filter(e=>e.periodo===periodo).reduce((s,e)=>s+e.monto,0);
+  return { ingresos: recaudado + ingresosExtra, egresos, aportesFondo };
+}
+function calcSaldoCaja(hastaPeriodo){
+  let saldo = 0;
+  // Sin los cobros del fondo: esos viven en calcSaldoFondo (art. 39).
+  estado.cobros.filter(c=>c.estado==='pagado' && !esDelFondo(c)).forEach(c=>{
+    if(!hastaPeriodo || c.periodo<=hastaPeriodo) saldo += c.montoPagado||c.adeudado||0;
+  });
+  estado.ingresos.forEach(i=>{
+    if(!hastaPeriodo || i.periodo<=hastaPeriodo) saldo += i.monto;
+  });
+  estado.egresos.forEach(e=>{
+    if(!hastaPeriodo || e.periodo<=hastaPeriodo) saldo -= e.monto;
+  });
+  return saldo;
+}
+function renderDashboard(){
+  // Mostrar onboarding si no hay datos cargados
+  const haDatos = estado.unidades.length > 0 || estado.egresos.length > 0;
+  document.getElementById('onboardingPanel').style.display = haDatos ? 'none' : 'block';
+  if(!document.getElementById('dashMes').value){
+    document.getElementById('dashMes').value = periodoActual();
+  }
+  const periodo = document.getElementById('dashMes').value;
+  const m = calcMes(periodo);
+  document.getElementById('kpiIng').textContent = fmtCLP(m.ingresos);
+  document.getElementById('kpiIngSub').textContent = fmtPeriodoLargo(periodo);
+  document.getElementById('kpiEg').textContent = fmtCLP(m.egresos);
+  document.getElementById('kpiEgSub').textContent = fmtPeriodoLargo(periodo);
+  document.getElementById('kpiSaldo').textContent = fmtCLP(calcSaldoCaja(periodo));
+  const totU = estado.unidades.length;
+  const deudoras = estado.unidades.filter(u=>balanceUnidad(u.id).adeudado>0).length;
+  const mor = totU ? Math.round(deudoras/totU*100) : 0;
+  document.getElementById('kpiMor').textContent = mor + '%';
+  document.getElementById('kpiMorSub').textContent = `${deudoras} de ${totU} unidades con deuda`;
+
+  document.getElementById('resFondo').textContent = estado.config.porcFondo;
+  document.getElementById('resInt').textContent = estado.config.tasaMora;
+  document.getElementById('resVenc').textContent = estado.config.diaVenc;
+  document.getElementById('resSeg').textContent = estado.config.segCia ? `Vigente · ${estado.config.segCia}` : 'No configurado';
+
+  // Chart 12 meses
+  const periodos = periodosUlt(12, periodo);
+  const datos = periodos.map(p=>calcMes(p));
+  const maxVal = Math.max(1, ...datos.map(d=>Math.max(d.ingresos,d.egresos)));
+  const w=720, h=220, pl=60, pr=20, pt=20, pb=40;
+  const cw = w-pl-pr, ch = h-pt-pb;
+  const bw = cw/12 * 0.55;
+  // Resumen accesible para screen readers
+  const ultMes = datos[datos.length-1];
+  const aria = `Evolución de los últimos 12 meses. Máximo ${fmtCLP(maxVal)}. Mes más reciente: ingresos ${fmtCLP(ultMes.ingresos)}, gastos ${fmtCLP(ultMes.egresos)}.`;
+  let svg = `<title>Evolución mensual de ingresos y gastos del condominio</title><desc>${escapeHtml(aria)}</desc>`;
+  // Y axis labels (grid)
+  for(let i=0;i<=4;i++){
+    const y = pt + ch - (ch * i/4);
+    const v = Math.round(maxVal * i/4);
+    svg += `<line x1="${pl}" y1="${y}" x2="${w-pr}" y2="${y}" stroke="${i?'#E3EDF7':'#C3CDD9'}" stroke-width="1"/>`;
+    svg += `<text x="${pl-8}" y="${y+3}" text-anchor="end" font-size="10" fill="#6E7276">${fmtCLP(v)}</text>`;
+  }
+  // Bars (gastos) con tooltip group
+  periodos.forEach((p,i)=>{
+    const x = pl + (cw*i/12) + (cw/12 - bw)/2;
+    const hEg = ch * (datos[i].egresos/maxVal);
+    const tip = `${fmtPeriodoLargo(p)}: ingresos ${fmtCLP(datos[i].ingresos)}, gastos ${fmtCLP(datos[i].egresos)}`;
+    svg += `<g><title>${escapeHtml(tip)}</title>`;
+    svg += `<rect x="${pl + (cw*i/12)}" y="${pt}" width="${cw/12}" height="${ch}" fill="transparent"/>`;
+    svg += `<rect x="${x}" y="${pt+ch-hEg}" width="${bw}" height="${hEg}" fill="#1E3A6E" opacity=".7" rx="3"/>`;
+    svg += `</g>`;
+    svg += `<text x="${x+bw/2}" y="${h-pb+15}" text-anchor="middle" font-size="10" fill="#6E7276">${fmtPeriodoCorto(p)}</text>`;
+  });
+  // Línea ingresos
+  let path = '';
+  periodos.forEach((p,i)=>{
+    const x = pl + (cw*i/12) + cw/24;
+    const y = pt + ch - ch * (datos[i].ingresos/maxVal);
+    path += (i===0?'M':'L') + x + ',' + y + ' ';
+  });
+  svg += `<path d="${path}" stroke="#0B6BB5" stroke-width="2.5" fill="none"/>`;
+  periodos.forEach((p,i)=>{
+    const x = pl + (cw*i/12) + cw/24;
+    const y = pt + ch - ch * (datos[i].ingresos/maxVal);
+    svg += `<circle cx="${x}" cy="${y}" r="3.5" fill="#0B6BB5"/>`;
+  });
+  // Leyenda
+  svg += `<g transform="translate(${pl},${pt-12})" font-size="10" fill="#5C6168">`;
+  svg += `<rect x="0" y="0" width="10" height="10" fill="#1E3A6E" opacity=".7" rx="2"/><text x="14" y="9">Gastos</text>`;
+  svg += `<line x1="60" y1="5" x2="80" y2="5" stroke="#0B6BB5" stroke-width="2.5"/><circle cx="70" cy="5" r="3" fill="#0B6BB5"/><text x="84" y="9">Ingresos</text>`;
+  svg += `</g>`;
+  const chart = document.getElementById('chart12');
+  chart.innerHTML = svg;
+  chart.setAttribute('role', 'img');
+  chart.setAttribute('aria-label', aria);
+}
+document.getElementById('dashMes').addEventListener('change', renderDashboard);
+
+/* ============ LIQUIDACIÓN ============ */
+function prepLiquidacion(){
+  const sel = document.getElementById('liqUnidad');
+  sel.innerHTML = estado.unidades.map(u=>`<option value="${u.id}">${escapeHtml(u.codigo)} — ${escapeHtml(u.propietario||'')}</option>`).join('');
+  if(!document.getElementById('liqMes').value) document.getElementById('liqMes').value = periodoActual();
+}
+
+function obtenerEgresosAgrupados(periodo){
+  const egs = estado.egresos.filter(e=>e.periodo===periodo);
+  const grupos = {};
+  egs.forEach(e=>{
+    if(!grupos[e.categoria]) grupos[e.categoria] = { total:0, items:[] };
+    grupos[e.categoria].total += e.monto;
+    grupos[e.categoria].items.push(e);
+  });
+  return grupos;
+}
+
+function obtenerUltimoPago(uid, antesPeriodo){
+  const pagos = estado.cobros
+    .filter(c=>c.unidadId===uid && c.estado==='pagado')
+    .filter(c=>!antesPeriodo || c.periodo<antesPeriodo)
+    .sort((a,b)=>(b.fechaPago||'').localeCompare(a.fechaPago||''));
+  if(!pagos.length) return null;
+  // Agrupar por fecha
+  const pago = pagos[0];
+  const mismaFecha = pagos.filter(p=>p.fechaPago===pago.fechaPago);
+  const total = mismaFecha.reduce((s,p)=>s+(p.montoPagado||p.adeudado||0),0);
+  return { fecha:pago.fechaPago, monto:total, folio:pago.folioBoleta };
+}
+
+// El folio identifica al documento, así que la misma liquidación tiene que
+// salir siempre con el mismo número. Antes se sorteaba con Math.random() y
+// cada impresión llevaba uno distinto — en un aviso de cobro que, firmado por
+// el administrador, tiene mérito ejecutivo (art. 32). Ahora se toma del mismo
+// correlativo que las boletas y queda guardado la primera vez que se emite.
+function folioLiquidacion(unidadId, periodo){
+  if(!estado.foliosLiq) estado.foliosLiq = {};
+  const clave = `${unidadId}|${periodo}`;
+  if(!estado.foliosLiq[clave]){
+    estado.contadorFolio++;
+    estado.foliosLiq[clave] = estado.contadorFolio;
+    guardar();
+  }
+  return estado.foliosLiq[clave];
+}
+
+function buildLiquidacionHTML(unidad, periodo){
+  const c = estado.config;
+  const cobrosPeriodo = estado.cobros.filter(co=>co.unidadId===unidad.id && co.periodo===periodo);
+  const totalAPagar = cobrosPeriodo.filter(co=>co.estado==='pendiente').reduce((s,co)=>s+co.adeudado,0);
+  const adeudadoHistorico = estado.cobros.filter(co=>co.unidadId===unidad.id && co.estado==='pendiente' && co.periodo<periodo)
+    .reduce((s,co)=>s+co.adeudado,0);
+  const ultPago = obtenerUltimoPago(unidad.id, periodo);
+  const fechaEmision = fechaHoy();
+  const [pY, pM] = periodo.split('-').map(Number);
+  const venc = new Date(pY, pM, c.diaVenc||18); // mes siguiente
+  const vencStr = venc.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const folioEmision = folioLiquidacion(unidad.id, periodo);
+
+  // Egresos agrupados
+  const grupos = obtenerEgresosAgrupados(periodo);
+  const totalEgresosCom = Object.values(grupos).reduce((s,g)=>s+g.total,0);
+  // Recaudación de gasto común, sin lo que se fue al fondo de reserva: eso se
+  // informa aparte, más abajo y en la página 3 (art. 39).
+  const recaudadoMes = estado.cobros.filter(co=>co.estado==='pagado' && co.periodo===periodo && !esDelFondo(co))
+    .reduce((s,co)=>s+(co.montoPagado||co.adeudado||0),0);
+  const ingresosExtra = estado.ingresos.filter(i=>i.periodo===periodo).reduce((s,i)=>s+i.monto,0);
+  const totalIngresos = recaudadoMes + ingresosExtra;
+  const saldoCaja = calcSaldoCaja(periodo);
+  const saldoFondo = calcSaldoFondo(periodo);
+  const aportesFondoMes = estado.cobros.filter(co=>co.estado==='pagado' && esDelFondo(co) && co.periodo===periodo)
+    .reduce((s,co)=>s+(co.montoPagado||co.adeudado||0),0);
+  const egresosFondoMes = estado.fondo.filter(m=>m.tipo==='egreso' && m.periodo===periodo).reduce((s,m)=>s+m.monto,0);
+
+  // Histórico 12 meses para gráfico
+  const periodos12 = periodosUlt(12, periodo);
+  const datosEgresos = periodos12.map(p=>estado.egresos.filter(e=>e.periodo===p).reduce((s,e)=>s+e.monto,0));
+  const maxEg = Math.max(1, ...datosEgresos);
+
+  let html = `<div class="liquidacion">`;
+
+  /* ====== PÁGINA 1 ====== */
+  html += `<div class="liq-page">
+    <div class="liq-title">
+      <div>
+        <div class="ttl">Liquidación de gastos comunes</div>
+        <div class="legal-ref">Documento conforme art. 31 Ley N° 21.442 y art. 24 Decreto N° 7/2023 MINVU. Mérito ejecutivo según art. 32 Ley.</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#6E7276">Folio ${fmtNum(folioEmision)}<br>Emitido ${fmtFecha(fechaEmision)}</div>
+    </div>
+    <div class="liq-cond">
+      <div class="box">
+        <strong style="font-family:'Fraunces',serif;font-size:16px">${escapeHtml(c.condNombre||'Condominio')}</strong><br>
+        ${escapeHtml(c.condDir||'')}<br>
+        ${escapeHtml(c.condComuna||'')}<br>
+        <strong>RUT:</strong> ${escapeHtml(c.condRut||'—')}
+      </div>
+      <div class="pay-box">
+        <div class="h">¡Paga tus gastos comunes!</div>
+        <div><strong>${escapeHtml(c.banco||'—')}</strong> · ${escapeHtml(c.bancoTipo||'')}</div>
+        <div>N° ${escapeHtml(c.bancoNum||'—')}</div>
+        <div>${escapeHtml(c.bancoTitular||c.condNombre||'')}</div>
+        <div style="margin-top:4px;font-size:11px">Enviar comprobante a:<br>${escapeHtml(c.admCorreo||'—')}</div>
+      </div>
+    </div>
+
+    <div class="liq-unit">
+      <div><span class="lbl">Unidad:</span> <strong>${escapeHtml(unidad.codigo)}</strong></div>
+      <div><span class="lbl">Vencimiento:</span> ${vencStr}</div>
+      <div><span class="lbl">Residente:</span> ${escapeHtml(unidad.residente||unidad.propietario||'—')}</div>
+      <div><span class="lbl">Mes de cobro:</span> ${fmtPeriodoLargo(periodo)}</div>
+      <div><span class="lbl">Prorrateo:</span> ${fmtPct(unidad.alicuota)}</div>
+      <div><span class="lbl">Fecha de emisión:</span> ${fmtFecha(fechaEmision)}</div>
+      <div><span class="lbl">Folio último pago:</span> ${ultPago?.folio?fmtNum(ultPago.folio):'—'}</div>
+      <div><span class="lbl">Último pago:</span> ${ultPago?fmtFecha(ultPago.fecha):'—'}</div>
+      <div><span class="lbl">Monto último pago:</span> ${ultPago?fmtCLP(ultPago.monto):'—'}</div>
+      <div><span class="lbl">Saldo anterior pendiente:</span> ${fmtCLP(adeudadoHistorico)}</div>
+    </div>
+
+    <div class="section-h">Detalle del cobro del período <span style="font-weight:400;font-size:11px">art. 31 Ley</span></div>
+    <table class="liq-table">
+      <thead><tr><th>Concepto</th><th class="num">Monto</th></tr></thead>
+      <tbody>
+        ${cobrosPeriodo.map(co=>`<tr><td>${escapeHtml(co.concepto||co.tipo)}</td><td class="num">${fmtCLP(co.adeudado)}</td></tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:#6E7276">No se han generado cobros para este período.</td></tr>'}
+        ${adeudadoHistorico>0?`<tr><td><strong>Saldo pendiente períodos anteriores</strong></td><td class="num"><strong>${fmtCLP(adeudadoHistorico)}</strong></td></tr>`:''}
+        <tr class="total-row"><td>Total a pagar</td><td class="num">${fmtCLP(totalAPagar+adeudadoHistorico)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="liq-firma">
+      <div class="firma-block">
+        ${c.admFirma?`<img src="${escapeHtml(c.admFirma)}" class="firma-img" />`:'<div class="firma-img"></div>'}
+        <strong>${escapeHtml(c.admNombre||'Administrador')}</strong><br>
+        ${escapeHtml(c.admCorreo||'')}<br>
+        ${escapeHtml(c.admTel||'')}
+        ${c.admRegistro?`<br><span style="font-size:10px;color:#6E7276">Reg. Nac. Adm. N° ${escapeHtml(c.admRegistro)}</span>`:''}
+      </div>
+      <div class="total-pago">
+        <div class="lbl">Total a pagar</div>
+        <div class="val">${fmtCLP(totalAPagar+adeudadoHistorico)}</div>
+        <div style="font-size:11px;margin-top:4px">Vence: ${vencStr}</div>
+      </div>
+    </div>
+
+    <div class="liq-obs" style="margin-top:14px">
+      <h4>Observaciones de la administración</h4>
+      ${c.obs ? escapeHtml(c.obs).split('\n').map(l=>'<div>'+l+'</div>').join('') : '<div style="color:#6E7276">Sin observaciones registradas.</div>'}
+      <hr class="soft" style="margin:8px 0">
+      <div style="font-size:10.5px;color:#6E7276">
+        Mora: interés de ${fmtPct(c.tasaMora)} mensual sobre saldos morosos, según el reglamento de copropiedad. El art. 7 de la Ley N° 21.442 lo limita al 50% del interés corriente bancario${c.interesCorriente>0?`, que este mes es de ${fmtPct(c.interesCorriente)} (tope: ${fmtPct(c.interesCorriente/2)})`:''}. La suspensión de servicios procede tras 3 cuotas vencidas (art. 36 Ley) previa autorización del Comité de Administración.
+      </div>
+    </div>
+
+    <div class="liq-foot">Página 1 / 3 · Liquidación ${fmtPeriodoLargo(periodo)} · Unidad ${escapeHtml(unidad.codigo)}</div>
+  </div>`;
+
+  /* ====== PÁGINA 2: EGRESOS ====== */
+  html += `<div class="liq-page">
+    <div class="liq-title">
+      <div>
+        <div class="ttl">Egresos del condominio</div>
+        <div class="legal-ref">Detalle de egresos del período · art. 31 Ley + art. 24 Decreto 7/2023</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#6E7276">${escapeHtml(c.condNombre||'')}<br>${fmtPeriodoLargo(periodo)}</div>
+    </div>
+
+    <div class="section-h">Egresos del período <span style="font-weight:600">${fmtCLP(totalEgresosCom)}</span></div>
+    <table class="liq-table">
+      <thead><tr><th>N°</th><th>Concepto</th><th>Descripción</th><th>N° Doc</th><th>Fecha</th><th class="num">Monto</th></tr></thead>
+      <tbody>
+        ${Object.keys(grupos).length ? Object.entries(grupos).map(([cat,g])=>{
+          let r = `<tr class="cat-row"><td colspan="5">${escapeHtml(cat)}</td><td class="num">${fmtCLP(g.total)}</td></tr>`;
+          g.items.forEach((it,idx)=>{
+            r += `<tr>
+              <td>${idx+1}</td>
+              <td>${escapeHtml(it.contraparte||it.subcat||'—')}</td>
+              <td>${escapeHtml(it.descripcion||it.subcat||'—')}</td>
+              <td>${escapeHtml(it.numDoc||'—')}</td>
+              <td>${fmtFecha(it.fecha)}</td>
+              <td class="num">${fmtCLP(it.monto)}</td>
+            </tr>`;
+          });
+          return r;
+        }).join('') : '<tr><td colspan="6" style="text-align:center;color:#6E7276;padding:18px">No se han registrado egresos para este período.</td></tr>'}
+        <tr class="total-row"><td colspan="5">Total egresos del período</td><td class="num">${fmtCLP(totalEgresosCom)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-h primary">Resumen de ingresos, egresos y saldo de caja <span style="font-size:11px;font-weight:600">art. 31 inc. 1 Ley</span></div>
+    <div class="resumen-caja green">
+      <div class="green"><div class="lbl">Total ingresos</div><div class="val">${fmtCLP(totalIngresos)}</div><div style="font-size:10.5px;color:#6E7276;margin-top:2px">Recaudación + ingresos extraordinarios</div></div>
+      <div class="red"><div class="lbl">Total egresos</div><div class="val">${fmtCLP(totalEgresosCom)}</div><div style="font-size:10.5px;color:#6E7276;margin-top:2px">${fmtPeriodoLargo(periodo)}</div></div>
+      <div><div class="lbl">Saldo de caja</div><div class="val" style="color:${saldoCaja>=0?'var(--success)':'var(--danger)'}">${fmtCLP(saldoCaja)}</div><div style="font-size:10.5px;color:#6E7276;margin-top:2px">Acumulado al cierre</div></div>
+    </div>
+    <div style="font-size:11px;color:#6E7276;margin:-8px 0 14px">
+      Las tres cifras son de la cuenta de gasto común y no incluyen el fondo común de reserva,
+      que el art. 39 de la Ley manda mantener por separado. En este período entraron al fondo
+      <strong>${fmtCLP(aportesFondoMes)}</strong>; su detalle y su saldo están en la página 3.
+    </div>
+
+    <div class="liq-foot">Página 2 / 3 · Liquidación ${fmtPeriodoLargo(periodo)} · Unidad ${escapeHtml(unidad.codigo)}</div>
+  </div>`;
+
+  /* ====== PÁGINA 3: FONDO Y EVOLUCIÓN ====== */
+  // SVG chart
+  const w=640, h=200, pl=60, pr=20, pt=20, pb=40;
+  const cw = w-pl-pr, ch = h-pt-pb;
+  const bw = cw/12 * 0.6;
+  let chartSvg = '';
+  for(let i=0;i<=3;i++){
+    const y = pt + ch - (ch * i/3);
+    const v = Math.round(maxEg * i/3);
+    chartSvg += `<line x1="${pl}" y1="${y}" x2="${w-pr}" y2="${y}" stroke="#D7D6CE"/>`;
+    chartSvg += `<text x="${pl-8}" y="${y+3}" text-anchor="end" font-size="10" fill="#6E7276">${fmtCLP(v)}</text>`;
+  }
+  periodos12.forEach((p,i)=>{
+    const x = pl + (cw*i/12) + (cw/12 - bw)/2;
+    const hEg = ch * (datosEgresos[i]/maxEg);
+    chartSvg += `<rect x="${x}" y="${pt+ch-hEg}" width="${bw}" height="${hEg}" fill="#1E3A6E" opacity=".7" rx="2"/>`;
+    chartSvg += `<text x="${x+bw/2}" y="${h-pb+15}" text-anchor="middle" font-size="9" fill="#6E7276">${fmtPeriodoCorto(p)}</text>`;
+  });
+
+  html += `<div class="liq-page">
+    <div class="liq-title">
+      <div>
+        <div class="ttl">Fondo de reserva y evolución</div>
+        <div class="legal-ref">art. 39 Ley 21.442 (fondo común de reserva) · art. 22 Ley (proyección)</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#6E7276">${escapeHtml(c.condNombre||'')}<br>${fmtPeriodoLargo(periodo)}</div>
+    </div>
+
+    <div class="section-h warning">Fondo común de reserva</div>
+    <table class="liq-table">
+      <thead><tr><th>Fondo</th><th class="num">Cobrado período</th><th class="num">Ingresos extra</th><th class="num">Egresos período</th><th class="num">Saldo actual</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Fondo común de reserva (${c.porcFondo}%)</strong></td>
+          <td class="num">${fmtCLP(aportesFondoMes)}</td>
+          <td class="num">${fmtCLP(estado.fondo.filter(m=>m.tipo==='ingreso'&&m.periodo===periodo).reduce((s,m)=>s+m.monto,0))}</td>
+          <td class="num">${fmtCLP(egresosFondoMes)}</td>
+          <td class="num"><strong>${fmtCLP(saldoFondo)}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="font-size:11px;color:#6E7276;margin-bottom:14px">El fondo está mantenido en cuenta separada e invertible conforme al art. 39 inciso final Ley 21.442. Solo se utiliza para gastos urgentes, extraordinarios o imprevistos, previa autorización del comité.</div>
+
+    <div class="section-h primary" style="margin-top:18px">Evolución de egresos · últimos 12 meses</div>
+    <div style="background:#fff;padding:16px;border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px">
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">${chartSvg}</svg>
+      <div style="text-align:center;font-size:10.5px;color:#6E7276;margin-top:8px">Pesos chilenos · barras: egresos mensuales del condominio</div>
+    </div>
+
+    ${c.segCia ? `
+    <div class="section-h" style="margin-top:18px">Seguro colectivo contra incendio · art. 43 Ley</div>
+    <table class="liq-table">
+      <tbody>
+        <tr><td><strong>Compañía</strong></td><td>${escapeHtml(c.segCia)}</td><td><strong>Póliza</strong></td><td>${escapeHtml(c.segPoliza||'—')}</td></tr>
+        <tr><td><strong>Vigencia hasta</strong></td><td>${c.segVig?fmtFecha(c.segVig):'—'}</td><td><strong>Cuota</strong></td><td>${c.segCuotaAct||'—'} de ${c.segCuotas||'—'}</td></tr>
+        <tr><td><strong>Prima mensual</strong></td><td>${fmtCLP(c.segPrima)}</td><td colspan="2" style="font-size:10.5px;color:#6E7276">Prorrateada según alícuota — incluida en el aviso de cobro (art. 37 D.7).</td></tr>
+      </tbody>
+    </table>
+    ` : ''}
+
+    <div class="liq-obs" style="margin-top:18px">
+      <h4>Información legal</h4>
+      <div style="font-size:11px;color:#4b5563;line-height:1.55">
+        Este documento da cumplimiento al art. 31 Ley N° 21.442, que exige consignar la proporción del copropietario en los gastos comunes y fondo de reserva, intereses y multas adeudadas, y el detalle de ingresos, egresos mensuales y saldo de caja del condominio. Conforme al art. 32 Ley, el aviso de cobro firmado por el administrador tiene mérito ejecutivo. La rendición mensual al comité de administración cumple lo dispuesto en el art. 21 Ley y en el art. 24 del Decreto N° 7/2023. Los respaldos (verificadores) de cada gasto están disponibles para revisión con 24 horas de antelación a la sesión ordinaria, conforme al art. 28 Decreto 7.
+      </div>
+    </div>
+
+    <div class="liq-foot">Página 3 / 3 · Liquidación ${fmtPeriodoLargo(periodo)} · Unidad ${escapeHtml(unidad.codigo)}</div>
+  </div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+function renderLiquidacion(){
+  const uid = document.getElementById('liqUnidad').value;
+  const periodo = document.getElementById('liqMes').value;
+  if(!uid){ toast('Selecciona una unidad'); return; }
+  if(!periodo){ toast('Selecciona un período'); return; }
+  const u = estado.unidades.find(x=>x.id===uid);
+  if(!u){ toast('Unidad no encontrada'); return; }
+  document.getElementById('liqContenedor').innerHTML = buildLiquidacionHTML(u, periodo);
+}
+function imprimirLiquidacion(){
+  const uid = document.getElementById('liqUnidad').value;
+  const periodo = document.getElementById('liqMes').value;
+  if(!uid || !periodo){ toast('Selecciona unidad y período', 'warning'); return; }
+  const u = estado.unidades.find(x=>x.id===uid);
+  document.getElementById('liquidacionPrint').innerHTML = buildLiquidacionHTML(u, periodo);
+  // Sugerir nombre del PDF
+  const oldTitle = document.title;
+  document.title = `Liquidacion_${u.codigo}_${periodo}`;
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{ document.title = oldTitle; }, 1000);
+  }, 100);
+}
+async function generarTodasLiquidaciones(){
+  const periodo = document.getElementById('liqMes').value;
+  if(!periodo){ toast('Selecciona un período', 'warning'); return; }
+  if(!estado.unidades.length){ toast('No hay unidades', 'warning'); return; }
+  const ok = await confirmar({
+    titulo:'Generar todas las liquidaciones',
+    mensaje:`Se generarán ${fmtNum(estado.unidades.length)} liquidaciones de ${fmtPeriodoLargo(periodo)} en un solo documento.\n\nAl imprimir, recomendado: "Guardar como PDF" para luego enviar a cada copropietario.\n\nSugerencia: nombra el archivo "Liquidaciones_${(estado.config.condNombre||'Condominio').replace(/\s+/g,'_')}_${periodo}.pdf"`,
+    okText:'Generar e imprimir',
+    variant:'primary'
+  });
+  if(!ok) return;
+  let all = '';
+  estado.unidades.forEach(u=>{
+    all += buildLiquidacionHTML(u, periodo);
+  });
+  document.getElementById('liquidacionPrint').innerHTML = all;
+  // Cambiar título del documento temporalmente para sugerir el nombre del PDF
+  const oldTitle = document.title;
+  document.title = `Liquidaciones_${(estado.config.condNombre||'Condominio').replace(/\s+/g,'_')}_${periodo}`;
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{ document.title = oldTitle; }, 1000);
+  }, 200);
+}
+
+/* ============ PRESUPUESTO ============ */
+function calcularPresupuesto(){
+  // Promedio mensual de últimos 12 meses por categoría
+  const periodos = periodosUlt(12);
+  const porCat = {};
+  estado.egresos.filter(e=>periodos.includes(e.periodo)).forEach(e=>{
+    if(!porCat[e.categoria]) porCat[e.categoria] = 0;
+    porCat[e.categoria] += e.monto;
+  });
+  const totalAnual = Object.values(porCat).reduce((s,v)=>s+v, 0);
+  const tb = document.querySelector('#tablaPresupuesto tbody');
+  if(!Object.keys(porCat).length){
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty"><div class="et">Sin datos históricos</div><div class="ed">Registra egresos en distintos meses para calcular el presupuesto.</div></div></td></tr>`;
+    return;
+  }
+  const filas = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  let totalProy = 0;
+  tb.innerHTML = filas.map(([cat,total])=>{
+    const promMensual = total/12;
+    const proy = total; // = 12 meses
+    totalProy += proy;
+    return `<tr>
+      <td><strong>${escapeHtml(cat)}</strong></td>
+      <td class="num">${fmtCLP(promMensual)}</td>
+      <td class="num">${fmtCLP(proy)}</td>
+      <td class="num">${(total/totalAnual*100).toFixed(1)}%</td>
+    </tr>`;
+  }).join('') + `<tr style="font-weight:700;background:#f9fafb"><td>Total presupuesto anual estimado</td><td class="num">${fmtCLP(totalProy/12)}</td><td class="num">${fmtCLP(totalProy)}</td><td class="num">100%</td></tr>`;
+  renderMantenciones();
+  toast('Presupuesto calculado en base a últimos 12 meses');
+}
+function renderPresupuesto(){
+  calcularPresupuesto();
+  renderMantenciones();
+}
+function abrirMantencion(){
+  document.getElementById('manMes').value = '';
+  document.getElementById('manConcepto').value = '';
+  document.getElementById('manCosto').value = '';
+  document.getElementById('manTipo').value = 'mantencion';
+  document.getElementById('manPrior').value = 'media';
+  abrirModal('mMantencion');
+}
+function guardarMantencion(){
+  const data = {
+    id:id(),
+    mes: document.getElementById('manMes').value,
+    concepto: document.getElementById('manConcepto').value.trim(),
+    costo: parseFloat(document.getElementById('manCosto').value)||0,
+    tipo: document.getElementById('manTipo').value,
+    prioridad: document.getElementById('manPrior').value,
+  };
+  if(!data.concepto || !data.mes){ toast('Mes y concepto son obligatorios'); return; }
+  estado.mantenciones.push(data);
+  guardar(); renderMantenciones(); cerrarModal('mMantencion');
+  toast('Item agregado');
+}
+async function eliminarMantencion(id){
+  const ok = await confirmar({
+    titulo:'Eliminar item',
+    mensaje:'¿Eliminar este item del programa de mantención?',
+    okText:'Eliminar',
+    variant:'danger'
+  });
+  if(!ok) return;
+  estado.mantenciones = estado.mantenciones.filter(m=>m.id!==id);
+  guardar(); renderMantenciones();
+  toast('Item eliminado', 'success');
+}
+function renderMantenciones(){
+  const tb = document.querySelector('#tablaMantenciones tbody');
+  const items = [...estado.mantenciones].sort((a,b)=>(a.mes||'').localeCompare(b.mes||''));
+  if(!items.length){
+    tb.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="et">Sin programa de mantenciones</div><div class="ed">Agrega items para los próximos 12 meses.</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = items.map(m=>`
+    <tr>
+      <td>${fmtPeriodoLargo(m.mes)}</td>
+      <td>${escapeHtml(m.concepto)} <span class="badge ${m.prioridad==='alta'?'danger':m.prioridad==='media'?'warning':'mute'}">${m.prioridad}</span></td>
+      <td>${escapeHtml(m.tipo)}</td>
+      <td class="num">${fmtCLP(m.costo)}</td>
+      <td><button class="btn sm danger" data-ac="eliminarMantencion" data-args="${m.id}">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+/* ============ RESPALDOS ============ */
+function exportarRespaldo(){
+  const data = JSON.stringify(estado, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `respaldo_${estado.config.condNombre||'condominio'}_${fechaHoy()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+async function importarRespaldo(){
+  const f = document.getElementById('importFile').files[0];
+  if(!f){ toast('Selecciona un archivo', 'warning'); return; }
+  const r = new FileReader();
+  r.onload = async e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      const ok = await confirmar({
+        titulo:'Reemplazar todos los datos',
+        mensaje:`Esto reemplazará todos los datos actuales del condominio con los del archivo de respaldo.\nLa acción no se puede deshacer.`,
+        okText:'Reemplazar',
+        variant:'warning'
+      });
+      if(!ok) return;
+      estado = Object.assign(JSON.parse(JSON.stringify(estadoInicial)), data);
+      estado.config = Object.assign({}, estadoInicial.config, data.config||{});
+      guardar();
+      toast('Respaldo importado', 'success');
+      location.reload();
+    }catch(err){ toast('Archivo inválido: '+err.message, 'danger'); }
+  };
+  r.readAsText(f);
+}
+async function resetearTodo(){
+  const ok1 = await confirmar({
+    titulo:'Borrar todos los datos',
+    mensaje:`Esto borrará completamente el estado del condominio: configuración, copropietarios, gastos, cuotas, fondo y mantenciones.\nNo se puede deshacer.`,
+    okText:'Continuar',
+    variant:'danger'
+  });
+  if(!ok1) return;
+  const ok2 = await confirmar({
+    titulo:'Confirmación final',
+    mensaje:'¿Borrar todos los datos del condominio?',
+    okText:'Sí, borrar todo',
+    variant:'danger'
+  });
+  if(!ok2) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+async function cargarDemo(){
+  if(estado.unidades.length){
+    const ok = await confirmar({
+      titulo:'Cargar datos de prueba',
+      mensaje:'Ya hay datos cargados en el sistema. Si continúas, serán reemplazados por los datos demostrativos.',
+      okText:'Reemplazar',
+      variant:'warning'
+    });
+    if(!ok) return;
+  }
+  estado = JSON.parse(JSON.stringify(estadoInicial));
+  estado.config = {
+    condNombre:'Edificio Cordillera de los Andes',
+    condRut:'53.142.879-K',
+    condDir:'Avenida Pedro de Valdivia 4520, Torre B',
+    condComuna:'Ñuñoa, Región Metropolitana',
+    admNombre:'María Eugenia Salinas Henríquez',
+    admRut:'10.432.156-7',
+    admCorreo:'administracion@cordilleradelosandes.cl',
+    admTel:'+56 9 8765 4321',
+    admRegistro:'RNA-2024-08731',
+    admFirma:'',
+    porcFondo:5, tasaMora:1.5, diaVenc:18,
+    banco:'Banco Estado', bancoTipo:'Cuenta corriente',
+    bancoNum:'00891234567', bancoTitular:'Edificio Cordillera de los Andes',
+    obs:'Datos para transferencia electrónica:\nBanco Estado · Cta Cte 00891234567 · RUT 53.142.879-K\nDestinatario: Edificio Cordillera de los Andes\n\nEnviar comprobante a administracion@cordilleradelosandes.cl indicando el N° de departamento.\nRecuerde: el plazo de pago es de 10 días desde la emisión del aviso, salvo que el reglamento de copropiedad fije otro (art. 7 Ley 21.442). Pasado ese plazo corre el interés por mora indicado más abajo.',
+    segCia:'HDI Seguros', segPoliza:'POL-2025-44782', segVig:'2026-12-31',
+    segPrima:65000, segCuotas:12, segCuotaAct:5,
+  };
+
+  // 18 unidades con datos verosímiles (alícuotas suman 100%)
+  // Edificio de 6 pisos, 3 deptos por piso (101-103, 201-203, ..., 601-603)
+  // Alícuotas calibradas para sumar exactamente 100% (penthouse con mayor metraje paga más)
+  const ROSTER = [
+    // [codigo, propietario, residente_distinto?, correo, tel, alicuota, tipo]
+    ['101','Roberto Andrés Hernández Cabrera', null,                            'roberto.hernandez@gmail.com',   '+56 9 6543 2189', 5.20, 'departamento'],
+    ['102','Patricia Andrea Soto Ríos',         'Camila Soto (arrendataria)',   'patricia.soto.r@gmail.com',     '+56 9 9821 3344', 4.80, 'departamento'],
+    ['103','Jorge Luis Méndez Vargas',          null,                            'jmendez@outlook.com',           '+56 9 7234 1958', 5.10, 'departamento'],
+    ['201','Sergio Manuel Tapia Bravo',         null,                            'sergio.tapia@hotmail.com',      '+56 9 5412 8876', 5.30, 'departamento'],
+    ['202','Constanza Belén Pizarro Silva',     null,                            'cpizarrosilva@gmail.com',       '+56 9 8965 4123', 4.90, 'departamento'],
+    ['203','Francisco Javier Cornejo Lagos',    null,                            'fcornejo.lagos@gmail.com',      '+56 9 7654 3021', 5.20, 'departamento'],
+    ['301','Marta Ximena Aguirre Olmos',        null,                            'marta.aguirre@yahoo.com',       '+56 9 6712 9954', 5.40, 'departamento'],
+    ['302','Inversiones Las Palmas SpA',        'Daniel Rojas (arrendatario)',  'contacto@inversioneslp.cl',     '+56 2 2987 6543', 5.00, 'departamento'],
+    ['303','Hernán Alejandro Saavedra Pino',    null,                            'hsaavedra.p@gmail.com',         '+56 9 5567 8821', 5.30, 'departamento'],
+    ['401','Andrea Paulina Veloso Maldonado',   null,                            'andreaveloso@gmail.com',        '+56 9 8743 2156', 5.50, 'departamento'],
+    ['402','Eduardo Sebastián Rojas Bustamante',null,                            'eduardo.rojas.b@gmail.com',     '+56 9 9456 7812', 5.20, 'departamento'],
+    ['403','Carolina Ester Mardones Quintana',  null,                            'cmardones@gmail.com',           '+56 9 6789 1234', 5.30, 'departamento'],
+    ['501','Luis Antonio Cifuentes Pereira',    null,                            'lcifuentes.p@gmail.com',        '+56 9 7891 2345', 5.50, 'departamento'],
+    ['502','Ignacio José Bravo Arancibia',      null,                            'ignacio.bravo.a@gmail.com',     '+56 9 5634 7821', 5.40, 'departamento'],
+    ['503','Verónica Lorena Espinoza Tobar',    null,                            'veronica.espinoza@gmail.com',   '+56 9 8123 4567', 5.50, 'departamento'],
+    ['601','Familia Henríquez-Vargas',          'Don Mario y señora',            'mariohv@gmail.com',             '+56 9 7345 6789', 7.50, 'departamento'],
+    ['602','Cristián Felipe Donoso Toro',       null,                            'cdonoso.toro@gmail.com',        '+56 9 9012 3456', 7.00, 'departamento'],
+    ['603','Susana del Carmen Riquelme Núñez',  null,                            'susanariquelme@gmail.com',      '+56 9 6543 8721', 6.90, 'departamento'],
+  ];
+  // Verificación: las alícuotas suman 100.00%
+  ROSTER.forEach(r=>{
+    estado.unidades.push({
+      id:id(), codigo:`B-${r[0]}`, tipo:r[6],
+      propietario:r[1], residente:r[2]||r[1],
+      correo:r[3], tel:r[4],
+      alicuota:r[5]
+    });
+  });
+
+  // Catálogo realista de gastos mensuales recurrentes
+  const GASTOS_MENSUALES = [
+    {cat:'Administración', sub:'Honorarios administradora', prov:'María Eugenia Salinas H.',     doc:'BHE-2025-', base:380000, var:0},
+    {cat:'Liquidaciones',  sub:'Sueldo conserje turno día', prov:'Don Pedro Manuel Cárcamo S.',  doc:'LIQ-PMC-', base:520000, var:0},
+    {cat:'Liquidaciones',  sub:'Sueldo conserje turno noche', prov:'Don Juan Carlos Lara V.',    doc:'LIQ-JCL-', base:540000, var:0},
+    {cat:'Previred',       sub:'Cotizaciones previsionales', prov:'Previred S.A.',               doc:'PRV-',    base:285000, var:0},
+    {cat:'Servicios básicos', sub:'Cuenta agua potable',   prov:'Aguas Andinas',                doc:'AA-',     base:185000, var:0.15},
+    {cat:'Servicios básicos', sub:'Cuenta luz áreas comunes', prov:'Enel Distribución',         doc:'EN-',     base:148000, var:0.18},
+    {cat:'Servicios básicos', sub:'Cuenta gas calderas',   prov:'Lipigas',                       doc:'LP-',     base:95000,  var:0.22},
+    {cat:'Mantenimiento de bombas', sub:'Mantención mensual', prov:'Hidráulica López SpA',      doc:'HL-',     base:75000,  var:0.05},
+    {cat:'Mantención',      sub:'Mantención ascensor',     prov:'Otis Chile S.A.',               doc:'OT-',     base:165000, var:0},
+    {cat:'Jardinería',      sub:'Mantención áreas verdes', prov:'Verde Vivo Limitada',           doc:'VV-',     base:120000, var:0.05},
+    {cat:'Artículos de limpieza', sub:'Insumos aseo común', prov:'Comercial San Diego',         doc:'CSD-',    base:48000,  var:0.20},
+    {cat:'Reemplazo de conserjería', sub:'Días libres conserjes', prov:'Carlos Mauricio Pino A.', doc:'REM-',  base:90000,  var:0.30},
+    {cat:'Seguros',         sub:'Prima seguro incendio (cuota mensual)', prov:'HDI Seguros',     doc:'HDI-',    base:65000,  var:0},
+    {cat:'Uso o consumo',   sub:'Internet conserjería',    prov:'Movistar Empresas',             doc:'MV-',     base:18900,  var:0},
+    {cat:'Uso o consumo',   sub:'Software administrativo', prov:'Comunidad Feliz',               doc:'CF-',     base:25900,  var:0},
+  ];
+  // Gastos extraordinarios eventuales
+  const GASTOS_EXTRA = [
+    {month:3, items:[{cat:'Gastos extraordinarios', sub:'Pintura escalera norte', prov:'Pinturas y Acabados Solis Ltda.', doc:'PYA-2026-014', monto:680000}]},
+    {month:1, items:[{cat:'Reparación', sub:'Cambio bomba presurizadora', prov:'Hidráulica López SpA', doc:'HL-REP-2025-44', monto:1250000}]},
+    {month:4, items:[{cat:'Mantención', sub:'Limpieza de fachadas (anual)', prov:'Servicios Verticales Andinos', doc:'SVA-2026-08', monto:450000}]},
+  ];
+
+  // Generar 8 meses de historia (julio 2025 → febrero 2026 + actual)
+  // Ajustar fechas a partir del mes actual hacia atrás
+  const HOY = new Date();
+  for(let m=8; m>=0; m--){
+    const fecha = new Date(HOY.getFullYear(), HOY.getMonth()-m, 1);
+    const periodo = aPeriodoLocal(fecha);
+    const yearShort = String(fecha.getFullYear()).slice(2);
+    let docCounter = 100;
+    // Gastos recurrentes
+    GASTOS_MENSUALES.forEach((g, idx)=>{
+      const variacion = g.var ? (1 + (Math.random()-0.5)*g.var) : 1;
+      const monto = Math.round(g.base * variacion);
+      estado.egresos.push({
+        id:id(),
+        fecha:`${periodo}-${String(2 + (idx % 25)).padStart(2,'0')}`,
+        periodo,
+        categoria:g.cat, subcat:g.sub,
+        contraparte:g.prov,
+        numDoc: g.doc + yearShort + String(docCounter++).padStart(4,'0'),
+        monto,
+        descripcion:`${g.sub} · ${fmtPeriodoLargo(periodo)}`,
+        boletaURL: idx % 4 === 0 ? `https://drive.google.com/file/d/demo_${periodo}_${idx}/view` : ''
+      });
+    });
+    // Gastos extraordinarios para mes específico
+    GASTOS_EXTRA.forEach(ge=>{
+      if(ge.month === m){
+        ge.items.forEach((it, idx)=>{
+          estado.egresos.push({
+            id:id(),
+            fecha:`${periodo}-${15+idx}`,
+            periodo,
+            categoria:it.cat, subcat:it.sub,
+            contraparte:it.prov, numDoc:it.doc,
+            monto:it.monto,
+            descripcion:`${it.sub} · ${fmtPeriodoLargo(periodo)}`,
+            boletaURL:''
+          });
+        });
+      }
+    });
+
+    // Total a recaudar = suma de gastos del mes
+    const totalGastosMes = estado.egresos.filter(e=>e.periodo===periodo).reduce((s,e)=>s+e.monto,0);
+
+    // Cobros del mes — distribución por alícuota
+    const isMesActual = (m === 0);
+    let folioPrincipio = 5500 + (8-m) * 30;
+    estado.unidades.forEach((u, uIdx)=>{
+      const cuota = Math.round(totalGastosMes * u.alicuota/100);
+      const fondo = Math.round(cuota * 0.05);
+      const seguro = Math.round(65000 * u.alicuota/100);
+      // Un condominio que funciona. Del mes en curso falta lo que aun no
+      // vence (~20%), y del anterior quedan dos rezagados. Mas atras esta
+      // todo cobrado: en la vida real el que se atrasa paga al mes siguiente,
+      // no arrastra nueve meses. Sin esta regla la demostracion abre con
+      // morosidad de dos tercios y la caja en rojo, que es exactamente lo
+      // contrario de lo que la herramienta deberia mostrar.
+      var estadoCobro;
+      if (isMesActual)   estadoCobro = (uIdx % 5 !== 0) ? 'pagado' : 'pendiente';
+      else if (m === 1)  estadoCobro = (uIdx === 3 || uIdx === 11) ? 'pendiente' : 'pagado';
+      else               estadoCobro = 'pagado';
+      const folio = estadoCobro==='pagado' ? folioPrincipio + uIdx : 0;
+      const fechaPago = estadoCobro==='pagado' ? `${periodo}-${String(3 + (uIdx % 12)).padStart(2,'0')}` : '';
+      estado.cobros.push({id:id(), unidadId:u.id, periodo, tipo:'ordinaria',
+        concepto:`Gasto común ${fmtPeriodoLargo(periodo)}`,
+        adeudado:cuota, estado:estadoCobro,
+        montoPagado: estadoCobro==='pagado'?cuota:0,
+        fechaPago, folioBoleta:folio});
+      estado.cobros.push({id:id(), unidadId:u.id, periodo, tipo:'fondo',
+        concepto:'Fondo de reserva (5%)',
+        adeudado:fondo, estado:estadoCobro,
+        montoPagado: estadoCobro==='pagado'?fondo:0,
+        fechaPago, folioBoleta:folio});
+      estado.cobros.push({id:id(), unidadId:u.id, periodo, tipo:'seguro',
+        concepto:`Prima seguro incendio (cuota ${5-Math.min(4,m)} de 12)`,
+        adeudado:seguro, estado:estadoCobro,
+        montoPagado: estadoCobro==='pagado'?seguro:0,
+        fechaPago, folioBoleta:folio});
+    });
+  }
+
+  // Caja al inicio del periodo simulado: lo que el condominio traia de antes.
+  // Un edificio de 18 unidades con nueve meses de historia no parte en cero.
+  var arranque = new Date(HOY.getFullYear(), HOY.getMonth() - 9, 28);
+  estado.ingresos.push({
+    id:id(),
+    fecha: aFechaLocal(arranque),
+    periodo: aPeriodoLocal(arranque),
+    categoria:'Otros',
+    contraparte:'Saldo anterior',
+    monto: 3850000,
+    descripcion:'Saldo de caja traspasado del periodo anterior, según acta de asamblea ordinaria.'
+  });
+
+  // Movimiento manual del fondo: una compra extraordinaria histórica
+  const fondoFecha = new Date(HOY.getFullYear(), HOY.getMonth()-6, 18);
+  estado.fondo.push({
+    id:id(), tipo:'egreso',
+    fecha: aFechaLocal(fondoFecha),
+    periodo: aPeriodoLocal(fondoFecha),
+    monto: 850000,
+    origen:'Bomba reemplazo + instalación',
+    descripcion:'Compra de bomba presurizadora marca Pedrollo + instalación. Aprobado por comité acta N° 14/2025.'
+  });
+  // Aporte voluntario único
+  const fondoFecha2 = new Date(HOY.getFullYear(), HOY.getMonth()-3, 5);
+  estado.fondo.push({
+    id:id(), tipo:'ingreso',
+    fecha: aFechaLocal(fondoFecha2),
+    periodo: aPeriodoLocal(fondoFecha2),
+    monto: 250000,
+    origen:'Arriendo de salón de eventos',
+    descripcion:'Arriendo del salón de eventos a copropietario del 402 para cumpleaños familiar (acuerdo según reglamento).'
+  });
+
+  // Programa de mantenciones para los próximos 12 meses
+  const MANT_PROG = [
+    {meses:1, c:'Certificación ascensor (anual obligatoria)', t:'certificacion', costo:185000, p:'alta'},
+    {meses:2, c:'Mantención preventiva calderas', t:'mantencion', costo:120000, p:'alta'},
+    {meses:3, c:'Limpieza tanque de agua potable', t:'mantencion', costo:280000, p:'alta'},
+    {meses:4, c:'Inspección de gas (SEC)', t:'certificacion', costo:95000, p:'alta'},
+    {meses:5, c:'Pintura departamento conserjería', t:'reparacion', costo:380000, p:'media'},
+    {meses:6, c:'Mantención bombas (semestral)', t:'mantencion', costo:75000, p:'media'},
+    {meses:8, c:'Limpieza profunda fachadas', t:'mantencion', costo:450000, p:'baja'},
+    {meses:10, c:'Renovación seguro contra incendio', t:'mantencion', costo:65000, p:'alta'},
+    {meses:12, c:'Reposición luminarias LED', t:'reparacion', costo:240000, p:'media'},
+  ];
+  MANT_PROG.forEach(m=>{
+    const f = new Date(HOY.getFullYear(), HOY.getMonth()+m.meses, 1);
+    estado.mantenciones.push({
+      id:id(),
+      mes: aPeriodoLocal(f),
+      concepto: m.c, costo: m.costo, tipo: m.t, prioridad: m.p
+    });
+  });
+
+  // Ajustar contador de folios para que los siguientes pagos sigan correlativos
+  estado.contadorFolio = 5500 + 9 * 30 + 18;
+
+  guardar();
+  toast('Datos demostrativos cargados — Edificio Cordillera de los Andes', 'success');
+  setTimeout(()=>location.reload(), 800);
+}
+
+/* ============ ACCIONES QUE ANTES ERAN ATRIBUTOS EN LINEA ============ */
+
+// El despachador de acciones.js cubre click y change. Para "input" (reaccionar
+// mientras se escribe) y "blur" hacen falta oyentes propios.
+function montarOyentesFinos(){
+  var total = document.getElementById('genTotal');
+  if(total) total.addEventListener('input', actualizarPreviewCobros);
+
+  ['cfgCondRut','cfgAdmRut'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('blur', function(){ el.value = fmtRut(el.value); });
+  });
+}
+
+// El listado de copropietarios se corta en lotes cuando el condominio es
+// grande; este es el "ver 100 mas".
+function mostrarMasUnidades(n){
+  window._unidadesLote = n;
+  renderUnidades();
+}
+
+/* ============ INIT ============ */
+document.addEventListener('DOMContentLoaded', function(){
+  cargar();
+  document.getElementById('cobroFiltroMes').value = '';
+  document.getElementById('egFiltroMes').value = '';
+  montarOyentesFinos();
+  manejarHash();   // sin hash entra al panel
+});

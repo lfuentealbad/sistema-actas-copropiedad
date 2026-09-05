@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+
+<html lang="es-CL">
+<head>
+  <meta name="author" content="Soluciones CLB SpA">
+  <meta name="copyright" content="© 2026 Soluciones CLB SpA. Todos los derechos reservados.">
+  <meta name="description" content="actaviva — Lleve las cuentas del condominio: reparta los gastos comunes por alícuota, controle el fondo de reserva y emita la liquidación mensual conforme a la Ley N° 21.442.">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="same-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<title>actaviva · Cuentas del condominio</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="actaviva · Cuentas del condominio">
+<meta property="og:description" content="Reparta los gastos comunes por alícuota, controle el fondo de reserva y emita la liquidación mensual conforme a la Ley N° 21.442.">
+<meta property="og:image" content="https://actascopropiedad.cl/og.png">
+<meta property="og:url" content="https://actascopropiedad.cl/finanzas">
+<meta property="og:site_name" content="actaviva">
+<meta property="og:locale" content="es_CL">
+<meta name="theme-color" content="#1E3A6E">
+<link rel="canonical" href="https://actascopropiedad.cl/finanzas">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="/fonts/source-sans-3.css">
+<style>
+
+  /* ============================================================
+     SISTEMA DE TOKENS — Gestión económica del condominio
+     ============================================================
+     COLOR (semántico, no decorativo):
+       --primary       Azul institucional. Acción, marca, headers oficiales.
+       --success       Verde. Solo estados POSITIVOS reales (al día, pagado, OK).
+                       NO usar como decoración.
+       --danger        Rojo. Errores, deudas, acciones destructivas.
+       --warning       Ámbar. Advertencias, atención requerida.
+       --ink-*         Tipografía y separadores neutros.
+
+     ESCALA DE ESPACIADO (4px base, escala perceptiva 1.5x-2x):
+       --sp-1=4  --sp-2=8  --sp-3=12 --sp-4=16 --sp-5=20
+       --sp-6=24 --sp-8=32 --sp-10=40 --sp-12=48
+
+     TIPOGRAFÍA (8 niveles):
+       --fs-xs=11   etiquetas pequeñas
+       --fs-sm=12   metadatos, captions
+       --fs-md=13   texto base UI
+       --fs-base=14 cuerpo de texto en formularios y CTAs
+       --fs-lg=16   subtítulos
+       --fs-xl=20   h2
+       --fs-2xl=22  títulos de página secundarios
+       --fs-3xl=26  h1 dashboard
+
+     RADIOS (4 niveles + pill):
+       --r-sm=6 --r-md=9 --r-lg=14 --r-pill=999px
+
+     ELEVACIÓN (3 niveles):
+       --elev-1 sutil para cards descansando
+       --elev-2 modales, dropdowns
+       --elev-3 toasts, tooltips flotantes
+
+     MOTION:
+       --dur-fast=150ms      micro feedback (hover, press)
+       --dur-base=220ms      modales, toasts
+       --dur-slow=320ms      transiciones de página
+       --ease-out            entrada (spring-like)
+       --ease-in             salida
+       --ease-spring         feedback elástico
+     ============================================================ */
+  :root{
+    /* Color */
+    --primary:#1E3A6E; --primary-soft:#E3EDF7; --primary-softer:#EAF2F9;
+    --primary-strong:#152A52; --secondary:#152A52; --accent:#0B6BB5;
+    --danger:#B23A2E; --danger-soft:#F6E6E3; --danger-line:rgba(178,58,46,.45);
+    --success:#1A6B3F; --success-soft:#D8F3DC; --success-line:#B9DEC5;
+    --warning:#A46A1F; --warning-soft:#FBF0DF; --warning-line:#F0DCB8;
+    --bg:#F3F7FB; --paper:#ffffff; --bg-subtle:#F7FAFC; --bg-hover:#EAF2F9;
+    --ink:#24282D; --ink-soft:#5C6168; --ink-mute:#6E7276;
+    --line:#D7D6CE; --line-soft:rgba(20,24,30,.075); --line-strong:#C3CDD9;
+    /* Spacing scale */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+    --sp-6:24px; --sp-8:32px; --sp-10:40px; --sp-12:48px;
+    /* Type scale */
+    --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-base:15px;
+    --fs-lg:16px; --fs-xl:20px; --fs-2xl:22px; --fs-3xl:26px;
+    --lh-tight:1.25; --lh-base:1.5; --lh-loose:1.65;
+    /* Radii */
+    --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+    /* Elevation */
+    --elev-1:0 1px 2px rgba(17,24,39,.06), 0 0 0 1px rgba(17,24,39,.04);
+    --elev-2:0 4px 12px rgba(17,24,39,.10), 0 2px 4px rgba(17,24,39,.05);
+    --elev-3:0 12px 32px rgba(17,24,39,.18), 0 4px 8px rgba(17,24,39,.08);
+    /* Motion */
+    --dur-fast:150ms; --dur-base:220ms; --dur-slow:320ms;
+    --ease-out:cubic-bezier(.16,1,.3,1);
+    --ease-in:cubic-bezier(.4,0,1,1);
+    --ease-spring:cubic-bezier(.34,1.56,.64,1);
+    /* Layout */
+    --side-w:248px;
+    --container-max:1320px;
+  }
+
+  /* === BASE === */
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Source Sans 3',system-ui,-apple-system,sans-serif;font-size:var(--fs-base);line-height:var(--lh-base);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif;font-weight:600;color:var(--ink);margin:0;line-height:var(--lh-tight)}
+  h1{font-size:var(--fs-3xl);letter-spacing:-.01em}
+  h2{font-size:var(--fs-xl)}
+  h3{font-size:var(--fs-lg)}
+  h4{font-size:var(--fs-base)}
+  a{color:var(--primary);text-decoration:none}
+  a:hover{text-decoration:underline}
+  table{font-variant-numeric:tabular-nums}
+
+  /* === FOCUS UNIVERSAL (a11y) === */
+  :focus{outline:none}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--r-sm)}
+  .btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+  /* === MOTION REDUCIDO === */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+  }
+
+  /* === LAYOUT === */
+  .app{display:grid;grid-template-columns:var(--side-w) 1fr;min-height:100vh;min-height:100dvh}
+  main{padding:var(--sp-6) var(--sp-8) var(--sp-12);max-width:var(--container-max);margin:0 auto;width:100%;min-width:0;padding-bottom:max(var(--sp-12), env(safe-area-inset-bottom))}
+  .pane{display:none;animation:paneFadeIn var(--dur-base) var(--ease-out)}
+  .pane.show{display:block}
+  @keyframes paneFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .pane-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--sp-4);margin-bottom:var(--sp-5);flex-wrap:wrap}
+  .pane-head .desc{color:var(--ink-mute);font-size:var(--fs-md);max-width:680px;margin-top:var(--sp-2);line-height:var(--lh-base)}
+
+  /* === SIDEBAR === */
+  aside.side{background:var(--paper);border-right:1px solid var(--line);padding:var(--sp-5) var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-1);position:sticky;top:0;max-height:100vh;overflow-y:auto;padding-top:max(var(--sp-5), env(safe-area-inset-top))}
+  .brand{padding:var(--sp-1) var(--sp-2) var(--sp-5);display:flex;align-items:center;gap:var(--sp-2)}
+  .brand-mark{width:36px;height:36px;border-radius:var(--r-md);background:var(--primary);color:#fff;display:grid;place-items:center;flex-shrink:0;box-shadow:var(--elev-1)}
+  .brand-mark svg{width:20px;height:20px}
+  .brand-text .t{font-family:'Fraunces',serif;font-weight:600;font-size:var(--fs-lg);line-height:1.1}
+  .brand-text .s{font-size:var(--fs-xs);color:var(--ink-mute);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .nav a{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-md);color:var(--ink-soft);font-size:var(--fs-md);font-weight:500;position:relative;min-height:36px;transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)}
+  .nav a svg{width:18px;height:18px;flex-shrink:0;color:var(--ink-mute);transition:color var(--dur-fast) var(--ease-out)}
+  .nav a:hover{background:var(--bg-hover);color:var(--ink);text-decoration:none}
+  .nav a:hover svg{color:var(--ink-soft)}
+  .nav a.active{background:var(--primary-soft);color:var(--primary);font-weight:600}
+  .nav a.active svg{color:var(--primary)}
+  .nav a.active::before{content:"";position:absolute;left:-3px;top:6px;bottom:6px;width:3px;background:var(--primary);border-radius:0 2px 2px 0}
+  .nav .group{font-size:var(--fs-xs);color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:var(--sp-4) var(--sp-3) var(--sp-1)}
+  .side-foot{margin-top:auto;border-top:1px solid var(--line);padding:var(--sp-3) var(--sp-2);font-size:var(--fs-xs);color:var(--ink-mute);line-height:var(--lh-base)}
+
+  /* === CARDS === */
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--sp-5);box-shadow:var(--elev-1)}
+  .card + .card{margin-top:var(--sp-4)}
+  .card h3{margin-bottom:var(--sp-4)}
+  .grid{display:grid;gap:var(--sp-4)}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+
+  /* === KPI === */
+  .kpi{display:flex;flex-direction:column;gap:var(--sp-1)}
+  .kpi .lbl{font-size:var(--fs-xs);color:var(--ink-mute);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+  .kpi .val{font-family:'Fraunces',serif;font-weight:600;font-size:var(--fs-3xl);font-variant-numeric:tabular-nums}
+  .kpi .sub{font-size:var(--fs-sm);color:var(--ink-soft)}
+
+  /* === FORMS === */
+  label{display:block;font-size:var(--fs-sm);color:var(--ink-soft);margin-bottom:var(--sp-1);font-weight:600}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font:inherit;background:var(--paper);color:var(--ink);min-height:42px;transition:border-color var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out)}
+  input[type="checkbox"],input[type="radio"]{width:auto;min-height:auto}
+  input:hover,select:hover,textarea:hover{border-color:var(--line-strong)}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  input[disabled],select[disabled],textarea[disabled]{background:var(--bg-subtle);color:var(--ink-mute);cursor:not-allowed;opacity:.7}
+  input[aria-invalid="true"]{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
+  textarea{resize:vertical;min-height:80px}
+  .field-error{font-size:var(--fs-sm);color:var(--danger);margin-top:var(--sp-1);display:flex;align-items:center;gap:var(--sp-1)}
+  .field-help{font-size:var(--fs-sm);color:var(--ink-mute);margin-top:var(--sp-1)}
+  .row{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-3)}
+  .row.cols-3{grid-template-columns:repeat(3,1fr)}
+  .row.cols-4{grid-template-columns:repeat(4,1fr)}
+
+  /* === BUTTONS === */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);border-radius:var(--r-md);border:1px solid var(--line);background:var(--paper);font:inherit;font-weight:600;font-size:var(--fs-base);cursor:pointer;color:var(--ink);min-height:42px;line-height:1;transition:background var(--dur-fast) var(--ease-out),border-color var(--dur-fast) var(--ease-out),color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out);user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  .btn svg{width:16px;height:16px;flex-shrink:0}
+  .btn:hover{border-color:var(--line-strong);background:var(--bg-hover)}
+  .btn:active:not([disabled]):not([aria-busy="true"]){transform:scale(.97)}
+  .btn[disabled],.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed;pointer-events:none}
+  .btn[aria-busy="true"]{cursor:wait;color:transparent;position:relative}
+  .btn[aria-busy="true"]::after{content:"";position:absolute;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;color:var(--ink);animation:spin .7s linear infinite}
+  .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btn.primary:hover{background:var(--primary-strong);border-color:var(--primary-strong)}
+  .btn.primary[aria-busy="true"]::after{color:#fff}
+  .btn.danger{color:var(--danger);border-color:var(--danger-line)}
+  .btn.danger:hover{background:var(--danger-soft);border-color:var(--danger);color:var(--danger)}
+  .btn.success{background:var(--success);color:#fff;border-color:var(--success)}
+  .btn.success:hover{background:#256b53;border-color:#256b53}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--primary)}
+  .btn.ghost:hover{background:var(--primary-soft);border-color:transparent}
+  .btn.sm{padding:var(--sp-1) var(--sp-3);font-size:var(--fs-sm);min-height:32px}
+  .btn.sm svg{width:14px;height:14px}
+  .btn.icon-only{padding:var(--sp-2);min-width:42px}
+  .btn-row{display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* === TABLES === */
+  .table{width:100%;border-collapse:collapse;font-size:var(--fs-base);font-variant-numeric:tabular-nums}
+  .table th{text-align:left;font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-mute);padding:var(--sp-3) var(--sp-3);border-bottom:1px solid var(--line);font-weight:700}
+  .table td{padding:var(--sp-3) var(--sp-3);border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  .table tr:hover td{background:var(--bg-subtle)}
+  .table tr:focus-within td{background:var(--primary-soft)}
+  .table .num{text-align:right;font-variant-numeric:tabular-nums}
+  .table-wrap{border-radius:var(--r-md);border:1px solid var(--line);overflow:hidden;background:var(--paper)}
+
+  /* === BADGES === */
+  .badge{display:inline-flex;align-items:center;gap:var(--sp-1);padding:3px var(--sp-2);border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em;line-height:1.4}
+  .badge.success{background:var(--success-soft);color:var(--success)}
+  .badge.danger{background:var(--danger-soft);color:var(--danger)}
+  .badge.warning{background:var(--warning-soft);color:var(--warning)}
+  .badge.mute{background:var(--line-soft);color:var(--ink-mute)}
+  .badge.primary{background:var(--primary-soft);color:var(--primary)}
+
+  /* === EMPTY STATES === */
+  .empty{padding:var(--sp-12) var(--sp-5);text-align:center}
+  .empty .et{font-family:'Fraunces',serif;font-size:var(--fs-xl);color:var(--ink-soft);font-weight:600}
+  .empty .ed{color:var(--ink-mute);font-size:var(--fs-md);margin-top:var(--sp-2);max-width:420px;margin-left:auto;margin-right:auto;line-height:var(--lh-base)}
+
+  /* === MODAL === */
+  .modal{position:fixed;inset:0;background:rgba(17,24,39,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:var(--sp-5);z-index:60;animation:modalFadeIn var(--dur-base) var(--ease-out)}
+  .modal.show{display:flex}
+  .modal .panel{background:var(--paper);border-radius:var(--r-lg);max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:var(--sp-6);box-shadow:var(--elev-3);animation:modalPanelIn var(--dur-base) var(--ease-out)}
+  .modal .panel.lg{max-width:920px}
+  .modal .panel.sm{max-width:440px}
+  .modal h2{margin-bottom:var(--sp-4)}
+  .modal .close-row{display:flex;justify-content:flex-end;gap:var(--sp-2);margin-top:var(--sp-5);flex-wrap:wrap}
+  @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes modalPanelIn{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+  /* === CONFIRM MODAL (accesible, reemplaza confirm()) === */
+  .modal .confirm-icon{width:44px;height:44px;border-radius:var(--r-pill);display:grid;place-items:center;flex-shrink:0}
+  .modal .confirm-icon.danger{background:var(--danger-soft);color:var(--danger)}
+  .modal .confirm-icon.warning{background:var(--warning-soft);color:var(--warning)}
+  .modal .confirm-icon.primary{background:var(--primary-soft);color:var(--primary)}
+  .modal .confirm-icon svg{width:24px;height:24px}
+  .modal .confirm-head{display:flex;gap:var(--sp-4);align-items:flex-start}
+
+  /* === TOAST === */
+  .toast{position:fixed;bottom:var(--sp-6);left:50%;transform:translateX(-50%) translateY(40px);background:var(--ink);color:#fff;padding:var(--sp-3) var(--sp-5);border-radius:var(--r-md);font-size:var(--fs-base);font-weight:500;opacity:0;transition:opacity var(--dur-base) var(--ease-out),transform var(--dur-base) var(--ease-spring);z-index:100;pointer-events:none;box-shadow:var(--elev-3);max-width:90vw;display:flex;align-items:center;gap:var(--sp-2)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.success{background:var(--success)}
+  .toast.danger{background:var(--danger)}
+  .toast.warning{background:var(--warning);color:var(--ink)}
+  .toast svg{width:18px;height:18px;flex-shrink:0}
+
+  /* === HELPERS === */
+  .muted{color:var(--ink-mute)}
+  .legal{font-size:var(--fs-sm);color:var(--ink-mute);font-style:italic}
+  .legal-tag{display:inline-block;font-size:var(--fs-xs);background:var(--primary-soft);color:var(--primary);padding:2px 7px;border-radius:var(--r-sm);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  hr.soft{border:0;border-top:1px solid var(--line-soft);margin:var(--sp-5) 0}
+  details summary{cursor:pointer;color:var(--primary);font-weight:600}
+
+  /* === CHART === */
+  .chart{width:100%;height:220px}
+
+  /* === LEGAL NOTE BAR === */
+  .legal-note{font-size:var(--fs-sm);color:var(--ink-soft);background:var(--primary-soft);border-left:3px solid var(--primary);padding:var(--sp-3) var(--sp-4);border-radius:var(--r-sm);margin-bottom:var(--sp-4);line-height:var(--lh-base)}
+  .legal-note strong{color:var(--primary)}
+  .legal-note.warning{background:var(--warning-soft);border-left-color:var(--warning);color:var(--ink-soft)}
+  .legal-note.warning strong{color:var(--warning)}
+
+  /* === SAVED INDICATOR === */
+  .save-status{display:inline-flex;align-items:center;gap:var(--sp-1);font-size:var(--fs-sm);color:var(--ink-mute)}
+  .save-status.saved{color:var(--success)}
+  .save-status.dirty{color:var(--warning)}
+
+  /* === RESPONSIVE === */
+  @media (max-width:880px){
+    .grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}
+    .app{grid-template-columns:1fr}
+
+    /* En el telefono el menu se acuesta: una tira horizontal que se desliza,
+       pegada bajo la cabecera. Apilado ocupaba una pantalla entera y habia
+       que bajar por todo el indice antes de ver el contenido. */
+    aside.side{
+      position:sticky; top:0; z-index:20;
+      height:auto; max-height:none; padding:0;
+      border-right:0; border-bottom:1px solid var(--line);
+      box-shadow:0 1px 3px rgba(20,24,30,.06);
+    }
+    aside.side .nav{
+      display:flex; flex-direction:row; flex-wrap:nowrap;
+      gap:var(--sp-1); overflow-x:auto; padding:var(--sp-2) var(--sp-3);
+      scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    }
+    aside.side .nav::-webkit-scrollbar{ display:none; }
+    aside.side .nav a{ white-space:nowrap; flex:0 0 auto; padding:var(--sp-2) var(--sp-3); }
+    /* La barrita del activo pasa de la izquierda al pie de la pestana. */
+    aside.side .nav a.active::before{ left:var(--sp-3); right:var(--sp-3); top:auto; bottom:0; width:auto; height:2px; border-radius:2px 2px 0 0; }
+    /* Los rotulos de grupo no caben en una tira: se leen por el orden. */
+    aside.side .nav .group{ display:none; }
+    aside.side .side-foot{ display:none; }
+
+    main{padding:var(--sp-4)}
+    /* Nada debe empujar la pagina a lo ancho en un telefono: lo que no
+       cabe se desliza dentro de su tarjeta. */
+    .pane-head{ flex-direction:column; align-items:stretch; }
+    .pane{ min-width:0; }
+    .card,.table-wrap{ max-width:100%; overflow-x:auto; }
+    .table{ min-width:520px; }          /* se desliza, no se aplasta */
+    .row,.row.cols-3,.row.cols-4{ min-width:0; }
+    .liquidacion,.liq-page{ min-width:0; }
+  }
+  html,body{ overflow-x:hidden; }
+  @media (max-width:760px){.row,.row.cols-3,.row.cols-4{grid-template-columns:1fr}}
+
+  /* ============================================================
+     LIQUIDACIÓN (documento institucional)
+     Re-colorización: AZUL institucional para headers,
+     VERDE solo reservado para "pago realizado / al día".
+     ============================================================ */
+  .liquidacion{max-width:840px;margin:0 auto;background:#fff}
+  .liq-page{padding:var(--sp-8) var(--sp-10);background:#fff;border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:var(--sp-5);page-break-after:always}
+  .liq-page:last-child{page-break-after:auto}
+  .liq-title{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--primary);padding-bottom:var(--sp-3);margin-bottom:var(--sp-4)}
+  .liq-title .ttl{font-family:'Fraunces',serif;font-size:var(--fs-2xl);letter-spacing:-.01em;color:var(--ink);font-weight:600;text-transform:uppercase}
+  .liq-title .legal-ref{font-size:var(--fs-xs);color:var(--ink-mute);margin-top:var(--sp-1)}
+  .liq-cond{display:grid;grid-template-columns:1fr 280px;gap:var(--sp-4);margin-bottom:var(--sp-4)}
+  .liq-cond .box{font-size:12.5px;line-height:var(--lh-base)}
+  .liq-cond .box strong{font-weight:600}
+  /* Caja de datos bancarios — ahora azul institucional */
+  .pay-box{background:var(--primary-soft);border:1px solid var(--primary-softer);border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);font-size:var(--fs-sm)}
+  .pay-box .h{font-weight:700;color:var(--primary);font-size:12.5px;margin-bottom:var(--sp-1);text-transform:uppercase;letter-spacing:.04em}
+  .liq-unit{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2) var(--sp-6);background:var(--bg-subtle);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-4) var(--sp-5);margin-bottom:var(--sp-4);font-size:12.5px}
+  .liq-unit .lbl{color:var(--ink-mute);font-weight:600}
+  /* Section headers — primary por default (institucional) */
+  .section-h{background:var(--primary-soft);color:var(--primary);font-weight:700;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm) var(--r-sm) 0 0;font-size:var(--fs-md);display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;letter-spacing:.04em}
+  .section-h.success{background:var(--success-soft);color:var(--success)}
+  .section-h.warning{background:var(--warning-soft);color:var(--warning)}
+  .liq-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm);margin-bottom:var(--sp-4);border:1px solid var(--line);border-top:0;border-radius:0 0 var(--r-sm) var(--r-sm);overflow:hidden}
+  .liq-table th{background:#fff;text-align:left;padding:7px var(--sp-3);border-bottom:1px solid var(--line);font-weight:700;font-size:11.5px;color:var(--ink-soft)}
+  .liq-table th.num{text-align:right}
+  .liq-table td{padding:6px var(--sp-3);border-bottom:1px solid var(--line-soft);font-size:11.5px}
+  .liq-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .liq-table tr.cat-row td{background:var(--primary-softer);font-weight:700;font-size:var(--fs-sm);color:var(--primary)}
+  .liq-table tr.total-row td{background:var(--primary-soft);font-weight:700;font-size:12.5px;border-top:2px solid var(--primary);color:var(--primary)}
+  .liq-table tr.subtotal-row td{font-weight:700;background:var(--bg-subtle)}
+  .liq-firma{display:flex;justify-content:space-between;align-items:flex-end;margin:var(--sp-5) 0 var(--sp-2);gap:var(--sp-5)}
+  .liq-firma .firma-block{text-align:center;font-size:11.5px;line-height:1.3;flex:1}
+  .liq-firma .firma-img{height:50px;border-bottom:1px solid var(--ink);margin-bottom:var(--sp-1);object-fit:contain}
+  /* Total a pagar — primary institucional, NO verde */
+  .liq-firma .total-pago{flex:1;text-align:right;background:var(--primary);color:#fff;border-radius:var(--r-md);padding:var(--sp-4) var(--sp-5);box-shadow:var(--elev-1)}
+  .liq-firma .total-pago.is-paid{background:var(--success)}
+  .liq-firma .total-pago .lbl{font-size:var(--fs-sm);font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:.9}
+  .liq-firma .total-pago .val{font-family:'Fraunces',serif;font-size:var(--fs-3xl);font-weight:600;margin-top:var(--sp-1);font-variant-numeric:tabular-nums}
+  .liq-obs{font-size:11.5px;line-height:var(--lh-base);background:var(--bg-subtle);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4)}
+  .liq-obs h4{font-family:'Fraunces',serif;font-size:var(--fs-base);margin-bottom:var(--sp-1)}
+  .liq-foot{font-size:var(--fs-xs);color:var(--ink-mute);text-align:center;margin-top:var(--sp-5);border-top:1px solid var(--line);padding-top:var(--sp-2)}
+  .resumen-caja{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:var(--sp-4);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+  .resumen-caja > div{padding:var(--sp-4) var(--sp-5);border-right:1px solid var(--line)}
+  .resumen-caja > div:last-child{border-right:0}
+  .resumen-caja .lbl{font-size:var(--fs-xs);color:var(--ink-mute);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .resumen-caja .val{font-family:'Fraunces',serif;font-size:var(--fs-xl);font-weight:600;margin-top:var(--sp-1);font-variant-numeric:tabular-nums}
+  .resumen-caja .green .val{color:var(--success)}
+  .resumen-caja .red .val{color:var(--danger)}
+
+  /* === PRINT === */
+  @media print{
+    @page{size:A4;margin:14mm}
+    body{background:#fff}
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}
+    aside.side, .pane-head, .btn, .legal-note, .no-print{display:none !important}
+    main{padding:0;max-width:none}
+    .app{grid-template-columns:1fr}
+    .liq-page{border:0;border-radius:0;padding:0;margin:0;page-break-after:always;box-shadow:none}
+    .liq-page:last-child{page-break-after:auto}
+    .pane{display:none !important}
+    #liquidacionPrint{display:block !important}
+  }
+  #liquidacionPrint{display:none}
+
+  /* === SR-ONLY (texto solo para screen readers) === */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+
+  /* --- cabecera del sitio (identica a las demas paginas) --- */
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
+  header.app-header{ background:linear-gradient(130deg,#254a86 0%,#1E3A6E 45%,#152A52 100%); border-bottom:1px solid rgba(255,255,255,.10); }
+  .header-inner{ max-width:1320px;margin:0 auto;padding:16px 26px;display:flex;align-items:center;justify-content:space-between;gap:18px; }
+  .logo-region{ font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 40,'wght' 560;font-size:23px;letter-spacing:-.035em;color:#fff;line-height:1; }
+  .logo-inicio{ color:inherit;text-decoration:none;display:inline-flex;align-items:center;padding:11px 2px;margin:-11px -2px;border-radius:6px; }
+  .logo-inicio:hover{ opacity:.85;text-decoration:none; }
+  .logo-inicio:focus-visible{ outline:2px solid #8CC3E8;outline-offset:2px; }
+  .logo-region i{ font-style:normal;color:#8CC3E8; }
+  .logo-region em{ font-style:normal;color:#E5692A; }
+  .logo-sub{ display:block;font-weight:600;font-size:11px;color:rgba(255,255,255,.62);letter-spacing:.12em;text-transform:uppercase;margin-top:3px; }
+  .header-right{ display:flex;align-items:center;gap:8px;flex-shrink:0; }
+  .header-badge{ font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.88);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:5px 13px;white-space:nowrap; }
+  .aviso-datos{ background:#FFFBEB;border-bottom:2px solid #FDE68A;border-left:5px solid #F59E0B;padding:11px 22px;display:flex;align-items:center;gap:12px;font-size:13.5px;color:#78350F;line-height:1.55; }
+  .aviso-datos a{ color:#78350F;text-decoration:underline; }
+  @media (max-width:700px){
+    .header-badge{ display:none; }
+    .header-inner{ padding:11px 14px; gap:10px; }
+    .logo-sub{ display:none; }
+    .logo-region{ font-size:19px; }
+    .header-right{ gap:6px; }
+    #nav-cuenta{ font-size:11px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  }
+  /* La barra lateral del modulo cuelga bajo la cabecera, no de la ventana. */
+  aside.side{ top:0; }
+  @media print{ header.app-header, .aviso-datos{ display:none !important; } }
+
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+
+<header class="app-header" role="banner">
+  <div class="header-inner">
+    <div>
+      <h1 class="logo-region" style="margin:0"><a class="logo-inicio" href="/" aria-label="actaviva, volver al inicio">acta<i>viva</i><em>.</em></a></h1>
+      <span class="logo-sub">Cuentas del condominio</span>
+    </div>
+    <div class="header-right">
+      <span class="header-badge">Art. 31 y 39 · Ley N° 21.442</span>
+      <div id="nav-cuenta"></div>
+    </div>
+  </div>
+</header>
+
+<aside class="aviso-datos" role="note">
+  <span aria-hidden="true">&#128274;</span>
+  <span>Las cuentas quedan en este navegador, no se suben a ninguna parte. Baje un respaldo cada cierto tiempo desde <b>Respaldo y datos</b>. <a href="/privacidad">C&oacute;mo tratamos los datos</a>.</span>
+</aside>
+
+
+<div class="app">
+  <aside class="side" aria-label="Navegación principal">
+    <nav class="nav" role="navigation">
+      <a href="#dashboard" data-pane="dashboard" class="active" aria-current="page">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Panel
+      </a>
+      <div class="group">Operación mensual</div>
+      <a href="#egresos" data-pane="egresos">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Gastos del condominio
+      </a>
+      <a href="#ingresos" data-pane="ingresos">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Otros ingresos
+      </a>
+      <a href="#cobros" data-pane="cobros">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Cuotas mensuales
+      </a>
+      <a href="#fondo" data-pane="fondo">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 4 9 8 10 4-1 8-5 8-10V6z"/></svg>
+        Fondo de reserva
+      </a>
+      <div class="group">Documentos</div>
+      <a href="#liquidacion" data-pane="liquidacion">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        Liquidación mensual
+      </a>
+      <a href="#presupuesto" data-pane="presupuesto">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
+        Presupuesto anual
+      </a>
+      <div class="group">Datos base</div>
+      <a href="#unidades" data-pane="unidades">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Copropietarios
+      </a>
+      <a href="#config" data-pane="config">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9v.01M9 13v.01M9 17v.01M14 9v.01M14 13v.01M14 17v.01"/></svg>
+        Datos del condominio
+      </a>
+      <div class="group">Sistema</div>
+      <a href="#datos" data-pane="datos">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+        Respaldo y datos
+      </a>
+      <a href="#legal" data-pane="legal">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7v6c0 5 3.5 9 9 11 5.5-2 9-6 9-11V7z"/><path d="m9 12 2 2 4-4"/></svg>
+        Marco legal
+      </a>
+    </nav>
+    <div class="side-foot">
+      <div>Cumple Ley N° 21.442 y Decreto N° 7/2023.</div>
+      <div style="margin-top:var(--sp-1)">Datos guardados localmente en este navegador.</div>
+    </div>
+  </aside>
+  <main id="main-content" tabindex="-1">
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="pane show" data-pane="dashboard">
+      <div class="pane-head">
+        <div>
+          <h1>Panel</h1>
+          <div class="desc">Estado financiero del condominio. Selecciona un período para ver recaudación, egresos, fondo de reserva y morosidad.</div>
+        </div>
+        <div>
+          <label for="dashMes">Período</label>
+          <input type="month" id="dashMes" />
+        </div>
+      </div>
+      <div id="onboardingPanel" style="display:none">
+        <div class="card" style="background:linear-gradient(135deg, var(--primary-soft), var(--bg-subtle));border-color:var(--primary-softer)">
+          <h3 style="color:var(--primary)">👋 Bienvenido — empieza acá</h3>
+          <p style="color:var(--ink-soft);font-size:var(--fs-base);line-height:var(--lh-base);margin-bottom:var(--sp-4)">Para usar la herramienta, sigue estos 4 pasos en orden:</p>
+          <ol style="color:var(--ink-soft);font-size:var(--fs-base);line-height:var(--lh-loose);padding-left:var(--sp-5)">
+            <li><strong>Configura el condominio</strong> en <a href="#config">Datos del condominio</a> (nombre, RUT, banco, % fondo de reserva).</li>
+            <li><strong>Carga los copropietarios</strong> en <a href="#unidades">Copropietarios</a> con sus alícuotas (las que vienen del reglamento de copropiedad o del avalúo SII).</li>
+            <li><strong>Registra los gastos del mes</strong> en <a href="#egresos">Gastos del condominio</a> (facturas, sueldos, servicios).</li>
+            <li><strong>Genera las cuotas</strong> en <a href="#cobros">Cuotas mensuales</a>: el sistema distribuye los gastos por alícuota y emite la liquidación de cada unidad.</li>
+          </ol>
+          <div style="margin-top:var(--sp-4);display:flex;gap:var(--sp-2);flex-wrap:wrap">
+            <a href="#config" class="btn primary">Empezar — configurar condominio</a>
+            <button class="btn" data-ac="cargarDemo">O cargar datos de prueba</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid cols-4">
+        <div class="card kpi"><div class="lbl">Ingresos del mes</div><div class="val" id="kpiIng">$ 0</div><div class="sub" id="kpiIngSub">—</div></div>
+        <div class="card kpi"><div class="lbl">Egresos del mes</div><div class="val" id="kpiEg">$ 0</div><div class="sub" id="kpiEgSub">—</div></div>
+        <div class="card kpi"><div class="lbl">Saldo de caja</div><div class="val" id="kpiSaldo">$ 0</div><div class="sub">Acumulado al cierre</div></div>
+        <div class="card kpi"><div class="lbl">Morosidad</div><div class="val" id="kpiMor">0%</div><div class="sub" id="kpiMorSub">—</div></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>Evolución últimos 12 meses</h3>
+        <svg id="chart12" class="chart" viewBox="0 0 720 220" preserveAspectRatio="none"></svg>
+        <div class="muted" style="font-size:12px;margin-top:8px">Barras: egresos. Línea: ingresos. Conforme art. 14 Ley 21.442 — informe anual de gestión.</div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>Resumen normativo de cumplimiento</h3>
+        <div class="grid cols-2">
+          <div>
+            <div class="muted" style="font-size:12px">% recargo fondo de reserva (mín. 5% — art. 39 Ley)</div>
+            <div style="font-family:Fraunces,serif;font-size:22px;margin-top:4px"><span id="resFondo">5</span>%</div>
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px">Tasa interés mora mensual (máx. legal art. 7 Ley)</div>
+            <div style="font-family:Fraunces,serif;font-size:22px;margin-top:4px"><span id="resInt">1.5</span>%</div>
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px">Día de vencimiento del aviso de cobro</div>
+            <div style="font-family:Fraunces,serif;font-size:22px;margin-top:4px">Día <span id="resVenc">18</span></div>
+          </div>
+          <div>
+            <div class="muted" style="font-size:12px">Seguro colectivo contra incendio (art. 43 Ley)</div>
+            <div style="font-family:Fraunces,serif;font-size:22px;margin-top:4px" id="resSeg">—</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COPROPIETARIOS ============ -->
+    <section class="pane" data-pane="unidades">
+      <div class="pane-head">
+        <div>
+          <h1>Copropietarios</h1>
+          <div class="desc">Catastro de unidades, propietarios y residentes. Las alícuotas determinan la proporción de gastos comunes que debe pagar cada unidad (art. 6 y 8 Ley 21.442). La suma debe ser 100%.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" data-ac="descargarPlantilla">Descargar plantilla</button>
+          <button class="btn" data-ac="abrirImportCSV">Importar</button>
+          <button class="btn danger" data-ac="borrarTodasUnidades">Borrar todas</button>
+          <button class="btn primary" data-ac="abrirUnidad">Agregar unidad</button>
+        </div>
+      </div>
+      <div class="legal-note">El total de las alícuotas debe sumar <strong>100%</strong>. La suma actual es <strong id="alicTotal">0%</strong>.</div>
+      <div class="card">
+        <table class="table" id="tablaUnidades">
+          <thead><tr><th>Código</th><th>Tipo</th><th>Propietario</th><th>Residente / contacto</th><th class="num">Alícuota</th><th class="num">Saldo</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ CUOTAS MENSUALES ============ -->
+    <section class="pane" data-pane="cobros">
+      <div class="pane-head">
+        <div>
+          <h1>Cuotas mensuales</h1>
+          <div class="desc">Lo que cada unidad debe pagar este mes. Se genera distribuyendo los gastos del condominio según la alícuota de cada unidad (art. 6 + art. 31 Ley 21.442).</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn danger" data-ac="limpiarCobros">Limpiar cobros</button>
+          <button class="btn" data-ac="generarCobrosMes">Generar cobros del mes</button>
+          <button class="btn primary" data-ac="abrirCobro">Cobro manual</button>
+        </div>
+      </div>
+      <div class="row cols-4" style="margin-bottom:var(--sp-4)">
+        <div>
+          <label for="cobroFiltroMes">Período</label>
+          <input type="month" id="cobroFiltroMes" />
+        </div>
+        <div>
+          <label for="cobroFiltroEstado">Estado</label>
+          <select id="cobroFiltroEstado"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="pagado">Pagados</option><option value="parcial">Parciales</option></select>
+        </div>
+        <div>
+          <label for="cobroFiltroVista">Vista</label>
+          <select id="cobroFiltroVista">
+            <option value="agrupada">Agrupada por unidad (recomendado)</option>
+            <option value="detalle">Detalle por concepto</option>
+          </select>
+        </div>
+        <div>
+          <label for="cobroFiltroQ">Buscar</label>
+          <input id="cobroFiltroQ" placeholder="Unidad, propietario, folio..." aria-label="Buscar cobro" />
+        </div>
+      </div>
+      <div class="card">
+        <div id="tablaCobrosWrap"></div>
+      </div>
+    </section>
+
+    <!-- ============ GASTOS DEL CONDOMINIO ============ -->
+    <section class="pane" data-pane="egresos">
+      <div class="pane-head">
+        <div>
+          <h1>Gastos del condominio</h1>
+          <div class="desc">Lo que el condominio paga: facturas de proveedores, sueldos, servicios básicos, mantenciones, etc. Agrupado según las categorías legales (art. 9 Ley 21.442 y art. 24 Decreto 7/2023). La suma de estos gastos es la base para calcular las cuotas mensuales.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" data-ac="abrirEgreso">Registrar egreso</button>
+        </div>
+      </div>
+      <div class="row cols-3" style="margin-bottom:14px">
+        <div>
+          <label>Período</label>
+          <input type="month" id="egFiltroMes" />
+        </div>
+        <div>
+          <label>Categoría</label>
+          <select id="egFiltroCat"></select>
+        </div>
+        <div>
+          <label>Buscar</label>
+          <input id="egFiltroQ" placeholder="Proveedor, descripción, N° doc…" />
+        </div>
+      </div>
+      <div class="card">
+        <table class="table" id="tablaEgresos">
+          <thead><tr><th>Fecha</th><th>Categoría</th><th>Proveedor / contraparte</th><th>Descripción</th><th>N° Doc</th><th class="num">Monto</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ OTROS INGRESOS ============ -->
+    <section class="pane" data-pane="ingresos">
+      <div class="pane-head">
+        <div>
+          <h1>Otros ingresos</h1>
+          <div class="desc">Ingresos distintos a las cuotas mensuales: arriendo de bienes comunes, autofinanciamiento, devoluciones, intereses bancarios, etc. Estos ingresos compensan los gastos al calcular las cuotas.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" data-ac="abrirIngreso">Registrar ingreso</button>
+        </div>
+      </div>
+      <div class="card">
+        <table class="table" id="tablaIngresos">
+          <thead><tr><th>Fecha</th><th>Categoría</th><th>Contraparte</th><th>Descripción</th><th class="num">Monto</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ FONDO DE RESERVA ============ -->
+    <section class="pane" data-pane="fondo">
+      <div class="pane-head">
+        <div>
+          <h1>Fondo de reserva</h1>
+          <div class="desc">Reserva acumulada para emergencias. Se forma con un recargo no inferior al 5% sobre el gasto común mensual, más multas, intereses y aportes por uso exclusivo (art. 39 Ley 21.442). Solo cubre gastos urgentes, extraordinarios o imprevistos.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" data-ac="abrirMovFondo" data-args="egreso">Registrar uso del fondo</button>
+          <button class="btn primary" data-ac="abrirMovFondo" data-args="ingreso">Registrar aporte adicional</button>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <div class="card kpi"><div class="lbl">Saldo actual</div><div class="val" id="fondoSaldo">$ 0</div><div class="sub">Acumulado histórico</div></div>
+        <div class="card kpi"><div class="lbl">Aportes período</div><div class="val" id="fondoAportes">$ 0</div><div class="sub" id="fondoAportesSub">—</div></div>
+        <div class="card kpi"><div class="lbl">Egresos período</div><div class="val" id="fondoEgresos">$ 0</div><div class="sub" id="fondoEgresosSub">—</div></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>Movimientos del fondo</h3>
+        <table class="table" id="tablaFondo">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Origen / destino</th><th>Descripción</th><th class="num">Monto</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ LIQUIDACIÓN ============ -->
+    <section class="pane" data-pane="liquidacion">
+      <div class="pane-head">
+        <div>
+          <h1>Liquidación mensual</h1>
+          <div class="desc">Genera el documento de liquidación (3 páginas A4) por unidad, conforme a los art. 14, 21 y 31 Ley 21.442 y al art. 24 Decreto 7/2023.</div>
+        </div>
+      </div>
+      <div class="card no-print">
+        <div class="row cols-3">
+          <div>
+            <label>Unidad</label>
+            <select id="liqUnidad"></select>
+          </div>
+          <div>
+            <label>Período</label>
+            <input type="month" id="liqMes" />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <div class="btn-row">
+              <button class="btn" data-ac="renderLiquidacion">Vista previa</button>
+              <button class="btn primary" data-ac="imprimirLiquidacion">Imprimir / PDF</button>
+              <button class="btn" data-ac="generarTodasLiquidaciones">Generar todas</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="liqContenedor"></div>
+    </section>
+
+    <!-- ============ PRESUPUESTO ============ -->
+    <section class="pane" data-pane="presupuesto">
+      <div class="pane-head">
+        <div>
+          <h1>Presupuesto estimativo anual</h1>
+          <div class="desc">Conforme al art. 22 Ley 21.442, el administrador debe confeccionar un presupuesto de 12 meses considerando el promedio de gastos ordinarios, mantenciones programadas y proyección de ingresos.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" data-ac="calcularPresupuesto">Calcular automático</button>
+        </div>
+      </div>
+      <div class="card">
+        <table class="table" id="tablaPresupuesto">
+          <thead><tr><th>Categoría</th><th class="num">Promedio mensual</th><th class="num">Proyección 12 meses</th><th class="num">% del total</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>Programa de mantenciones (12 meses)</h3>
+        <div class="muted" style="font-size:12px;margin-bottom:10px">Conforme al art. 26 Decreto 7/2023, el administrador debe elaborar un programa de mantención de redes internas, sistemas de emergencia y extinción de incendios.</div>
+        <table class="table" id="tablaMantenciones">
+          <thead><tr><th>Mes programado</th><th>Concepto</th><th>Tipo</th><th class="num">Costo estimado</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn" data-ac="abrirMantencion">Agregar item</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DATOS DEL CONDOMINIO ============ -->
+    <section class="pane" data-pane="config">
+      <div class="pane-head">
+        <div>
+          <h1>Datos del condominio</h1>
+          <div class="desc">Identificación del condominio, administrador, parámetros legales (% fondo de reserva, tasa de mora, día de vencimiento), datos bancarios y póliza de seguro.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" data-ac="guardarConfig">Guardar cambios</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Identificación del condominio</h3>
+        <div class="row">
+          <div><label for="cfgCondNombre">Nombre del condominio</label><input id="cfgCondNombre" autocomplete="organization" /></div>
+          <div><label for="cfgCondRut">RUT del condominio</label><input id="cfgCondRut" placeholder="77.332.256-K" inputmode="text" /></div>
+        </div>
+        <div class="row">
+          <div><label>Dirección</label><input id="cfgCondDir" /></div>
+          <div><label>Comuna / región</label><input id="cfgCondComuna" /></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Administración</h3>
+        <div class="legal-note" style="margin-bottom:var(--sp-4)">
+          <strong>¿Sin administrador externo?</strong> En condominios chicos sin administrador profesional, ingresa aquí los datos de quien firma las liquidaciones (presidente del comité o tesorero).
+        </div>
+        <div class="row">
+          <div><label for="cfgAdmNombre">Nombre del administrador / presidente del comité</label><input id="cfgAdmNombre" autocomplete="name" /></div>
+          <div><label for="cfgAdmRut">RUT</label><input id="cfgAdmRut" placeholder="12.345.678-9" inputmode="text" /></div>
+        </div>
+        <div class="row">
+          <div><label for="cfgAdmCorreo">Correo electrónico</label><input id="cfgAdmCorreo" type="email" inputmode="email" autocomplete="email" /></div>
+          <div><label for="cfgAdmTel">Teléfono</label><input id="cfgAdmTel" type="tel" inputmode="tel" autocomplete="tel" /></div>
+        </div>
+        <div class="row">
+          <div><label>Inscripción Registro Nacional de Administradores (art. 82 Ley)</label><input id="cfgAdmRegistro" placeholder="N° de inscripción" /></div>
+          <div><label>Firma digital (URL imagen, opcional)</label><input id="cfgAdmFirma" /></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Parámetros legales</h3>
+        <div class="row cols-3">
+          <div>
+            <label>% recargo fondo de reserva <span class="legal-tag">Art. 39 Ley</span></label>
+            <input id="cfgPorcFondo" type="number" step="0.5" min="5" />
+            <div class="legal">No puede ser inferior al 5% del gasto común mensual.</div>
+          </div>
+          <div>
+            <label>Tasa interés mora mensual <span class="legal-tag">Art. 7 Ley</span></label>
+            <input id="cfgTasaMora" type="number" step="0.1" min="0" />
+            <div class="legal">Máximo 50% del interés corriente bancario.</div>
+          </div>
+          <div>
+            <label>Interés corriente bancario mensual <span class="legal-tag">Art. 7 Ley</span></label>
+            <input id="cfgInteresCorriente" type="number" step="0.01" min="0" />
+            <div class="legal">El que publica la CMF para el mes. Con este dato el sistema aplica solo el tope de la mora; sin él no puede comprobarlo.</div>
+          </div>
+          <div>
+            <label>Día de vencimiento mensual <span class="legal-tag">Art. 7 Ley</span></label>
+            <input id="cfgDiaVenc" type="number" min="1" max="28" />
+            <div class="legal">10 días desde la emisión del aviso, salvo otro plazo en reglamento.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Datos bancarios para pago</h3>
+        <div class="row">
+          <div><label>Banco</label><input id="cfgBanco" /></div>
+          <div><label>Tipo de cuenta</label>
+            <select id="cfgBancoTipo">
+              <option>Cuenta corriente</option>
+              <option>Cuenta vista</option>
+              <option>Cuenta de ahorro</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div><label>N° de cuenta</label><input id="cfgBancoNum" /></div>
+          <div><label>Titular (debe coincidir con RUT condominio)</label><input id="cfgBancoTitular" /></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Plantilla de observaciones de la administración</h3>
+        <textarea id="cfgObs" rows="5" placeholder="Texto que aparecerá en cada liquidación: instrucciones de pago, recordatorios, etc."></textarea>
+      </div>
+      <div class="card">
+        <h3>Seguro colectivo contra incendio <span class="legal-tag">Art. 43 Ley</span></h3>
+        <div class="row cols-3">
+          <div><label>Compañía aseguradora</label><input id="cfgSegCia" /></div>
+          <div><label>N° póliza</label><input id="cfgSegPoliza" /></div>
+          <div><label>Vigencia (fecha término)</label><input id="cfgSegVig" type="date" /></div>
+        </div>
+        <div class="row cols-3">
+          <div><label>Prima mensual ($)</label><input id="cfgSegPrima" type="number" /></div>
+          <div><label>Cuotas totales</label><input id="cfgSegCuotas" type="number" /></div>
+          <div><label>Cuota actual</label><input id="cfgSegCuotaAct" type="number" /></div>
+        </div>
+        <div class="legal">Obligatorio en condominios con destino habitacional. La prima se cobra junto con los gastos comunes (art. 37 Decreto 7).</div>
+      </div>
+    </section>
+
+    <!-- ============ DATOS ============ -->
+    <section class="pane" data-pane="datos">
+      <div class="pane-head">
+        <div>
+          <h1>Respaldo y datos</h1>
+          <div class="desc">Los datos se almacenan localmente en este navegador. Es responsabilidad de la administración resguardar respaldos periódicos (art. 9 inc. 5 Ley 21.442).</div>
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Exportar respaldo</h3>
+          <p class="muted" style="font-size:12.5px">Descarga un archivo JSON con todo el estado del condominio. Recomendado al cierre de cada sesión ordinaria.</p>
+          <div class="btn-row"><button class="btn primary" data-ac="exportarRespaldo">Descargar respaldo JSON</button></div>
+        </div>
+        <div class="card">
+          <h3>Importar respaldo</h3>
+          <p class="muted" style="font-size:12.5px">Reemplaza el estado actual con el contenido del archivo JSON.</p>
+          <input type="file" id="importFile" accept=".json" />
+          <div class="btn-row" style="margin-top:8px"><button class="btn" data-ac="importarRespaldo">Importar</button></div>
+        </div>
+        <div class="card">
+          <h3>Datos de prueba</h3>
+          <p class="muted" style="font-size:12.5px">Carga un set de datos demostrativo para explorar el sistema.</p>
+          <div class="btn-row"><button class="btn" data-ac="cargarDemo">Cargar demo</button></div>
+        </div>
+        <div class="card">
+          <h3>Reiniciar</h3>
+          <p class="muted" style="font-size:12.5px">Borra todos los datos del navegador. Esta acción no se puede deshacer.</p>
+          <div class="btn-row"><button class="btn danger" data-ac="resetearTodo">Borrar todo</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MARCO LEGAL ============ -->
+    <section class="pane" data-pane="legal">
+      <div class="pane-head">
+        <div>
+          <h1>Marco legal aplicable</h1>
+          <div class="desc">Resumen de las disposiciones de la Ley 21.442 y del Decreto 7/2023 que sustentan cada función de esta herramienta.</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Aviso de cobro mensual</h3>
+        <p><strong>Art. 31 Ley 21.442.</strong> En el aviso de cobro deberá constar la proporción en que el respectivo copropietario debe contribuir a los gastos comunes, al fondo común de reserva, junto con los intereses y multas que adeudare. Además se deberá señalar en detalle el total de los ingresos, egresos mensuales y el saldo de caja del condominio.</p>
+        <p><strong>Art. 32 Ley.</strong> Los avisos de cobro firmados (presencial o electrónicamente) por el administrador tienen mérito ejecutivo.</p>
+      </div>
+      <div class="card">
+        <h3>Rendición de cuentas</h3>
+        <p><strong>Art. 21 Ley.</strong> El administrador debe rendir cuenta documentada y pormenorizada al comité en forma <strong>mensual</strong> y a la asamblea en cada sesión ordinaria, incluyendo detalle de ingresos y gastos, remuneraciones y pagos previsionales del personal, saldo de caja, copia bancaria y respaldo de seguros.</p>
+        <p><strong>Art. 24 Decreto 7/2023.</strong> La contabilidad debe representar el estado de situación financiera con actualizaciones mensuales y desglose de: (1) recaudación, (2) gastos ordinarios por subcategoría, (3) gastos extraordinarios, (4) fondo común de reserva, (5) multas, intereses y otros, además del estado de cuentas bancarias conciliadas y el detalle de pago por unidad.</p>
+        <p><strong>Art. 28 Decreto 7.</strong> La documentación debe estar disponible al menos con 24 horas de antelación a cada sesión y dentro de 10 días corridos a quien la solicite.</p>
+      </div>
+      <div class="card">
+        <h3>Fondo común de reserva</h3>
+        <p><strong>Art. 39 Ley.</strong> Recargo mínimo del 5% sobre el gasto común mensual; se incrementa con multas, intereses y aportes por uso y goce exclusivo. Cubre gastos urgentes, extraordinarios o imprevistos. Se mantiene en cuenta corriente, de ahorro o instrumentos financieros.</p>
+      </div>
+      <div class="card">
+        <h3>Mora y suspensión de servicios</h3>
+        <p><strong>Art. 7 Ley.</strong> Plazo de 10 días desde emisión del aviso. Interés de mora ≤ 50% del interés corriente bancario.</p>
+        <p><strong>Art. 36 Ley.</strong> Suspensión del servicio eléctrico, telecomunicaciones o calefacción tras tres o más cuotas morosas, con autorización del comité de administración. <strong>Excepciones:</strong> personas electrodependientes y declaración de estado de catástrofe.</p>
+        <p><strong>Art. 27 Decreto 7.</strong> Notificación con al menos 5 días corridos de anticipación a la suspensión.</p>
+      </div>
+      <div class="card">
+        <h3>Presupuesto anual y mantenciones</h3>
+        <p><strong>Art. 22 Ley.</strong> Presupuesto estimativo de 12 meses, remitido al comité y a copropietarios con al menos 30 días de antelación. Plazo de 15 días para observaciones.</p>
+        <p><strong>Art. 26 Decreto 7.</strong> Programa de mantención de 12 meses para redes internas, sistemas de emergencia y extinción de incendios, con diagnóstico, planificación y costos estimados.</p>
+      </div>
+      <div class="card">
+        <h3>Seguro colectivo contra incendio</h3>
+        <p><strong>Art. 43 Ley + arts. 37–38 Decreto 7.</strong> Obligatorio para condominios con unidades habitacionales. Cubre todos los bienes e instalaciones comunes y debe ofrecer opciones para cubrir las unidades. La prima se paga obligatoriamente junto con los gastos comunes y debe constar en el aviso de cobro.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODAL DE CONFIRMACIÓN ACCESIBLE (reemplaza confirm()) ============ -->
+<div class="modal" id="mConfirm" role="dialog" aria-modal="true" aria-labelledby="mConfirmTitle" aria-describedby="mConfirmDesc">
+  <div class="panel sm">
+    <div class="confirm-head">
+      <div class="confirm-icon" id="mConfirmIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div style="flex:1">
+        <h2 id="mConfirmTitle" style="margin-bottom:var(--sp-2)">Confirmar acción</h2>
+        <div id="mConfirmDesc" style="font-size:var(--fs-base);color:var(--ink-soft);line-height:var(--lh-base);white-space:pre-line"></div>
+      </div>
+    </div>
+    <div class="close-row">
+      <button class="btn" id="mConfirmCancel">Cancelar</button>
+      <button class="btn primary" id="mConfirmOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALES ============ -->
+<div class="modal" id="mUnidad" role="dialog" aria-modal="true" aria-labelledby="mUnidadTitle"><div class="panel">
+  <h2 id="mUnidadTitle">Unidad</h2>
+  <div class="row">
+    <div>
+      <label for="uCodigo">Código <span aria-hidden="true">*</span></label>
+      <input id="uCodigo" required aria-required="true" placeholder="Ej. B-303" />
+      <div class="field-help">Identificador único de la unidad.</div>
+    </div>
+    <div>
+      <label for="uTipo">Tipo</label>
+      <select id="uTipo">
+        <option value="departamento">Departamento</option>
+        <option value="casa">Casa</option>
+        <option value="local">Local comercial</option>
+        <option value="bodega">Bodega</option>
+        <option value="estacionamiento">Estacionamiento</option>
+        <option value="oficina">Oficina</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label for="uPropietario">Propietario</label><input id="uPropietario" autocomplete="name" /></div>
+    <div><label for="uResidente">Residente (si distinto)</label><input id="uResidente" autocomplete="name" /></div>
+  </div>
+  <div class="row">
+    <div><label for="uCorreo">Correo electrónico</label><input id="uCorreo" type="email" inputmode="email" autocomplete="email" placeholder="copropietario@correo.cl" /></div>
+    <div><label for="uTel">Teléfono</label><input id="uTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="+56 9 1234 5678" /></div>
+  </div>
+  <div class="row">
+    <div>
+      <label for="uAlicuota">Alícuota (%) <span class="legal-tag">Art. 6 Ley</span></label>
+      <input id="uAlicuota" type="number" step="0.0001" min="0" inputmode="decimal" placeholder="0,0000" />
+      <div class="field-help">
+        <strong>¿De dónde sale?</strong> Del <em>reglamento de copropiedad</em> del edificio (escritura pública). Si no lo tienes, puedes calcularla provisionalmente como <code>m² de la unidad ÷ m² totales del condominio × 100</code>.
+        La suma de todas las unidades debe dar 100%.
+      </div>
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <div style="font-size:11.5px;color:var(--ink-mute);background:var(--primary-soft);padding:9px 11px;border-radius:9px;line-height:1.4">
+        La cuota mensual de esta unidad se calcula al generar los cobros del mes:<br>
+        <strong>Cuota = Monto total gastos comunes × Alícuota</strong>
+      </div>
+    </div>
+  </div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mUnidad">Cancelar</button>
+    <button class="btn primary" data-ac="guardarUnidad">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mImportCSV" role="dialog" aria-modal="true" aria-labelledby="mImportCSVTitle"><div class="panel">
+  <h2 id="mImportCSVTitle">Importar copropietarios</h2>
+  <p class="muted" style="font-size:12.5px">Sube el archivo Excel (.xlsx) o CSV con los datos del condominio.</p>
+  <p class="muted" style="font-size:12px">¿No tienes plantilla? <a href="#" data-ac="descargarPlantilla">Descárgala aquí</a> (Excel con columnas y ejemplos), llénala con tus datos y vuelve a subirla.</p>
+  <input type="file" id="csvFile" accept=".csv,.xlsx" />
+  <div class="legal-note" style="margin-top:12px">
+    <strong>Importante:</strong> el correo electrónico es obligatorio si deseas usar el envío de liquidaciones por correo (art. 5 inc. 1 Ley 21.442 — registro de copropietarios).
+  </div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mImportCSV">Cancelar</button>
+    <button class="btn primary" data-ac="procesarImportacion">Importar</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mGenerarCobros" role="dialog" aria-modal="true" aria-labelledby="mGenerarCobrosTitle"><div class="panel lg">
+  <h2 id="mGenerarCobrosTitle">Generar cobros del mes</h2>
+  <p class="muted" style="font-size:12.5px">El sistema toma la suma de los <strong>egresos registrados</strong> para el período seleccionado y la distribuye entre las unidades en proporción a su <strong>alícuota</strong> (art. 6 + art. 22 Ley 21.442). El art. 6 admite que el <strong>reglamento de copropiedad establezca otra forma de contribución</strong>: si el de su condominio reparte de otro modo, esta herramienta no le sirve para calcularlo.</p>
+  <div class="row cols-2" style="margin-top:8px">
+    <div>
+      <label>Período</label>
+      <input type="month" id="genPeriodo" data-cambio="actualizarSugerenciaTotal" />
+    </div>
+    <div>
+      <label>Incluir adicionales en cada cobro</label>
+      <div style="padding:9px 0;font-size:13px;display:flex;gap:14px;flex-wrap:wrap">
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink)"><input type="checkbox" id="genIncluyeFondo" style="width:auto" data-cambio="actualizarPreviewCobros" />Fondo de reserva</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink)"><input type="checkbox" id="genIncluyeSeguro" style="width:auto" data-cambio="actualizarPreviewCobros" />Prima seguro</label>
+      </div>
+    </div>
+  </div>
+  <div id="genBreakdown" style="background:var(--primary-soft);padding:12px 14px;border-radius:9px;margin:12px 0"></div>
+  <div>
+    <label>Monto total a recaudar ($) <span class="legal-tag">Art. 22 Ley</span></label>
+    <input type="number" id="genTotal" />
+    <div style="font-size:12px;color:var(--ink-mute);margin-top:4px">Equivale a <strong id="genTotalFmt" style="color:var(--ink)">$ 0</strong>. Puedes editarlo si quieres cobrar un monto distinto al sugerido.</div>
+  </div>
+  <div style="margin-top:14px;max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">
+    <table class="table" id="previewCobros">
+      <thead><tr><th>Unidad · Alícuota</th><th class="num">Gasto común</th><th class="num">Fondo reserva</th><th class="num">Seguro</th><th class="num">Total mes</th></tr></thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr style="font-weight:700;background:var(--primary-soft);color:var(--primary)">
+          <td>Totales</td>
+          <td class="num" id="previewSumGC">$ 0</td>
+          <td class="num" id="previewSumFR">$ 0</td>
+          <td class="num" id="previewSumSeg">$ 0</td>
+          <td class="num" id="previewSumTot">$ 0</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="legal-note" style="margin-top:12px"><strong>Nota:</strong> los cobros se crean en estado <em>pendiente</em>. Al pagarse, los aportes de fondo de reserva, multas e intereses se acumulan automáticamente al saldo del fondo (art. 39 Ley).</div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mGenerarCobros">Cancelar</button>
+    <button class="btn primary" data-ac="confirmarGenerarCobros">Generar cobros</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mCobro" role="dialog" aria-modal="true" aria-labelledby="mCobroTitle"><div class="panel">
+  <h2 id="mCobroTitle">Cobro</h2>
+  <div class="row">
+    <div><label>Unidad</label><select id="cUnidad"></select></div>
+    <div><label>Período</label><input id="cPeriodo" type="month" /></div>
+  </div>
+  <div class="row">
+    <div><label>Tipo</label>
+      <select id="cTipo">
+        <option value="ordinaria">Cuota ordinaria</option>
+        <option value="extraordinaria">Cuota extraordinaria</option>
+        <option value="fondo">Aporte fondo de reserva</option>
+        <option value="seguro">Prima seguro incendio</option>
+        <option value="multa">Multa</option>
+        <option value="interes">Interés mora</option>
+      </select>
+    </div>
+    <div><label>Concepto</label><input id="cConcepto" /></div>
+  </div>
+  <div class="row">
+    <div><label>Monto adeudado ($)</label><input id="cMonto" type="number" /></div>
+    <div><label>Estado</label>
+      <select id="cEstado"><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option></select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label>Fecha de pago (si pagado)</label><input id="cFechaPago" type="date" /></div>
+    <div><label>Monto pagado (si distinto)</label><input id="cMontoPagado" type="number" /></div>
+  </div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mCobro">Cancelar</button>
+    <button class="btn primary" data-ac="guardarCobro">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mEgreso" role="dialog" aria-modal="true" aria-labelledby="mEgresoTitle"><div class="panel">
+  <h2 id="mEgresoTitle">Egreso del condominio</h2>
+  <div class="row">
+    <div><label>Fecha</label><input id="eFecha" type="date" /></div>
+    <div><label>Categoría <span class="legal-tag">Art. 9 Ley · Art. 24 D.7</span></label>
+      <select id="eCategoria"></select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label>Subcategoría / detalle</label><input id="eSubcat" placeholder="Ej: Liquidación marzo, ESSBIO, mantención bombas…" /></div>
+    <div><label>Proveedor / contraparte</label><input id="eContraparte" /></div>
+  </div>
+  <div class="row">
+    <div><label for="eDoc">N° documento (factura, BHE, boleta)</label><input id="eDoc" /></div>
+    <div><label for="eMonto">Monto ($)</label><input id="eMonto" type="number" inputmode="numeric" min="0" /><div class="field-help" id="eMontoFmt" style="font-size:var(--fs-xs)">$ 0</div></div>
+  </div>
+  <div><label for="eDesc">Descripción</label><textarea id="eDesc" rows="2"></textarea></div>
+  <div><label for="eBoletaURL">Respaldo digital (opcional)</label>
+    <input id="eBoletaURL" placeholder="https://drive.google.com/... o ruta del archivo en tu computador" />
+    <div class="field-help">Pega aquí el link de Drive/Dropbox a la foto/PDF de la boleta. La ley exige conservar respaldos (art. 21 inc. 2 Ley 21.442).</div>
+  </div>
+  <div class="legal-note" style="margin-top:12px">El art. 21 inciso 2 de la Ley exige conservar respaldo (verificadores) de cada gasto. Mantén la documentación física o digital archivada por la administración.</div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mEgreso">Cancelar</button>
+    <button class="btn primary" data-ac="guardarEgreso">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mIngreso" role="dialog" aria-modal="true" aria-labelledby="mIngresoTitle"><div class="panel">
+  <h2 id="mIngresoTitle">Ingreso del condominio</h2>
+  <div class="row">
+    <div><label>Fecha</label><input id="iFecha" type="date" /></div>
+    <div><label>Categoría</label>
+      <select id="iCategoria">
+        <option>Arriendo bienes comunes</option>
+        <option>Autofinanciamiento</option>
+        <option>Devolución / reembolso</option>
+        <option>Intereses bancarios</option>
+        <option>Aporte uso y goce exclusivo</option>
+        <option>Otros</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label>Contraparte</label><input id="iContraparte" /></div>
+    <div><label>Monto ($)</label><input id="iMonto" type="number" /></div>
+  </div>
+  <div><label>Descripción</label><textarea id="iDesc" rows="2"></textarea></div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mIngreso">Cancelar</button>
+    <button class="btn primary" data-ac="guardarIngreso">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mFondo" role="dialog" aria-modal="true" aria-labelledby="mFondoTitulo"><div class="panel">
+  <h2 id="mFondoTitulo">Movimiento del fondo</h2>
+  <input type="hidden" id="fTipo" />
+  <div class="row">
+    <div><label>Fecha</label><input id="fFecha" type="date" /></div>
+    <div><label>Monto ($)</label><input id="fMonto" type="number" /></div>
+  </div>
+  <div><label>Origen / destino</label><input id="fOrigen" /></div>
+  <div><label>Descripción</label><textarea id="fDesc" rows="2"></textarea></div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mFondo">Cancelar</button>
+    <button class="btn primary" data-ac="guardarMovFondo">Guardar</button>
+  </div>
+</div></div>
+
+<div class="modal" id="mMantencion" role="dialog" aria-modal="true" aria-labelledby="mMantencionTitle"><div class="panel">
+  <h2 id="mMantencionTitle">Item del programa de mantención</h2>
+  <div class="row">
+    <div><label>Mes programado</label><input id="manMes" type="month" /></div>
+    <div><label>Costo estimado ($)</label><input id="manCosto" type="number" /></div>
+  </div>
+  <div><label>Concepto</label><input id="manConcepto" placeholder="Ej: Mantención trimestral bombas de agua" /></div>
+  <div class="row">
+    <div><label>Tipo</label>
+      <select id="manTipo">
+        <option value="mantencion">Mantención</option>
+        <option value="reparacion">Reparación</option>
+        <option value="certificacion">Certificación</option>
+        <option value="inspeccion">Inspección</option>
+      </select>
+    </div>
+    <div><label>Prioridad</label>
+      <select id="manPrior">
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="baja">Baja</option>
+      </select>
+    </div>
+  </div>
+  <div class="close-row">
+    <button class="btn" data-ac="cerrarModal" data-args="mMantencion">Cancelar</button>
+    <button class="btn primary" data-ac="guardarMantencion">Guardar</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Contenedor de impresión -->
+<div id="liquidacionPrint"></div>
+
+
+
+<script src="/vendor/xlsx.full.min.js"></script>
+<script src="/vendor/supabase.min.js"></script>
+<script src="/cuenta.js"></script>
+<script src="/js/acciones.js"></script>
+<script src="/js/finanzas-1.js"></script>
+<script src="/js/finanzas-2.js"></script>
+</body>
+</html>
