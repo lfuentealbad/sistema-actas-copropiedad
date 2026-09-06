@@ -306,7 +306,7 @@ function navegarA(pane){
   if(!PANE_RENDERERS[pane]) pane = 'dashboard';
   // Los enlaces de la cinta marcan donde esta uno; el mes no cambia al
   // moverse entre secciones.
-  document.querySelectorAll('.cinta-der a[data-pane]').forEach(function(a){
+  document.querySelectorAll('.cinta-der a[data-pane], .barra-abajo a[data-pane]').forEach(function(a){
     a.classList.toggle('act', a.getAttribute('data-pane') === pane);
   });
   document.querySelectorAll('.nav a').forEach(x=>{

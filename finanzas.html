@@ -409,6 +409,40 @@
   .lista-mes .num{font-variant-numeric:tabular-nums;text-align:right}
   .lista-vacia{padding:var(--sp-6) var(--sp-2);text-align:center;color:var(--ink-mute);font-size:var(--fs-md)}
 
+
+  /* === EN EL TELEFONO ===================================================
+     Cuatro destinos abajo, al alcance del pulgar, y no cinco enlaces
+     partidos en dos filas. Los tres que se tocan una vez al ano -datos del
+     condominio, respaldo, marco legal- bajan al pie del contenido. */
+  .barra-abajo{display:none}
+  .pie-movil{display:none}
+  @media (max-width:880px){
+    .cinta-der a[data-pane]{display:none}
+    .cinta-in{min-height:52px}
+
+    .barra-abajo{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+      background:var(--paper);border-top:1px solid var(--line);
+      padding:6px 4px calc(8px + env(safe-area-inset-bottom));
+      box-shadow:0 -2px 12px rgba(17,24,39,.06)}
+    .barra-abajo a{flex:1 1 0;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:3px;padding:6px 2px;min-height:52px;
+      color:var(--ink-mute);font-size:11px;font-weight:500;text-align:center;
+      border-radius:var(--r-sm);text-decoration:none}
+    .barra-abajo a svg{width:21px;height:21px;flex-shrink:0}
+    .barra-abajo a.act{color:var(--primary);font-weight:700}
+    .barra-abajo a:hover{text-decoration:none;background:var(--bg-hover)}
+
+    /* Que la barra no tape el final del contenido. */
+    main{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+
+    .pie-movil{display:flex;flex-wrap:wrap;gap:var(--sp-3) var(--sp-5);
+      padding:var(--sp-6) 0 var(--sp-2);margin-top:var(--sp-6);
+      border-top:1px solid var(--line);font-size:var(--fs-md)}
+    .pie-movil a{color:var(--accent);font-weight:600;min-height:44px;
+      display:inline-flex;align-items:center}
+  }
+  @media print{ .barra-abajo,.pie-movil{display:none !important} }
+
   /* === PRINT === */
   @media print{
     @page{size:A4;margin:14mm}
@@ -946,8 +980,33 @@
       </div>
     </section>
 
+
+    <div class="pie-movil">
+      <a href="#config" data-pane="config">Datos del condominio</a>
+      <a href="#datos" data-pane="datos">Respaldo y datos</a>
+      <a href="#legal" data-pane="legal">Marco legal</a>
+    </div>
   </main>
 </div>
+<nav class="barra-abajo" aria-label="Secciones">
+      <a href="#dashboard" data-pane="dashboard">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
+        El mes
+      </a>
+      <a href="#egresos" data-pane="egresos">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M4 10h16M9 10v9"/></svg>
+        Gastos
+      </a>
+      <a href="#unidades" data-pane="unidades">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg>
+        Unidades
+      </a>
+      <a href="#liquidacion" data-pane="liquidacion">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+        Liquidación
+      </a>
+</nav>
+
 
 <!-- ============ MODAL DE CONFIRMACIÓN ACCESIBLE (reemplaza confirm()) ============ -->
 <div class="modal" id="mConfirm" role="dialog" aria-modal="true" aria-labelledby="mConfirmTitle" aria-describedby="mConfirmDesc">
