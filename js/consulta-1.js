@@ -8,6 +8,8 @@ let C = null, timer = null;
 
 function msg(el, texto, clase){
   const e = $(el);
+  // El hueco puede no estar: en modo vitrina el Worker borra los del pago.
+  if(!e) return;
   if(!texto){ e.classList.add('hidden'); return; }
   e.className = 'aviso ' + (clase||'ok'); e.textContent = texto;
 }
@@ -33,6 +35,15 @@ let USUARIO = null;
 
 // Muestra la entrada a la cuenta o, si ya entró, el botón de pago.
 function pintarPago(){
+  // En modo vitrina el Worker borró el recuadro del pago. Sin él no hay nada
+  // que pintar, y sobre todo: no hay que reventar. Se dice qué pasa, porque
+  // callar deja el botón muerto y al que mira pensando que se rompió.
+  if(!$('c-pago')){
+    msg('nueva-msg', 'Crear la consulta requiere activar la asamblea, y eso no está ' +
+        'habilitado en esta presentación. La consulta completa se puede recorrer ' +
+        'en /consulta/demo.', 'warn');
+    return;
+  }
   $('c-pago').classList.remove('hidden');
   if(USUARIO){
     $('cta-host').innerHTML = '';
@@ -76,6 +87,7 @@ async function irAPagar(btn){
   if(!m) return;
   const orden = m[1]; let intentos = 0;
   try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  if(!$('c-pago')) return;   // vitrina: no hay recuadro que mostrar
   $('c-pago').classList.remove('hidden');
   $('pago-listo').classList.remove('hidden');
   msg('pago-msg','Confirmando el pago…','warn');
@@ -87,7 +99,7 @@ async function irAPagar(btn){
         if(d && d.estado === 'pagado' && d.llave){
           try{ localStorage.setItem(LLAVE, d.llave); }catch(e){}
           msg('pago-msg','Pago confirmado. Ya puede crear la consulta.','ok');
-          setTimeout(() => $('c-pago').classList.add('hidden'), 2600);
+          setTimeout(() => { if($('c-pago')) $('c-pago').classList.add('hidden'); }, 2600);
           return;
         }
         if(intentos < 10){ setTimeout(revisar, 2000); return; }
@@ -131,7 +143,7 @@ async function crear(btn){
     const m = String((e && e.message) || e || '');
     if(/pago_requerido|llave_invalida|llave_malformada|pago_vencido|pago_ya_utilizado|pago_no_configurado/.test(m)){
       borrarLlave();
-      $('c-pago').classList.remove('hidden');
+      if($('c-pago')) $('c-pago').classList.remove('hidden');
       msg('pago-msg', /pago_ya_utilizado/.test(m)
         ? 'Ese pago ya se usó. Cada consulta o asamblea requiere el suyo.'
         : /pago_vencido/.test(m) ? 'El pago venció. Debe realizarse uno nuevo.'
@@ -599,7 +611,9 @@ $('lnk-reanudar').addEventListener('click', function(ev){
     sub: 'Con su cuenta puede volver a la consulta, ver las respuestas y descargar el expediente.'
   }, function(u){
     USUARIO = u;
-    if(!$('c-pago').classList.contains('hidden')) pintarPago();
+    // Esto corre en cada carga. Sin la guarda, en vitrina reventaba aqui y la
+    // pagina entera quedaba sin arrancar: ni panel, ni consulta recuperada.
+    if($('c-pago') && !$('c-pago').classList.contains('hidden')) pintarPago();
     const g = recuperar();
     if(g && g.codigo){ C = g; abrirPanel(); }
   });
