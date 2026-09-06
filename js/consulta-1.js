@@ -49,6 +49,8 @@ function pintarPago(){
     $('cta-host').innerHTML = '';
     $('pago-listo').classList.remove('hidden');
     $('p-correo').textContent = USUARIO.correo;
+    const ah = $('c-acepta-host');
+    if(ah && !ah.innerHTML) ah.innerHTML = Cuenta.terminos.html('c-acepta');
   } else {
     $('pago-listo').classList.add('hidden');
     Cuenta.panel('cta-host', {
@@ -67,9 +69,14 @@ function cerrarSesion(btn){
 async function irAPagar(btn){
   const correo = USUARIO && USUARIO.correo;
   if(!Cuenta.correoValido(correo)){ pintarPago(); return; }
+  if(!Cuenta.terminos.aceptados('c-acepta')){
+    msg('pago-msg', Cuenta.terminos.AVISO, 'err');
+    const c = $('c-acepta'); if(c) c.focus();
+    return;
+  }
   busy(btn, true, 'Conectando…'); msg('pago-msg','');
   try{
-    const r = await fetch('/api/pago/crear', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({correo, producto:'consulta'})});
+    const r = await fetch('/api/pago/crear', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({correo, producto:'consulta', acepta: Cuenta.terminos.VERSION})});
     const d = await r.json().catch(() => null);
     if(!r.ok || !d || !d.redirigir){
       msg('pago-msg', d && d.error === 'pasarela_no_configurada'

@@ -903,7 +903,37 @@
     });
   }
 
+  /* ============ ACEPTACION DE LOS TERMINOS ============
+   *  Ley 19.496 art. 12 A. La casilla nace VACIA: premarcarla no es aceptar.
+   *  La version que se acepta viaja al servidor y queda con la orden, que es
+   *  lo que permite acreditar despues que hubo consentimiento y sobre que
+   *  texto. Si los terminos cambian de fecha, cambia aqui y en _worker.js
+   *  -hay una prueba que no deja que se desincronicen-.
+   */
+  var TERMINOS_VERSION = '2026-08-20';
+
+  function terminosHtml(id) {
+    return '<label for="' + id + '" style="display:flex;gap:9px;align-items:flex-start;' +
+      'font-size:13.5px;line-height:1.5;margin:0 0 12px;cursor:pointer;min-height:44px">' +
+      '<input type="checkbox" id="' + id + '" style="width:18px;height:18px;margin:2px 0 0;' +
+      'flex:none;cursor:pointer">' +
+      '<span>He leído y acepto los <a href="/terminos" target="_blank" rel="noopener">términos ' +
+      'del servicio</a> y la <a href="/privacidad" target="_blank" rel="noopener">declaración ' +
+      'de privacidad</a>.</span></label>';
+  }
+
+  function terminosAceptados(id) {
+    var e = document.getElementById(id);
+    return !!(e && e.checked);
+  }
+
   global.Cuenta = {
+    terminos: {
+      VERSION: TERMINOS_VERSION,
+      html: terminosHtml,
+      aceptados: terminosAceptados,
+      AVISO: 'Para continuar, acepte los términos del servicio.'
+    },
     // Un solo cliente para toda la pagina. Si cada modulo crea el suyo, la
     // sesion que abre uno no la ve el otro y auth.uid() llega nulo a Postgres.
     cliente: cliente,

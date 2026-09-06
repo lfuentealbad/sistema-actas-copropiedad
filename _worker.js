@@ -44,6 +44,12 @@ const PRODUCTOS = {
 };
 const VIGENCIA_LLAVE_DIAS = 60;
 
+// Fecha desde la que rigen los terminos publicados en /terminos. Es lo que el
+// navegador declara haber aceptado y lo que queda guardado con cada orden.
+// Si se publican terminos nuevos, cambia aqui, en terminos.html y en el
+// TERMINOS_VERSION de cuenta.js: hay una prueba que no los deja separarse.
+const TERMINOS_VERSION = '2026-08-20';
+
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
     status,
@@ -126,6 +132,13 @@ async function crearPago(request, env, url) {
   const correo = String(cuerpo.correo || '').trim().toLowerCase();
   if (!correoValido(correo)) return json({ error: 'correo_invalido' }, 400);
 
+  // Ley 19.496 art. 12 A: sin aceptacion de los terminos no hay orden.
+  // La casilla del navegador es la que se ve; esta es la que vale, porque
+  // una casilla se puede saltar mirando el codigo fuente y esto no.
+  if (String(cuerpo.acepta || '') !== TERMINOS_VERSION) {
+    return json({ error: 'terminos_no_aceptados' }, 400);
+  }
+
   // Que se esta comprando. Cualquier otra cosa se trata como acta.
   const producto = PRODUCTOS[cuerpo.producto] ? cuerpo.producto : 'acta';
   const cfg = PRODUCTOS[producto];
@@ -157,7 +170,12 @@ async function crearPago(request, env, url) {
 
   await env.PAGOS.put(
     `orden:${orden}`,
-    JSON.stringify({ estado: 'pendiente', monto, correo, producto, creada: Date.now() }),
+    // La aceptacion queda con la orden: es lo que permite acreditar despues
+    // que la hubo, cuando, y sobre que version del texto.
+    JSON.stringify({
+      estado: 'pendiente', monto, correo, producto, creada: Date.now(),
+      terminos: { version: TERMINOS_VERSION, aceptados: new Date().toISOString() }
+    }),
     { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 }
   );
 

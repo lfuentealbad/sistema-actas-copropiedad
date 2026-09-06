@@ -88,6 +88,8 @@
     if(USUARIO){
       host.innerHTML=''; listo.style.display='block';
       var t=document.getElementById('vv-correo-txt'); if(t) t.textContent=USUARIO.correo;
+      var ah=document.getElementById('vv-acepta-host');
+      if(ah && !ah.innerHTML) ah.innerHTML=Cuenta.terminos.html('vv-acepta');
       return;
     }
     // USUARIO se llena al cargar la pagina. La sesion pudo abrirse despues,
@@ -124,9 +126,14 @@
   window.actaIrAPagar=async function(btn){
     var correo=USUARIO&&USUARIO.correo;
     if(!window.Cuenta.correoValido(correo)){ pintarPago(); return; }
+    if(!Cuenta.terminos.aceptados('vv-acepta')){
+      pagoMsg(Cuenta.terminos.AVISO, true);
+      var _c=document.getElementById('vv-acepta'); if(_c) _c.focus();
+      return;
+    }
     btn.disabled=true; var _t=btn.textContent; btn.textContent='Conectando…'; pagoMsg('');
     try{
-      var r=await fetch('/api/pago/crear',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({correo:correo})});
+      var r=await fetch('/api/pago/crear',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({correo:correo,acepta:Cuenta.terminos.VERSION})});
       var d=null; try{ d=await r.json(); }catch(e){}
       if(!r.ok||!d||!d.redirigir){
         pagoMsg(d&&d.error==='pasarela_no_configurada'

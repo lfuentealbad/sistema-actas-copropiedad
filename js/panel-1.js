@@ -69,9 +69,10 @@
     if(host){
       host.innerHTML = pagado
         ? '<a class="btn btn-p" href="/acta">Comenzar mi acta</a>'
-        : '<button type="button" class="btn btn-p" id="p-pagar">Pagar y comenzar</button>';
+        : Cuenta.terminos.html('p-acepta-acta') +
+          '<button type="button" class="btn btn-p" id="p-pagar">Pagar y comenzar</button>';
       var b = $('p-pagar');
-      if(b) b.addEventListener('click', function(){ irAPagar(this); });
+      if(b) b.addEventListener('click', function(){ irAPagar(this, 'acta', 'p-acepta-acta'); });
     }
 
     var nota = $('p-ramas-nota');
@@ -89,20 +90,26 @@
     if(hostC){
       hostC.innerHTML = llaveConsulta()
         ? '<a class="btn btn-p" href="/consulta/">Crear consulta</a>'
-        : '<button type="button" class="btn btn-p" id="p-pagar-consulta">Pagar y crear consulta</button>';
+        : Cuenta.terminos.html('p-acepta-consulta') +
+          '<button type="button" class="btn btn-p" id="p-pagar-consulta">Pagar y crear consulta</button>';
       var bc = $('p-pagar-consulta');
-      if(bc) bc.addEventListener('click', function(){ irAPagar(this, 'consulta'); });
+      if(bc) bc.addEventListener('click', function(){ irAPagar(this, 'consulta', 'p-acepta-consulta'); });
     }
   }
 
-  function irAPagar(btn, producto){
+  function irAPagar(btn, producto, idCasilla){
     producto = producto || 'acta';
+    if(idCasilla && !Cuenta.terminos.aceptados(idCasilla)){
+      pagoMsg(Cuenta.terminos.AVISO, true, producto);
+      var c = $(idCasilla); if(c) c.focus();
+      return;
+    }
     btn.disabled = true; var t = btn.textContent; btn.textContent = 'Conectando…';
     pagoMsg('', false, producto);
     var correo = ($('p-correo') && $('p-correo').textContent) || '';
     fetch('/api/pago/crear', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ correo: correo, producto: producto })
+      body: JSON.stringify({ correo: correo, producto: producto, acepta: Cuenta.terminos.VERSION })
     }).then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, d: d }; }); })
       .then(function(x){
         if(!x.ok || !x.d || !x.d.redirigir){
