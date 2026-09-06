@@ -1013,6 +1013,15 @@ function savePDF() {
       if (btn) btn.disabled = false;
       hideLoading();
       if (err === 'SIN_PAGO') {
+        // En vitrina no hay nada que cobrar a la vista, asi que tampoco se
+        // saca el cartel del pago. Se dice lo que hay: el documento sale,
+        // pero sin folio -ese lo emite Postgres y no se va a inventar aqui-.
+        if (enVitrina()) {
+          alert('El acta se descarga como borrador. El folio se emite al cerrarla, ' +
+                'y esa parte no está habilitada en esta presentación.');
+          _imprimirActa(btn);
+          return;
+        }
         if (window.actaMostrarPago) window.actaMostrarPago(true);
         else alert('Necesita activar esta asamblea antes de finalizar el acta.');
         return;
@@ -2984,13 +2993,22 @@ function puertaRecuperar(btn) {
     });
 }
 
+// El modo vitrina lo pone el Worker: cuando VITRINA=1 agrega la clase al
+// <html> y borra del HTML todo lo comercial, la puerta incluida. Aqui solo
+// se lee. Ojo con lo que esto NO significa: la puerta es de escaparate, no
+// de caja. Quien pone el folio es Postgres, y sigue exigiendo la llave del
+// pago aunque el asistente este a la vista.
+function enVitrina() {
+  return document.documentElement.classList.contains('vitrina');
+}
+
 function revisarPuertaDePago() {
   var raiz = document.documentElement;
   raiz.classList.remove('acta-abierta');
 
   // La demostracion vive en localhost y trae su propio simulador de pagos:
   // ahi la puerta estorba, porque el pago es justamente lo que muestra.
-  if (window.DEMOA || hayPagoDelActa()) {
+  if (window.DEMOA || enVitrina() || hayPagoDelActa()) {
     raiz.classList.add('acta-abierta');
     return;
   }

@@ -20,9 +20,13 @@
 
   // RECESO=1 suspende el sitio: el Worker responde 404 a todo.
   // Poner "0" y volver a desplegar para reactivarlo.
+  // VITRINA=1 esconde todo lo comercial -precios, botones de pago y la puerta
+  //   del acta- para mostrar el sistema sin hablar de plata. No toca el cobro:
+  //   Postgres sigue exigiendo la llave del pago para emitir un folio.
   // FLOW_ENTORNO: "sandbox" mientras se prueba, "produccion" para cobrar de verdad.
   "vars": {
     "RECESO": "0",
+    "VITRINA": "1",
     "FLOW_ENTORNO": "sandbox",
     "PRECIO_CLP": "14990",
     "PRECIO_CONSULTA_CLP": "7990"

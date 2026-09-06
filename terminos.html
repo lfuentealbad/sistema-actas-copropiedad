@@ -189,8 +189,9 @@
   <div class="resumen">
     <h2>Lo esencial, en cuatro líneas</h2>
     <ul>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>$14.990 por asamblea</strong>, impuestos incluidos, con la votación en vivo incluida. La <strong>consulta por escrito</strong> es un servicio aparte: <strong>$7.990</strong>.</span></li>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Se paga solo cuando se usa: <strong>no hay suscripción ni cobro automático</strong>, y no queda ningún medio de pago guardado.</span></li>
+      <li data-pago><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>$14.990 por asamblea</strong>, impuestos incluidos, con la votación en vivo incluida. La <strong>consulta por escrito</strong> es un servicio aparte: <strong>$7.990</strong>.</span></li>
+      <li hidden data-vitrina><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Durante la marcha blanca el servicio no tiene costo.</strong> El cobro en línea está deshabilitado.</span></li>
+      <li data-pago><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Se paga solo cuando se usa: <strong>no hay suscripción ni cobro automático</strong>, y no queda ningún medio de pago guardado.</span></li>
       <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Puede retractarse dentro de 10 días</strong> si todavía no ha usado la sala de votación.</span></li>
       <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Su acta se guarda en su cuenta</strong> y la borra cuando quiera. Solo usted puede verla.</span></li>
     </ul>
@@ -281,28 +282,29 @@
 
         <section class="cl" id="t4">
           <h2>Precio y forma de pago</h2>
-          <p class="simple"><b>En simple</b>$14.990 el acta de asamblea, con la votación en vivo incluida. $7.990 la consulta por escrito, que va aparte. Impuestos incluidos, sin suscripción ni cobros automáticos.</p>
-          <div class="precio">
+          <p class="simple" hidden data-vitrina><b>En simple</b>Durante la marcha blanca el servicio se presta sin costo: el cobro en línea está deshabilitado y nadie puede ser cobrado. Las condiciones comerciales se publicarán en esta misma sección antes de que empiece a regir un precio.</p>
+          <p class="simple" data-pago><b>En simple</b>$14.990 el acta de asamblea, con la votación en vivo incluida. $7.990 la consulta por escrito, que va aparte. Impuestos incluidos, sin suscripción ni cobros automáticos.</p>
+          <div class="precio" data-pago>
             <b>$14.990</b>
             <span>el acta de asamblea · impuestos incluidos · votación en vivo incluida</span>
           </div>
-          <div class="precio">
+          <div class="precio" data-pago>
             <b>$7.990</b>
             <span>la consulta por escrito · impuestos incluidos · servicio aparte</span>
           </div>
-          <div class="precio">
+          <div class="precio" data-pago>
             <b>Gratis</b>
             <span>el acta de reunión del comité · sin costo ni límite de tiempo</span>
           </div>
-          <div class="precio">
+          <div class="precio" data-pago>
             <b>Gratis por ahora</b>
             <span>las cuentas del condominio · herramienta nueva, todavía sin cobro</span>
           </div>
-          <p>Hay dos herramientas que no se cobran. El <strong>acta de reunión del comité</strong> es gratuita y seguirá siéndolo. Las <strong>cuentas del condominio</strong> están recién estrenadas y por ahora tampoco se cobran: si algún día pasan a tener precio, se lo avisaremos con al menos <strong>30 días de anticipación</strong> y podrá seguir bajando sus datos aunque decida no pagar, porque esos datos nunca estuvieron en nuestros servidores — viven en su navegador.</p>
-          <p>El pago del acta <strong>habilita una asamblea completa</strong>: finalizarla con folio y abrir su sala de votación en vivo. La <strong>consulta por escrito</strong> se contrata aparte, porque reemplaza a la asamblea en vez de ser una forma de votar dentro de ella. En ninguno de los dos casos hay suscripción: no se renueva solo y no queda ningún medio de pago guardado para cobrar de nuevo.</p>
-          <p>El cobro lo procesa una <strong>pasarela de pagos externa</strong>. Los datos de su tarjeta los recibe esa pasarela; no pasan por nuestros servidores ni los almacenamos.</p>
-          <p>El comprobante llega al correo de su cuenta. Si no le llega dentro de las 24 horas siguientes, escríbanos y lo reemitimos.</p>
-          <p>Podemos cambiar el precio en cualquier momento, pero <strong>el cambio nunca afecta a una asamblea ya pagada</strong>. El precio que rige es el que se muestra al momento de pagar.</p>
+          <p data-pago>Hay dos herramientas que no se cobran. El <strong>acta de reunión del comité</strong> es gratuita y seguirá siéndolo. Las <strong>cuentas del condominio</strong> están recién estrenadas y por ahora tampoco se cobran: si algún día pasan a tener precio, se lo avisaremos con al menos <strong>30 días de anticipación</strong> y podrá seguir bajando sus datos aunque decida no pagar, porque esos datos nunca estuvieron en nuestros servidores — viven en su navegador.</p>
+          <p data-pago>El pago del acta <strong>habilita una asamblea completa</strong>: finalizarla con folio y abrir su sala de votación en vivo. La <strong>consulta por escrito</strong> se contrata aparte, porque reemplaza a la asamblea en vez de ser una forma de votar dentro de ella. En ninguno de los dos casos hay suscripción: no se renueva solo y no queda ningún medio de pago guardado para cobrar de nuevo.</p>
+          <p data-pago>El cobro lo procesa una <strong>pasarela de pagos externa</strong>. Los datos de su tarjeta los recibe esa pasarela; no pasan por nuestros servidores ni los almacenamos.</p>
+          <p data-pago>El comprobante llega al correo de su cuenta. Si no le llega dentro de las 24 horas siguientes, escríbanos y lo reemitimos.</p>
+          <p data-pago>Podemos cambiar el precio en cualquier momento, pero <strong>el cambio nunca afecta a una asamblea ya pagada</strong>. El precio que rige es el que se muestra al momento de pagar.</p>
         </section>
 
         <section class="cl" id="t5">

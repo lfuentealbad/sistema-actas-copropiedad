@@ -19,7 +19,10 @@
   'use strict';
 
   var enLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(global.location.hostname);
-  if (!enLocal) {
+  // El modo vitrina lo enciende el Worker (VITRINA=1) para mostrar el sistema.
+  // El simulador no habla con la base de datos, asi que ahi tambien sirve.
+  var enVitrina = document.documentElement.classList.contains('vitrina');
+  if (!enLocal && !enVitrina) {
     console.warn('El simulador de consulta solo funciona en local. Ignorado.');
     return;
   }

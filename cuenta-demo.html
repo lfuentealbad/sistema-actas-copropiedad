@@ -242,14 +242,15 @@
         <!-- ============ servicios ============ -->
         <section class="seccion" id="s-servicios">
           <h2>Qué puede hacer</h2>
-          <p class="sub">Dos servicios y dos herramientas gratis. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar algo sin reunir a nadie. El acta del comité y las cuentas del condominio no se cobran: son el trabajo de todos los meses, y un comité sin administrador no debería tener que pagar por cumplir la ley.</p>
+          <p class="sub" data-pago>Dos servicios y dos herramientas gratis. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar algo sin reunir a nadie. El acta del comité y las cuentas del condominio no se cobran: son el trabajo de todos los meses, y un comité sin administrador no debería tener que pagar por cumplir la ley.</p>
+          <p class="sub" hidden data-vitrina>Cuatro herramientas. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar algo sin reunir a nadie; el acta del comité deja por escrito sus acuerdos; y las cuentas del condominio reparten el gasto común del mes.</p>
           <article class="sv sv-principal">
             <span class="ic"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
             <h3>Acta de asamblea</h3>
             <p>Es lo que la Ley N° 21.442 exige levantar, y es lo que usted se lleva. Un asistente de seis pasos la arma mientras dirige la reunión: calcula el quórum sobre los derechos, aplica la mayoría que corresponde a cada punto y entrega el documento con folio, listo para firmar.</p>
             <div class="pie">
-              <span class="precio"><b>$14.990</b> por asamblea</span>
-              <span id="p-cta-acta"><a class="btn btn-p" href="/acta">Pagar y comenzar</a></span>
+              <span class="precio" data-pago><b>$14.990</b> por asamblea</span>
+              <span id="p-cta-acta"><a class="btn btn-p" href="/acta"><span data-pago>Pagar y comenzar</span><span hidden data-vitrina>Comenzar mi acta</span></a></span>
             </div>
             <div id="p-pago-msg" class="msg" hidden></div>
           </article>
@@ -263,7 +264,7 @@
                 <h3>Votación en vivo</h3>
                 <p>Con la gente reunida. Los copropietarios votan desde su teléfono con su RUT, el tablero suma los derechos en el momento y los votos entran solos al acta. Quien dejó su correo recibe la constancia de cómo votó.</p>
                 <div class="pie">
-                  <span class="precio">Incluida</span>
+                  <span class="precio" data-pago>Incluida</span>
                   <span class="rama-cta" data-href="/acta#votacion" data-txt="Abrir sala"></span>
                 </div>
               </article>
@@ -276,8 +277,8 @@
             <h3>Consulta por escrito</h3>
             <p>Para acordar algo <strong>sin convocar a asamblea</strong>, como permite el artículo 15 de la Ley N° 21.442: se cortó una cañería, hay que aprobar un gasto y no se puede esperar. Cada copropietario responde por correo desde su casilla del Registro y el sistema arma el expediente con el cómputo ponderado por derechos. Sirve para cualquier materia; cuando recae en las señaladas en la letra a) del N° 2 o en el N° 3 del artículo 15, el acuerdo deberá además reducirse a escritura pública.</p>
             <div class="pie">
-              <span class="precio"><b>$7.990</b> por consulta</span>
-              <span id="p-cta-consulta"><a class="btn btn-p" href="/consulta/">Pagar y crear consulta</a></span>
+              <span class="precio" data-pago><b>$7.990</b> por consulta</span>
+              <span id="p-cta-consulta"><a class="btn btn-p" href="/consulta/"><span data-pago>Pagar y crear consulta</span><span hidden data-vitrina>Crear una consulta</span></a></span>
             </div>
             <div id="p-pago-consulta-msg" class="msg" hidden></div>
           </article>
@@ -287,7 +288,7 @@
             <h3>Acta de reunión del comité</h3>
             <p>El comité de administración también sesiona y acuerda cosas, y el artículo 17 de la Ley N° 21.442 manda dejarlas en un libro de actas. Escriba el acta mientras la reunión ocurre —quién asistió, qué se acordó, quién quedó a cargo— y llévese el documento numerado, listo para imprimir y firmar.</p>
             <div class="pie">
-              <span class="precio"><b>Gratis</b> para los comités</span>
+              <span class="precio" data-pago><b>Gratis</b> para los comités</span>
               <span><a class="btn btn-p" href="/acta-comite">Registrar acuerdos</a></span>
             </div>
           </article>
@@ -297,7 +298,7 @@
             <h3>Cuentas del condominio</h3>
             <p>Un condominio sin administrador igual tiene que rendir cuenta cada mes y cobrar bien. Anote los gastos, y el reparto entre las unidades lo hace la alícuota de cada una, que es la regla del artículo 6 salvo que el reglamento de copropiedad disponga otra forma. Sale la liquidación del artículo 31 —con el detalle de ingresos, egresos y saldo de caja que la ley exige mostrar— y el fondo común de reserva del artículo 39 queda llevado aparte, sin mezclarse con la caja.</p>
             <div class="pie">
-              <span class="precio"><b>Gratis</b> para los comités</span>
+              <span class="precio" data-pago><b>Gratis</b> para los comités</span>
               <span><a class="btn btn-p" href="/finanzas">Llevar las cuentas</a></span>
             </div>
           </article>

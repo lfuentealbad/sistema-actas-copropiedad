@@ -491,6 +491,47 @@ export default {
       return estadoPago(env, url);
     }
 
-    return env.ASSETS.fetch(request);
+    return conVitrina(await env.ASSETS.fetch(request), env);
   }
 };
+
+// ---------------------------------------------------------------------
+//  Modo vitrina
+//
+//  VITRINA=1 esconde TODO lo comercial mientras se muestra el sistema:
+//  precios, botones de pago y la puerta que cierra el asistente del acta.
+//  Se hace aqui y no en el navegador por dos razones: no hay parpadeo -el
+//  precio nunca llega a pintarse- y funciona igual con JavaScript apagado.
+//
+//  Dos atributos gobiernan esto en el HTML, y ninguno hace nada con el modo
+//  apagado:
+//
+//    data-pago     se borra en vitrina. Precios, botones de pago, la puerta.
+//    data-vitrina  aparece en vitrina. Va con "hidden" en el archivo, y aqui
+//                  se le quita: sirve para el texto que reemplaza al que se
+//                  fue, por ejemplo "Comenzar" donde decia "Pagar y comenzar".
+//
+//  Ademas se agrega la clase "vitrina" al <html>, que es de donde acta-1.js
+//  saca que la puerta va abierta. No se puede inyectar un <script> en linea:
+//  la CSP real (script-src 'self') lo bloquearia.
+//
+//  Lo que este modo NO hace, a proposito: tocar el cobro de verdad. Sigue
+//  siendo Postgres quien exige la llave del pago para poner folio a un acta.
+//  Esconder un precio no regala el producto.
+// ---------------------------------------------------------------------
+function conVitrina(respuesta, env) {
+  if (String(env.VITRINA) !== '1') return respuesta;
+  const tipo = respuesta.headers.get('content-type') || '';
+  if (!tipo.includes('text/html')) return respuesta;
+
+  return new HTMLRewriter()
+    .on('html', {
+      element(el) {
+        const clases = el.getAttribute('class');
+        el.setAttribute('class', clases ? clases + ' vitrina' : 'vitrina');
+      }
+    })
+    .on('[data-pago]', { element(el) { el.remove(); } })
+    .on('[data-vitrina]', { element(el) { el.removeAttribute('hidden'); } })
+    .transform(respuesta);
+}

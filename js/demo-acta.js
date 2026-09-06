@@ -26,7 +26,10 @@
   'use strict';
 
   var enLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(global.location.hostname);
-  if (!enLocal) {
+  // El modo vitrina lo enciende el Worker (VITRINA=1) para mostrar el sistema.
+  // El simulador no habla con la base de datos, asi que ahi tambien sirve.
+  var enVitrina = document.documentElement.classList.contains('vitrina');
+  if (!enLocal && !enVitrina) {
     console.warn('El simulador del acta solo funciona en local. Ignorado.');
     return;
   }
@@ -310,7 +313,7 @@
   //
   // En el acta, en cambio, se entra ya pagada: en el producto no se llega al
   // asistente sin haber pasado por el pago.
-  if (!/\/cuenta/.test(global.location.pathname)) darPorPagado();
+  if (enVitrina || !/\/cuenta/.test(global.location.pathname)) darPorPagado();
 
   console.info('Simulador del acta activo. Use DEMOA.* para inspeccionarlo.');
 

@@ -21,7 +21,10 @@
   // Cortafuegos: esto solo puede correr en local. Si por descuido llegara a
   // producción, no hace nada y la sala usa Supabase como corresponde.
   var enLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(global.location.hostname);
-  if (!enLocal) {
+  // El modo vitrina lo enciende el Worker (VITRINA=1) para mostrar el sistema.
+  // El simulador no habla con la base de datos, asi que ahi tambien sirve.
+  var enVitrina = document.documentElement.classList.contains('vitrina');
+  if (!enLocal && !enVitrina) {
     console.warn('El simulador de sala solo funciona en local. Ignorado.');
     return;
   }

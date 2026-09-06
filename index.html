@@ -477,7 +477,7 @@
     html{scroll-behavior:auto;}
   }
 </style>
-<script type="application/ld+json">
+<script type="application/ld+json" data-pago>
 {
   "@context": "https://schema.org",
   "@graph": [
@@ -546,9 +546,9 @@
       <p class="hero-nota reveal in d3">
         <span>Sin instalar nada</span>
         <i aria-hidden="true"></i>
-        <span>Se paga solo cuando se usa</span>
-        <i aria-hidden="true"></i>
-        <b class="cifra">$14.990&nbsp;por acta</b>
+        <span data-pago>Se paga solo cuando se usa</span>
+        <i aria-hidden="true" data-pago></i>
+        <b class="cifra" data-pago>$14.990&nbsp;por acta</b>
       </p>
     </div>
   </div>
@@ -707,7 +707,7 @@
           <div class="cons-veredicto"><strong>Aprobado.</strong> Se alcanzó el quórum exigido para esta materia.</div>
         </div>
         <div class="cons-precio">
-          <div>
+          <div data-pago>
             <b>$7.990</b>
             <small>Servicio aparte: no necesita pagar el acta para usarla.</small>
           </div>
@@ -725,9 +725,9 @@
   <div class="wrap">
     <div class="reveal" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(26px,3.4vw,44px);display:flex;gap:clamp(20px,3vw,44px);align-items:center;flex-wrap:wrap">
       <div style="flex:1 1 380px;min-width:280px">
-        <span class="eyebrow">Gratis para los comités</span>
+        <span class="eyebrow" data-pago>Gratis para los comités</span>
         <h2 id="tit-comite" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">¿Y las reuniones <em>del comité?</em></h2>
-        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0;max-width:56ch">Los acuerdos del comité de administración también deben quedar registrados en el Libro de Actas. Ingrese lo tratado durante la reunión y obtenga el registro listo para incorporar al libro. <strong style="color:var(--ink)">Sin costo</strong> — solo necesita su cuenta.</p>
+        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0;max-width:56ch">Los acuerdos del comité de administración también deben quedar registrados en el Libro de Actas. Ingrese lo tratado durante la reunión y obtenga el registro listo para incorporar al libro. <span data-pago><strong style="color:var(--ink)">Sin costo</strong> — solo necesita su cuenta.</span></p>
       </div>
       <div style="flex:0 0 auto">
         <a class="btn btn-ink" href="/acta-comite">Registrar acuerdos del comité</a>
@@ -740,10 +740,10 @@
   <div class="wrap">
     <div class="reveal" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(26px,3.4vw,44px);display:flex;gap:clamp(20px,3vw,44px);align-items:center;flex-wrap:wrap">
       <div style="flex:1 1 380px;min-width:280px">
-        <span class="eyebrow">Nuevo · gratis por ahora</span>
+        <span class="eyebrow" data-pago>Nuevo · gratis por ahora</span>
         <h2 id="tit-cuentas" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">Y las cuentas <em>del mes.</em></h2>
         <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0 0 14px;max-width:56ch">La asamblea es una vez al año; el gasto común es todos los meses. Anote lo que se gastó y el reparto entre las unidades lo hace la alícuota de cada una —la regla del artículo 6, salvo que el reglamento disponga otra—. Sale la <strong style="color:var(--ink)">liquidación del artículo 31</strong>, con la proporción de cada copropietario, sus intereses y multas, y el detalle de ingresos, egresos y saldo de caja que la ley exige mostrar. El fondo común de reserva del artículo 39 se lleva aparte, sin mezclarse con la caja.</p>
-        <p style="font-size:14.5px;color:var(--tx3);line-height:1.6;margin:0;max-width:56ch">Está recién estrenado, así que por ahora <strong style="color:var(--ink)">no se cobra</strong>. Los datos quedan en su navegador: no se suben a ninguna parte y el respaldo lo baja usted.</p>
+        <p style="font-size:14.5px;color:var(--tx3);line-height:1.6;margin:0;max-width:56ch"><span data-pago>Está recién estrenado, así que por ahora <strong style="color:var(--ink)">no se cobra</strong>.</span> Los datos quedan en su navegador: no se suben a ninguna parte y el respaldo lo baja usted.</p>
       </div>
       <div style="flex:0 0 auto">
         <a class="btn btn-ink" href="/finanzas">Llevar las cuentas</a>
@@ -765,8 +765,8 @@
       <details class="reveal"><summary>¿Sirve para asambleas telemáticas o mixtas?</summary><div>Sí. Puede utilizarse en asambleas presenciales, telemáticas o mixtas. En estas últimas deben cumplirse además las condiciones previstas en el reglamento de copropiedad y las exigencias de identificación del Reglamento de la Ley.</div></details>
       <details class="reveal"><summary>¿El acta está diseñada conforme a la Ley N°&nbsp;21.442?</summary><div>Sí. El sistema aplica los quórums y mayorías según la materia seleccionada y genera el documento a partir de los antecedentes ingresados, listo para revisar y firmar.</div></details>
       <details class="reveal"><summary>¿Se puede acordar algo sin convocar a asamblea?</summary><div>Sí. El artículo 15 de la Ley N°&nbsp;21.442 permite la <strong>consulta por escrito</strong>: se expone la propuesta en una sesión informativa previa, se envía la consulta a los correos del Registro de Copropietarios y se fija un plazo para responder. Queda aprobada cuando las respuestas a favor suman el porcentaje de derechos que la ley exige para esa materia. Cuando la consulta verse sobre las materias señaladas en la letra a) del N° 2 o en el N° 3 del artículo 15, el acuerdo deberá además reducirse a escritura pública.</div></details>
-      <details class="reveal"><summary>¿Sirve si el condominio no tiene administrador?</summary><div>Para eso están las <a href="/finanzas">cuentas del condominio</a>. Un comité que administra por su cuenta igual debe repartir el gasto común, llevar el fondo de reserva y rendir cuenta cada mes: la herramienta anota los egresos, reparte por alícuota y emite la liquidación con lo que exige el artículo 31. <strong>Por ahora no se cobra.</strong> Los datos quedan en el navegador donde los escribe —no viajan a nuestros servidores— así que conviene bajar un respaldo cada cierto tiempo desde la propia herramienta.</div></details>
-      <details class="reveal"><summary>¿Cuánto cuesta?</summary><div>
+      <details class="reveal"><summary>¿Sirve si el condominio no tiene administrador?</summary><div>Para eso están las <a href="/finanzas">cuentas del condominio</a>. Un comité que administra por su cuenta igual debe repartir el gasto común, llevar el fondo de reserva y rendir cuenta cada mes: la herramienta anota los egresos, reparte por alícuota y emite la liquidación con lo que exige el artículo 31. <strong data-pago>Por ahora no se cobra.</strong> Los datos quedan en el navegador donde los escribe —no viajan a nuestros servidores— así que conviene bajar un respaldo cada cierto tiempo desde la propia herramienta.</div></details>
+      <details class="reveal" data-pago><summary>¿Cuánto cuesta?</summary><div>
         <table class="precios">
           <tr><td>Acta de asamblea <span>incluye la votación en vivo</span></td><td><b>$14.990</b> por asamblea</td></tr>
           <tr><td>Consulta por escrito <span>acordar sin reunir a todos</span></td><td><b>$7.990</b> por consulta</td></tr>
