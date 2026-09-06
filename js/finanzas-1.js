@@ -246,6 +246,48 @@ function confirmar(opciones){
   });
 }
 
+/* ============ EL MES ACTIVO ============
+ *  El mes es el estado de la aplicacion, no el filtro de una pantalla. Se
+ *  elige en la cinta de arriba y lo siguen los gastos, los cobros y la
+ *  liquidacion: cerrar un mes deja de ser un recorrido por diez secciones.
+ *  Los copropietarios y los datos del condominio quedan fuera a proposito,
+ *  porque no pertenecen a ningun mes.
+ */
+let mesActivo = periodoActual();
+
+// Doce meses hacia atras mas el actual; se muestran los seis ultimos y el
+// resto queda al alcance del desplazamiento lateral.
+function renderCintaMeses(){
+  const caja = document.getElementById('cintaMeses');
+  if(!caja) return;
+  const hoy = periodoActual();
+  const lista = periodosUlt(12, hoy > mesActivo ? hoy : mesActivo);
+  caja.innerHTML = lista.map(p=>
+    `<button type="button" data-ac="irAlMes" data-args="${p}" class="${p===mesActivo?'act':''}"` +
+    ` aria-pressed="${p===mesActivo}">${escapeHtml(fmtPeriodoCorto(p))}</button>`
+  ).join('');
+  const act = caja.querySelector('button.act');
+  if(act && act.scrollIntoView) act.scrollIntoView({block:'nearest', inline:'center'});
+
+  const u = document.getElementById('cintaUnidades');
+  if(u) u.textContent = estado.unidades.length === 1
+    ? '1 unidad' : `${fmtNum(estado.unidades.length)} unidades`;
+}
+
+// Cambiar de mes arrastra a todas las secciones que dependen de el.
+function irAlMes(periodo){
+  if(!periodo) return;
+  mesActivo = periodo;
+  ['cobroFiltroMes','egFiltroMes','liqMes'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.value = periodo;
+  });
+  renderCintaMeses();
+  const pane = (location.hash || '#dashboard').slice(1);
+  const pinta = PANE_RENDERERS[pane] || PANE_RENDERERS.dashboard;
+  pinta();
+}
+
 /* ============ NAVEGACIÓN con hash routing ============ */
 const PANE_RENDERERS = {
   dashboard: ()=>renderDashboard(),
@@ -262,6 +304,11 @@ const PANE_RENDERERS = {
 };
 function navegarA(pane){
   if(!PANE_RENDERERS[pane]) pane = 'dashboard';
+  // Los enlaces de la cinta marcan donde esta uno; el mes no cambia al
+  // moverse entre secciones.
+  document.querySelectorAll('.cinta-der a[data-pane]').forEach(function(a){
+    a.classList.toggle('act', a.getAttribute('data-pane') === pane);
+  });
   document.querySelectorAll('.nav a').forEach(x=>{
     const isActive = x.dataset.pane === pane;
     x.classList.toggle('active', isActive);
@@ -1419,60 +1466,161 @@ function calcSaldoCaja(hastaPeriodo){
   return saldo;
 }
 function renderDashboard(){
-  // Mostrar onboarding si no hay datos cargados
+  renderCintaMeses();
+
   const haDatos = estado.unidades.length > 0 || estado.egresos.length > 0;
-  document.getElementById('onboardingPanel').style.display = haDatos ? 'none' : 'block';
-  if(!document.getElementById('dashMes').value){
-    document.getElementById('dashMes').value = periodoActual();
-  }
-  const periodo = document.getElementById('dashMes').value;
+  const onb = document.getElementById('onboardingPanel');
+  if(onb) onb.style.display = haDatos ? 'none' : 'block';
+
+  const periodo = mesActivo;
+  const t = document.getElementById('mesTitulo');
+  if(t) t.textContent = fmtPeriodoLargo(periodo).replace(/^./, c=>c.toUpperCase());
+
   const m = calcMes(periodo);
+  const pagados = estado.cobros.filter(c=>c.estado==='pagado' && c.periodo===periodo);
+  const alDia = estado.unidades.filter(u=>balanceUnidad(u.id).adeudado===0).length;
+  const deudoras = estado.unidades.length - alDia;
+
   document.getElementById('kpiIng').textContent = fmtCLP(m.ingresos);
-  document.getElementById('kpiIngSub').textContent = fmtPeriodoLargo(periodo);
+  // Unidades distintas que pagaron, no cobros: una unidad paga la cuota, el
+  // fondo y el seguro y son tres cobros, pero sigue siendo una unidad.
+  const pagaron = new Set(pagados.filter(c=>!esDelFondo(c)).map(c=>c.unidadId)).size;
+  document.getElementById('kpiIngSub').textContent = estado.unidades.length
+    ? `Pagaron ${fmtNum(pagaron)} de ${fmtNum(estado.unidades.length)} unidades`
+    : 'Sin unidades cargadas';
   document.getElementById('kpiEg').textContent = fmtCLP(m.egresos);
-  document.getElementById('kpiEgSub').textContent = fmtPeriodoLargo(periodo);
+  const egDelMes = estado.egresos.filter(e=>e.periodo===periodo);
+  const cats = new Set(egDelMes.map(e=>e.categoria));
+  document.getElementById('kpiEgSub').textContent = egDelMes.length
+    ? `${fmtNum(egDelMes.length)} ${egDelMes.length===1?'documento':'documentos'} en ` +
+      `${fmtNum(cats.size)} ${cats.size===1?'categoría':'categorías'}`
+    : 'Sin gastos anotados';
   document.getElementById('kpiSaldo').textContent = fmtCLP(calcSaldoCaja(periodo));
-  const totU = estado.unidades.length;
-  const deudoras = estado.unidades.filter(u=>balanceUnidad(u.id).adeudado>0).length;
-  const mor = totU ? Math.round(deudoras/totU*100) : 0;
-  document.getElementById('kpiMor').textContent = mor + '%';
-  document.getElementById('kpiMorSub').textContent = `${deudoras} de ${totU} unidades con deuda`;
+  document.getElementById('kpiFondo').textContent = fmtCLP(calcSaldoFondo(periodo));
+  document.getElementById('kpiFondoSub').textContent = m.aportesFondo
+    ? `Entraron ${fmtCLP(m.aportesFondo)} este mes` : 'Sin aportes este mes';
 
-  document.getElementById('resFondo').textContent = estado.config.porcFondo;
-  document.getElementById('resInt').textContent = estado.config.tasaMora;
-  document.getElementById('resVenc').textContent = estado.config.diaVenc;
-  document.getElementById('resSeg').textContent = estado.config.segCia ? `Vigente · ${estado.config.segCia}` : 'No configurado';
+  pintarCierre(periodo, deudoras);
+  pintarGastosDelMes(periodo);
+  pintarCobrosDelMes(periodo, alDia, deudoras);
+  pintarEvolucion(periodo);
+}
 
-  // Chart 12 meses
+// Que falta para cerrar el mes. Es un estado, no un asistente: dice donde
+// esta uno sin obligar a un orden, porque el trabajo rara vez lo lleva.
+function pintarCierre(periodo, deudoras){
+  const caja = document.getElementById('cierrePasos');
+  if(!caja) return;
+  const tit = document.getElementById('cierreTitulo');
+  if(tit) tit.textContent = 'Para cerrar ' + fmtPeriodoLargo(periodo);
+
+  const hayEg = estado.egresos.some(e=>e.periodo===periodo);
+  const cobros = estado.cobros.filter(c=>c.periodo===periodo);
+  const hayCuotas = cobros.length > 0;
+  const pendientes = cobros.filter(c=>c.estado==='pendiente').length;
+  const emitidas = estado.unidades.length > 0 && estado.unidades.every(u=>
+    estado.foliosLiq && estado.foliosLiq[u.id + '|' + periodo]);
+
+  const VISTO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+  const RELOJ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+  const chip = (est, txt) => `<span class="paso-chip ${est}">${est==='ok'?VISTO:est==='pend'?RELOJ:''}${escapeHtml(txt)}</span>`;
+  caja.innerHTML = [
+    hayEg    ? chip('ok','Gastos anotados')  : chip('no','Sin gastos anotados'),
+    hayCuotas? chip('ok','Cuotas repartidas'): chip('no','Cuotas sin repartir'),
+    pendientes? chip('pend', `Falta${pendientes===1?'':'n'} ${fmtNum(pendientes)} ${pendientes===1?'pago':'pagos'}`) : hayCuotas ? chip('ok','Todo cobrado') : chip('no','Sin cobros'),
+    emitidas ? chip('ok','Liquidaciones emitidas') : chip('no','Liquidaciones sin emitir')
+  ].join('');
+}
+
+function pintarGastosDelMes(periodo){
+  const caja = document.getElementById('mesEgresos');
+  if(!caja) return;
+  const grupos = obtenerEgresosAgrupados(periodo);
+  const total = Object.values(grupos).reduce((s,g)=>s+g.total,0);
+  const tot = document.getElementById('mesEgTotal');
+  if(tot) tot.textContent = fmtCLP(total);
+
+  const filas = Object.entries(grupos).sort((a,b)=>b[1].total-a[1].total);
+  if(!filas.length){
+    caja.innerHTML = '<div class="lista-vacia">Todavía no hay gastos anotados en este mes.</div>';
+    return;
+  }
+  const visibles = filas.slice(0,6), resto = filas.slice(6);
+  let html = visibles.map(([cat,g])=>
+    `<div class="fila" style="grid-template-columns:1fr auto">
+       <div>${escapeHtml(cat)} <span class="muted" style="font-size:var(--fs-sm)">· ${fmtNum(g.items.length)} doc.</span></div>
+       <div class="num">${fmtCLP(g.total)}</div>
+     </div>`).join('');
+  if(resto.length){
+    const sum = resto.reduce((s,[,g])=>s+g.total,0);
+    html += `<div class="fila" style="grid-template-columns:1fr auto">
+       <div class="muted">Otras ${fmtNum(resto.length)} categorías</div>
+       <div class="num muted">${fmtCLP(sum)}</div>
+     </div>`;
+  }
+  caja.innerHTML = html;
+}
+
+function pintarCobrosDelMes(periodo, alDia, deudoras){
+  const caja = document.getElementById('mesCobros');
+  if(!caja) return;
+  const sub = document.getElementById('mesCobrosSub');
+  if(sub) sub.innerHTML = estado.unidades.length
+    ? `${fmtNum(alDia)} al día · <b style="color:var(--danger)">${fmtNum(deudoras)} con deuda</b>`
+    : '—';
+
+  if(!estado.unidades.length){
+    caja.innerHTML = '<div class="lista-vacia">Cargue los copropietarios para repartir el gasto común.</div>';
+    return;
+  }
+  // Primero los que deben: es lo que hay que hacer, no lo que ya esta hecho.
+  const filas = estado.unidades.map(u=>{
+    const b = balanceUnidad(u.id);
+    const delMes = estado.cobros.filter(c=>c.unidadId===u.id && c.periodo===periodo)
+      .reduce((s,c)=>s+(c.adeudado||0),0);
+    return { u, b, delMes };
+  }).sort((a,b)=> (b.b.adeudado>0) - (a.b.adeudado>0) || a.u.codigo.localeCompare(b.u.codigo));
+
+  caja.innerHTML = filas.slice(0,6).map(({u,b,delMes})=>
+    `<div class="fila" style="grid-template-columns:76px 1fr auto auto">
+       <div><b>${escapeHtml(u.codigo)}</b></div>
+       <div class="muted" style="font-size:var(--fs-md)">${fmtPct(u.alicuota)}</div>
+       <div class="num">${fmtCLP(delMes)}</div>
+       <div>${b.adeudado>0
+         ? `<span class="badge danger">Debe ${fmtCLP(b.adeudado)}</span>`
+         : '<span class="badge success">Al día</span>'}</div>
+     </div>`).join('');
+}
+
+function pintarEvolucion(periodo){
+  const chart = document.getElementById('chart12');
+  if(!chart) return;
   const periodos = periodosUlt(12, periodo);
   const datos = periodos.map(p=>calcMes(p));
   const maxVal = Math.max(1, ...datos.map(d=>Math.max(d.ingresos,d.egresos)));
   const w=720, h=220, pl=60, pr=20, pt=20, pb=40;
   const cw = w-pl-pr, ch = h-pt-pb;
   const bw = cw/12 * 0.55;
-  // Resumen accesible para screen readers
   const ultMes = datos[datos.length-1];
   const aria = `Evolución de los últimos 12 meses. Máximo ${fmtCLP(maxVal)}. Mes más reciente: ingresos ${fmtCLP(ultMes.ingresos)}, gastos ${fmtCLP(ultMes.egresos)}.`;
   let svg = `<title>Evolución mensual de ingresos y gastos del condominio</title><desc>${escapeHtml(aria)}</desc>`;
-  // Y axis labels (grid)
   for(let i=0;i<=4;i++){
     const y = pt + ch - (ch * i/4);
     const v = Math.round(maxVal * i/4);
     svg += `<line x1="${pl}" y1="${y}" x2="${w-pr}" y2="${y}" stroke="${i?'#E3EDF7':'#C3CDD9'}" stroke-width="1"/>`;
     svg += `<text x="${pl-8}" y="${y+3}" text-anchor="end" font-size="10" fill="#6E7276">${fmtCLP(v)}</text>`;
   }
-  // Bars (gastos) con tooltip group
   periodos.forEach((p,i)=>{
     const x = pl + (cw*i/12) + (cw/12 - bw)/2;
     const hEg = ch * (datos[i].egresos/maxVal);
     const tip = `${fmtPeriodoLargo(p)}: ingresos ${fmtCLP(datos[i].ingresos)}, gastos ${fmtCLP(datos[i].egresos)}`;
     svg += `<g><title>${escapeHtml(tip)}</title>`;
     svg += `<rect x="${pl + (cw*i/12)}" y="${pt}" width="${cw/12}" height="${ch}" fill="transparent"/>`;
-    svg += `<rect x="${x}" y="${pt+ch-hEg}" width="${bw}" height="${hEg}" fill="#1E3A6E" opacity=".7" rx="3"/>`;
+    svg += `<rect x="${x}" y="${pt+ch-hEg}" width="${bw}" height="${hEg}" fill="${p===periodo?'#1E3A6E':'#1E3A6E'}" opacity="${p===periodo?'1':'.45'}" rx="3"/>`;
     svg += `</g>`;
-    svg += `<text x="${x+bw/2}" y="${h-pb+15}" text-anchor="middle" font-size="10" fill="#6E7276">${fmtPeriodoCorto(p)}</text>`;
+    svg += `<text x="${x+bw/2}" y="${h-pb+15}" text-anchor="middle" font-size="10" fill="${p===periodo?'#1E3A6E':'#6E7276'}" font-weight="${p===periodo?'700':'400'}">${fmtPeriodoCorto(p)}</text>`;
   });
-  // Línea ingresos
   let path = '';
   periodos.forEach((p,i)=>{
     const x = pl + (cw*i/12) + cw/24;
@@ -1485,17 +1633,15 @@ function renderDashboard(){
     const y = pt + ch - ch * (datos[i].ingresos/maxVal);
     svg += `<circle cx="${x}" cy="${y}" r="3.5" fill="#0B6BB5"/>`;
   });
-  // Leyenda
   svg += `<g transform="translate(${pl},${pt-12})" font-size="10" fill="#5C6168">`;
   svg += `<rect x="0" y="0" width="10" height="10" fill="#1E3A6E" opacity=".7" rx="2"/><text x="14" y="9">Gastos</text>`;
   svg += `<line x1="60" y1="5" x2="80" y2="5" stroke="#0B6BB5" stroke-width="2.5"/><circle cx="70" cy="5" r="3" fill="#0B6BB5"/><text x="84" y="9">Ingresos</text>`;
   svg += `</g>`;
-  const chart = document.getElementById('chart12');
   chart.innerHTML = svg;
   chart.setAttribute('role', 'img');
   chart.setAttribute('aria-label', aria);
 }
-oir('dashMes', 'change', renderDashboard);
+
 
 /* ============ LIQUIDACIÓN ============ */
 function prepLiquidacion(){
@@ -2220,8 +2366,8 @@ function mostrarMasUnidades(n){
 /* ============ INIT ============ */
 document.addEventListener('DOMContentLoaded', function(){
   cargar();
-  document.getElementById('cobroFiltroMes').value = '';
-  document.getElementById('egFiltroMes').value = '';
+  // Los filtros de cada seccion nacen en el mes activo: la cinta manda.
+  irAlMes(mesActivo);
   montarOyentesFinos();
   manejarHash();   // sin hash entra al panel
 });
