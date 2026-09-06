@@ -627,15 +627,15 @@
       </div>
       <div class="row cols-3" style="margin-bottom:14px">
         <div>
-          <label>Período</label>
+          <label for="egFiltroMes">Período</label>
           <input type="month" id="egFiltroMes" />
         </div>
         <div>
-          <label>Categoría</label>
+          <label for="egFiltroCat">Categoría</label>
           <select id="egFiltroCat"></select>
         </div>
         <div>
-          <label>Buscar</label>
+          <label for="egFiltroQ">Buscar</label>
           <input id="egFiltroQ" placeholder="Proveedor, descripción, N° doc…" />
         </div>
       </div>
@@ -703,11 +703,11 @@
       <div class="card no-print">
         <div class="row cols-3">
           <div>
-            <label>Unidad</label>
+            <label for="liqUnidad">Unidad</label>
             <select id="liqUnidad"></select>
           </div>
           <div>
-            <label>Período</label>
+            <label for="liqMes">Período</label>
             <input type="month" id="liqMes" />
           </div>
           <div>
@@ -771,8 +771,8 @@
           <div><label for="cfgCondRut">RUT del condominio</label><input id="cfgCondRut" placeholder="77.332.256-K" inputmode="text" /></div>
         </div>
         <div class="row">
-          <div><label>Dirección</label><input id="cfgCondDir" /></div>
-          <div><label>Comuna / región</label><input id="cfgCondComuna" /></div>
+          <div><label for="cfgCondDir">Dirección</label><input id="cfgCondDir" /></div>
+          <div><label for="cfgCondComuna">Comuna / región</label><input id="cfgCondComuna" /></div>
         </div>
       </div>
       <div class="card">
@@ -789,30 +789,30 @@
           <div><label for="cfgAdmTel">Teléfono</label><input id="cfgAdmTel" type="tel" inputmode="tel" autocomplete="tel" /></div>
         </div>
         <div class="row">
-          <div><label>Inscripción Registro Nacional de Administradores (art. 82 Ley)</label><input id="cfgAdmRegistro" placeholder="N° de inscripción" /></div>
-          <div><label>Firma digital (URL imagen, opcional)</label><input id="cfgAdmFirma" /></div>
+          <div><label for="cfgAdmRegistro">Inscripción Registro Nacional de Administradores (art. 82 Ley)</label><input id="cfgAdmRegistro" placeholder="N° de inscripción" /></div>
+          <div><label for="cfgAdmFirma">Firma digital (URL imagen, opcional)</label><input id="cfgAdmFirma" /></div>
         </div>
       </div>
       <div class="card">
         <h3>Parámetros legales</h3>
         <div class="row cols-3">
           <div>
-            <label>% recargo fondo de reserva <span class="legal-tag">Art. 39 Ley</span></label>
+            <label for="cfgPorcFondo">% recargo fondo de reserva <span class="legal-tag">Art. 39 Ley</span></label>
             <input id="cfgPorcFondo" type="number" step="0.5" min="5" />
             <div class="legal">No puede ser inferior al 5% del gasto común mensual.</div>
           </div>
           <div>
-            <label>Tasa interés mora mensual <span class="legal-tag">Art. 7 Ley</span></label>
+            <label for="cfgTasaMora">Tasa interés mora mensual <span class="legal-tag">Art. 7 Ley</span></label>
             <input id="cfgTasaMora" type="number" step="0.1" min="0" />
             <div class="legal">Máximo 50% del interés corriente bancario.</div>
           </div>
           <div>
-            <label>Interés corriente bancario mensual <span class="legal-tag">Art. 7 Ley</span></label>
+            <label for="cfgInteresCorriente">Interés corriente bancario mensual <span class="legal-tag">Art. 7 Ley</span></label>
             <input id="cfgInteresCorriente" type="number" step="0.01" min="0" />
             <div class="legal">El que publica la CMF para el mes. Con este dato el sistema aplica solo el tope de la mora; sin él no puede comprobarlo.</div>
           </div>
           <div>
-            <label>Día de vencimiento mensual <span class="legal-tag">Art. 7 Ley</span></label>
+            <label for="cfgDiaVenc">Día de vencimiento mensual <span class="legal-tag">Art. 7 Ley</span></label>
             <input id="cfgDiaVenc" type="number" min="1" max="28" />
             <div class="legal">10 días desde la emisión del aviso, salvo otro plazo en reglamento.</div>
           </div>
@@ -821,8 +821,8 @@
       <div class="card">
         <h3>Datos bancarios para pago</h3>
         <div class="row">
-          <div><label>Banco</label><input id="cfgBanco" /></div>
-          <div><label>Tipo de cuenta</label>
+          <div><label for="cfgBanco">Banco</label><input id="cfgBanco" /></div>
+          <div><label for="cfgBancoTipo">Tipo de cuenta</label>
             <select id="cfgBancoTipo">
               <option>Cuenta corriente</option>
               <option>Cuenta vista</option>
@@ -831,25 +831,25 @@
           </div>
         </div>
         <div class="row">
-          <div><label>N° de cuenta</label><input id="cfgBancoNum" /></div>
-          <div><label>Titular (debe coincidir con RUT condominio)</label><input id="cfgBancoTitular" /></div>
+          <div><label for="cfgBancoNum">N° de cuenta</label><input id="cfgBancoNum" /></div>
+          <div><label for="cfgBancoTitular">Titular (debe coincidir con RUT condominio)</label><input id="cfgBancoTitular" /></div>
         </div>
       </div>
       <div class="card">
         <h3>Plantilla de observaciones de la administración</h3>
-        <textarea id="cfgObs" rows="5" placeholder="Texto que aparecerá en cada liquidación: instrucciones de pago, recordatorios, etc."></textarea>
+        <textarea id="cfgObs" rows="5" aria-label="Plantilla de observaciones de la administración" placeholder="Texto que aparecerá en cada liquidación: instrucciones de pago, recordatorios, etc."></textarea>
       </div>
       <div class="card">
         <h3>Seguro colectivo contra incendio <span class="legal-tag">Art. 43 Ley</span></h3>
         <div class="row cols-3">
-          <div><label>Compañía aseguradora</label><input id="cfgSegCia" /></div>
-          <div><label>N° póliza</label><input id="cfgSegPoliza" /></div>
-          <div><label>Vigencia (fecha término)</label><input id="cfgSegVig" type="date" /></div>
+          <div><label for="cfgSegCia">Compañía aseguradora</label><input id="cfgSegCia" /></div>
+          <div><label for="cfgSegPoliza">N° póliza</label><input id="cfgSegPoliza" /></div>
+          <div><label for="cfgSegVig">Vigencia (fecha término)</label><input id="cfgSegVig" type="date" /></div>
         </div>
         <div class="row cols-3">
-          <div><label>Prima mensual ($)</label><input id="cfgSegPrima" type="number" /></div>
-          <div><label>Cuotas totales</label><input id="cfgSegCuotas" type="number" /></div>
-          <div><label>Cuota actual</label><input id="cfgSegCuotaAct" type="number" /></div>
+          <div><label for="cfgSegPrima">Prima mensual ($)</label><input id="cfgSegPrima" type="number" /></div>
+          <div><label for="cfgSegCuotas">Cuotas totales</label><input id="cfgSegCuotas" type="number" /></div>
+          <div><label for="cfgSegCuotaAct">Cuota actual</label><input id="cfgSegCuotaAct" type="number" /></div>
         </div>
         <div class="legal">Obligatorio en condominios con destino habitacional. La prima se cobra junto con los gastos comunes (art. 37 Decreto 7).</div>
       </div>
@@ -872,7 +872,7 @@
         <div class="card">
           <h3>Importar respaldo</h3>
           <p class="muted" style="font-size:12.5px">Reemplaza el estado actual con el contenido del archivo JSON.</p>
-          <input type="file" id="importFile" accept=".json" />
+          <input type="file" id="importFile" accept=".json" aria-label="Archivo de respaldo (.json) para importar" />
           <div class="btn-row" style="margin-top:8px"><button class="btn" data-ac="importarRespaldo">Importar</button></div>
         </div>
         <div class="card">
@@ -1006,7 +1006,7 @@
   <h2 id="mImportCSVTitle">Importar copropietarios</h2>
   <p class="muted" style="font-size:12.5px">Sube el archivo Excel (.xlsx) o CSV con los datos del condominio.</p>
   <p class="muted" style="font-size:12px">¿No tienes plantilla? <a href="#" data-ac="descargarPlantilla">Descárgala aquí</a> (Excel con columnas y ejemplos), llénala con tus datos y vuelve a subirla.</p>
-  <input type="file" id="csvFile" accept=".csv,.xlsx" />
+  <input type="file" id="csvFile" accept=".csv,.xlsx" aria-label="Planilla de copropietarios (.xlsx o .csv)" />
   <div class="legal-note" style="margin-top:12px">
     <strong>Importante:</strong> el correo electrónico es obligatorio si deseas usar el envío de liquidaciones por correo (art. 5 inc. 1 Ley 21.442 — registro de copropietarios).
   </div>
@@ -1021,7 +1021,7 @@
   <p class="muted" style="font-size:12.5px">El sistema toma la suma de los <strong>egresos registrados</strong> para el período seleccionado y la distribuye entre las unidades en proporción a su <strong>alícuota</strong> (art. 6 + art. 22 Ley 21.442). El art. 6 admite que el <strong>reglamento de copropiedad establezca otra forma de contribución</strong>: si el de su condominio reparte de otro modo, esta herramienta no le sirve para calcularlo.</p>
   <div class="row cols-2" style="margin-top:8px">
     <div>
-      <label>Período</label>
+      <label for="genPeriodo">Período</label>
       <input type="month" id="genPeriodo" data-cambio="actualizarSugerenciaTotal" />
     </div>
     <div>
@@ -1034,7 +1034,7 @@
   </div>
   <div id="genBreakdown" style="background:var(--primary-soft);padding:12px 14px;border-radius:9px;margin:12px 0"></div>
   <div>
-    <label>Monto total a recaudar ($) <span class="legal-tag">Art. 22 Ley</span></label>
+    <label for="genTotal">Monto total a recaudar ($) <span class="legal-tag">Art. 22 Ley</span></label>
     <input type="number" id="genTotal" />
     <div style="font-size:12px;color:var(--ink-mute);margin-top:4px">Equivale a <strong id="genTotalFmt" style="color:var(--ink)">$ 0</strong>. Puedes editarlo si quieres cobrar un monto distinto al sugerido.</div>
   </div>
@@ -1063,11 +1063,11 @@
 <div class="modal" id="mCobro" role="dialog" aria-modal="true" aria-labelledby="mCobroTitle"><div class="panel">
   <h2 id="mCobroTitle">Cobro</h2>
   <div class="row">
-    <div><label>Unidad</label><select id="cUnidad"></select></div>
-    <div><label>Período</label><input id="cPeriodo" type="month" /></div>
+    <div><label for="cUnidad">Unidad</label><select id="cUnidad"></select></div>
+    <div><label for="cPeriodo">Período</label><input id="cPeriodo" type="month" /></div>
   </div>
   <div class="row">
-    <div><label>Tipo</label>
+    <div><label for="cTipo">Tipo</label>
       <select id="cTipo">
         <option value="ordinaria">Cuota ordinaria</option>
         <option value="extraordinaria">Cuota extraordinaria</option>
@@ -1077,17 +1077,17 @@
         <option value="interes">Interés mora</option>
       </select>
     </div>
-    <div><label>Concepto</label><input id="cConcepto" /></div>
+    <div><label for="cConcepto">Concepto</label><input id="cConcepto" /></div>
   </div>
   <div class="row">
-    <div><label>Monto adeudado ($)</label><input id="cMonto" type="number" /></div>
-    <div><label>Estado</label>
+    <div><label for="cMonto">Monto adeudado ($)</label><input id="cMonto" type="number" /></div>
+    <div><label for="cEstado">Estado</label>
       <select id="cEstado"><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option></select>
     </div>
   </div>
   <div class="row">
-    <div><label>Fecha de pago (si pagado)</label><input id="cFechaPago" type="date" /></div>
-    <div><label>Monto pagado (si distinto)</label><input id="cMontoPagado" type="number" /></div>
+    <div><label for="cFechaPago">Fecha de pago (si pagado)</label><input id="cFechaPago" type="date" /></div>
+    <div><label for="cMontoPagado">Monto pagado (si distinto)</label><input id="cMontoPagado" type="number" /></div>
   </div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mCobro">Cancelar</button>
@@ -1098,14 +1098,14 @@
 <div class="modal" id="mEgreso" role="dialog" aria-modal="true" aria-labelledby="mEgresoTitle"><div class="panel">
   <h2 id="mEgresoTitle">Egreso del condominio</h2>
   <div class="row">
-    <div><label>Fecha</label><input id="eFecha" type="date" /></div>
-    <div><label>Categoría <span class="legal-tag">Art. 9 Ley · Art. 24 D.7</span></label>
+    <div><label for="eFecha">Fecha</label><input id="eFecha" type="date" /></div>
+    <div><label for="eCategoria">Categoría <span class="legal-tag">Art. 9 Ley · Art. 24 D.7</span></label>
       <select id="eCategoria"></select>
     </div>
   </div>
   <div class="row">
-    <div><label>Subcategoría / detalle</label><input id="eSubcat" placeholder="Ej: Liquidación marzo, ESSBIO, mantención bombas…" /></div>
-    <div><label>Proveedor / contraparte</label><input id="eContraparte" /></div>
+    <div><label for="eSubcat">Subcategoría / detalle</label><input id="eSubcat" placeholder="Ej: Liquidación marzo, ESSBIO, mantención bombas…" /></div>
+    <div><label for="eContraparte">Proveedor / contraparte</label><input id="eContraparte" /></div>
   </div>
   <div class="row">
     <div><label for="eDoc">N° documento (factura, BHE, boleta)</label><input id="eDoc" /></div>
@@ -1126,8 +1126,8 @@
 <div class="modal" id="mIngreso" role="dialog" aria-modal="true" aria-labelledby="mIngresoTitle"><div class="panel">
   <h2 id="mIngresoTitle">Ingreso del condominio</h2>
   <div class="row">
-    <div><label>Fecha</label><input id="iFecha" type="date" /></div>
-    <div><label>Categoría</label>
+    <div><label for="iFecha">Fecha</label><input id="iFecha" type="date" /></div>
+    <div><label for="iCategoria">Categoría</label>
       <select id="iCategoria">
         <option>Arriendo bienes comunes</option>
         <option>Autofinanciamiento</option>
@@ -1139,10 +1139,10 @@
     </div>
   </div>
   <div class="row">
-    <div><label>Contraparte</label><input id="iContraparte" /></div>
-    <div><label>Monto ($)</label><input id="iMonto" type="number" /></div>
+    <div><label for="iContraparte">Contraparte</label><input id="iContraparte" /></div>
+    <div><label for="iMonto">Monto ($)</label><input id="iMonto" type="number" /></div>
   </div>
-  <div><label>Descripción</label><textarea id="iDesc" rows="2"></textarea></div>
+  <div><label for="iDesc">Descripción</label><textarea id="iDesc" rows="2"></textarea></div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mIngreso">Cancelar</button>
     <button class="btn primary" data-ac="guardarIngreso">Guardar</button>
@@ -1153,11 +1153,11 @@
   <h2 id="mFondoTitulo">Movimiento del fondo</h2>
   <input type="hidden" id="fTipo" />
   <div class="row">
-    <div><label>Fecha</label><input id="fFecha" type="date" /></div>
-    <div><label>Monto ($)</label><input id="fMonto" type="number" /></div>
+    <div><label for="fFecha">Fecha</label><input id="fFecha" type="date" /></div>
+    <div><label for="fMonto">Monto ($)</label><input id="fMonto" type="number" /></div>
   </div>
-  <div><label>Origen / destino</label><input id="fOrigen" /></div>
-  <div><label>Descripción</label><textarea id="fDesc" rows="2"></textarea></div>
+  <div><label for="fOrigen">Origen / destino</label><input id="fOrigen" /></div>
+  <div><label for="fDesc">Descripción</label><textarea id="fDesc" rows="2"></textarea></div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mFondo">Cancelar</button>
     <button class="btn primary" data-ac="guardarMovFondo">Guardar</button>
@@ -1167,12 +1167,12 @@
 <div class="modal" id="mMantencion" role="dialog" aria-modal="true" aria-labelledby="mMantencionTitle"><div class="panel">
   <h2 id="mMantencionTitle">Item del programa de mantención</h2>
   <div class="row">
-    <div><label>Mes programado</label><input id="manMes" type="month" /></div>
-    <div><label>Costo estimado ($)</label><input id="manCosto" type="number" /></div>
+    <div><label for="manMes">Mes programado</label><input id="manMes" type="month" /></div>
+    <div><label for="manCosto">Costo estimado ($)</label><input id="manCosto" type="number" /></div>
   </div>
-  <div><label>Concepto</label><input id="manConcepto" placeholder="Ej: Mantención trimestral bombas de agua" /></div>
+  <div><label for="manConcepto">Concepto</label><input id="manConcepto" placeholder="Ej: Mantención trimestral bombas de agua" /></div>
   <div class="row">
-    <div><label>Tipo</label>
+    <div><label for="manTipo">Tipo</label>
       <select id="manTipo">
         <option value="mantencion">Mantención</option>
         <option value="reparacion">Reparación</option>
@@ -1180,7 +1180,7 @@
         <option value="inspeccion">Inspección</option>
       </select>
     </div>
-    <div><label>Prioridad</label>
+    <div><label for="manPrior">Prioridad</label>
       <select id="manPrior">
         <option value="alta">Alta</option>
         <option value="media">Media</option>

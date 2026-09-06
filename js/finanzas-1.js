@@ -147,6 +147,16 @@ const periodosUlt = (n, hasta) => {
   return arr;
 };
 
+// Cuelga un oyente solo si el elemento existe. Ver el comentario de los
+// filtros mas abajo: sin esta guarda, un id renombrado mata el modulo entero.
+function oir(ids, evento, fn){
+  (Array.isArray(ids) ? ids : [ids]).forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.addEventListener(evento, fn);
+    else if(window.console) console.warn('Falta el elemento #' + id);
+  });
+}
+
 /* === TOAST con variantes e icono === */
 const TOAST_ICONS = {
   default: '',
@@ -1136,10 +1146,12 @@ function abrirLiquidacionDirecta(unidadId, periodo){
   }, 100);
 }
 
-['cobroFiltroMes','cobroFiltroEstado','cobroFiltroVista'].forEach(id=>{
-  document.getElementById(id).addEventListener('change', renderCobros);
-});
-document.getElementById('cobroFiltroQ').addEventListener('input', renderCobros);
+// Con guarda: estos oyentes se cuelgan al cargar el archivo, antes de que
+// nadie haya tocado nada. Sin el "if", basta que a un id le cambien el nombre
+// en el HTML para que el script muera aqui y el modulo entero deje de
+// responder, sin un solo error visible en la pagina.
+oir(['cobroFiltroMes','cobroFiltroEstado','cobroFiltroVista'], 'change', renderCobros);
+oir('cobroFiltroQ', 'input', renderCobros);
 
 /* ============ EGRESOS ============ */
 let egresoEditId = null;
@@ -1225,9 +1237,7 @@ function renderEgresos(){
       <td><div class="btn-row"><button class="btn sm" data-ac="abrirEgreso" data-args="${e.id}" aria-label="Editar gasto">Editar</button><button class="btn sm danger" data-ac="eliminarEgreso" data-args="${e.id}" aria-label="Eliminar gasto">Eliminar</button></div></td>
     </tr>`).join('');
 }
-['egFiltroMes','egFiltroCat','egFiltroQ'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', renderEgresos);
-});
+oir(['egFiltroMes','egFiltroCat','egFiltroQ'], 'input', renderEgresos);
 
 // Listener: formatear monto en vivo en modal egreso
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -1485,7 +1495,7 @@ function renderDashboard(){
   chart.setAttribute('role', 'img');
   chart.setAttribute('aria-label', aria);
 }
-document.getElementById('dashMes').addEventListener('change', renderDashboard);
+oir('dashMes', 'change', renderDashboard);
 
 /* ============ LIQUIDACIÓN ============ */
 function prepLiquidacion(){
@@ -1637,7 +1647,7 @@ function buildLiquidacionHTML(unidad, periodo){
       ${c.obs ? escapeHtml(c.obs).split('\n').map(l=>'<div>'+l+'</div>').join('') : '<div style="color:#6E7276">Sin observaciones registradas.</div>'}
       <hr class="soft" style="margin:8px 0">
       <div style="font-size:10.5px;color:#6E7276">
-        Mora: interés de ${fmtPct(c.tasaMora)} mensual sobre saldos morosos, según el reglamento de copropiedad. El art. 7 de la Ley N° 21.442 lo limita al 50% del interés corriente bancario${c.interesCorriente>0?`, que este mes es de ${fmtPct(c.interesCorriente)} (tope: ${fmtPct(c.interesCorriente/2)})`:''}. La suspensión de servicios procede tras 3 cuotas vencidas (art. 36 Ley) previa autorización del Comité de Administración.
+        Mora: interés de ${fmtPct(c.tasaMora)} mensual sobre saldos morosos, según el reglamento de copropiedad. El art. 7 de la Ley N° 21.442 lo limita al 50% del interés corriente bancario${c.interesCorriente>0?`, que este mes es de ${fmtPct(c.interesCorriente)} (tope: ${fmtPct(c.interesCorriente/2)})`:''}. La suspensión de servicios procede desde tres cuotas adeudadas, continuas o discontinuas (art. 36 Ley), previa autorización del Comité de Administración y avisando por escrito al copropietario o residente con al menos <b>5 días corridos</b> de anticipación (art. 27 Decreto 7/2023). No puede suspenderse más de un servicio a la vez, ni cortarse la electricidad en una unidad donde resida una <b>persona electrodependiente</b>.
       </div>
     </div>
 
