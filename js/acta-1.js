@@ -154,7 +154,7 @@ var info = {
 'ordinaria': {
 titulo: 'Asamblea Ordinaria (Art. 15 Ley N° 21.442)',
 qConst: '33% de los derechos del condominio.',
-qAcuerdo: 'Mayoría absoluta de los asistentes.',
+qAcuerdo: 'Mayoría absoluta de los derechos presentes en la sesión.',
 materias: [
 'Rendición de cuentas por parte del administrador y aprobación del balance presentado.',
 'Designación, reelección o renuncia de los miembros del comité de administración.',
@@ -525,17 +525,24 @@ boxAcuerdos.style.display = 'flex';
 var fillA = document.getElementById('quorum-acuerdos-fill');
 var pctA = document.getElementById('quorum-acuerdos-pct');
 var txtA = document.getElementById('quorum-acuerdos-text');
-if (countHabil === 0) {
-txtA.textContent = 'Ingrese copropietarios habiles para calcular';
+var subtO = boxAcuerdos.querySelector('div:last-of-type');
+if (subtO) {
+subtO.textContent = 'Mayor\u00eda absoluta de los derechos presentes \u00b7 Art. 15 Ley 21.442';
+}
+if (countHabil === 0 || totalHabil === 0) {
+txtA.textContent = 'Ingrese copropietarios h\u00e1biles para calcular';
 pctA.textContent = '--';
 fillA.style.width = '0%';
 } else {
-var votosMinimos = Math.floor(countHabil / 2) + 1;
+// Mayoria absoluta de los DERECHOS presentes, no de las cabezas: el voto
+// es proporcional a los derechos de cada unidad (art. 15).
+var minimoDer = totalHabil / 2;
 fillA.style.width = '50%';
-pctA.textContent = votosMinimos + ' votos';
+pctA.textContent = 'M\u00e1s de ' + _pctExacto(minimoDer) + ' %';
 txtA.innerHTML =
-'Base para votación: <strong>' + countHabil + '</strong> asistente' + (countHabil === 1 ? '' : 's') + ' h\u00e1bile' + (countHabil === 1 ? '' : 's') + ' presente' + (countHabil === 1 ? '' : 's') + '. '
-+ 'Se requieren al menos <strong>' + votosMinimos + ' voto' + (votosMinimos === 1 ? '' : 's') + '</strong> a favor.';
+'Base para votaci\u00f3n: <strong>' + _pctExacto(totalHabil) + ' %</strong> de derechos h\u00e1biles presentes '
++ '(' + countHabil + ' asistente' + (countHabil === 1 ? '' : 's') + '). '
++ 'Se requiere <strong>m\u00e1s de ' + _pctExacto(minimoDer) + ' %</strong> a favor.';
 }
 } else {
 boxAcuerdos.style.display = 'flex';
@@ -667,6 +674,16 @@ return parseInt(d) + ' de ' + meses[parseInt(m)-1] + ' de ' + y;
 function _pctCL(n) {
 return (Number(n) || 0).toFixed(2).replace('.', ',');
 }
+// Para la base y el umbral de una votacion: el valor exacto, no redondeado.
+// Un umbral mal redondeado hace que la cuenta no cierre para quien la
+// rehaga a mano, y esa cuenta es justamente lo que el acta debe permitir.
+function _pctExacto(n) {
+var s = (Number(n) || 0).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+var p = s.split('.');
+var dec = p[1] || '';
+while (dec.length < 2) dec += '0';
+return p[0] + ',' + dec;
+}
 function _pvau(id) {
 const el = document.getElementById(id);
 return el ? (el.value || '') : '';
@@ -776,18 +793,17 @@ if (hasVot) {
 votText += '<p><strong>Votaci\u00f3n:</strong> ';
 votText += pvotBase + '. ';
 votText += pvotUmbral + '. ';
-if (esOrdinaria) {
-var favNum = parseInt(pvotFavor, 10) || 0;
-var conNum = parseInt(pvotContra, 10) || 0;
-var absNum = parseInt(pvotAbst, 10) || 0;
-votText += 'A favor: <strong>' + _xckaf(favNum) + '</strong>. ';
-votText += 'En contra: <strong>' + _xckaf(conNum) + '</strong>. ';
-votText += 'Abstenci\u00f3n: <strong>' + _xckaf(absNum) + '</strong>.</p>';
-} else {
+{
+// Siempre en derechos, en toda asamblea. Entre parentesis va cuanta
+// gente hay detras de esos derechos: acompana la cifra, no la decide.
 var favPct = parseFloat(pvotFavor) || 0;
 var conPct = parseFloat(pvotContra) || 0;
 var absPct = parseFloat(pvotAbst) || 0;
-votText += 'A favor: <strong>' + _pctCL(favPct) + ' % de los derechos</strong>. ';
+var favPer = pc.dataset.votFavorPers;
+var totPer = pc.dataset.votTotalPers;
+votText += 'A favor: <strong>' + _pctCL(favPct) + ' % de los derechos</strong>';
+votText += (favPer !== undefined && totPer !== undefined
+? ' (' + favPer + ' de ' + totPer + ' asistentes h\u00e1biles)' : '') + '. ';
 votText += 'En contra: <strong>' + _pctCL(conPct) + ' % de los derechos</strong>. ';
 votText += 'Abstenci\u00f3n: <strong>' + _pctCL(absPct) + ' % de los derechos</strong>.</p>';
 }
@@ -905,9 +921,12 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 : 'Este porcentaje <strong>no alcanza</strong> el m\u00ednimo de ' + quorumMin + '% requerido para constituir la asamblea.') +
 '</p>' +
 (esOrdinaria
-? '<p>Para efectos de la adopci\u00f3n de acuerdos, éstos se computan sobre la base de los '
-+ '<strong>' + countHabil + '</strong> asistentes h\u00e1biles, '
-+ 'conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.'
+? '<p>Para efectos de la adopci\u00f3n de acuerdos, \u00e9stos se computan sobre los '
++ '<strong>derechos</strong> de los copropietarios h\u00e1biles presentes, que alcanzan el '
++ '<strong>' + _pctCL(totalHabil) + ' %</strong> de los derechos del condominio '
++ '(' + countHabil + ' asistente' + (countHabil === 1 ? '' : 's') + '). '
++ 'El voto de cada copropietario es proporcional a sus derechos en los bienes de dominio '
++ 'com\u00fan, conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.'
 + (notario === 'Si' && notarioNombre
 ? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
 : '') + '</p></div>'
@@ -1436,112 +1455,6 @@ function descargarPlantilla() {
 
   if (window.track) window.track('plantilla_descargada');
 }
-function obtenerAsistentesHabiles() {
-var result = [];
-document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
-var habEl = row.querySelector('.habil');
-var derEl = row.querySelector('.derechos');
-var nomEl = row.querySelector('.nombre-asist');
-var uniEl = row.querySelector('.unidad');
-if (!habEl || habEl.value !== 'si') return;
-result.push({
-unidad: uniEl ? uniEl.value.trim() : '',
-nombre: nomEl ? nomEl.value.trim() : '',
-derechos: parseFloat(derEl ? derEl.value : 0) || 0
-});
-});
-return result;
-}
-function calcularResultadoVotacion(cfg) {
-var habiles = obtenerAsistentesHabiles();
-var sistema = cfg.sistemaComputo || 'asistentes';
-var mayoria = cfg.tipoMayoria || 'abs_asistentes';
-var totalPersonas = habiles.length;
-var totalDerechos = habiles.reduce(function(s, a) { return s + a.derechos; }, 0);
-var favorPersonas = 0, contraPersonas = 0, abstPersonas = 0, sinVotarPersonas = 0;
-var favorDerechos = 0, contraDerechos = 0, abstDerechos = 0;
-habiles.forEach(function(a) {
-switch (a.voto) {
-case 'favor':
-favorPersonas++; favorDerechos += a.derechos; break;
-case 'contra':
-contraPersonas++; contraDerechos += a.derechos; break;
-case 'abstencion':
-abstPersonas++; abstDerechos += a.derechos; break;
-default:
-sinVotarPersonas++;
-}
-});
-var baseValor, aFavor, enContra, abstenciones;
-if (sistema === 'asistentes') {
-baseValor = totalPersonas;
-aFavor = favorPersonas;
-enContra = contraPersonas;
-abstenciones = abstPersonas;
-} else {
-baseValor = totalDerechos;
-aFavor = favorDerechos;
-enContra = contraDerechos;
-abstenciones = abstDerechos;
-}
-var umbral, comparador, descripcionMayoria;
-switch (mayoria) {
-case 'abs_asistentes':
-umbral = totalPersonas / 2;
-comparador = '>';
-descripcionMayoria = 'Mayor\u00eda absoluta de asistentes h\u00e1biles (' + totalPersonas + ' presentes \u2192 m\u00ednimo ' + (Math.floor(totalPersonas / 2) + 1) + ' votos)';
-break;
-case 'abs_derechos':
-umbral = 51;
-comparador = '>=';
-descripcionMayoria = 'Mayor\u00eda absoluta de derechos del condominio (50+1% de 100% \u2192 m\u00ednimo 51%)';
-break;
-case 'dos_tercios':
-umbral = 66;
-comparador = '>=';
-descripcionMayoria = '66% de los derechos del condominio (66% de 100% → umbral 66%)';
-break;
-default:
-umbral = baseValor / 2;
-comparador = '>';
-descripcionMayoria = 'Mayoría absoluta';
-}
-var aprobado = false;
-if (comparador === '>') {
-aprobado = (aFavor > umbral);
-} else {
-aprobado = (aFavor >= umbral);
-}
-var unidad = (sistema === 'asistentes') ? ' asistentes' : '%';
-var NL = String.fromCharCode(10);
-var detalle =
-'Base de c\u00e1lculo: ' + (sistema === 'asistentes'
-? totalPersonas + ' asistentes h\u00e1biles'
-: totalDerechos.toFixed(2) + '% derechos h\u00e1biles') + NL +
-'Mayor\u00eda requerida: ' + descripcionMayoria + NL +
-'Resultado: ' +
-aFavor + (sistema === 'derechos' ? '%' : '') + ' a favor - ' +
-enContra + (sistema === 'derechos' ? '%' : '') + ' en contra - ' +
-abstenciones + (sistema === 'derechos' ? '%' : '') + ' abstenci\u00f3n' +
-(sinVotarPersonas > 0 ? ' (' + sinVotarPersonas + ' sin votar)' : '') + NL +
-'Conclusi\u00f3n: ' + (aprobado ? 'SE APRUEBA' : 'NO SE APRUEBA');
-return {
-baseTipo: sistema,
-baseValor: baseValor,
-aFavor: aFavor,
-enContra: enContra,
-abstenciones: abstenciones,
-sinVotar: sinVotarPersonas,
-umbral: umbral,
-comparador: comparador,
-aprobado: aprobado,
-detalle: detalle,
-descripcionMayoria: descripcionMayoria,
-totalPersonas: totalPersonas,
-totalDerechos: totalDerechos,
-unidad: (sistema === 'asistentes') ? '' : '%'
-};
-}
 function actualizarVotacion() {
 _hyrf();
 }
@@ -1692,42 +1605,29 @@ var rfEl = document.getElementById('pvot-rf-' + n);
 var rcEl = document.getElementById('pvot-rc-' + n);
 var raEl = document.getElementById('pvot-ra-' + n);
 if (!rfEl) return;
-var sistema = (mayoria === 'abs_asistentes') ? 'asistentes' : 'derechos';
-if (sistema === 'asistentes') {
-rfEl.textContent = favorHab;
-rcEl.textContent = contraHab;
-raEl.textContent = abstHab;
-} else {
+// Siempre en derechos: es lo que la ley cuenta.
 rfEl.textContent = _pctCL(favorDer) + ' %';
 rcEl.textContent = _pctCL(contraDer) + ' %';
 raEl.textContent = _pctCL(abstDer) + ' %';
-}
 var umbral, aprobado, umbralDesc, baseDesc;
-if (sistema === 'asistentes') {
-var base = totalHab;
-umbral = Math.floor(base / 2) + 1;
-aprobado = (favorHab >= umbral);
-baseDesc = 'Base: ' + base + ' asistentes hábiles';
-umbralDesc = 'Mínimo requerido: ' + umbral + ' votos a favor';
-} else {
-if (mayoria === 'abs_asistentes' || mayoria === 'abs_derechos') {
 if (mayoria === 'abs_asistentes') {
+// Ordinaria: mayoria absoluta de los derechos PRESENTES.
 umbral = totalDer / 2;
 aprobado = (favorDer > umbral);
-baseDesc = 'Base: ' + totalDer.toFixed(2) + '% derechos h\u00e1biles';
-umbralDesc = 'Mayor\u00eda absoluta: m\u00e1s de ' + umbral.toFixed(2) + '% a favor';
-} else {
-umbral = 51;
-aprobado = (favorDer >= umbral);
-baseDesc = 'Base: 100% derechos del condominio';
-umbralDesc = '50+1% de derechos del condominio: al menos 51% a favor';
-}
+baseDesc = 'Base: ' + _pctExacto(totalDer) + ' % de derechos h\u00e1biles presentes ('
++ totalHab + ' asistente' + (totalHab === 1 ? '' : 's') + ')';
+umbralDesc = 'Mayor\u00eda absoluta: m\u00e1s de ' + _pctExacto(umbral) + ' % a favor';
+} else if (mayoria === 'abs_derechos') {
+// Extraordinaria de mayoria absoluta: sobre el total del condominio.
+umbral = 50;
+aprobado = (favorDer > umbral);
+baseDesc = 'Base: 100 % de los derechos del condominio';
+umbralDesc = 'Mayor\u00eda absoluta: m\u00e1s del 50 % de los derechos a favor';
 } else {
 umbral = 66;
 aprobado = (favorDer >= umbral);
-baseDesc = 'Base: 100% derechos del condominio';
-umbralDesc = '66% de derechos del condominio: al menos 66% a favor';
-}
+baseDesc = 'Base: 100 % de los derechos del condominio';
+umbralDesc = 'Mayor\u00eda reforzada: al menos 66 % de los derechos a favor';
 }
 var detEl = document.getElementById('pvot-rdet-' + n);
 var conclEl = document.getElementById('pvot-rconcl-' + n);
@@ -1754,13 +1654,16 @@ conclEl.textContent = 'ACUERDO NO APROBADO';
 }
 var card = document.getElementById('punto-' + n);
 if (card) {
-card.dataset.votFavor = sistema === 'asistentes' ? favorHab : favorDer.toFixed(2);
-card.dataset.votContra = sistema === 'asistentes' ? contraHab : contraDer.toFixed(2);
-card.dataset.votAbst = sistema === 'asistentes' ? abstHab : abstDer.toFixed(2);
+card.dataset.votFavor = favorDer.toFixed(2);
+card.dataset.votContra = contraDer.toFixed(2);
+card.dataset.votAbst = abstDer.toFixed(2);
+// El numero de personas acompana, no decide.
+card.dataset.votFavorPers = favorHab;
+card.dataset.votTotalPers = totalHab;
 card.dataset.votBase = baseDesc;
 card.dataset.votUmbral = umbralDesc;
 card.dataset.votAprobado= (totalHab > 0 && !haySinReg) ? (aprobado ? 'si' : 'no') : 'pendiente';
-card.dataset.votUnidad = sistema === 'asistentes' ? 'votos' : '%';
+card.dataset.votUnidad = '%';
 card.dataset.votSinReg = sinReg;
 }
 }
@@ -1812,10 +1715,6 @@ document.querySelectorAll('.punto-card').forEach(function(card) {
 var n = card.id.replace('punto-', '');
 _qpese(n);
 });
-}
-function _xckaf(n) {
-var num = parseInt(n, 10);
-return isNaN(num) ? (n + ' votos') : (num === 1 ? '1 voto' : num + ' votos');
 }
 function _ctgdc(texto) {
 if (!texto) return '';

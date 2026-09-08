@@ -327,9 +327,17 @@ function copiarTexto(btn){
   );
 }
 
-// Mismos umbrales que usa el acta de asamblea: 51% para mayoria absoluta
-// (50+1% de 100%) y 66% para la reforzada, ambos con >=. No inventar otros.
-const UMBRAL = { 'ordinaria': null, 'ext-abs': 51, 'ext-ref': 66 };
+// Mismos umbrales que usa el acta de asamblea. Mayoria absoluta es MAS de
+// la mitad, no "51%": el 50+1 solo coincide con 51 cuando la base son 100
+// unidades enteras, y aqui la base son derechos. Un 50,5% es mayoria
+// absoluta y antes se rechazaba.
+const UMBRAL = {
+  'ordinaria': null,
+  'ext-abs': { min: 50, estricto: true,  texto: 'más del 50%' },
+  'ext-ref': { min: 66, estricto: false, texto: 'al menos el 66%' }
+};
+// Devuelve si los derechos a favor alcanzan el umbral de la materia.
+function alcanza(u, a) { return u.estricto ? a > u.min : a >= u.min; }
 
 async function refrescar(manual){
   if(!C) return;
@@ -359,12 +367,12 @@ function pintar(est, filas){
   if(est.ambiguas > 0){
     v.className = 'aviso warn';
     v.textContent = 'Hay ' + est.ambiguas + ' respuesta(s) que el sistema no pudo interpretar. Revíselas abajo antes de dar por cerrado el acuerdo.';
-  } else if(u !== null && a >= u){
+  } else if(u !== null && alcanza(u, a)){
     v.className = 'aviso ok';
-    v.textContent = 'Aprobado: ' + pct(a) + ' de los derechos, sobre el ' + u + '% exigido.';
+    v.textContent = 'Aprobado: ' + pct(a) + ' de los derechos, y la materia exige ' + u.texto + '.';
   } else if(u !== null){
     v.className = 'aviso warn';
-    v.textContent = 'Aún no se alcanza el quórum: ' + pct(a) + ' de ' + u + '% exigido.';
+    v.textContent = 'Aún no se alcanza el quórum: ' + pct(a) + ' de los derechos, y la materia exige ' + u.texto + '.';
   } else {
     v.className = 'aviso warn';
     v.textContent = 'Quórum ordinario: se calcula sobre los asistentes, noción que no traslada directamente a una consulta escrita. La calificación corresponde al comité.';
@@ -429,12 +437,12 @@ function veredicto(est, a){
              'consigna precedentemente y su calificación corresponde al comité de administración.',
              clase:'neutro' };
   }
-  return a >= u
+  return alcanza(u, a)
     ? { texto:'Se DA POR APROBADA la materia consultada, por haberse obtenido la aceptación escrita de ' +
-        'copropietarios que representan el ' + pct(a) + ' de los derechos del condominio, alcanzando el ' +
-        u + '% exigido para la materia.', clase:'aprobado' }
+        'copropietarios que representan el ' + pct(a) + ' de los derechos del condominio, cumpliéndose el ' +
+        'quórum de ' + u.texto + ' que la materia exige.', clase:'aprobado' }
     : { texto:'NO SE APRUEBA la materia consultada, por no haberse alcanzado el quórum exigido: se obtuvo ' +
-        'el ' + pct(a) + ' de los derechos, frente al ' + u + '% requerido.', clase:'rechazado' };
+        'el ' + pct(a) + ' de los derechos, y la materia exige ' + u.texto + '.', clase:'rechazado' };
 }
 
 async function generarDocumento(btn){
