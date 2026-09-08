@@ -36,6 +36,32 @@ function entrar(rol){ ROL=rol; $('role-badge').textContent=rol==='mesa'?'MESA':'
 
 let asamblea=null, padron=[], puntos=[], puntoActivo=null, votacionAbierta=false, padronDirty=false, autoTimer=null;
 let mesaTimer=null, seqVotos=0;
+// Verdadero cuando el padron se recupero del servidor sin datos de
+// asistencia: hay que pedirla, no inventarla.
+let asistenciaSupuesta=false;
+
+// Normaliza un padron que viene de fuera -del servidor, de localStorage, de
+// una planilla- a booleanos de verdad.
+//
+// Adentro las banderas se leen estrictas: lo que no se puede interpretar no
+// vota, porque suponerlo agrega derechos a la base y baja el umbral de
+// hecho. Pero un borrador guardado por una version anterior puede no traer
+// la bandera, y dejar a todo el condominio inhabil de golpe seria peor que
+// el problema. Asi que la suposicion se hace UNA vez, aqui, a la vista.
+//
+// Historicamente la ausencia de `habil` significaba habil -es el default de
+// la columna en Postgres- y la de `asiste`, presente.
+function normalizarPadron(filas){
+  return (filas||[]).map(p=>{
+    const h=Derechos.bandera(p.habil), a=Derechos.bandera(p.asiste);
+    return Object.assign({}, p, {
+      unidad: p.unidad||'', nombre: p.nombre||'', rut: p.rut||'',
+      der: Derechos.aNumero(Derechos.desdeTexto(p.der)),
+      habil: h === null ? true : h,
+      asiste: a === null ? true : a
+    });
+  });
+}
 const LS = c => 'sala-mesa-'+c;
 
 function initMesa(){ const last=localStorage.getItem('sala-mesa-last'); if(last){ const r=$('m-reanudar'); r.textContent='Continuar asamblea '+last; r.classList.remove('hidden'); } }
@@ -84,7 +110,17 @@ async function reanudar(btn){
     if(error||!data||!data.asamblea){ alert('Esa asamblea ya no existe o la llave no corresponde. Crea una nueva.'); return; }
     const a=data.asamblea;
     asamblea={id:a.id,codigo:a.codigo,condo:saved.condo||a.titulo||'',tipo:saved.tipo||'ordinaria',token:saved.token};
-    padron=(data.padron&&data.padron.length)? data.padron.map(p=>({unidad:p.unidad||'',nombre:p.nombre||'',rut:p.rut||'',der:Number(p.der)||0,habil:p.habil!==false,asiste:p.asiste!==false})) : (saved.padron||[]);
+    // La tabla padron no guarda `asiste` todavia (ver la migracion
+    // pendiente en Prototipo Votacion en Vivo/). Hasta que la guarde, lo
+    // que vuelve del servidor no trae asistencia: se marca para poder
+    // avisarlo en vez de dar por presente a todo el mundo en silencio.
+    asistenciaSupuesta = false;
+    if (data.padron && data.padron.length) {
+      asistenciaSupuesta = data.padron.some(p => Derechos.bandera(p.asiste) === null);
+      padron = normalizarPadron(data.padron);
+    } else {
+      padron = normalizarPadron(saved.padron);
+    }
     puntos=saved.puntos||[];
     { const set=new Set(puntos.map(p=>p.key)); (data.puntos||[]).forEach(k=>{ if(k&&!set.has(k)){ set.add(k); puntos.push({key:k,titulo:String(k).replace(/^\d+\.\s*/,'')}); } }); }
     votacionAbierta=!!a.abierta; puntoActivo=votacionAbierta?a.punto:(saved.puntoActivo||null);
@@ -112,7 +148,13 @@ function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent)
 
 function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='Cambios sin guardar…'; persistMesa(); clearTimeout(autoTimer); autoTimer=setTimeout(autoGuardarPadron,900); }
 async function persistirPadronDB(filas){
-  const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,der:Derechos.aNumero(Derechos.desdeTexto(p.der))}));
+  // Booleanos de verdad, no cadenas: del otro lado hay un ::boolean.
+  // `asiste` viaja aunque la tabla todavia no lo guarde -ver la migracion
+  // pendiente-; cuando la guarde, deja de perderse al recargar.
+  const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,
+    habil:Derechos.habilSegura(p.habil),
+    asiste:Derechos.bandera(p.asiste)!==false,
+    der:Derechos.aNumero(Derechos.desdeTexto(p.der))}));
   const {data,error}=await sb.rpc('vv_set_padron',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_padron:arr});
   if(error) throw error;
   return (data&&data.n)||arr.length;
@@ -159,13 +201,25 @@ function renderPadron(){
   renderPadronSum();
 }
 function renderPadronSum(){
+  // Con el art. 14 aplicado: quien debe en otra de sus unidades no es
+  // habil en ninguna, y eso cambia cuantos votan.
+  const conArt14=Derechos.habilidadPorCopropietario(padron);
   const sum=Derechos.suma(padron.map(p=>Derechos.desdeTexto(p.der)));
-  const hab=padron.filter(p=>p.habil!==false).length;
-  const pres=padron.filter(p=>p.habil!==false&&p.asiste!==false).length;
+  const hab=conArt14.filas.filter(p=>p.habil!==false).length;
+  const pres=conArt14.filas.filter(p=>p.habil!==false&&p.asiste!==false).length;
   const malRut=padron.filter(p=>p.rut&&!validarRut(p.rut)).length;
-  let h=padron.length+' copropietarios · '+hab+' hábiles · '+pres+' presentes hábiles · suma de derechos: <strong>'+sum.toFixed(2)+'%</strong>';
-  if(Math.abs(sum-100)>0.5&&sum>0) h+=' <span style="color:var(--warn)">(no suma 100%)</span>';
+  // Una unidad repetida cuenta sus derechos dos veces. Un RUT repetido no
+  // es un error: es un copropietario con mas de una unidad.
+  const vistas={}; let unidadesDobles=0;
+  padron.forEach(p=>{ const u=String(p.unidad||'').trim().toLowerCase(); if(!u) return;
+    if(vistas[u]) unidadesDobles++; else vistas[u]=1; });
+
+  let h=padron.length+' copropietarios · '+hab+' hábiles · '+pres+' presentes hábiles · suma de derechos: <strong>'+Derechos.texto(sum)+' %</strong>';
+  if(Math.abs(sum-Derechos.CIEN)>0.5*Derechos.ESCALA&&sum>0) h+=' <span style="color:var(--warn)">(no suma 100 %)</span>';
   if(malRut) h+=' <span style="color:var(--err)">· '+malRut+' RUT inválido</span>';
+  if(unidadesDobles) h+=' <span style="color:var(--err)">· '+unidadesDobles+' unidad(es) repetida(s)</span>';
+  if(conArt14.arrastrados.length) h+=' <span style="color:var(--warn)">· '+conArt14.arrastrados.length+' inhábil(es) por otra unidad (art. 14)</span>';
+  if(asistenciaSupuesta) h+=' <span style="color:var(--warn)">· la asistencia no viene guardada: revísela antes de abrir la votación</span>';
   $('m-padron-sum').innerHTML=h;
 }
 function agregarFila(){ padron.push({unidad:'',nombre:'',rut:'',der:0,habil:true,asiste:true}); renderPadron(); markDirty(); }
@@ -259,7 +313,7 @@ function quitarPunto(i){ if(puntos[i].key===puntoActivo && votacionAbierta){ ale
 async function abrirPunto(key,btn){
   if(padronDirty){ await autoGuardarPadron(); }
   if(padronDirty){ alert('Hay RUT inválidos o repetidos en el padrón (marcados en rojo). Corrígelos antes de abrir la votación.'); return; }
-  if(padron.filter(p=>p.habil!==false).length===0){ alert('No hay copropietarios hábiles en el padrón.'); return; }
+  if(Derechos.habilidadPorCopropietario(padron).filas.filter(p=>Derechos.habilSegura(p.habil)).length===0){ alert('No hay copropietarios hábiles en el padrón.'); return; }
   setBusy(btn,true,'Abriendo…');
   try{
     const { error }=await sb.rpc('vv_abrir',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:key});
@@ -304,9 +358,9 @@ function calc(votos){
   let f=0,c=0,a=0,n=0,nf=0,nc=0,na=0,totalCond=0,totalHabil=0,habPresentes=0;
   let derPresentes=0, sinRegistrar=0;
   filas.forEach(p=>{ const d=Derechos.desdeTexto(p.der); totalCond+=d;
-    if(p.habil!==false){ totalHabil+=d; if(p.asiste!==false){ habPresentes++; derPresentes+=d; } } });
+    if(Derechos.habilSegura(p.habil)){ totalHabil+=d; if(Derechos.bandera(p.asiste)!==false){ habPresentes++; derPresentes+=d; } } });
   filas.forEach(p=>{ const v=map[norm(p.rut)]; const d=Derechos.desdeTexto(p.der);
-    if(p.habil!==false&&p.asiste!==false){
+    if(Derechos.habilSegura(p.habil)&&Derechos.bandera(p.asiste)!==false){
       if(v){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} }
       else sinRegistrar++;
     } });

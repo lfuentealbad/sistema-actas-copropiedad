@@ -274,6 +274,33 @@
     return { filas: salida, arrastrados: arrastrados, sinRut: sinRut };
   }
 
+  // -------------------------------------------------------------------
+  //  Las banderas: habil y asiste
+  // -------------------------------------------------------------------
+  //  `p.habil !== false` daba por habil cualquier cosa que no fuera el
+  //  booleano false: el texto "false", el texto "no", null, un campo que
+  //  la base devolvio vacio. Un moroso guardado con la bandera en texto
+  //  votaba igual, y nadie se enteraba.
+  //
+  //  Devuelve true, false, o null cuando el valor no se puede interpretar.
+  //  null NO es "por omision": es "hay que preguntarlo", y quien llama
+  //  decide si lo rechaza o lo cuenta como el valor conservador.
+  function bandera(v) {
+    if (v === true || v === false) return v;
+    if (v === undefined || v === null) return null;
+    var s = String(v).trim().toLowerCase();
+    if (s === '') return null;
+    if (s === 'true' || s === 'si' || s === 'sí' || s === '1') return true;
+    if (s === 'false' || s === 'no' || s === '0') return false;
+    return null;
+  }
+
+  // Para las bases de calculo: lo que no se pudo interpretar se trata como
+  // el valor que NO suma. Es la unica direccion segura -de lo contrario un
+  // dato roto agrega derechos a la base y baja el umbral de hecho- y quien
+  // llama tiene `bandera()` para avisar de que hubo que suponerlo.
+  function habilSegura(v) { return bandera(v) === true; }
+
   global.Derechos = {
     DECIMALES: DECIMALES,
     ESCALA: ESCALA,
@@ -284,6 +311,8 @@
     texto: texto,
     aNumero: aNumero,
     resolver: resolver,
+    bandera: bandera,
+    habilSegura: habilSegura,
     normalizarRut: normalizarRut,
     habilidadPorCopropietario: habilidadPorCopropietario
   };

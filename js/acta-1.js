@@ -1058,9 +1058,32 @@ return { html: doc, nombre: 'acta_' + nombreCondo + '_' + fecha };
 // iframe con el mismo CSS: el destino "Guardar como PDF" del navegador entrega
 // un PDF de verdad, con texto seleccionable y paginado A4.
 function savePDF() {
+  // La puerta antes de finalizar. Sigue siendo un AVISO y no un bloqueo: un
+  // acta que deja constancia de que la asamblea no se constituyo, o de un
+  // padron incompleto, es un documento legitimo y bloquearlo seria peor. Lo
+  // que si cambia es que deja de mezclar en una sola lista un RUT con el
+  // digito verificador malo y que la asamblea no se haya constituido.
   if (typeof revisarConsistencia === 'function') {
-    var _adv = revisarConsistencia().filter(function (x) { return !x.ok; });
-    if (_adv.length && !confirm('La revisi\u00f3n de consistencia encontr\u00f3 ' + _adv.length + ' advertencia(s):\n\n\u2022 ' + _adv.map(function (x) { return x.texto; }).join('\n\u2022 ') + '\n\n\u00bfFinalizar de todos modos?')) return;
+    var _todo = revisarConsistencia().filter(function (x) { return !x.ok; });
+    var _graves = _todo.filter(function (x) { return x.grave; });
+    var _leves = _todo.filter(function (x) { return !x.grave; });
+    if (_todo.length) {
+      var _NL = String.fromCharCode(10);
+      var _msg = '';
+      if (_graves.length) {
+        _msg += 'ATENCI\u00d3N' + _NL + _NL
+             + _graves.map(function (x) { return '\u2022 ' + x.texto; }).join(_NL) + _NL + _NL;
+      }
+      if (_leves.length) {
+        _msg += (_graves.length ? 'Adem\u00e1s, hay ' : 'La revisi\u00f3n encontr\u00f3 ')
+             + _leves.length + ' cosa(s) por revisar:' + _NL
+             + _leves.map(function (x) { return '\u2022 ' + x.texto; }).join(_NL) + _NL + _NL;
+      }
+      _msg += _graves.length
+        ? 'El acta se puede emitir igual y quedar\u00e1 con estos datos. \u00bfContinuar?'
+        : '\u00bfFinalizar de todos modos?';
+      if (!confirm(_msg)) return;
+    }
   }
   var btn = document.querySelector('.print-btn .btn-gold');
   if (btn) btn.disabled = true;
@@ -1352,14 +1375,17 @@ function resumenImportacion(count, errores) {
 
   var m = 'Se cargaron ' + count + ' unidades.\n';
   m += '\nSuma de derechos: ' + Derechos.texto(suma) + ' %';
-  m += (Math.abs(suma - 100) <= 0.5)
+  m += (Math.abs(suma - Derechos.CIEN) <= 0.5 * Derechos.ESCALA)
      ? '  ✓'
-     : '  ← revise: debería sumar 100%';
+     : '  ← revise: debería sumar 100 %';
 
   var avisos = [];
   if (errores > 0)       avisos.push(errores + ' fila(s) no se pudieron leer y se omitieron.');
   if (sinRut > 0)        avisos.push(sinRut + ' unidad(es) sin RUT: no podrán votar en la votación en vivo.');
-  if (repetidos.length)  avisos.push(repetidos.length + ' RUT repetido(s): revise que no haya unidades duplicadas.');
+  if (repetidos.length)  avisos.push(repetidos.length + ' RUT repetido(s). Si son unidades '
+    + 'distintas del mismo copropietario, está bien: vota una vez con la suma de sus '
+    + 'derechos, y si debe en alguna no vota con ninguna (art. 14 del Reglamento). '
+    + 'Si son la misma unidad cargada dos veces, bórrela.');
   if (dvMalos > 0)       avisos.push(dvMalos + ' RUT con dígito verificador que no calza: revise si hay un error de tipeo. Esa persona no podrá votar.');
   if (correosMalos > 0)  avisos.push(correosMalos + ' correo(s) mal escrito(s): no recibirán la constancia de su voto.');
 
@@ -1477,7 +1503,7 @@ function descargarPlantilla() {
     ['Nombre del copropietario', 'Nombre completo de quien figura como propietario de esa unidad.', 'Sí'],
     ['RUT', 'Con puntos o sin ellos, da lo mismo: al importar el sistema lo deja como 12.345.678-5 y avisa si el dígito verificador no calza. La columna viene como texto para que Excel no le cambie el formato.', 'Sí'],
     ['% Derechos', 'Porcentaje sobre los bienes comunes, según el reglamento de copropiedad. Escríbalo como número (1,5), no como texto. La columna ya viene con dos decimales. La suma de todas las unidades debe dar 100.', 'Sí'],
-    ['Hábil', 'Escriba Sí o No. Es hábil quien está al día en sus obligaciones económicas con el condominio, o quien mantiene vigente y al día un convenio de pago (recupera la habilidad desde la primera cuota pagada). Solo los hábiles votan (art. 21, Ley N° 21.442); los inhábiles asisten pero no votan. Esta calidad la acredita la administración.', 'Sí'],
+    ['Hábil', 'Escriba Sí o No. Es hábil quien está al día en sus obligaciones económicas con el condominio. También quien tiene convenio de pago, pero solo desde que paga la primera cuota y mientras cumpla los términos convenidos y sus demás obligaciones económicas (art. 9 del Reglamento). Con más de una unidad debe estar al día en todas: si debe en una, no vota con ninguna (art. 14). Solo los hábiles votan; los inhábiles asisten pero no votan. Esta calidad la acredita la administración.', 'Sí'],
     ['Representante', 'Complete solo si vota otra persona con poder. Escriba su nombre y el tipo de poder.', 'No'],
     ['Correo', 'Correo del Registro de Copropietarios. Si lo completa, esa persona recibe por correo la constancia de su voto: le sirve de respaldo y permite detectar si alguien votó en su nombre.', 'No'],
     [''],
@@ -2786,39 +2812,134 @@ function firmInicial() {
 
 function revisarConsistencia() {
   var items = [];
-  var num = function (v) { return Derechos.desdeTexto(v); };
+  var padron = _padronDelActa();
 
-  // (a) Los derechos cargados suman 100.
-  var suma = 0, presentes = 0;
-  document.querySelectorAll('#asistentes-tbody tr').forEach(function (row) {
-    var g = function (sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
-    var d = num(g('.derechos'));
-    suma += d;
-    if (String(g('.asiste')).toLowerCase() !== 'no') presentes += d;
+  // Todo lo que sigue trabaja en enteros escalados. Comparar un entero
+  // escalado contra 100 o contra 33 -como quedo por un descuido al pasar a
+  // Derechos- da siempre lo mismo y la revision deja de servir: decia que
+  // 100,00 % "debiera sumar 100" y daba por cumplido cualquier quorum.
+  var E = Derechos.ESCALA;
+
+  var suma = 0, presentes = 0, presentesHabiles = 0;
+  var malos = [], negativos = [], sinUnidad = 0;
+  var unidades = {}, unidadesRepetidas = [];
+  var representantes = {}, repDobles = [];
+
+  padron.filas.forEach(function (f) {
+    suma += f.der;
+
+    // (0) Lo que no es un numero valido vale cero en la suma, y eso puede
+    // esconder una fila rota detras de un total que casi cuadra.
+    var bruto = String(f.derTexto == null ? '' : f.derTexto).trim();
+    if (bruto === '') { /* fila en blanco: la delata la suma */ }
+    else if (/^-/.test(bruto)) negativos.push(f.unidad || f.nombre || '(sin unidad)');
+    else if (!Derechos.valido(bruto)) malos.push(f.unidad || f.nombre || '(sin unidad)');
+
+    var u = f.unidad.trim().toLowerCase();
+    if (!u) sinUnidad++;
+    else {
+      if (unidades[u]) { if (unidadesRepetidas.indexOf(f.unidad) < 0) unidadesRepetidas.push(f.unidad); }
+      unidades[u] = 1;
+    }
+
+    if (f.asiste) {
+      presentes += f.der;
+      if (f.habil) presentesHabiles += f.der;
+      var rp = f.representante.trim().toLowerCase();
+      if (rp) {
+        representantes[rp] = (representantes[rp] || 0) + 1;
+        if (representantes[rp] === 2) repDobles.push(f.representante.trim());
+      }
+    }
   });
-  var sumaOk = suma > 99.5 && suma < 100.5;
-  items.push({ ok: sumaOk, texto: sumaOk
-    ? 'Los derechos del padr\u00f3n suman ' + Derechos.texto(suma) + ' %.'
-    : 'Los derechos del padr\u00f3n suman ' + Derechos.texto(suma) + ' % y debieran sumar 100 %.' });
 
-  // (b) El quorum de constitucion del tipo elegido.
+  // (a) Los derechos del padron suman 100 %.
+  var sumaOk = Math.abs(suma - Derechos.CIEN) <= 0.5 * E;
+  items.push({ ok: sumaOk, texto: sumaOk
+    ? 'Los derechos del padrón suman ' + Derechos.texto(suma) + ' %.'
+    : 'Los derechos del padrón suman ' + Derechos.texto(suma) + ' % y debieran sumar 100 %. '
+      + 'Mientras no sumen 100 %, los quórum se calculan sobre una base equivocada.' });
+
+  // (a bis) Filas que no se pueden leer. Van aparte de la suma porque una
+  // fila rota puede dejar el total cuadrando por casualidad.
+  if (malos.length || negativos.length) {
+    var det = [];
+    if (negativos.length) det.push('con derechos negativos: ' + negativos.join(', '));
+    if (malos.length) det.push('con derechos que no son un número: ' + malos.join(', '));
+    items.push({ ok: false, texto: 'Hay unidades ' + det.join('; ') + '. '
+      + 'Esas filas cuentan como 0 % y el resultado de cualquier votación queda mal.' });
+  } else {
+    items.push({ ok: true, texto: 'Todos los derechos del padrón son números válidos.' });
+  }
+
+  // (a ter) Una unidad no puede aparecer dos veces: sus derechos se
+  // contarian dos veces. Un RUT si puede repetirse -es un copropietario
+  // con mas de una unidad- y eso lo resuelve el art. 14 aparte.
+  if (unidadesRepetidas.length) {
+    items.push({ ok: false, texto: 'Unidades repetidas en el padrón: '
+      + unidadesRepetidas.join(', ') + '. Sus derechos se están contando dos veces.' });
+  } else if (sinUnidad) {
+    items.push({ ok: false, texto: sinUnidad + ' fila(s) sin número de unidad: '
+      + 'no se puede comprobar si hay duplicados.' });
+  } else {
+    items.push({ ok: true, texto: 'No hay unidades repetidas.' });
+  }
+
+  // (a quater) Art. 14 del Reglamento: quien tiene mas de una unidad solo
+  // es habil si esta al dia respecto de todas. Si el arrastre movio algo,
+  // se dice aqui tambien, porque cambia la base de la votacion.
+  if (padron.arrastrados.length) {
+    items.push({ ok: true, texto: 'Se marcaron como inhábiles '
+      + padron.arrastrados.length + ' unidad(es) por pertenecer a un copropietario que no está '
+      + 'al día en otra de las suyas (art. 14 del Reglamento): '
+      + padron.arrastrados.map(function (a) { return a.unidad || a.rut; }).join(', ') + '.' });
+  }
+  if (padron.sinRut) {
+    items.push({ ok: false, texto: padron.sinRut + ' unidad(es) sin RUT. Sin RUT no se puede '
+      + 'saber si son del mismo copropietario, así que la regla del artículo 14 no se '
+      + 'les puede aplicar, y tampoco podrán votar desde el teléfono.' });
+  }
+
+  // (b) El quorum de constitucion del tipo elegido. Esto no es un descuido
+  // de tipeo: es la asamblea constituyendose o no.
   var tipo = (document.getElementById('tipo-asamblea') || {}).value || '';
-  var minReq = 33, cumple = presentes >= 33, etiqueta = '33 % (ordinaria, primera citaci\u00f3n)';
-  if (tipo === 'extraordinaria-abs') { minReq = 50; cumple = presentes > 50; etiqueta = 'm\u00e1s del 50 %'; }
-  if (tipo === 'extraordinaria-ref') { minReq = 66; cumple = presentes >= 66; etiqueta = '66 %'; }
-  items.push({ ok: cumple, texto: (cumple
-    ? 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) alcanzan el m\u00ednimo de '
-    : 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) no alcanzan el m\u00ednimo de ') + etiqueta + '.' });
+  var cumple = presentes >= 33 * E, etiqueta = '33 % (ordinaria, primera citación)';
+  if (tipo === 'extraordinaria-abs') { cumple = presentes > 50 * E; etiqueta = 'más del 50 %'; }
+  if (tipo === 'extraordinaria-ref') { cumple = presentes >= 66 * E; etiqueta = '66 %'; }
+  items.push({ ok: cumple, grave: !cumple, texto: (cumple
+    ? 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) alcanzan el mínimo de '
+      + etiqueta + '.'
+    : 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) NO alcanzan el mínimo de '
+      + etiqueta + '. La asamblea no se constituyó: los acuerdos que se adopten son '
+      + 'impugnables ante el Juzgado de Policía Local.') });
+
+  // (b bis) Y sobre que se vota, que es una base distinta de la anterior:
+  // constituir cuenta a todos los presentes, acordar solo a los habiles.
+  if (cumple) {
+    items.push({ ok: presentesHabiles > 0, texto: presentesHabiles > 0
+      ? 'Los acuerdos se computan sobre ' + Derechos.texto(presentesHabiles)
+        + ' % de derechos: los de los copropietarios hábiles presentes.'
+      : 'No hay derechos hábiles presentes: con el padrón así, ningún acuerdo '
+        + 'tiene base sobre la cual computarse.' });
+  }
+
+  // (b ter) Un apoderado con varias representaciones no es ilegal, pero es
+  // lo primero que se mira cuando se impugna un acuerdo.
+  if (repDobles.length) {
+    items.push({ ok: true, texto: 'Hay apoderados que representan a más de una unidad: '
+      + repDobles.join(', ') + '. La ley no lo prohíbe, pero revíselo contra el '
+      + 'reglamento de copropiedad, que sí puede limitarlo.' });
+  }
 
   // (c) Firmantes con nombre.
   var firmantes = firmLeer().filter(function (fr) { return fr.nombre; });
   var alt = firmAlternativa();
   if (firmantes.length === 0) {
-    items.push({ ok: false, texto: 'No hay firmantes con nombre. La ley exige que firmen todos los miembros del comit\u00e9 o los copropietarios designados por la asamblea.' });
+    items.push({ ok: false, texto: 'No hay firmantes con nombre. La ley exige que firmen todos los miembros del comité o los copropietarios designados por la asamblea.' });
   } else if (alt === 'comite' && firmantes.length < 2) {
-    items.push({ ok: false, texto: 'Hay un solo firmante y la alternativa elegida es "todos los miembros del comit\u00e9": revise si falta alguien.' });
+    items.push({ ok: false, texto: 'Hay un solo firmante y la alternativa elegida es "todos los miembros del comité": revise si falta alguien.' });
   } else {
-    items.push({ ok: true, texto: firmantes.length + ' firmante(s) registrado(s), en calidad de ' + (alt === 'designados' ? 'copropietarios designados por la asamblea.' : 'miembros del comit\u00e9 de administraci\u00f3n.') });
+    items.push({ ok: true, texto: firmantes.length + ' firmante(s) registrado(s), en calidad de ' + (alt === 'designados' ? 'copropietarios designados por la asamblea.' : 'miembros del comité de administración.') });
   }
 
   // (d) El notario, cuando la ley lo exige.
@@ -2831,11 +2952,11 @@ function revisarConsistencia() {
   var exigeNotario = tipo === 'extraordinaria-ref' || hayReglamento;
   var notarioSi = ((document.getElementById('notario') || {}).value === 'Si');
   if (!exigeNotario) {
-    items.push({ ok: true, texto: 'Seg\u00fan el tipo de sesi\u00f3n y los puntos de la tabla, no se detecta exigencia de notario.' });
+    items.push({ ok: true, texto: 'Según el tipo de sesión y los puntos de la tabla, no se detecta exigencia de notario.' });
   } else {
-    items.push({ ok: notarioSi, texto: notarioSi
-      ? 'La sesi\u00f3n exige la asistencia de un notario y su intervenci\u00f3n est\u00e1 registrada.'
-      : 'Esta sesi\u00f3n exige la asistencia de un notario (art. 15) y no est\u00e1 registrada en el paso 5.' });
+    items.push({ ok: notarioSi, grave: !notarioSi, texto: notarioSi
+      ? 'La sesión exige la asistencia de un notario y su intervención está registrada.'
+      : 'Esta sesión exige la asistencia de un notario (art. 15) y no está registrada en el paso 5.' });
   }
 
   // (e) Cada punto sometido a acuerdo tiene resultado.
@@ -2845,7 +2966,7 @@ function revisarConsistencia() {
     if ((pc.dataset.requiere || 'si') === 'si' && (pc.dataset.votAprobado || 'pendiente') === 'pendiente') pendientes++;
   });
   if (!cards.length) {
-    items.push({ ok: false, texto: 'La tabla no tiene puntos: un acta sin puntos tratados queda vac\u00eda.' });
+    items.push({ ok: false, texto: 'La tabla no tiene puntos: un acta sin puntos tratados queda vacía.' });
   } else {
     items.push({ ok: pendientes === 0, texto: pendientes === 0
       ? 'Los ' + cards.length + ' punto(s) de la tabla tienen su resultado registrado.'
@@ -2862,11 +2983,20 @@ function renderRevision() {
   var advertencias = items.filter(function (x) { return !x.ok; }).length;
   box.hidden = false;
   box.classList.toggle('rev-todo-ok', advertencias === 0);
+  // Lo de fondo -que la asamblea no se constituyera, que falte el notario
+  // que la ley exige- no puede quedar en la misma pila que un correo mal
+  // escrito.
+  var graves = items.filter(function (x) { return !x.ok && x.grave; }).length;
   box.innerHTML =
-    '<h3>Revisi\u00f3n de consistencia' + (advertencias ? ' \u00b7 ' + advertencias + ' advertencia(s)' : ' \u00b7 todo en orden') + '</h3>' +
+    '<h3>Revisi\u00f3n de consistencia'
+      + (graves ? ' \u00b7 ' + graves + ' problema(s) de fondo' : '')
+      + (advertencias - graves ? ' \u00b7 ' + (advertencias - graves) + ' por revisar' : '')
+      + (advertencias ? '' : ' \u00b7 todo en orden') + '</h3>' +
     '<p class="rev-nota">Revisa los datos ingresados en esta acta. No verifica la citaci\u00f3n, los poderes ni la calidad de los datos del padr\u00f3n, y no certifica la validez legal de la asamblea.</p>' +
     items.map(function (x) {
-      return '<div class="rev-item ' + (x.ok ? 'ok' : 'warn') + '"><span class="rev-ic">' + (x.ok ? '\u2713' : '\u26a0') + '</span><span>' + x.texto + '</span></div>';
+      var clase = x.ok ? 'ok' : (x.grave ? 'grave' : 'warn');
+      var icono = x.ok ? '\u2713' : (x.grave ? '\u2715' : '\u26a0');
+      return '<div class="rev-item ' + clase + '"><span class="rev-ic">' + icono + '</span><span>' + x.texto + '</span></div>';
     }).join('');
 }
 

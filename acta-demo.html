@@ -2131,7 +2131,7 @@
             <th>Nombre del Copropietario</th>
             <th>RUT del Propietario</th>
             <th>% Derechos <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre porcentaje de derechos">?<span class="help-tip-content">Porcentaje de propiedad que cada copropietario tiene sobre los <strong>bienes comunes</strong>, según el reglamento de copropiedad. La suma de todos debe dar 100%.</span></span></th>
-            <th>Hábil <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre copropietario hábil">?<span class="help-tip-content">Es <strong>hábil</strong> el copropietario al día en sus obligaciones económicas con el condominio, o que mantiene vigente y al día un convenio de pago (recupera la habilidad desde la primera cuota pagada). Solo los hábiles votan (art. 21, Ley N° 21.442); los inhábiles asisten pero no votan. La calidad de hábil la acredita la administración.</span></span></th>
+            <th>Hábil <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre copropietario hábil">?<span class="help-tip-content">Es <strong>hábil</strong> el copropietario al día en sus obligaciones económicas con el condominio. También lo es quien tiene un convenio de pago, pero solo desde que paga la primera cuota y <strong>mientras cumpla los términos convenidos y sus demás obligaciones económicas</strong> (art. 9 del Reglamento): un convenio vigente no basta si dejó de pagar el gasto común corriente. Si tiene <strong>más de una unidad</strong>, debe estar al día respecto de todas; si debe en una, no vota con ninguna (art. 14 del Reglamento). Solo los hábiles votan; los inhábiles asisten pero no votan. La calidad de hábil la acredita la administración.</span></span></th>
             <th>Asiste <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre asistencia">?<span class="help-tip-content">Marque <strong>Sí</strong> a quienes están presentes (físicamente o por videoconferencia). Solo los presentes cuentan para el quórum de constitución.</span></span></th>
             <th>Representante</th>
             <th>Correo <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre el correo del copropietario">?<span class="help-tip-content"><strong>Opcional.</strong> Si lo completa, al cerrar cada punto el copropietario recibe una <strong>constancia de su voto</strong>. Le sirve de respaldo y permite detectar si alguien votó en su nombre. Use el correo del <strong>Registro de Copropietarios</strong>.</span></span></th>
@@ -2270,6 +2270,8 @@
       .rev-item .rev-ic{flex:none;font-weight:700}
       .rev-item.ok .rev-ic{color:#1A6B3F}
       .rev-item.warn .rev-ic{color:#9A6B1F}
+      .rev-item.grave .rev-ic{color:var(--c-error)}
+      .rev-item.grave{font-weight:600;color:var(--c-error)}
       .mat-reglamento{display:flex;gap:9px;align-items:flex-start;margin:10px 0 2px;padding:9px 11px;border:1px solid #E7D3A4;border-radius:8px;background:#FDFAF2;font-size:13px;line-height:1.45;cursor:pointer}
       .mat-reglamento input{margin-top:2px;flex:none}
       .aviso-fe{background:#FBF3E3;border:1px solid #E7D3A4;border-radius:8px;padding:10px 13px;font-size:13px;color:#7A5417;line-height:1.5;margin:12px 0}
@@ -2487,7 +2489,7 @@
         </tr>
         <tr style="background:#F4F4F0">
           <td style="padding:8px 10px;font-weight:600">Habil</td>
-          <td style="padding:8px 10px"><strong>Si</strong> = al día en sus obligaciones económicas con el condominio, o con convenio de pago vigente y al día<br><strong>No</strong> = con obligaciones económicas pendientes y sin convenio al día. Solo los Hábiles cuentan para el quórum de acuerdos; esta calidad la acredita la administración.</td>
+          <td style="padding:8px 10px"><strong>Si</strong> = al día en sus obligaciones económicas con el condominio, o con convenio de pago cuya primera cuota está pagada y cuyos términos y demás obligaciones se están cumpliendo<br><strong>No</strong> = con obligaciones económicas pendientes. Con más de una unidad, basta deber en una para no votar con ninguna (art. 14 del Reglamento). Solo los Hábiles cuentan para el quórum de acuerdos; esta calidad la acredita la administración.</td>
           <td style="padding:8px 10px;font-family:monospace">Si<br>No</td>
         </tr>
         <tr>
