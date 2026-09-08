@@ -1076,7 +1076,7 @@
     .card       { padding: 22px 18px; }
     .form-grid  { grid-template-columns: 1fr; }
     .nav-footer { padding: 12px 16px; }
-    .step-label { font-size: 10px; }
+    .step-label { font-size: 11px; white-space: normal; hyphens: auto; }
     .step-num   { width: 28px; height: 28px; font-size: 13px; }
     .toggle-group { flex-wrap: wrap; border: none; background: none; gap: 6px; }
     .toggle-btn { border: 1.5px solid var(--c-border); border-radius: var(--r-sm); }
@@ -1822,8 +1822,36 @@
     }
     .rail-exp, .rail-quorum { display: none; }
     .steps-row { flex-direction: row; gap: 0; }
-    .step-tab { flex: 1; flex-direction: column; gap: 6px; padding: 12px 6px; border-radius: 0; }
-    .step-tab .step-label { font-size: 12.5px; text-align: center; }
+    /* El rail vertical del escritorio deja min-width:0, y al volver a fila
+       las pestanas se encogian por debajo de su etiqueta: con nowrap, los
+       rotulos se montaban unos sobre otros y el primero quedaba cortado por
+       el borde. Se les devuelve un ancho minimo y se les deja partir en dos
+       lineas; si aun asi no caben, la barra scrollea, que ya lo permite. */
+    .step-tab {
+      flex: 1 1 0; min-width: 52px;
+      flex-direction: column; gap: 6px; padding: 12px 6px; border-radius: 0;
+    }
+    .step-tab .step-label {
+      font-size: 12.5px; text-align: center;
+      white-space: normal; hyphens: auto;
+    }
+  }
+
+  /* En el telefono no caben seis rotulos: a 375 px cada pestana tiene unos
+     47 px utiles y "Convocatoria" pide 76. Antes las etiquetas se salian de
+     su caja y se montaban unas sobre otras, y la primera quedaba cortada
+     por el borde.
+     Se muestra el numero de cada paso y el rotulo solo del que esta
+     abierto. No se pierde informacion para quien usa lector de pantalla:
+     cada pestana ya lleva su aria-label completo ("Paso 3 de 6:
+     Asistentes") y el numero va aria-hidden. */
+  @media (max-width: 480px) {
+    .step-tab { min-width: 0; padding: 12px 4px; }
+    .step-tab .step-label { display: none; }
+    .step-tab.active { flex: 4 1 auto; }
+    .step-tab.active .step-label {
+      display: block; font-size: 12px; white-space: nowrap; hyphens: none;
+    }
     .main { max-width: none; padding: 22px 18px 120px; width: 100%; }
     .card-title { font-size: 22px; }
   }

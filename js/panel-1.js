@@ -414,7 +414,8 @@
       var l = r.data || [];
       if(!l.length){
         host.innerHTML = vacio('Su cuenta no tiene consultas',
-          'Sirve para acordar sin reunir a nadie, cuando la materia lo permite.',
+          'Sirve para acordar sin reunir a todos a votar. La ley igual exige una '
+          + 'sesión informativa previa y un plazo para responder.',
           { href:'/consulta/', txt:'Crear una consulta' });
         return;
       }
