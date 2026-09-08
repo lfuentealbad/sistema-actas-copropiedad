@@ -132,7 +132,55 @@
       (fija ? parseFloat(raiz.dataset.hCabBase) + alto : alto) + 'px');
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poner);
-  else poner();
+  // -------------------------------------------------------------------
+  //  Lo que se descarga desde una demostración también tiene que decirlo
+  // -------------------------------------------------------------------
+  //  El aviso de arriba vive en la página. El documento que el asistente
+  //  genera se arma aparte, con su propio <html>, así que salía sin nada:
+  //  un acta bajada desde la demostración decía "BORRADOR" —porque no
+  //  tiene folio— y nada más. Y si en la demostración se finaliza, el
+  //  simulador entrega un folio de mentira y el documento queda
+  //  indistinguible de uno real.
+  //
+  //  Se envuelve el generador del documento, que para entonces ya existe.
+  //  Lo señaló la revisión externa del 08-09-2026.
+  function marcarLoQueSeDescarga() {
+    if (typeof global._actaDocumento !== 'function') return;
+    if (global._actaDocumento._marcado) return;
+
+    var original = global._actaDocumento;
+    var envuelto = function () {
+      var d = original.apply(this, arguments);
+      if (!d || typeof d.html !== 'string') return d;
+
+      var franja =
+        '<div style="background:#8B0000;color:#fff;padding:14px 18px;margin:0 0 22px;' +
+        'border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:12pt;' +
+        'line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact">' +
+        '<strong style="display:block;font-size:13pt;letter-spacing:.5px;' +
+        'text-transform:uppercase;margin-bottom:5px">Documento de demostración</strong>' +
+        'Generado en la demostración de actascopropiedad.cl con datos de ejemplo. ' +
+        '<strong>No tiene validez</strong> y su folio, si aparece, es simulado. ' +
+        'Un acta de verdad se levanta en actascopropiedad.cl/acta.</div>';
+
+      var i = d.html.indexOf('<body>');
+      d.html = i < 0 ? franja + d.html
+                     : d.html.slice(0, i + 6) + String.fromCharCode(10) + franja + d.html.slice(i + 6);
+
+      // Y el nombre del archivo, para que no se confunda en una carpeta.
+      d.nombre = 'DEMOSTRACION_' + (d.nombre || 'acta');
+      return d;
+    };
+    envuelto._marcado = true;
+    global._actaDocumento = envuelto;
+  }
+
+  function arrancar() {
+    poner();
+    marcarLoQueSeDescarga();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
+  else arrancar();
 
 })(window);
