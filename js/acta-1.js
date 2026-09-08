@@ -166,8 +166,8 @@ materias: [
 },
 'extraordinaria-abs': {
 titulo: 'Asamblea Extraordinaria de Mayoría Absoluta (Art. 15 Ley N° 21.442)',
-qConst: 'Mayor\u00eda absoluta de los derechos del condominio (50+1%).',
-qAcuerdo: 'Mayor\u00eda absoluta de los derechos del condominio (50+1%), computada \u00fanicamente sobre la base de copropietarios h\u00e1biles para votar.',
+qConst: 'M\u00e1s del 50 % de los derechos del condominio.',
+qAcuerdo: 'M\u00e1s del 50 % de los derechos del condominio, computado \u00fanicamente sobre copropietarios h\u00e1biles para votar.',
 materias: [
 'Modificación del reglamento de copropiedad, salvo aquellas materias que requieren mayoría reforzada.',
 'Remoción parcial o total de los miembros del comité de administración.',
@@ -446,76 +446,123 @@ function eliminarPuntoConfirm(el) {
   if (typeof actualizarEstadoVacioPuntos === 'function') actualizarEstadoVacioPuntos();
   if (typeof autoSave === 'function') autoSave();
 }
+// Lee el padron una sola vez y le aplica el art. 14 del Reglamento: la
+// habilidad es del copropietario, no de la unidad. Quien tiene dos
+// departamentos y debe gastos comunes en uno no vota con ninguno.
+//
+// Devuelve las filas con `habil` ya corregida, la lista de las que se
+// arrastraron -para poder decirlo en pantalla- y cuantas vienen sin RUT,
+// que son las que no se pueden agrupar.
+function _padronDelActa() {
+  var filas = [];
+  document.querySelectorAll('#asistentes-tbody tr').forEach(function (row) {
+    if (!row.querySelector('.habil')) return;
+    var g = function (sel) {
+      var e = row.querySelector(sel);
+      return e ? String(e.value == null ? '' : e.value) : '';
+    };
+    var asisteEl = row.querySelector('.asiste');
+    filas.push({
+      fila: row,
+      unidad: g('.unidad').trim(),
+      nombre: g('.nombre-asist').trim(),
+      rut: g('.rut-asist').trim(),
+      representante: g('.representante').trim(),
+      derTexto: g('.derechos'),
+      der: Derechos.desdeTexto(g('.derechos')),
+      habil: g('.habil') === 'si',
+      asiste: asisteEl ? g('.asiste') === 'si' : true
+    });
+  });
+  return Derechos.habilidadPorCopropietario(filas);
+}
+
+// El aviso de lo que se arrastro, debajo del padron.
+function _avisarArrastrados(arrastrados) {
+  var el = document.getElementById('aviso-art14');
+  if (!el) return;
+  if (!arrastrados.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  var lista = arrastrados.map(function (a) {
+    return escapeHtml(a.unidad || a.nombre || a.rut);
+  }).join(', ');
+  el.style.display = 'block';
+  el.className = 'msg-warn';
+  el.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
+    + '<path d="M12 9v4M12 17h.01"/></svg> '
+    + 'Se marcaron como <strong>inhábiles</strong> por pertenecer a un copropietario '
+    + 'que no está al día en otra de sus unidades: <strong>' + lista + '</strong>. '
+    + 'El artículo 14 del Reglamento exige estar al día respecto de la totalidad '
+    + 'de las unidades para poder votar. Si no corresponde, revise el RUT o la marca '
+    + 'de habilidad.';
+}
+
 function calcularQuorum() {
 var tipo = document.getElementById('tipo-asamblea').value;
 var totalHabil = 0; 
 var countHabil = 0; 
 var countTotal = 0; 
 var totalPresentes = 0; 
-document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
-var habEl = row.querySelector('.habil');
-var derEl = row.querySelector('.derechos');
-var asisteEl = row.querySelector('.asiste');
-if (!habEl) return;
-var asiste = asisteEl ? asisteEl.value === 'si' : true;
-if (!asiste) return; 
-var der = parseFloat(derEl ? derEl.value : 0) || 0;
+var _padron = _padronDelActa();
+_avisarArrastrados(_padron.arrastrados);
+_padron.filas.forEach(function(f) {
+if (!f.asiste) return;
 countTotal++;
-totalPresentes += der;
-if (habEl.value === 'si') {
-totalHabil += der;
+totalPresentes += f.der;
+if (f.habil) {
+totalHabil += f.der;
 countHabil++;
 }
 });
 
-var sumaPadron = 0;
-document.querySelectorAll('#asistentes-tbody tr .derechos').forEach(function(el) {
-  sumaPadron += parseFloat(el.value) || 0;
-});
+var sumaPadron = Derechos.suma(_padron.filas.map(function (f) { return f.der; }));
 var avisoSuma = document.getElementById('suma-derechos-aviso');
 if (avisoSuma) {
   if (sumaPadron <= 0) {
     avisoSuma.style.display = 'none';
-  } else if (Math.abs(sumaPadron - 100) <= 0.05) {
+  } else if (Math.abs(sumaPadron - Derechos.CIEN) <= 0.05 * Derechos.ESCALA) {
     avisoSuma.style.display = 'block';
     avisoSuma.className = 'msg-ok';
     avisoSuma.innerHTML = '✓ La suma de derechos del padrón es <strong>100%</strong>. Los quórum se calculan sobre una base correcta.';
-  } else if (sumaPadron > 100) {
+  } else if (sumaPadron > Derechos.CIEN) {
     avisoSuma.style.display = 'block';
     avisoSuma.className = 'msg-error';
-    avisoSuma.innerHTML = '✕ La suma de derechos ingresados es <strong>' + sumaPadron.toFixed(2) + '%</strong> y supera el 100%. Revise los porcentajes: los quórum calculados no serán confiables.';
+    avisoSuma.innerHTML = '✕ La suma de derechos ingresados es <strong>' + Derechos.texto(sumaPadron) + ' %</strong> y supera el 100%. Revise los porcentajes: los quórum calculados no serán confiables.';
   } else {
     avisoSuma.style.display = 'block';
     avisoSuma.className = 'msg-warn';
-    avisoSuma.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg> Suma de derechos ingresados: <strong>' + sumaPadron.toFixed(2) + '%</strong>. El padrón completo del condominio debe sumar 100%. Si aún no termina de ingresar copropietarios, puede continuar.';
+    avisoSuma.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg> Suma de derechos ingresados: <strong>' + Derechos.texto(sumaPadron) + ' %</strong>. El padrón completo del condominio debe sumar 100%. Si aún no termina de ingresar copropietarios, puede continuar.';
   }
 }
-totalPresentes = Math.min(totalPresentes, 100);
-totalHabil = Math.min(totalHabil, 100);
+totalPresentes = Math.min(totalPresentes, Derechos.CIEN);
+totalHabil = Math.min(totalHabil, Derechos.CIEN);
 var fill = document.getElementById('quorum-fill');
 var pct = document.getElementById('quorum-pct');
 var status = document.getElementById('quorum-status-text');
 var req = document.getElementById('quorum-req-text');
-pct.textContent = totalPresentes.toFixed(1) + '%';
-fill.style.width = Math.min(totalPresentes, 100) + '%';
+pct.textContent = Derechos.texto(totalPresentes) + ' %';
+fill.style.width = Math.min(Derechos.aNumero(totalPresentes), 100) + '%';
 var minReq = 33, label = 'Mínimo 33% (asamblea ordinaria)';
-if (tipo === 'extraordinaria-abs') { minReq = 50; label = 'M\u00ednimo 50+1% (asamblea extraordinaria)'; }
+if (tipo === 'extraordinaria-abs') { minReq = 50; label = 'M\u00e1s del 50 % (asamblea extraordinaria)'; }
 if (tipo === 'extraordinaria-ref') { minReq = 66; label = 'Mínimo 66% (mayoría reforzada)'; }
 var reqTxt = (tipo === 'extraordinaria-abs') ? 'más del 50%' : (minReq + '%');
 req.textContent = label;
-var alcanzaQuorum = (tipo === 'extraordinaria-abs') ? (totalPresentes > 50) : (totalPresentes >= minReq);
-railQuorum(totalPresentes, alcanzaQuorum, alcanzaQuorum
+// Tambien en enteros: 50 % son 500.000 en la escala de Derechos.
+var alcanzaQuorum = (tipo === 'extraordinaria-abs')
+  ? (totalPresentes > 50 * Derechos.ESCALA)
+  : (totalPresentes >= minReq * Derechos.ESCALA);
+railQuorum(Derechos.aNumero(totalPresentes), alcanzaQuorum, alcanzaQuorum
   ? 'Se constituye: supera el ' + reqTxt + ' que exige la ley.'
   : 'No alcanza: se requiere ' + reqTxt + ' de los derechos.');
 if (alcanzaQuorum) {
 fill.className = 'quorum-fill';
 status.innerHTML = '<strong>Quórum de constitución OK</strong> — '
-+ totalPresentes.toFixed(1) + '% de derechos presentes en la asamblea';
++ Derechos.texto(totalPresentes) + ' % de derechos presentes en la asamblea';
 status.style.color = '#1e6e4a';
 } else {
 fill.className = 'quorum-fill fail';
 status.innerHTML = '<strong>Quórum insuficiente:</strong> '
-+ totalPresentes.toFixed(1) + '% — se requiere ' + reqTxt + ' para constituirse';
++ Derechos.texto(totalPresentes) + ' % — se requiere ' + reqTxt + ' para constituirse';
 status.style.color = '#B23A2E';
 }
 var boxAcuerdos = document.getElementById('quorum-acuerdos-box');
@@ -536,13 +583,15 @@ fillA.style.width = '0%';
 } else {
 // Mayoria absoluta de los DERECHOS presentes, no de las cabezas: el voto
 // es proporcional a los derechos de cada unidad (art. 15).
-var minimoDer = totalHabil / 2;
+// La mitad de una base entera puede caer en media diezmilesima. Se
+// imprime exacta dividiendo dentro del formateador, no antes.
+var mitad = Derechos.texto(totalHabil, 2 * Derechos.ESCALA);
 fillA.style.width = '50%';
-pctA.textContent = 'M\u00e1s de ' + _pctExacto(minimoDer) + ' %';
+pctA.textContent = 'M\u00e1s de ' + mitad + ' %';
 txtA.innerHTML =
-'Base para votaci\u00f3n: <strong>' + _pctExacto(totalHabil) + ' %</strong> de derechos h\u00e1biles presentes '
+'Base para votaci\u00f3n: <strong>' + Derechos.texto(totalHabil) + ' %</strong> de derechos h\u00e1biles presentes '
 + '(' + countHabil + ' asistente' + (countHabil === 1 ? '' : 's') + '). '
-+ 'Se requiere <strong>m\u00e1s de ' + _pctExacto(minimoDer) + ' %</strong> a favor.';
++ 'Se requiere <strong>m\u00e1s de ' + mitad + ' %</strong> a favor.';
 }
 } else {
 boxAcuerdos.style.display = 'flex';
@@ -552,7 +601,7 @@ var txtA2 = document.getElementById('quorum-acuerdos-text');
 var subtA = boxAcuerdos.querySelector('div:last-of-type');
 if (subtA) {
 subtA.textContent = tipo === 'extraordinaria-abs'
-? '50+1% de derechos del condominio \u00b7 Art. 15 Ley 21.442'
+? 'M\u00e1s del 50 % de los derechos del condominio \u00b7 Art. 15 Ley 21.442'
 : 'Al menos 66% de derechos del condominio · Art. 15 Ley 21.442';
 }
 if (totalHabil === 0) {
@@ -560,16 +609,17 @@ txtA2.textContent = 'Ingrese copropietarios hábiles para calcular';
 pctA2.textContent = '--';
 if (fillA2) fillA2.style.width = '0%';
 } else {
-var minExtPct = (tipo === 'extraordinaria-abs') ? 50 : 66;
-var habOk = (tipo === 'extraordinaria-abs') ? (totalHabil > 50) : (totalHabil >= minExtPct);
+var habOk = (tipo === 'extraordinaria-abs')
+  ? (totalHabil > 50 * Derechos.ESCALA)
+  : (totalHabil >= 66 * Derechos.ESCALA);
 if (fillA2) {
-fillA2.style.width = Math.min(totalHabil, 100) + '%';
+fillA2.style.width = Math.min(Derechos.aNumero(totalHabil), 100) + '%';
 fillA2.className = 'quorum-fill' + (habOk ? '' : ' fail');
 }
-pctA2.textContent = totalHabil.toFixed(1) + '%';
+pctA2.textContent = Derechos.texto(totalHabil) + ' %';
 txtA2.innerHTML =
 'Derechos h\u00e1biles para adopci\u00f3n de acuerdos: '
-+ '<strong>' + totalHabil.toFixed(1) + '%</strong> del total del condominio. '
++ '<strong>' + Derechos.texto(totalHabil) + ' %</strong> del total del condominio. '
 + (habOk
 ? 'Cumple el quórum requerido (' + (tipo === 'extraordinaria-abs' ? 'más del 50%' : '66%') + ').'
 : '<strong>No alcanza</strong> el quórum requerido (' + (tipo === 'extraordinaria-abs' ? 'más del 50%' : '66%') + ').');
@@ -668,21 +718,11 @@ const [y,m,d] = str.split('-');
 const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 return parseInt(d) + ' de ' + meses[parseInt(m)-1] + ' de ' + y;
 }
-// En Chile el separador decimal es la coma. Se usa solo para texto que se
-// muestra o se imprime: los valores que luego se releen con parseFloat
-// (dataset de las tarjetas de votacion) siguen con punto.
+// En Chile el separador decimal es la coma. Queda para los textos que no
+// son derechos; los derechos los formatea Derechos.texto(), que ademas es
+// exacto. Ver js/derechos.js.
 function _pctCL(n) {
 return (Number(n) || 0).toFixed(2).replace('.', ',');
-}
-// Para la base y el umbral de una votacion: el valor exacto, no redondeado.
-// Un umbral mal redondeado hace que la cuenta no cierre para quien la
-// rehaga a mano, y esa cuenta es justamente lo que el acta debe permitir.
-function _pctExacto(n) {
-var s = (Number(n) || 0).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
-var p = s.split('.');
-var dec = p[1] || '';
-while (dec.length < 2) dec += '0';
-return p[0] + ',' + dec;
 }
 function _pvau(id) {
 const el = document.getElementById(id);
@@ -734,21 +774,19 @@ let totalHabil = 0;
 let totalPresentes = 0; 
 let countHabil = 0; 
 let asistIdx = 0;
-document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
-const asisteEl = row.querySelector('.asiste');
-const asiste = asisteEl ? asisteEl.value === 'si' : true;
-const unidad = row.querySelector('.unidad') ? row.querySelector('.unidad').value : '';
-const nombre = row.querySelector('.nombre-asist')? row.querySelector('.nombre-asist').value: '';
-const der = parseFloat(row.querySelector('.derechos')
-? row.querySelector('.derechos').value : 0) || 0;
-const habil = row.querySelector('.habil') && row.querySelector('.habil').value === 'si'
-? 'S\u00ed' : 'No';
-const rep = row.querySelector('.representante')
-? row.querySelector('.representante').value : '';
+// El acta lee el padron por el mismo camino que el paso 2, con la
+// habilidad ya arrastrada por copropietario (art. 14 del Reglamento).
+_padronDelActa().filas.forEach(function(f) {
+const asiste = f.asiste;
+const unidad = f.unidad;
+const nombre = f.nombre;
+const der = f.der;
+const habil = f.habil ? 'Sí' : 'No';
+const rep = f.representante;
 
 if (asiste) {
 totalPresentes += der;
-if (habil === 'S\u00ed') { totalHabil += der; countHabil++; }
+if (f.habil) { totalHabil += der; countHabil++; }
 }
 asistIdx++;
 const asisteCell = asiste
@@ -757,16 +795,18 @@ const asisteCell = asiste
 const rowStyle = asiste ? '' : ' style="color:#aaaaaa;background:#f9f9f9;"';
 asistentesRows +=
 '<tr' + rowStyle + '><td>' + asistIdx + '</td><td>' + escapeHtml(unidad) + '</td><td>' + escapeHtml(nombre) +
-'</td><td style="text-align:center">' + _pctCL(der) + ' %</td>' +
+'</td><td style="text-align:center">' + Derechos.texto(der) + ' %</td>' +
 '<td style="text-align:center">' + habil + '</td>' + asisteCell +
 '<td>' + escapeHtml(rep) + '</td></tr>';
 });
-totalPresentes = Math.min(totalPresentes, 100);
-totalHabil = Math.min(totalHabil, 100);
+totalPresentes = Math.min(totalPresentes, Derechos.CIEN);
+totalHabil = Math.min(totalHabil, Derechos.CIEN);
 let quorumMin = 33;
 if (tipo === 'extraordinaria-abs') quorumMin = 50;
 if (tipo === 'extraordinaria-ref') quorumMin = 66;
-const quorumOk = (tipo === 'extraordinaria-abs') ? (totalPresentes > 50) : (totalPresentes >= quorumMin);
+const quorumOk = (tipo === 'extraordinaria-abs')
+  ? (totalPresentes > 50 * Derechos.ESCALA)
+  : (totalPresentes >= quorumMin * Derechos.ESCALA);
 let puntosHTML = '';
 let resumenRows = '';
 document.querySelectorAll('.punto-card').forEach(function(pc, idx) {
@@ -779,9 +819,11 @@ const responsable = escapeHtml(_pvau('p'+n+'-responsable'));
 const plazoRaw = escapeHtml(_pvau('p'+n+'-plazo'));
 const plazoText = (plazoRaw && plazoRaw.trim()) ? plazoRaw.trim() : '\u2014';
 const requiere = (document.getElementById('p'+n+'-requiere') || {}).value || 'si';
-const pvotFavor = pc.dataset.votFavor || '';
-const pvotContra= pc.dataset.votContra || '';
-const pvotAbst = pc.dataset.votAbst || '';
+// Ya vienen formateados por Derechos. El dataset guarda ademas el entero
+// escalado (votFavor/votContra/votAbst), que aqui no hace falta.
+const pvotFavor = pc.dataset.votFavorTxt || '';
+const pvotContra= pc.dataset.votContraTxt || '';
+const pvotAbst = pc.dataset.votAbstTxt || '';
 const pvotBase = pc.dataset.votBase || '';
 const pvotUmbral= pc.dataset.votUmbral || '';
 const pvotAprob = pc.dataset.votAprobado|| 'pendiente';
@@ -796,16 +838,13 @@ votText += pvotUmbral + '. ';
 {
 // Siempre en derechos, en toda asamblea. Entre parentesis va cuanta
 // gente hay detras de esos derechos: acompana la cifra, no la decide.
-var favPct = parseFloat(pvotFavor) || 0;
-var conPct = parseFloat(pvotContra) || 0;
-var absPct = parseFloat(pvotAbst) || 0;
 var favPer = pc.dataset.votFavorPers;
 var totPer = pc.dataset.votTotalPers;
-votText += 'A favor: <strong>' + _pctCL(favPct) + ' % de los derechos</strong>';
+votText += 'A favor: <strong>' + pvotFavor + ' % de los derechos</strong>';
 votText += (favPer !== undefined && totPer !== undefined
-? ' (' + favPer + ' de ' + totPer + ' asistentes h\u00e1biles)' : '') + '. ';
-votText += 'En contra: <strong>' + _pctCL(conPct) + ' % de los derechos</strong>. ';
-votText += 'Abstenci\u00f3n: <strong>' + _pctCL(absPct) + ' % de los derechos</strong>.</p>';
+? ' (' + favPer + ' de ' + totPer + ' asistentes hábiles)' : '') + '. ';
+votText += 'En contra: <strong>' + pvotContra + ' % de los derechos</strong>. ';
+votText += 'Abstención: <strong>' + pvotAbst + ' % de los derechos</strong>.</p>';
 }
 const resultadoFinal = (pvotAprob === 'si') ? 'Se aprueba' : (pvotAprob === 'no') ? 'Se rechaza' : resultado;
 // Sin resultado registrado salia "Acuerdo: ." — un punto suelto en un
@@ -914,7 +953,7 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 '<th>#</th><th>Unidad</th><th>Nombre</th><th>% Derechos</th><th>H\u00e1bil</th><th>Asiste</th><th>Representante</th>' +
 '</tr></thead><tbody>' + asistentesRows + '</tbody></table></div>' +
 '<div class="acta-section"><div class="acta-section-title">4. Qu\u00f3rum de constituci\u00f3n y adopci\u00f3n de acuerdos</div>' +
-'<p>Los derechos presentes en la asamblea alcanzan el <strong>' + _pctCL(totalPresentes) + ' %</strong> del total del condominio. ' +
+'<p>Los derechos presentes en la asamblea alcanzan el <strong>' + Derechos.texto(totalPresentes) + ' %</strong> del total del condominio. ' +
 (quorumOk
 ? 'Con ello se cumple el qu\u00f3rum de constituci\u00f3n exigido (m\u00ednimo ' + quorumMin + '%). '
 + 'La sesi\u00f3n fue v\u00e1lidamente constituida por <strong>' + presidenteNom + '</strong> a las <strong>' + horaInicio + ' horas</strong>.'
@@ -923,7 +962,7 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 (esOrdinaria
 ? '<p>Para efectos de la adopci\u00f3n de acuerdos, \u00e9stos se computan sobre los '
 + '<strong>derechos</strong> de los copropietarios h\u00e1biles presentes, que alcanzan el '
-+ '<strong>' + _pctCL(totalHabil) + ' %</strong> de los derechos del condominio '
++ '<strong>' + Derechos.texto(totalHabil) + ' %</strong> de los derechos del condominio '
 + '(' + countHabil + ' asistente' + (countHabil === 1 ? '' : 's') + '). '
 + 'El voto de cada copropietario es proporcional a sus derechos en los bienes de dominio '
 + 'com\u00fan, conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.'
@@ -931,7 +970,7 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 ? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
 : '') + '</p></div>'
 : '<p>Para efectos de la adopci\u00f3n de acuerdos, se consideran \u00fanicamente los derechos '
-+ 'correspondientes a copropietarios h\u00e1biles: <strong>' + _pctCL(totalHabil) + ' %</strong> '
++ 'correspondientes a copropietarios h\u00e1biles: <strong>' + Derechos.texto(totalHabil) + ' %</strong> '
 + 'de los derechos del condominio.'
 + (notario === 'Si' && notarioNombre
 ? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
@@ -1157,7 +1196,7 @@ var nombreS = String(nombre || '').trim();
 var derNum = 0;
 var derRaw = derechos;
 if (typeof derRaw === 'number') {
-  derNum = derRaw;
+  derNum = Derechos.desdeTexto(String(derRaw));
 } else {
   var derStr = String(derRaw || '').trim();
   
@@ -1166,7 +1205,7 @@ if (typeof derRaw === 'number') {
   } else {
     derStr = derStr.replace(',', '.');
   }
-  derNum = parseFloat(derStr) || 0;
+  derNum = Derechos.desdeTexto(derStr);
 }
 var repS = String(representante || '').trim();
 var tr = document.createElement('tr');
@@ -1184,7 +1223,8 @@ tbody.appendChild(tr);
 tr.querySelector('.unidad').value = unidadS;
 tr.querySelector('.nombre-asist').value = nombreS;
 var _rutEl = tr.querySelector('.rut-asist'); if (_rutEl) _rutEl.value = _fmtRut(rut);
-tr.querySelector('.derechos').value = derNum || '';
+// El campo es <input type=number>: lleva punto decimal, no coma.
+tr.querySelector('.derechos').value = derNum ? String(derNum / Derechos.ESCALA) : '';
 tr.querySelector('.representante').value = repS;
 var _corEl = tr.querySelector('.correo-asist');
 if (_corEl) _corEl.value = String(correo || '').trim().toLowerCase();
@@ -1298,7 +1338,7 @@ function resumenImportacion(count, errores) {
   var vistos = {}, repetidos = [];
   filas.forEach(function(tr) {
     var v = function(sel){ var e = tr.querySelector(sel); return e ? String(e.value).trim() : ''; };
-    suma += parseFloat(v('.derechos')) || 0;
+    suma += Derechos.desdeTexto(v('.derechos'));
     var rut = v('.rut-asist').replace(/[.\s-]/g, '').toLowerCase();
     if (!rut) sinRut++;
     else {
@@ -1311,7 +1351,7 @@ function resumenImportacion(count, errores) {
   });
 
   var m = 'Se cargaron ' + count + ' unidades.\n';
-  m += '\nSuma de derechos: ' + suma.toFixed(2).replace('.', ',') + '%';
+  m += '\nSuma de derechos: ' + Derechos.texto(suma) + ' %';
   m += (Math.abs(suma - 100) <= 0.5)
      ? '  ✓'
      : '  ← revise: debería sumar 100%';
@@ -1505,21 +1545,16 @@ if (key && sel) prevPrefs[key] = sel.value;
 });
 tbody.innerHTML = '';
 var hayHabiles = false;
-document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
-var habEl = row.querySelector('.habil');
-var derEl = row.querySelector('.derechos');
-var nomEl = row.querySelector('.nombre-asist');
-var uniEl = row.querySelector('.unidad');
-var asisteEl = row.querySelector('.asiste');
-if (!habEl) return;
-var esAsiste = asisteEl ? asisteEl.value === 'si' : true;
-if (!esAsiste) return; 
-var esHabil = habEl.value === 'si';
-var nombre = nomEl ? nomEl.value.trim() : '';
-var unidad = uniEl ? uniEl.value.trim() : '';
-var rutEl = row.querySelector('.rut-asist');
-var rutAsist = rutEl ? rutEl.value.trim() : '';
-var derechos = parseFloat(derEl ? derEl.value : 0) || 0;
+_padronDelActa().filas.forEach(function(f) {
+var esAsiste = f.asiste;
+if (!esAsiste) return;
+var esHabil = f.habil;
+var nombre = f.nombre;
+var unidad = f.unidad;
+var rutAsist = f.rut;
+// Se guarda el TEXTO tal como se escribio. Convertirlo aqui y volver a
+// leerlo en _jfg era una vuelta por coma flotante que no hace falta.
+var derechos = f.derTexto;
 var key = unidad + '|' + nombre;
 var prevPref = prevPrefs[key] || 'sin_reg';
 var tr = document.createElement('tr');
@@ -1583,16 +1618,26 @@ tbody.appendChild(trEmpty);
 }
 _jfg(n);
 }
+// La regla de mayoria que corresponde a cada tipo de asamblea. Los nombres
+// internos viejos ('abs_asistentes') se conservan en los borradores ya
+// guardados; lo que decide es la regla de Derechos.
+function _reglaDe(tipoAsm) {
+if (tipoAsm === 'extraordinaria-ref') return 'reforzada';
+if (tipoAsm === 'extraordinaria-abs') return 'absoluta';
+return 'presentes';
+}
 function _jfg(n) {
 var tbody = document.getElementById('pvot-rows-' + n);
 if (!tbody) return;
 var tipoAsm = document.getElementById('tipo-asamblea') ? document.getElementById('tipo-asamblea').value : 'ordinaria';
-var mayoria = (tipoAsm === 'extraordinaria-ref') ? 'dos_tercios' : ((tipoAsm === 'extraordinaria-abs') ? 'abs_derechos' : 'abs_asistentes');
+
+// Enteros escalados de punta a punta. Sumar en coma flotante hacia que el
+// veredicto dependiera del ORDEN de las filas del padron.
 var totalDer = 0, favorDer = 0, contraDer = 0, abstDer = 0, sinReg = 0;
 var totalHab = 0, favorHab = 0, contraHab = 0, abstHab = 0;
 tbody.querySelectorAll('tr').forEach(function(row) {
 if (row.dataset.habil !== 'si') return;
-var der = parseFloat(row.dataset.derechos) || 0;
+var der = Derechos.desdeTexto(row.dataset.derechos);
 var sel = row.querySelector('.pref-select');
 var pref = sel ? sel.value : 'sin_reg';
 totalDer += der; totalHab++;
@@ -1601,50 +1646,41 @@ else if (pref === 'contra') { contraDer += der; contraHab++; }
 else if (pref === 'abst') { abstDer += der; abstHab++; }
 else { sinReg++; }
 });
+
+var r = Derechos.resolver({
+regla: _reglaDe(tipoAsm),
+favor: favorDer, contra: contraDer, abstencion: abstDer,
+presentes: totalDer, personas: totalHab, personasFavor: favorHab,
+sinRegistrar: sinReg,
+// En el acta la votacion se registra de una vez: no hay una sala abierta
+// esperando votos. Lo que falta por registrar, falta.
+cerrada: true
+});
+
 var rfEl = document.getElementById('pvot-rf-' + n);
 var rcEl = document.getElementById('pvot-rc-' + n);
 var raEl = document.getElementById('pvot-ra-' + n);
 if (!rfEl) return;
 // Siempre en derechos: es lo que la ley cuenta.
-rfEl.textContent = _pctCL(favorDer) + ' %';
-rcEl.textContent = _pctCL(contraDer) + ' %';
-raEl.textContent = _pctCL(abstDer) + ' %';
-var umbral, aprobado, umbralDesc, baseDesc;
-if (mayoria === 'abs_asistentes') {
-// Ordinaria: mayoria absoluta de los derechos PRESENTES.
-umbral = totalDer / 2;
-aprobado = (favorDer > umbral);
-baseDesc = 'Base: ' + _pctExacto(totalDer) + ' % de derechos h\u00e1biles presentes ('
-+ totalHab + ' asistente' + (totalHab === 1 ? '' : 's') + ')';
-umbralDesc = 'Mayor\u00eda absoluta: m\u00e1s de ' + _pctExacto(umbral) + ' % a favor';
-} else if (mayoria === 'abs_derechos') {
-// Extraordinaria de mayoria absoluta: sobre el total del condominio.
-umbral = 50;
-aprobado = (favorDer > umbral);
-baseDesc = 'Base: 100 % de los derechos del condominio';
-umbralDesc = 'Mayor\u00eda absoluta: m\u00e1s del 50 % de los derechos a favor';
-} else {
-umbral = 66;
-aprobado = (favorDer >= umbral);
-baseDesc = 'Base: 100 % de los derechos del condominio';
-umbralDesc = 'Mayor\u00eda reforzada: al menos 66 % de los derechos a favor';
-}
+rfEl.textContent = r.favorTexto + ' %';
+rcEl.textContent = r.contraTexto + ' %';
+raEl.textContent = r.abstencionTexto + ' %';
+
 var detEl = document.getElementById('pvot-rdet-' + n);
 var conclEl = document.getElementById('pvot-rconcl-' + n);
-var haySinReg = (sinReg > 0);
 if (detEl) {
-var detalle = baseDesc + ' · ' + umbralDesc;
-if (haySinReg) detalle += ' · ' + sinReg + ' asistente(s) sin registrar';
+var detalle = r.descripcionBase + ' · ' + r.descripcionUmbral;
+if (sinReg > 0) detalle += ' · ' + sinReg + ' asistente(s) sin registrar';
 detEl.textContent = detalle;
 }
 if (conclEl) {
-if (haySinReg) {
+if (sinReg > 0) {
 conclEl.className = 'pvr-conclusion pendiente';
 conclEl.textContent = 'Faltan ' + sinReg + ' preferencia(s) por registrar';
 } else if (totalHab === 0) {
 conclEl.className = 'pvr-conclusion pendiente';
 conclEl.textContent = 'Sin asistentes hábiles';
-} else if (aprobado) {
+} else if (r.estado === 'aprobado') {
 conclEl.className = 'pvr-conclusion aprobado';
 conclEl.textContent = 'ACUERDO APROBADO';
 } else {
@@ -1654,15 +1690,23 @@ conclEl.textContent = 'ACUERDO NO APROBADO';
 }
 var card = document.getElementById('punto-' + n);
 if (card) {
-card.dataset.votFavor = favorDer.toFixed(2);
-card.dataset.votContra = contraDer.toFixed(2);
-card.dataset.votAbst = abstDer.toFixed(2);
+// El dataset guarda el ENTERO escalado, no un decimal redondeado a dos
+// cifras: el acta lee de aqui, y redondear en el traspaso perdia la
+// precision que el padron si admite.
+card.dataset.votFavor = String(favorDer);
+card.dataset.votContra = String(contraDer);
+card.dataset.votAbst = String(abstDer);
+// Y el texto ya formateado, para que nadie lo vuelva a formatear con
+// otro criterio mas abajo.
+card.dataset.votFavorTxt = r.favorTexto;
+card.dataset.votContraTxt = r.contraTexto;
+card.dataset.votAbstTxt = r.abstencionTexto;
 // El numero de personas acompana, no decide.
 card.dataset.votFavorPers = favorHab;
 card.dataset.votTotalPers = totalHab;
-card.dataset.votBase = baseDesc;
-card.dataset.votUmbral = umbralDesc;
-card.dataset.votAprobado= (totalHab > 0 && !haySinReg) ? (aprobado ? 'si' : 'no') : 'pendiente';
+card.dataset.votBase = r.descripcionBase;
+card.dataset.votUmbral = r.descripcionUmbral;
+card.dataset.votAprobado= (r.estado === 'aprobado') ? 'si' : (r.estado === 'rechazado' ? 'no' : 'pendiente');
 card.dataset.votUnidad = '%';
 card.dataset.votSinReg = sinReg;
 }
@@ -2742,7 +2786,7 @@ function firmInicial() {
 
 function revisarConsistencia() {
   var items = [];
-  var num = function (v) { return parseFloat(String(v || '').replace(',', '.')) || 0; };
+  var num = function (v) { return Derechos.desdeTexto(v); };
 
   // (a) Los derechos cargados suman 100.
   var suma = 0, presentes = 0;
@@ -2754,8 +2798,8 @@ function revisarConsistencia() {
   });
   var sumaOk = suma > 99.5 && suma < 100.5;
   items.push({ ok: sumaOk, texto: sumaOk
-    ? 'Los derechos del padr\u00f3n suman ' + suma.toFixed(2).replace('.', ',') + ' %.'
-    : 'Los derechos del padr\u00f3n suman ' + suma.toFixed(2).replace('.', ',') + ' % y debieran sumar 100 %.' });
+    ? 'Los derechos del padr\u00f3n suman ' + Derechos.texto(suma) + ' %.'
+    : 'Los derechos del padr\u00f3n suman ' + Derechos.texto(suma) + ' % y debieran sumar 100 %.' });
 
   // (b) El quorum de constitucion del tipo elegido.
   var tipo = (document.getElementById('tipo-asamblea') || {}).value || '';
@@ -2763,8 +2807,8 @@ function revisarConsistencia() {
   if (tipo === 'extraordinaria-abs') { minReq = 50; cumple = presentes > 50; etiqueta = 'm\u00e1s del 50 %'; }
   if (tipo === 'extraordinaria-ref') { minReq = 66; cumple = presentes >= 66; etiqueta = '66 %'; }
   items.push({ ok: cumple, texto: (cumple
-    ? 'Los derechos presentes (' + presentes.toFixed(2).replace('.', ',') + ' %) alcanzan el m\u00ednimo de '
-    : 'Los derechos presentes (' + presentes.toFixed(2).replace('.', ',') + ' %) no alcanzan el m\u00ednimo de ') + etiqueta + '.' });
+    ? 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) alcanzan el m\u00ednimo de '
+    : 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) no alcanzan el m\u00ednimo de ') + etiqueta + '.' });
 
   // (c) Firmantes con nombre.
   var firmantes = firmLeer().filter(function (fr) { return fr.nombre; });
@@ -2848,7 +2892,7 @@ var LLAVE_ACTA = 'acta_pago_llave';
 // se comportaba como pagado. Fuera de una pagina de demostracion no vale.
 var LLAVE_DE_DEMO = 'DEMO-PAGO-SIMULADO';
 function enPaginaDemo() {
-return /(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname);
+return /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname);
 }
 function llaveDelActa() {
 var v = '';

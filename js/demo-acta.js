@@ -32,7 +32,7 @@
   // no cargan el cliente real de Supabase. Ahi el simulador corresponde,
   // tambien en produccion: es lo que permite recorrer la herramienta antes
   // de pagar. En cualquier otra ruta se sigue ignorando.
-  var esPaginaDemo = /(^|\/)([\w-]+-)?demo(\.html)?$/.test(global.location.pathname);
+  var esPaginaDemo = /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(global.location.pathname);
   // El modo vitrina lo enciende el Worker (VITRINA=1) para mostrar el sistema.
   // El simulador no habla con la base de datos, asi que ahi tambien sirve.
   var enVitrina = document.documentElement.classList.contains('vitrina');
@@ -297,9 +297,37 @@
     }
   };
 
+  // OJO: localStorage pertenece al ORIGEN, no a la pagina. /acta-demo y
+  // /acta viven las dos en actascopropiedad.cl, asi que esta llave la ve el
+  // producto de verdad. Los lectores ya la descartan fuera de una pagina
+  // -demo, pero faltaba lo otro: si quien entra a la demostracion YA pago,
+  // escribir aqui le destruia su activacion en este equipo. Se guarda
+  // aparte y se repone al salir.
+  var LLAVE_PAGO = 'acta_pago_llave';
+  var GUARDADA = 'acta_pago_llave_real';
+
   function darPorPagado() {
-    try { localStorage.setItem('acta_pago_llave', 'DEMO-PAGO-SIMULADO'); } catch (e) {}
+    try {
+      var previa = localStorage.getItem(LLAVE_PAGO);
+      if (previa && previa !== 'DEMO-PAGO-SIMULADO') {
+        localStorage.setItem(GUARDADA, previa);
+      }
+      localStorage.setItem(LLAVE_PAGO, 'DEMO-PAGO-SIMULADO');
+    } catch (e) {}
   }
+
+  // Al irse de la demostracion se repone la llave real, si la habia. Si no
+  // la habia, se borra la de mentira: no tiene nada que hacer fuera de aqui.
+  function devolverLaLlave() {
+    try {
+      var real = localStorage.getItem(GUARDADA);
+      if (real) { localStorage.setItem(LLAVE_PAGO, real); localStorage.removeItem(GUARDADA); }
+      else if (localStorage.getItem(LLAVE_PAGO) === 'DEMO-PAGO-SIMULADO') {
+        localStorage.removeItem(LLAVE_PAGO);
+      }
+    } catch (e) {}
+  }
+  global.addEventListener('pagehide', devolverLaLlave);
 
   global.DEMOA = {
     sesion: function () { return SESION; },
@@ -308,8 +336,10 @@
     pagar: function () { darPorPagado(); return 'pagado. Recargue el panel.'; },
     reiniciar: function () {
       actas = []; correlativo = 1; guardar();
-      try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-    }
+      devolverLaLlave();
+    },
+    // Para poder comprobarlo desde fuera.
+    devolverLaLlave: devolverLaLlave
   };
 
   // El candado del pago está en Postgres, no aquí.

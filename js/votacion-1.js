@@ -50,7 +50,7 @@ async function crearAsamblea(btn){
   let llave='';
   try{ llave=localStorage.getItem('acta_pago_llave')||''; }catch(e){}
   if(llave==='DEMO-PAGO-SIMULADO' &&
-     !/(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname)) llave='';
+     !/(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname)) llave='';
   if(!llave){
     alert('Las asambleas se crean desde el sistema de actas.\n\nAbra actascopropiedad.cl/acta, complete los datos y desde ahí inicie la sala de votación. Esta pantalla sirve para continuar una asamblea ya creada.');
     return;
@@ -112,7 +112,7 @@ function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent)
 
 function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='Cambios sin guardar…'; persistMesa(); clearTimeout(autoTimer); autoTimer=setTimeout(autoGuardarPadron,900); }
 async function persistirPadronDB(filas){
-  const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,der:parseFloat(p.der)||0}));
+  const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,habil:p.habil!==false,der:Derechos.aNumero(Derechos.desdeTexto(p.der))}));
   const {data,error}=await sb.rpc('vv_set_padron',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_padron:arr});
   if(error) throw error;
   return (data&&data.n)||arr.length;
@@ -139,7 +139,7 @@ function renderPadron(){
     rutInp.addEventListener('change',()=>{ if(padron[i].rut && validarRut(padron[i].rut)){ padron[i].rut=formatRut(padron[i].rut); rutInp.value=padron[i].rut; rutInp.style.borderColor=''; renderPadronSum(); } });
     if(p.rut && !validarRut(p.rut)) rutInp.style.borderColor='var(--err)';
     tr.appendChild(td(rutInp));
-    const derInp=inp(p.der,'80px',v=>{padron[i].der=parseFloat(v)||0; renderPadronSum(); markDirty();},'number'); derInp.step='0.01'; derInp.min='0'; derInp.max='100';
+    const derInp=inp(p.der,'80px',v=>{padron[i].der=Derechos.aNumero(Derechos.desdeTexto(v)); renderPadronSum(); markDirty();},'number'); derInp.step='0.01'; derInp.min='0'; derInp.max='100';
     tr.appendChild(td(derInp));
     const sel=document.createElement('select'); sel.style.width='70px';
     const o1=document.createElement('option'); o1.value='si'; o1.textContent='Sí';
@@ -159,7 +159,7 @@ function renderPadron(){
   renderPadronSum();
 }
 function renderPadronSum(){
-  const sum=padron.reduce((a,p)=>a+(parseFloat(p.der)||0),0);
+  const sum=Derechos.suma(padron.map(p=>Derechos.desdeTexto(p.der)));
   const hab=padron.filter(p=>p.habil!==false).length;
   const pres=padron.filter(p=>p.habil!==false&&p.asiste!==false).length;
   const malRut=padron.filter(p=>p.rut&&!validarRut(p.rut)).length;
@@ -196,7 +196,7 @@ function importarPadron(input){
         const nombre=String(pick(o,['nombre','copropietario','propietario'])||'').trim();
         if(!rut&&!nombre){ omit++; return; }
         const derRaw=pick(o,['derecho','porcentaje','prorrateo','%']); if(String(derRaw).trim()!=='') hayColDer=true;
-        const der=parseFloat(String(derRaw||'0').replace('%','').replace(',','.').trim())||0;
+        const der=Derechos.aNumero(Derechos.desdeTexto(String(derRaw||'0').replace('%','').trim()));
         nuevo.push({ unidad:String(pick(o,['unidad','depto','casa','nro','numero'])||'').trim(), nombre, rut:formatRut(rut), der,
           habil:!/^(no|n|inhabil|0|false)$/.test(na(String(pick(o,['habil','aldia','estado'])||'si'))),
           asiste:!/^(no|n|ausente|0|false)$/.test(na(String(pick(o,['asiste','presente','asistio'])||'si'))) });
@@ -221,11 +221,16 @@ async function guardarPadron(btn){
   const filas=padron.filter(p=>norm(p.rut));
   const malRut=filas.filter(p=>!validarRut(p.rut));
   if(malRut.length){ alert('Hay '+malRut.length+' RUT con formato inválido (marcados en rojo). Corrígelos antes de guardar.'); return; }
-  const seen={}, dups=[];
-  filas.forEach(p=>{ const k=norm(p.rut); if(seen[k]){ if(dups.indexOf(p.rut)<0) dups.push(p.rut); } else seen[k]=1; });
-  if(dups.length){ alert('Hay RUT repetidos en el padrón: '+dups.join(', ')+'.\nCada copropietario debe aparecer una sola vez.'); return; }
-  const sum=padron.reduce((a,p)=>a+(parseFloat(p.der)||0),0);
-  if(sum>0 && Math.abs(sum-100)>0.5){ if(!confirm('La suma de derechos es '+sum.toFixed(2)+'%, no 100%. Esto afecta el cálculo de mayorías. ¿Guardar de todas formas?')) return; }
+  // Un RUT puede repetirse: es un copropietario con mas de una unidad, y
+  // vota una vez con la suma de sus derechos. Rechazarlo bloqueaba justo
+  // el caso que regula el art. 14 del Reglamento. Lo que no puede
+  // repetirse es la UNIDAD.
+  const seenU={}, dupsU=[];
+  padron.forEach(p=>{ const k=String(p.unidad||'').trim().toLowerCase(); if(!k) return;
+    if(seenU[k]){ if(dupsU.indexOf(p.unidad)<0) dupsU.push(p.unidad); } else seenU[k]=1; });
+  if(dupsU.length){ alert('Hay unidades repetidas en el padrón: '+dupsU.join(', ')+'.' + String.fromCharCode(10) + 'Cada unidad debe aparecer una sola vez.'); return; }
+  const sum=Derechos.suma(padron.map(p=>Derechos.desdeTexto(p.der)));
+  if(sum>0 && Math.abs(sum-Derechos.CIEN)>0.5*Derechos.ESCALA){ if(!confirm('La suma de derechos es '+Derechos.texto(sum)+' %, no 100 %. Esto afecta el cálculo de mayorías. ¿Guardar de todas formas?')) return; }
   setBusy(btn,true,'Guardando…'); const ok=$('m-padron-ok');
   try{
     const n=await persistirPadronDB(filas);
@@ -292,26 +297,48 @@ async function cargarVotos(){
 }
 function calc(votos){
   const map={}; votos.forEach(v=>map[v.rut]=v.choice);
+  // Enteros escalados: la suma es exacta y no depende del orden del padron.
+  // Y la habilidad se arrastra por copropietario, no por unidad (art. 14
+  // del Reglamento): quien tiene dos unidades y debe en una, no vota.
+  const filas = Derechos.habilidadPorCopropietario(padron).filas;
   let f=0,c=0,a=0,n=0,nf=0,nc=0,na=0,totalCond=0,totalHabil=0,habPresentes=0;
-  let derPresentes=0;
-  padron.forEach(p=>{ const d=parseFloat(p.der)||0; totalCond+=d; if(p.habil!==false){ totalHabil+=d; if(p.asiste!==false){ habPresentes++; derPresentes+=d; } } });
-  padron.forEach(p=>{ const v=map[norm(p.rut)]; const d=parseFloat(p.der)||0; if(v&&p.habil!==false&&p.asiste!==false){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} } });
-  return {map,f,c,a,n,nf,nc,na,totalCond,totalHabil,habPresentes,derPresentes};
+  let derPresentes=0, sinRegistrar=0;
+  filas.forEach(p=>{ const d=Derechos.desdeTexto(p.der); totalCond+=d;
+    if(p.habil!==false){ totalHabil+=d; if(p.asiste!==false){ habPresentes++; derPresentes+=d; } } });
+  filas.forEach(p=>{ const v=map[norm(p.rut)]; const d=Derechos.desdeTexto(p.der);
+    if(p.habil!==false&&p.asiste!==false){
+      if(v){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} }
+      else sinRegistrar++;
+    } });
+  return {map,f,c,a,n,nf,nc,na,totalCond,totalHabil,habPresentes,derPresentes,sinRegistrar,filas};
+}
+// La regla y el formato salen de js/derechos.js, el mismo archivo que usa
+// el acta. Eran tres implementaciones de lo mismo y discrepaban.
+function reglaDeLaSala(){
+  const tipo=asamblea?asamblea.tipo:'ordinaria';
+  return tipo==='ext-abs' ? 'absoluta' : tipo==='ext-ref' ? 'reforzada' : 'presentes';
 }
 function conclusionTipo(r,cerrada){
-  const tipo=asamblea?asamblea.tipo:'ordinaria';
   if(r.n===0) return {cls:'pe',txt:cerrada?'Sin votos registrados.':'Esperando votos…'};
-  if(tipo==='ext-abs'){ const ok=r.f>50; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (supera el 50%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere más del 50% de los derechos del condominio).'}; }
-  if(tipo==='ext-ref'){ const ok=r.f>=66; return ok?{cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor (alcanza el 66%).'}:{cls:cerrada?'re':'pe',txt:(cerrada?'NO APROBADO — ':'Por ahora no alcanza: ')+r.f.toFixed(2)+'% a favor (se requiere 66% de los derechos del condominio).'}; }
-  
-  // Ordinaria: mayoria absoluta de los DERECHOS presentes. Contar cabezas
-  // da otro resultado apenas los derechos son desiguales, y el que manda es
-  // este (art. 15: el voto es proporcional a los derechos de la unidad).
-  const minimo=r.derPresentes/2;
-  const detrasDe=' ('+r.nf+' de '+r.habPresentes+' asistentes hábiles)';
-  if(r.derPresentes>0 && r.f>minimo) return {cls:'ap',txt:'APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor'+detrasDe+', sobre los '+minimo.toFixed(2)+'% que exige la mayoría absoluta de los '+r.derPresentes.toFixed(2)+'% presentes.'};
-  if(cerrada) return {cls:'re',txt:'NO APROBADO — '+r.f.toFixed(2)+'% de los derechos a favor'+detrasDe+'; se requería más de '+minimo.toFixed(2)+'% de los '+r.derPresentes.toFixed(2)+'% presentes.'};
-  return {cls:'pe',txt:'Por ahora '+r.f.toFixed(2)+'% de los derechos a favor'+detrasDe+' · se requiere más de '+minimo.toFixed(2)+'% de los '+r.derPresentes.toFixed(2)+'% presentes.'};
+
+  const v = Derechos.resolver({
+    regla: reglaDeLaSala(),
+    favor:r.f, contra:r.c, abstencion:r.a,
+    presentes:r.derPresentes, personas:r.habPresentes, personasFavor:r.nf,
+    sinRegistrar:r.sinRegistrar, cerrada:cerrada
+  });
+
+  const detrasDe = ' ('+r.nf+' de '+r.habPresentes+' asistentes hábiles)';
+  const cuenta = v.favorTexto+' % de los derechos a favor'+detrasDe;
+  const exige = v.descripcionUmbral.replace(/^Mayoría (absoluta|reforzada): /,'');
+
+  // Mientras la votacion sigue abierta esto es una tendencia, aunque la
+  // mayoria ya este numericamente alcanzada. El acta decia "pendiente"
+  // sobre el mismo registro y la sala cantaba "APROBADO".
+  if(v.estado==='aprobado') return {cls:'ap',txt:'APROBADO — '+cuenta+'. '+v.descripcionBase+'.'};
+  if(v.estado==='rechazado') return {cls:'re',txt:'NO APROBADO — '+cuenta+'; se requería '+exige+'.'};
+  if(v.alcanzada) return {cls:'pe',txt:'Mayoría alcanzada por ahora — '+cuenta+'. Faltan '+v.sinRegistrar+' por votar: el resultado no es definitivo.'};
+  return {cls:'pe',txt:'Por ahora '+cuenta+' · se requiere '+exige+'.'};
 }
 function renderResultados(votos){
   const r=calc(votos), cerrada=!votacionAbierta;
@@ -319,21 +346,25 @@ function renderResultados(votos){
   if(tipo==='ordinaria'){
     // Las barras van en derechos, como el veredicto. La base de la ordinaria
     // son los derechos presentes, no el condominio entero.
-    const set=(b,pc,val)=>{ $(b).style.width=(r.derPresentes>0?Math.min(val/r.derPresentes*100,100):0)+'%'; $(pc).textContent=val.toFixed(2)+'%'; };
+    const set=(b,pc,val)=>{ $(b).style.width=(r.derPresentes>0?Math.min(val/r.derPresentes*100,100):0)+'%'; $(pc).textContent=Derechos.texto(val)+' %'; };
     set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
-    const minimo=r.derPresentes/2;
-    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' presentes hábiles · base: <strong>'+r.derPresentes.toFixed(2)+'%</strong> de derechos presentes · se adopta con <strong>más de '+minimo.toFixed(2)+'%</strong> a favor.';
+    // La mitad exacta de la base, con el mismo formateador que el acta.
+    const minimo=Derechos.texto(r.derPresentes, 2*Derechos.ESCALA);
+    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' presentes hábiles · base: <strong>'+Derechos.texto(r.derPresentes)+' %</strong> de derechos presentes · se adopta con <strong>más de '+minimo+' %</strong> a favor.';
   } else {
-    const set=(b,pc,val)=>{ $(b).style.width=Math.min(val,100)+'%'; $(pc).textContent=val.toFixed(2)+'%'; };
+    const set=(b,pc,val)=>{ $(b).style.width=Math.min(Derechos.aNumero(val),100)+'%'; $(pc).textContent=Derechos.texto(val)+' %'; };
     set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
-    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' hábiles · base hábil: <strong>'+r.totalHabil.toFixed(2)+'%</strong> · total condominio: '+r.totalCond.toFixed(2)+'% · se requiere % de los <strong>derechos del condominio</strong>.';
+    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' hábiles · base hábil: <strong>'+Derechos.texto(r.totalHabil)+' %</strong> · total condominio: '+Derechos.texto(r.totalCond)+' % · se requiere % de los <strong>derechos del condominio</strong>.';
   }
   const cn=conclusionTipo(r,cerrada); const cc=$('mesa-concl'); cc.className='concl '+cn.cls; cc.textContent=(cerrada?'':'Tendencia: ')+cn.txt;
   const tb=$('mesa-tbody'); tb.innerHTML='';
-  padron.forEach(p=>{ const v=r.map[norm(p.rut)];
-    const pill=p.asiste===false?'<span class="pill p">ausente</span>':p.habil===false?'<span class="pill p">inhábil</span>':v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>';
+  r.filas.forEach(p=>{ const v=r.map[norm(p.rut)];
+    const inhabil=p.habil===false
+      ? (p.inhabilPorOtraUnidad?'<span class="pill p">inhábil (otra unidad)</span>':'<span class="pill p">inhábil</span>')
+      : null;
+    const pill=p.asiste===false?'<span class="pill p">ausente</span>':inhabil||(v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>');
     const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(p.unidad)+'</td><td>'+esc(p.nombre)+'</td><td>'+(parseFloat(p.der)||0).toFixed(2)+'%</td><td>'+(p.habil===false?'No':'Sí')+'</td><td>'+pill+'</td>';
+    tr.innerHTML='<td>'+esc(p.unidad)+'</td><td>'+esc(p.nombre)+'</td><td>'+Derechos.texto(Derechos.desdeTexto(p.der))+' %</td><td>'+(p.habil===false?'No':'Sí')+'</td><td>'+pill+'</td>';
     tb.appendChild(tr);
   });
 }
@@ -346,14 +377,14 @@ async function exportarResultados(btn){
     const esOrd=(asamblea.tipo||'ordinaria')==='ordinaria';
     out+=(esOrd
       ? 'Adopción de acuerdos: por mayoría absoluta de los derechos presentes.\n\n'
-      : 'Total derechos hábiles: '+padron.filter(p=>p.habil!==false).reduce((a,p)=>a+(parseFloat(p.der)||0),0).toFixed(2)+'% del condominio\n\n');
+      : 'Total derechos hábiles: '+Derechos.texto(Derechos.suma(Derechos.habilidadPorCopropietario(padron).filas.filter(p=>p.habil!==false).map(p=>Derechos.desdeTexto(p.der))))+' % del condominio\n\n');
     for(let i=0;i<puntos.length;i++){
       const p=puntos[i];
       const { data }=await sb.rpc('vv_resultados',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:p.key});
       const r=calc((data&&data.votos)||[]); const cn=conclusionTipo(r,true);
       out+='PUNTO '+(i+1)+': '+p.titulo+'\n';
-      out+='  A favor: '+r.f.toFixed(2)+'%  ·  En contra: '+r.c.toFixed(2)+'%  ·  Abstención: '+r.a.toFixed(2)+'%'
-        +(esOrd ? '  (de '+r.derPresentes.toFixed(2)+'% de derechos presentes)' : '')+'\n';
+      out+='  A favor: '+Derechos.texto(r.f)+' %  ·  En contra: '+Derechos.texto(r.c)+' %  ·  Abstención: '+Derechos.texto(r.a)+' %'
+        +(esOrd ? '  (de '+Derechos.texto(r.derPresentes)+' % de derechos presentes)' : '')+'\n';
       out+='  Votaron: '+r.n+' de '+r.habPresentes+' copropietarios hábiles\n';
       out+='  Resultado: '+cn.txt+'\n\n';
     }

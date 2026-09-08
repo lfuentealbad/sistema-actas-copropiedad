@@ -25,7 +25,7 @@
   // no cargan el cliente real de Supabase. Ahi el simulador corresponde,
   // tambien en produccion: es lo que permite recorrer la herramienta antes
   // de pagar. En cualquier otra ruta se sigue ignorando.
-  var esPaginaDemo = /(^|\/)([\w-]+-)?demo(\.html)?$/.test(global.location.pathname);
+  var esPaginaDemo = /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(global.location.pathname);
   // El modo vitrina lo enciende el Worker (VITRINA=1) para mostrar el sistema.
   // El simulador no habla con la base de datos, asi que ahi tambien sirve.
   var enVitrina = document.documentElement.classList.contains('vitrina');

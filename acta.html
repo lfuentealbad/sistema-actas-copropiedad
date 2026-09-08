@@ -1989,11 +1989,11 @@
 
     <div class="form-grid" style="margin-top:20px">
       <div class="field">
-        <label for="tipo-asamblea">Tipo de Asamblea <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span><span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre tipos de asamblea">?<span class="help-tip-content"><strong>Ordinaria:</strong> obligatoria una vez al año, trata materias generales (presupuesto, balance, comité). <strong>Extraordinaria Absoluta (50+1%):</strong> p. ej., modificación del reglamento de copropiedad (salvo materias de quórum reforzado) o remoción del comité. <strong>Extraordinaria Reforzada (66%):</strong> p. ej., enajenación de bienes comunes o cambio de destino de las unidades.</span></span></label>
+        <label for="tipo-asamblea">Tipo de Asamblea <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span><span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre tipos de asamblea">?<span class="help-tip-content"><strong>Ordinaria:</strong> obligatoria una vez al año, trata materias generales (presupuesto, balance, comité). <strong>Extraordinaria Absoluta (más del 50 %):</strong> p. ej., modificación del reglamento de copropiedad (salvo materias de quórum reforzado) o remoción del comité. <strong>Extraordinaria Reforzada (66%):</strong> p. ej., enajenación de bienes comunes o cambio de destino de las unidades.</span></span></label>
         <select id="tipo-asamblea" data-cambio="updateTipoAsambleaExtended">
           <option value="">— Seleccione —</option>
           <option value="ordinaria">Ordinaria</option>
-          <option value="extraordinaria-abs">Extraordinaria · Mayoría Absoluta (50+1%)</option>
+          <option value="extraordinaria-abs">Extraordinaria · Mayoría Absoluta (más del 50 %)</option>
           <option value="extraordinaria-ref">Extraordinaria · Mayoría Reforzada (66%)</option>
         </select>
         <div id="tipo-lock-note" style="display:none;margin-top:8px;font-size: 13px;line-height:1.45;color:var(--c-interact);background:#F3F7FB;border:1px solid #CFE1F1;border-radius:8px;padding:8px 10px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>El tipo quedó fijado porque hay una <strong>votación en vivo</strong> en curso (Paso 4). Para cambiarlo, cierre la sala de votación.</div>
@@ -2197,6 +2197,7 @@
 
     
     <div id="suma-derechos-aviso" role="status" aria-live="polite" style="display:none;margin-top:12px"></div>
+    <div id="aviso-art14" role="status" aria-live="polite" style="display:none;margin-top:12px"></div>
 
     
     
@@ -2443,6 +2444,7 @@
 
 
 
+<script src="/js/derechos.js"></script>
 <script src="/js/acciones.js"></script>
 <script src="/js/acta-1.js"></script>
 

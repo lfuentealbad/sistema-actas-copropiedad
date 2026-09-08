@@ -20,7 +20,9 @@
 
   // Misma condición que usan los simuladores: esto pertenece a las páginas
   // -demo y a ninguna otra.
-  if (!/(^|\/)([\w-]+-)?demo(\.html)?$/.test(global.location.pathname)) return;
+  // Con o sin barra final, y con o sin extension: el Worker sirve la misma
+  // pagina para /consulta/demo y /consulta/demo/.
+  if (!/(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(global.location.pathname)) return;
 
   // A dónde lleva "esto en serio". El destino real de cada demostración.
   var VUELTA = [
@@ -55,8 +57,10 @@
     texto.className = 'demo-aviso-txt';
     texto.innerHTML =
       '<strong>Esto es una demostración.</strong> Funciona completa, pero con datos ' +
-      'de ejemplo: nada se guarda<span class="demo-aviso-larga"> ni se envía a ninguna ' +
-      'parte, y el documento que genere no tiene validez</span>.';
+      'de ejemplo: nada sale de este navegador<span class="demo-aviso-larga"> —no se ' +
+      'envía a ninguna parte ni queda en su cuenta— y el documento que genere no ' +
+      'tiene validez. Lo que escriba queda guardado solo aquí, y se borra al salir' +
+      '</span>.';
 
     var ir = document.createElement('a');
     ir.className = 'demo-aviso-btn';

@@ -69,7 +69,7 @@
   // Ver la nota en acta-1.js: la llave de la demostracion no vale fuera de
   // una pagina de demostracion, aunque haya quedado en localStorage.
   var LLAVE_DE_DEMO='DEMO-PAGO-SIMULADO';
-  function enPaginaDemo(){ return /(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname); }
+  function enPaginaDemo(){ return /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname); }
   function llaveGuardada(){
     var v='';
     try{ v=localStorage.getItem(LLAVE)||''; }catch(e){ return ''; }

@@ -18,7 +18,9 @@ function busy(btn, on, txt){
   if(on){ btn.dataset.t = btn.textContent; btn.disabled = true; if(txt) btn.textContent = txt; }
   else { btn.disabled = false; if(btn.dataset.t) btn.textContent = btn.dataset.t; }
 }
-const pct = n => (Number(n)||0).toFixed(2).replace('.', ',') + '%';
+// El mismo formateador exacto que el acta y la sala: dos decimales como
+// minimo y los que hagan falta para no mentir sobre el umbral.
+const pct = n => Derechos.texto(Derechos.desdeTexto(n)) + ' %';
 function guardar(){ try{ localStorage.setItem(LS, JSON.stringify(C)); }catch(e){} }
 function recuperar(){ try{ return JSON.parse(localStorage.getItem(LS)); }catch(e){ return null; } }
 
@@ -327,17 +329,28 @@ function copiarTexto(btn){
   );
 }
 
-// Mismos umbrales que usa el acta de asamblea. Mayoria absoluta es MAS de
-// la mitad, no "51%": el 50+1 solo coincide con 51 cuando la base son 100
-// unidades enteras, y aqui la base son derechos. Un 50,5% es mayoria
-// absoluta y antes se rechazaba.
+// La regla sale de js/derechos.js, el mismo archivo que usan el acta y la
+// sala. Eran tres implementaciones de lo mismo y discrepaban entre si.
+//
+// La consulta por escrito no tiene un "quorum ordinario" propio: cuando el
+// tipo es ordinaria no hay umbral que aplicar y la calificacion queda en el
+// comite. Eso no cambio.
 const UMBRAL = {
   'ordinaria': null,
-  'ext-abs': { min: 50, estricto: true,  texto: 'más del 50%' },
-  'ext-ref': { min: 66, estricto: false, texto: 'al menos el 66%' }
+  'ext-abs': { regla: 'absoluta',  texto: 'más del 50 % de los derechos del condominio' },
+  'ext-ref': { regla: 'reforzada', texto: 'al menos el 66 % de los derechos del condominio' }
 };
-// Devuelve si los derechos a favor alcanzan el umbral de la materia.
-function alcanza(u, a) { return u.estricto ? a > u.min : a >= u.min; }
+
+// El valor llega del servidor como numero; se pasa a entero escalado para
+// comparar sin coma flotante. Con 17 + 17,01 + 15,99 la suma binaria daba
+// 50.00000000000001 y "superaba" el 50 %.
+function alcanza(u, a) {
+  return Derechos.resolver({
+    regla: u.regla,
+    favor: Derechos.desdeTexto(a),
+    cerrada: true
+  }).estado === 'aprobado';
+}
 
 async function refrescar(manual){
   if(!C) return;
