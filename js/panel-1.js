@@ -448,8 +448,12 @@
   }
 
   function sinPagos(){
+    // Ver la nota en acta-1.js. Sin esto, quien solo visito /acta-demo veia
+    // aqui "Una asamblea activada - disponible", que no es cierto.
     var llave = '';
     try { llave = localStorage.getItem('acta_pago_llave') || ''; } catch(e){}
+    if(llave === 'DEMO-PAGO-SIMULADO' &&
+       !/(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname)) llave = '';
     if(llave){
       return lista('<div class="it"><div class="info">' +
         '<b>Una asamblea activada<span class="pill ok">disponible</span></b>' +

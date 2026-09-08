@@ -2473,8 +2473,7 @@ function actaFinalizar(alTerminar) {
   if (!c) { alTerminar('Sin conexión con el servicio. Reintente en un momento.'); return; }
   if (!_actaId) { alTerminar('Todavía estamos guardando su acta. Espere unos segundos y reintente.'); return; }
 
-  var llave = '';
-  try { llave = localStorage.getItem('acta_pago_llave') || ''; } catch (e) {}
+  var llave = llaveDelActa();
   if (!llave) { alTerminar('SIN_PAGO'); return; }
 
   c.rpc('ac_finalizar', { p_acta: _actaId, p_llave: llave }).then(function (r) {
@@ -2844,9 +2843,22 @@ firmInicial();
  * ===================================================================== */
 
 var LLAVE_ACTA = 'acta_pago_llave';
+// La demostracion escribe esta llave para abrirse sola, y localStorage es
+// del origen entero: al salir de /acta-demo quedaba puesta y el producto
+// se comportaba como pagado. Fuera de una pagina de demostracion no vale.
+var LLAVE_DE_DEMO = 'DEMO-PAGO-SIMULADO';
+function enPaginaDemo() {
+return /(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname);
+}
+function llaveDelActa() {
+var v = '';
+try { v = localStorage.getItem(LLAVE_ACTA) || ''; } catch (e) { return ''; }
+if (v === LLAVE_DE_DEMO && !enPaginaDemo()) return '';
+return v;
+}
 
 function hayPagoDelActa() {
-  try { return !!localStorage.getItem(LLAVE_ACTA); } catch (e) { return false; }
+  return !!llaveDelActa();
 }
 
 function puertaMsg(texto, malo) {

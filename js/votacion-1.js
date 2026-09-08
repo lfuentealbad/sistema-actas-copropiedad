@@ -45,8 +45,12 @@ function persistMesa(){ if(!asamblea) return; localStorage.setItem('sala-mesa-la
 // ?rol=mesa y existe para continuar una asamblea ya creada; crear una nueva
 // se hace desde /acta, que es donde está el acta y el pago.
 async function crearAsamblea(btn){
+  // Ver la nota en acta-1.js: la llave que deja la demostracion no sirve
+  // para abrir una sala de verdad.
   let llave='';
   try{ llave=localStorage.getItem('acta_pago_llave')||''; }catch(e){}
+  if(llave==='DEMO-PAGO-SIMULADO' &&
+     !/(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname)) llave='';
   if(!llave){
     alert('Las asambleas se crean desde el sistema de actas.\n\nAbra actascopropiedad.cl/acta, complete los datos y desde ahí inicie la sala de votación. Esta pantalla sirve para continuar una asamblea ya creada.');
     return;

@@ -13,17 +13,24 @@
  *  Sirve para ver el circuito completo sin pasarela de pago ni casilla de
  *  correo entrante, que hoy están cerradas a propósito.
  *
- *  Solo corre en localhost: si llegara a producción, se ignora solo.
+ *  Corre en las páginas -demo, en localhost y en modo vitrina. En
+ *  cualquier otra página se ignora solo.
  * ===================================================================== */
 (function (global) {
   'use strict';
 
   var enLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(global.location.hostname);
+  // Las paginas de demostracion -las que genera Pruebas/regenerar-demos.mjs-
+  // son las unicas que cargan este archivo a proposito, y son las unicas que
+  // no cargan el cliente real de Supabase. Ahi el simulador corresponde,
+  // tambien en produccion: es lo que permite recorrer la herramienta antes
+  // de pagar. En cualquier otra ruta se sigue ignorando.
+  var esPaginaDemo = /(^|\/)([\w-]+-)?demo(\.html)?$/.test(global.location.pathname);
   // El modo vitrina lo enciende el Worker (VITRINA=1) para mostrar el sistema.
   // El simulador no habla con la base de datos, asi que ahi tambien sirve.
   var enVitrina = document.documentElement.classList.contains('vitrina');
-  if (!enLocal && !enVitrina) {
-    console.warn('El simulador de consulta solo funciona en local. Ignorado.');
+  if (!enLocal && !enVitrina && !esPaginaDemo) {
+    console.warn('El simulador de consulta solo funciona en las páginas de demostración. Ignorado.');
     return;
   }
 

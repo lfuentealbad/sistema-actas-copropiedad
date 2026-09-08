@@ -160,6 +160,10 @@
   .hero p.lead{font-size:19px;color:rgba(255,255,255,.9);margin:0 0 34px;max-width:34em;line-height:1.55;}
   .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
   /* Las tres objeciones que frenan la compra, respondidas bajo los botones. */
+  .hero-probar{margin:14px 0 0;font-size:14.5px;line-height:1.6;color:var(--c-text-2);max-width:52ch}
+  .hero-probar a{color:var(--c-primary);text-decoration:underline;text-underline-offset:2px}
+  .doc-probar{margin:12px 0 0;font-size:14.5px;line-height:1.6;color:var(--c-text-2)}
+  .doc-probar a{color:var(--c-primary);text-decoration:underline;text-underline-offset:2px}
   .hero-nota{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:26px;font-size:14px;font-weight:500;color:rgba(255,255,255,.74);}
   .hero-nota i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.5);flex:none;}
   .hero-nota b{color:#fff;font-weight:700;}
@@ -541,8 +545,10 @@
       <p class="lead reveal in d1">Usted dirige la asamblea con tranquilidad. El sistema lleva el quórum, cuenta los votos ponderados por derechos y genera el acta con la estructura prevista en la Ley N°&nbsp;21.442.</p>
       <div class="hero-cta reveal in d2">
         <a class="btn btn-primary" href="/acta">Comenzar mi acta</a>
-        <a class="btn btn-light" href="/ejemplo-acta">Ver un acta de ejemplo</a>
+        <a class="btn btn-light" href="/acta-demo">Probar el asistente</a>
       </div>
+      <p class="hero-probar reveal in d2">Se recorre entero con datos de ejemplo, sin cuenta y sin
+      pagar. ¿Prefiere ver primero el resultado? <a href="/ejemplo-acta">Un acta ya terminada</a>.</p>
       <p class="hero-nota reveal in d3">
         <span>Sin instalar nada</span>
         <i aria-hidden="true" data-pago></i>
@@ -632,6 +638,8 @@
           <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Espacio para las firmas que exige la ley</li>
         </ul>
         <a class="btn btn-primary" href="/acta" style="margin-top:26px">Comenzar mi acta</a>
+        <p class="doc-probar"><a href="/acta-demo">Recorrer el asistente con datos de ejemplo</a>,
+        sin cuenta y sin pagar.</p>
       </div>
       <div class="doc-hoja reveal d1">
         <a href="/ejemplo-acta" aria-label="Ver el acta de ejemplo completa">

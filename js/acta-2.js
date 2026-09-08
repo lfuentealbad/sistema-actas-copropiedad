@@ -66,7 +66,15 @@
   }
   if(window.Cuenta) window.Cuenta.usuario(function(u){ USUARIO=u; });
   var LLAVE='acta_pago_llave';
-  function llaveGuardada(){ try{ return localStorage.getItem(LLAVE)||''; }catch(e){ return ''; } }
+  // Ver la nota en acta-1.js: la llave de la demostracion no vale fuera de
+  // una pagina de demostracion, aunque haya quedado en localStorage.
+  var LLAVE_DE_DEMO='DEMO-PAGO-SIMULADO';
+  function enPaginaDemo(){ return /(^|\/)([\w-]+-)?demo(\.html)?$/.test(location.pathname); }
+  function llaveGuardada(){
+    var v='';
+    try{ v=localStorage.getItem(LLAVE)||''; }catch(e){ return ''; }
+    return (v===LLAVE_DE_DEMO && !enPaginaDemo()) ? '' : v;
+  }
   function guardarLlave(v){ try{ localStorage.setItem(LLAVE,v); }catch(e){} }
   function borrarLlave(){ try{ localStorage.removeItem(LLAVE); }catch(e){} }
   function pagoMsg(texto,error){
