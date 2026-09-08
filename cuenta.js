@@ -25,6 +25,18 @@
   // se queda mirando un error crudo: por eso el boton no se ofrece.
   var PROVEEDOR_GOOGLE = false;
 
+  // Si este navegador ya entro alguna vez, el panel abre en "Entrar"; si
+  // no, abre en "Crear cuenta", que es lo que casi todo el que llega
+  // necesita. Es un "1" guardado en el equipo: no identifica a nadie ni
+  // viaja a ninguna parte.
+  var YA_ENTRO = 'ac_ya_entro';
+  function equipoConocido() {
+    try { return localStorage.getItem(YA_ENTRO) === '1'; } catch (e) { return false; }
+  }
+  function recordarQueEntro() {
+    try { localStorage.setItem(YA_ENTRO, '1'); } catch (e) {}
+  }
+
   var sb = null;
   function cliente() {
     if (!sb && global.supabase) sb = global.supabase.createClient(URL_SB, ANON_SB);
@@ -496,7 +508,7 @@
       if (on) { btn.dataset.t = btn.textContent; btn.disabled = true; if (txt) btn.textContent = txt; }
       else { btn.disabled = false; if (btn.dataset.t) btn.textContent = btn.dataset.t; }
     }
-    function listo(u) { if (o.alEntrar) o.alEntrar(u); }
+    function listo(u) { recordarQueEntro(); if (o.alEntrar) o.alEntrar(u); }
 
     // ---- pestañas
     function verModo(m) {
@@ -668,7 +680,8 @@
       if (e.key === 'Enter') { e.preventDefault(); $('cta-verificar').click(); }
     });
 
-    if (o.modo === 'crear') verModo('crear');
+    // Sin modo pedido, manda lo que sabemos del equipo.
+    if (o.modo === 'crear' || (!o.modo && !equipoConocido())) verModo('crear');
     else verModo('entrar');
   }
 
@@ -928,6 +941,7 @@
   }
 
   global.Cuenta = {
+    equipoConocido: equipoConocido,
     terminos: {
       VERSION: TERMINOS_VERSION,
       html: terminosHtml,
