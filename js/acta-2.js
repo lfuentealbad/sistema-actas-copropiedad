@@ -422,6 +422,9 @@
       temasActuales=temas(); renderTemas();
       if(pollTimer) clearInterval(pollTimer);
       pollTimer=setInterval(function(){ if(activo) refrescar(); }, 6000);
+      // Al recuperar la sala la Mesa ve de inmediato quien ya esta
+      // identificado, por si alguien espera que lo liberen.
+      window.actaActualizarTelefonos(null);
     }catch(e){
       salaOlvidar();
       var a=document.getElementById('vv-aviso-sala');
@@ -466,6 +469,85 @@
       ? '✓ Padrón y votos borrados de la base de datos activa.\n\nEl acta que está redactando queda guardada en ESTE equipo (para no perder su trabajo). Si es un computador compartido, al terminar use "Limpiar formulario" para no dejar datos en el navegador.\n\n(Los respaldos automáticos del servidor se purgan al vencer su ventana de retención.)'
       : 'Se cerró la sala. No se pudo confirmar el borrado inmediato; de todos modos, el barrido automático borrará estos datos.');
   };
+  // -------------------------------------------------------------------
+  //  Telefonos identificados (contrato C3)
+  // -------------------------------------------------------------------
+  //  Desde el 22-09-2026 cada RUT queda atado al primer telefono que se
+  //  identifica con el, y solo la Mesa puede soltar ese vinculo: cuando a un
+  //  vecino se le apaga el telefono, o alguien se le adelanto con su RUT. La
+  //  pagina de la sala (/votacion/) ya tenia el boton; la Mesa que dirige la
+  //  votacion desde el acta -que es el camino principal- no tenia como, y un
+  //  vecino podia quedar sin votar en plena asamblea.
+  //  Se consulta a pedido y al recuperar la sala, no en cada vuelta del
+  //  sondeo de resultados: trae el padron entero y no hace falta cada 6 s.
+  //  Todo se pinta con textContent: nombres y unidades vienen del Excel.
+  function pintarTelefonos(padron){
+    var caja=document.getElementById('vv-telefonos-lista'); if(!caja) return;
+    caja.textContent='';
+    // Una persona con varias unidades aparece una sola vez: el vinculo es
+    // del RUT, no de la unidad.
+    var porRut=Object.create(null), orden=[], total=0;
+    (padron||[]).forEach(function(p){
+      if(!p) return;
+      var r=norm(p.rut); if(!r) return;
+      if(!porRut[r]){ porRut[r]={rut:r, nombre:String(p.nombre||''), unidades:[], vinculado:false}; orden.push(r); total++; }
+      if(p.unidad) porRut[r].unidades.push(String(p.unidad));
+      if(p.vinculado===true) porRut[r].vinculado=true;
+    });
+    var vinc=orden.map(function(r){ return porRut[r]; }).filter(function(x){ return x.vinculado; });
+    var res=document.createElement('p');
+    res.style.cssText='font-size:12.5px;margin:4px 0 8px';
+    res.textContent=vinc.length
+      ? vinc.length+' de '+total+' copropietarios presentes se identificaron desde su teléfono.'
+      : 'Todavía nadie se ha identificado desde su teléfono.';
+    caja.appendChild(res);
+    vinc.forEach(function(x){
+      var fila=document.createElement('div');
+      fila.style.cssText='display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--c-border, #e5e7eb)';
+      var t=document.createElement('span'); t.style.flex='1';
+      t.textContent=(x.unidades.length ? x.unidades.join(', ')+' — ' : '')+(x.nombre||x.rut);
+      var b=document.createElement('button');
+      b.type='button'; b.className='btn-tool'; b.textContent='Liberar';
+      b.setAttribute('aria-label','Liberar el teléfono de '+(x.nombre||x.rut));
+      b.dataset.ac='actaLiberarTelefono'; b.dataset.args='@';
+      b.dataset.rut=x.rut; b.dataset.nombre=x.nombre;
+      fila.appendChild(t); fila.appendChild(b); caja.appendChild(fila);
+    });
+  }
+  function avisoTelefonos(texto){
+    var caja=document.getElementById('vv-telefonos-lista'); if(caja) caja.textContent=texto;
+  }
+  window.actaActualizarTelefonos=async function(btn){
+    if(!asam){ avisoTelefonos('No hay una sala abierta en esta sesión.'); return; }
+    var c=client(); if(!c) return;
+    var _t=btn?btn.textContent:'';
+    if(btn){ btn.disabled=true; btn.textContent='Consultando…'; }
+    try{
+      var r=await c.rpc('vv_reanudar',{p_codigo:asam.codigo,p_token:asam.token});
+      if(r.error || !r.data) throw r.error||new Error('sin datos');
+      pintarTelefonos(r.data.padron);
+    }catch(e){
+      avisoTelefonos('No se pudo consultar quién está identificado. Revise su conexión e inténtelo de nuevo.');
+    }finally{ if(btn){ btn.disabled=false; btn.textContent=_t; } }
+  };
+  window.actaLiberarTelefono=async function(btn){
+    if(!asam || !btn || !btn.dataset) return;
+    var rut=String(btn.dataset.rut||''); if(!rut) return;
+    var nombre=String(btn.dataset.nombre||'')||rut;
+    if(!confirm('¿Liberar el teléfono de '+nombre+'?\n\nPodrá volver a identificarse desde otro teléfono. Los votos que ya emitió se conservan.\n\nHágalo solo si esa persona se lo pide en la sala.')) return;
+    var c=client(); if(!c) return;
+    btn.disabled=true;
+    try{
+      var r=await c.rpc('vv_liberar',{p_codigo:asam.codigo,p_token:asam.token,p_rut:rut});
+      if(r.error) throw r.error;
+    }catch(e){
+      btn.disabled=false;
+      alert('No se pudo liberar el teléfono. Revise su conexión e inténtelo de nuevo.');
+      return;
+    }
+    await window.actaActualizarTelefonos(null);
+  };
+
   function renderTemas(){
     var cont=document.getElementById('vv-temas'); cont.innerHTML='';
     temasActuales.forEach(function(t){
