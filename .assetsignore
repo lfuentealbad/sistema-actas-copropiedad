@@ -30,6 +30,9 @@ _pruebas
 # exclusion; Pruebas/prueba-seg-worker.mjs compara lo que quedaria
 # publicado contra una lista blanca, y falla si se cuela un archivo nuevo.
 README.md
+# El registro de versiones y huellas de las librerias (hallazgo A8). Es
+# documentacion del repositorio, no del sitio.
+vendor/PROCEDENCIA.md
 
 # Capturas y tutoriales de la version anterior: nadie los enlaza y muestran
 # el nombre viejo, la cabecera antigua y un padron sin la columna de correo.
