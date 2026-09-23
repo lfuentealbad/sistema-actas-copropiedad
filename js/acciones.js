@@ -33,6 +33,61 @@
     return pieza;
   }
 
+  // -------------------------------------------------------------------
+  //  Lista blanca
+  // -------------------------------------------------------------------
+  //  Antes el despachador buscaba el nombre en window y llamaba lo que
+  //  encontrara. Eso convertia a cualquier atributo data-ac que lograra
+  //  colarse en la pagina -por ejemplo, desde un respaldo de las cuentas
+  //  del condominio preparado por otro- en una forma de llamar a CUALQUIER
+  //  funcion global con argumentos elegidos: alert, fetch, o una funcion
+  //  propia que borra datos. Ahora solo se llama lo que esta aqui.
+  //
+  //  La lista son los nombres que el sitio usa de verdad en data-ac,
+  //  data-cambio, data-tecla y data-teclabaja. Pruebas/prueba-seg-acciones.mjs
+  //  recorre todo lo publicado y falla si una pagina usa un nombre que no
+  //  esta, o si aqui queda uno que ya nadie usa. Al agregar un boton nuevo,
+  //  su accion se agrega tambien aqui.
+  //  (Hallazgo SAST-02 de la auditoria del 22-09-2026.)
+  var PERMITIDAS = Object.create(null);
+  [
+    '_irkxl', '_kbxoTodos', 'abrirCobro', 'abrirEgreso', 'abrirImportCSV',
+    'abrirIngreso', 'abrirInstrucciones', 'abrirLiquidacionDirecta',
+    'abrirMantencion', 'abrirMovFondo', 'abrirUnidad',
+    'acAgregarAdministrador', 'acAsistenteNuevo', 'acAsistenteQuitar',
+    'acCerrarActa', 'acCerrarModal', 'acDescargar', 'acFinalizar',
+    'acImprimir', 'acNuevaActa', 'acPuntoNuevo', 'acPuntoQuitar', 'acQuorum',
+    'acTraerAnterior', 'actaCancelarPago', 'actaCerrarSala',
+    'actaCerrarSesion', 'actaIniciarSala', 'actaIrAPagar', 'actaReanudarSala',
+    'actualizarPreviewCobros', 'actualizarSugerenciaTotal',
+    'actualizarVinculos', 'addCustomMateria', 'addFirmante',
+    'addPuntoYRenombrar', 'addRow', 'agregarFila', 'agregarPunto',
+    'agregarTemasATabla', 'borrarTodasUnidades', 'calcularPresupuesto',
+    'calcularQuorum', 'cambiarRut', 'cargarDemo', 'cerrar',
+    'cerrarInstrucciones', 'cerrarModal', 'cerrarPago', 'cerrarPunto',
+    'cerrarSesion', 'checkPlazo', 'confirmarGenerarCobros', 'copiarLink',
+    'copiarResumen', 'copiarTexto', 'copyActa', 'crear', 'crearAsamblea',
+    'delRow', 'descargarActaHTML', 'descargarPlantilla', 'ejemplo',
+    'eliminarCobro', 'eliminarEgreso', 'eliminarIngreso',
+    'eliminarMantencion', 'eliminarMovFondo', 'eliminarPuntoConfirm',
+    'eliminarUnidad', 'emitir', 'exportarRespaldo', 'exportarResultados',
+    'firmCambioAlternativa', 'firmCargoCambio', 'generarCobrosMes',
+    'generarDocumento', 'generarTodasLiquidaciones', 'goStep', 'guardarCobro',
+    'guardarConfig', 'guardarEgreso', 'guardarIngreso', 'guardarMantencion',
+    'guardarMovFondo', 'guardarPadron', 'guardarUnidad', 'identificar',
+    'importarExcel', 'importarPadron', 'importarRespaldo',
+    'imprimirLiquidacion', 'irAPagar', 'irAlMes', 'liberarVinculo',
+    'limpiarCobros', 'limpiarPadron', 'marcarTodos', 'matChkClick',
+    'materiaEnter', 'mostrarMasUnidades', 'nextStep', 'padronEjemplo',
+    'pagarCobro', 'pagarTodoGrupo', 'prevStep', 'procesarImportacion',
+    'puertaRecuperar', 'quorumYVotacion', 'reanudar', 'recargarLimpio',
+    'refrescar', 'renderLiquidacion', 'resetearTodo', 'resolver',
+    'revisarAvisoNotario', 'savePDF', 'setDoc24', 'setGrabacion', 'setMedio',
+    'setModalidad', 'setNotario', 'setRequiereAcuerdo', 'toggleGrupoCobro',
+    'toggleMatCheck', 'toggleVotPanel', 'unirse',
+    'updateTipoAsambleaExtended'
+  ].forEach(function (n) { PERMITIDAS[n] = true; });
+
   function despachar(ev, atributo) {
     var origen = ev.target;
     if (!origen || !origen.closest) return;
@@ -40,6 +95,12 @@
     if (!el) return;
 
     var nombre = el.getAttribute('data-' + atributo);
+    if (!PERMITIDAS[nombre]) {
+      // Un nombre fuera de la lista no se ejecuta nunca, exista o no la
+      // funcion. Se avisa en consola para que el olvido se note al probar.
+      if (global.console) console.warn('Acción no permitida: ' + nombre);
+      return;
+    }
     var fn = global[nombre];
     if (typeof fn !== 'function') {
       // Una accion sin funcion detras es un error de programacion, no del

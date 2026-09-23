@@ -251,7 +251,11 @@
   }
 
   function habilidadPorCopropietario(filas) {
-    var moroso = {}, vistos = {}, sinRut = 0;
+    // Sin prototipo: la clave es el RUT tal como vino en la planilla, y en
+    // un {} comun el RUT "constructor" ya estaba "moroso" (heredaba una
+    // funcion) y "__proto__" no se podia anotar. El padron lo escribe
+    // quien carga la planilla; no puede elegir quien vota.
+    var moroso = Object.create(null), vistos = Object.create(null), sinRut = 0;
     var i, k;
 
     for (i = 0; i < filas.length; i++) {

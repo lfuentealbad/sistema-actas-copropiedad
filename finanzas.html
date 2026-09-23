@@ -9,7 +9,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="same-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>actaviva · Cuentas del condominio</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="actaviva · Cuentas del condominio">
@@ -819,12 +818,12 @@
       <div class="card">
         <h3>Identificación del condominio</h3>
         <div class="row">
-          <div><label for="cfgCondNombre">Nombre del condominio</label><input id="cfgCondNombre" autocomplete="organization" /></div>
-          <div><label for="cfgCondRut">RUT del condominio</label><input id="cfgCondRut" placeholder="77.332.256-K" inputmode="text" /></div>
+          <div><label for="cfgCondNombre">Nombre del condominio</label><input id="cfgCondNombre" maxlength="200" autocomplete="organization" /></div>
+          <div><label for="cfgCondRut">RUT del condominio</label><input id="cfgCondRut" maxlength="20" placeholder="77.332.256-K" inputmode="text" /></div>
         </div>
         <div class="row">
-          <div><label for="cfgCondDir">Dirección</label><input id="cfgCondDir" /></div>
-          <div><label for="cfgCondComuna">Comuna / región</label><input id="cfgCondComuna" /></div>
+          <div><label for="cfgCondDir">Dirección</label><input id="cfgCondDir" maxlength="200" /></div>
+          <div><label for="cfgCondComuna">Comuna / región</label><input id="cfgCondComuna" maxlength="120" /></div>
         </div>
       </div>
       <div class="card">
@@ -833,16 +832,16 @@
           <strong>¿Sin administrador externo?</strong> En condominios chicos sin administrador profesional, ingresa aquí los datos de quien firma las liquidaciones (presidente del comité o tesorero).
         </div>
         <div class="row">
-          <div><label for="cfgAdmNombre">Nombre del administrador / presidente del comité</label><input id="cfgAdmNombre" autocomplete="name" /></div>
-          <div><label for="cfgAdmRut">RUT</label><input id="cfgAdmRut" placeholder="12.345.678-9" inputmode="text" /></div>
+          <div><label for="cfgAdmNombre">Nombre del administrador / presidente del comité</label><input id="cfgAdmNombre" maxlength="200" autocomplete="name" /></div>
+          <div><label for="cfgAdmRut">RUT</label><input id="cfgAdmRut" maxlength="20" placeholder="12.345.678-9" inputmode="text" /></div>
         </div>
         <div class="row">
-          <div><label for="cfgAdmCorreo">Correo electrónico</label><input id="cfgAdmCorreo" type="email" inputmode="email" autocomplete="email" /></div>
-          <div><label for="cfgAdmTel">Teléfono</label><input id="cfgAdmTel" type="tel" inputmode="tel" autocomplete="tel" /></div>
+          <div><label for="cfgAdmCorreo">Correo electrónico</label><input id="cfgAdmCorreo" maxlength="254" type="email" inputmode="email" autocomplete="email" /></div>
+          <div><label for="cfgAdmTel">Teléfono</label><input id="cfgAdmTel" maxlength="40" type="tel" inputmode="tel" autocomplete="tel" /></div>
         </div>
         <div class="row">
-          <div><label for="cfgAdmRegistro">Inscripción Registro Nacional de Administradores (art. 82 Ley)</label><input id="cfgAdmRegistro" placeholder="N° de inscripción" /></div>
-          <div><label for="cfgAdmFirma">Firma digital (URL imagen, opcional)</label><input id="cfgAdmFirma" /></div>
+          <div><label for="cfgAdmRegistro">Inscripción Registro Nacional de Administradores (art. 82 Ley)</label><input id="cfgAdmRegistro" maxlength="60" placeholder="N° de inscripción" /></div>
+          <div><label for="cfgAdmFirma">Firma digital (URL imagen, opcional)</label><input id="cfgAdmFirma" maxlength="500000" /></div>
         </div>
       </div>
       <div class="card">
@@ -873,7 +872,7 @@
       <div class="card">
         <h3>Datos bancarios para pago</h3>
         <div class="row">
-          <div><label for="cfgBanco">Banco</label><input id="cfgBanco" /></div>
+          <div><label for="cfgBanco">Banco</label><input id="cfgBanco" maxlength="120" /></div>
           <div><label for="cfgBancoTipo">Tipo de cuenta</label>
             <select id="cfgBancoTipo">
               <option>Cuenta corriente</option>
@@ -883,19 +882,19 @@
           </div>
         </div>
         <div class="row">
-          <div><label for="cfgBancoNum">N° de cuenta</label><input id="cfgBancoNum" /></div>
-          <div><label for="cfgBancoTitular">Titular (debe coincidir con RUT condominio)</label><input id="cfgBancoTitular" /></div>
+          <div><label for="cfgBancoNum">N° de cuenta</label><input id="cfgBancoNum" maxlength="40" /></div>
+          <div><label for="cfgBancoTitular">Titular (debe coincidir con RUT condominio)</label><input id="cfgBancoTitular" maxlength="200" /></div>
         </div>
       </div>
       <div class="card">
         <h3>Plantilla de observaciones de la administración</h3>
-        <textarea id="cfgObs" rows="5" aria-label="Plantilla de observaciones de la administración" placeholder="Texto que aparecerá en cada liquidación: instrucciones de pago, recordatorios, etc."></textarea>
+        <textarea id="cfgObs" maxlength="10000" rows="5" aria-label="Plantilla de observaciones de la administración" placeholder="Texto que aparecerá en cada liquidación: instrucciones de pago, recordatorios, etc."></textarea>
       </div>
       <div class="card">
         <h3>Seguro colectivo contra incendio <span class="legal-tag">Art. 43 Ley</span></h3>
         <div class="row cols-3">
-          <div><label for="cfgSegCia">Compañía aseguradora</label><input id="cfgSegCia" /></div>
-          <div><label for="cfgSegPoliza">N° póliza</label><input id="cfgSegPoliza" /></div>
+          <div><label for="cfgSegCia">Compañía aseguradora</label><input id="cfgSegCia" maxlength="120" /></div>
+          <div><label for="cfgSegPoliza">N° póliza</label><input id="cfgSegPoliza" maxlength="60" /></div>
           <div><label for="cfgSegVig">Vigencia (fecha término)</label><input id="cfgSegVig" type="date" /></div>
         </div>
         <div class="row cols-3">
@@ -923,7 +922,7 @@
         </div>
         <div class="card">
           <h3>Importar respaldo</h3>
-          <p class="muted" style="font-size:12.5px">Reemplaza el estado actual con el contenido del archivo JSON.</p>
+          <p class="muted" style="font-size:12.5px">Reemplaza el estado actual con el contenido del archivo JSON. Antes de reemplazar nada, el archivo se revisa y se avisa si trae filas que no se pueden leer.</p>
           <input type="file" id="importFile" accept=".json" aria-label="Archivo de respaldo (.json) para importar" />
           <div class="btn-row" style="margin-top:8px"><button class="btn" data-ac="importarRespaldo">Importar</button></div>
         </div>
@@ -1033,7 +1032,7 @@
   <div class="row">
     <div>
       <label for="uCodigo">Código <span aria-hidden="true">*</span></label>
-      <input id="uCodigo" required aria-required="true" placeholder="Ej. B-303" />
+      <input id="uCodigo" maxlength="60" required aria-required="true" placeholder="Ej. B-303" />
       <div class="field-help">Identificador único de la unidad.</div>
     </div>
     <div>
@@ -1049,12 +1048,12 @@
     </div>
   </div>
   <div class="row">
-    <div><label for="uPropietario">Propietario</label><input id="uPropietario" autocomplete="name" /></div>
-    <div><label for="uResidente">Residente (si distinto)</label><input id="uResidente" autocomplete="name" /></div>
+    <div><label for="uPropietario">Propietario</label><input id="uPropietario" maxlength="200" autocomplete="name" /></div>
+    <div><label for="uResidente">Residente (si distinto)</label><input id="uResidente" maxlength="200" autocomplete="name" /></div>
   </div>
   <div class="row">
-    <div><label for="uCorreo">Correo electrónico</label><input id="uCorreo" type="email" inputmode="email" autocomplete="email" placeholder="copropietario@correo.cl" /></div>
-    <div><label for="uTel">Teléfono</label><input id="uTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="+56 9 1234 5678" /></div>
+    <div><label for="uCorreo">Correo electrónico</label><input id="uCorreo" maxlength="254" type="email" inputmode="email" autocomplete="email" placeholder="copropietario@correo.cl" /></div>
+    <div><label for="uTel">Teléfono</label><input id="uTel" maxlength="40" type="tel" inputmode="tel" autocomplete="tel" placeholder="+56 9 1234 5678" /></div>
   </div>
   <div class="row">
     <div>
@@ -1154,7 +1153,7 @@
         <option value="interes">Interés mora</option>
       </select>
     </div>
-    <div><label for="cConcepto">Concepto</label><input id="cConcepto" /></div>
+    <div><label for="cConcepto">Concepto</label><input id="cConcepto" maxlength="300" /></div>
   </div>
   <div class="row">
     <div><label for="cMonto">Monto adeudado ($)</label><input id="cMonto" type="number" /></div>
@@ -1181,17 +1180,17 @@
     </div>
   </div>
   <div class="row">
-    <div><label for="eSubcat">Subcategoría / detalle</label><input id="eSubcat" placeholder="Ej: Liquidación marzo, ESSBIO, mantención bombas…" /></div>
-    <div><label for="eContraparte">Proveedor / contraparte</label><input id="eContraparte" /></div>
+    <div><label for="eSubcat">Subcategoría / detalle</label><input id="eSubcat" maxlength="200" placeholder="Ej: Liquidación marzo, ESSBIO, mantención bombas…" /></div>
+    <div><label for="eContraparte">Proveedor / contraparte</label><input id="eContraparte" maxlength="200" /></div>
   </div>
   <div class="row">
-    <div><label for="eDoc">N° documento (factura, BHE, boleta)</label><input id="eDoc" /></div>
+    <div><label for="eDoc">N° documento (factura, BHE, boleta)</label><input id="eDoc" maxlength="60" /></div>
     <div><label for="eMonto">Monto ($)</label><input id="eMonto" type="number" inputmode="numeric" min="0" /><div class="field-help" id="eMontoFmt" style="font-size:var(--fs-xs)">$ 0</div></div>
   </div>
-  <div><label for="eDesc">Descripción</label><textarea id="eDesc" rows="2"></textarea></div>
+  <div><label for="eDesc">Descripción</label><textarea id="eDesc" maxlength="2000" rows="2"></textarea></div>
   <div><label for="eBoletaURL">Respaldo digital (opcional)</label>
-    <input id="eBoletaURL" placeholder="https://drive.google.com/... o ruta del archivo en tu computador" />
-    <div class="field-help">Pega aquí el link de Drive/Dropbox a la foto/PDF de la boleta. La ley exige conservar respaldos (art. 21 inc. 2 Ley 21.442).</div>
+    <input id="eBoletaURL" maxlength="2000" placeholder="https://drive.google.com/... o ruta del archivo en tu computador" />
+    <div class="field-help">Pega aquí el link de Drive/Dropbox a la foto/PDF de la boleta. Solo un link que empieza con https:// (o http://) se abre con un clic; una ruta del computador queda anotada como texto. La ley exige conservar respaldos (art. 21 inc. 2 Ley 21.442).</div>
   </div>
   <div class="legal-note" style="margin-top:12px">El art. 21 inciso 2 de la Ley exige conservar respaldo (verificadores) de cada gasto. Mantén la documentación física o digital archivada por la administración.</div>
   <div class="close-row">
@@ -1216,10 +1215,10 @@
     </div>
   </div>
   <div class="row">
-    <div><label for="iContraparte">Contraparte</label><input id="iContraparte" /></div>
+    <div><label for="iContraparte">Contraparte</label><input id="iContraparte" maxlength="200" /></div>
     <div><label for="iMonto">Monto ($)</label><input id="iMonto" type="number" /></div>
   </div>
-  <div><label for="iDesc">Descripción</label><textarea id="iDesc" rows="2"></textarea></div>
+  <div><label for="iDesc">Descripción</label><textarea id="iDesc" maxlength="2000" rows="2"></textarea></div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mIngreso">Cancelar</button>
     <button class="btn primary" data-ac="guardarIngreso">Guardar</button>
@@ -1233,8 +1232,8 @@
     <div><label for="fFecha">Fecha</label><input id="fFecha" type="date" /></div>
     <div><label for="fMonto">Monto ($)</label><input id="fMonto" type="number" /></div>
   </div>
-  <div><label for="fOrigen">Origen / destino</label><input id="fOrigen" /></div>
-  <div><label for="fDesc">Descripción</label><textarea id="fDesc" rows="2"></textarea></div>
+  <div><label for="fOrigen">Origen / destino</label><input id="fOrigen" maxlength="200" /></div>
+  <div><label for="fDesc">Descripción</label><textarea id="fDesc" maxlength="2000" rows="2"></textarea></div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mFondo">Cancelar</button>
     <button class="btn primary" data-ac="guardarMovFondo">Guardar</button>
@@ -1247,7 +1246,7 @@
     <div><label for="manMes">Mes programado</label><input id="manMes" type="month" /></div>
     <div><label for="manCosto">Costo estimado ($)</label><input id="manCosto" type="number" /></div>
   </div>
-  <div><label for="manConcepto">Concepto</label><input id="manConcepto" placeholder="Ej: Mantención trimestral bombas de agua" /></div>
+  <div><label for="manConcepto">Concepto</label><input id="manConcepto" maxlength="300" placeholder="Ej: Mantención trimestral bombas de agua" /></div>
   <div class="row">
     <div><label for="manTipo">Tipo</label>
       <select id="manTipo">

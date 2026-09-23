@@ -30,7 +30,17 @@ function casillaDe(codigo){ return 'c-' + codigo + '@' + location.hostname.repla
 // consulta, y la base de datos impide reutilizarla.
 // La consulta es un servicio aparte: su pago no es el del acta.
 const LLAVE = 'consulta_pago_llave';
-const llaveGuardada = () => { try{ return localStorage.getItem(LLAVE)||''; }catch(e){ return ''; } };
+// Ver la nota en acta-1.js: /consulta/demo escribe esta llave para abrirse
+// sola, y localStorage es del origen entero. Al volver a /consulta/ quedaba
+// puesta y la consulta se ofrecia como pagada; el servidor la rechazaba
+// recien al crear. Fuera de una pagina de demostracion no vale.
+const LLAVE_DE_DEMO = 'DEMO-PAGO-SIMULADO';
+const enPaginaDemo = () => /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname);
+const llaveGuardada = () => {
+  let v = '';
+  try{ v = localStorage.getItem(LLAVE)||''; }catch(e){ return ''; }
+  return (v === LLAVE_DE_DEMO && !enPaginaDemo()) ? '' : v;
+};
 const borrarLlave = () => { try{ localStorage.removeItem(LLAVE); }catch(e){} };
 
 let USUARIO = null;
@@ -56,17 +66,25 @@ function pintarPago(){
   } else {
     $('pago-listo').classList.add('hidden');
     Cuenta.panel('cta-host', {
-      titulo: 'Primero, su correo',
-      sub: 'Le enviaremos un código para confirmarlo. Con eso queda creada su cuenta y podrá volver a esta consulta.',
+      titulo: 'Primero, su cuenta',
+      sub: 'Entre, o cree su cuenta en un minuto. Con ella podrá volver a esta consulta.',
       alEntrar: u => { USUARIO = u; pintarPago(); }
     });
   }
 }
 
+// Salir borra del equipo lo que la consulta dejo (cc_mesa, la llave), pero
+// en pantalla seguiria el panel de la consulta abierta, con su padron y sus
+// respuestas, a la vista de quien entre despues. Se recarga: la pagina vuelve
+// a su portero y arranca en blanco.
 function cerrarSesion(btn){
   busy(btn, true, 'Saliendo…');
-  Cuenta.salir(() => { USUARIO = null; busy(btn, false); pintarPago(); });
+  Cuenta.salir(() => { USUARIO = null; location.reload(); });
 }
+
+// Solo se navega a Flow, con https y su propio dominio: 'www.flow.cl.otro'
+// o 'www.flow.cl@otro' no pasan porque despues de '.cl' tiene que venir '/'.
+const esPasarela = u => typeof u === 'string' && /^https:\/\/(www|sandbox)\.flow\.cl\//.test(u);
 
 async function irAPagar(btn){
   const correo = USUARIO && USUARIO.correo;
@@ -78,9 +96,24 @@ async function irAPagar(btn){
   }
   busy(btn, true, 'Conectando…'); msg('pago-msg','');
   try{
-    const r = await fetch('/api/pago/crear', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({correo, producto:'consulta', acepta: Cuenta.terminos.VERSION})});
+    // El Worker ata la orden a la cuenta: sin sesion no se cobra. Si se
+    // vencio, se vuelve a pedir la entrada en el mismo recuadro.
+    const token = await Cuenta.tokenDeAcceso();
+    if(!token){
+      USUARIO = null; pintarPago();
+      msg('pago-msg','Su sesión terminó. Vuelva a entrar para pagar.','err');
+      return;
+    }
+    const r = await fetch('/api/pago/crear', {method:'POST', headers:{'content-type':'application/json', 'authorization':'Bearer ' + token}, body: JSON.stringify({correo, producto:'consulta', acepta: Cuenta.terminos.VERSION})});
     const d = await r.json().catch(() => null);
-    if(!r.ok || !d || !d.redirigir){
+    if(r.status === 401){
+      USUARIO = null; pintarPago();
+      msg('pago-msg','Su sesión terminó. Vuelva a entrar para pagar.','err');
+      return;
+    }
+    // La URL la arma el Worker con lo que contesta Flow. Se comprueba que
+    // sea Flow antes de mandar a la persona: si llegara otra cosa, no se sigue.
+    if(!r.ok || !d || !esPasarela(d.redirigir)){
       msg('pago-msg', d && d.error === 'pasarela_no_configurada'
         ? 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.'
         : 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', 'err');
@@ -91,33 +124,54 @@ async function irAPagar(btn){
   finally{ busy(btn, false); }
 }
 
-(function retornoDePago(){
+// Vuelta desde la pasarela: /consulta/?pago=AV-XXXX. Se llama ya con la
+// sesion abierta (desde inicio()), porque el Worker entrega la llave solo a
+// la cuenta que pidio la orden. La orden se quita de la direccion recien con
+// una respuesta definitiva: el mensaje de espera recomienda recargar, y
+// recargar tiene que volver a intentarlo.
+function retornoDePago(){
   const m = /[?&]pago=(AV-[A-Z0-9]+)/.exec(location.search);
   if(!m) return;
   const orden = m[1]; let intentos = 0;
-  try{ history.replaceState(null,'',location.pathname); }catch(e){}
-  if(!$('c-pago')) return;   // vitrina: no hay recuadro que mostrar
+  const olvidarOrden = () => { try{ history.replaceState(null,'',location.pathname); }catch(e){} };
+  if(!$('c-pago')){ olvidarOrden(); return; }   // vitrina: no hay recuadro que mostrar
   $('c-pago').classList.remove('hidden');
   $('pago-listo').classList.remove('hidden');
   msg('pago-msg','Confirmando el pago…','warn');
-  (function revisar(){
-    intentos++;
-    fetch('/api/pago/estado?orden=' + encodeURIComponent(orden))
-      .then(r => r.json())
-      .then(d => {
-        if(d && d.estado === 'pagado' && d.llave){
-          try{ localStorage.setItem(LLAVE, d.llave); }catch(e){}
-          msg('pago-msg','Pago confirmado. Ya puede crear la consulta.','ok');
-          setTimeout(() => { if($('c-pago')) $('c-pago').classList.add('hidden'); }, 2600);
-          return;
-        }
-        if(intentos < 10){ setTimeout(revisar, 2000); return; }
-        msg('pago-msg','Todavía no recibimos la confirmación. Si ya pagó, recargue esta página en un momento.','err');
-      })
-      .catch(() => { if(intentos < 10) setTimeout(revisar, 2000);
-                     else msg('pago-msg','No pudimos verificar el pago.','err'); });
-  })();
-})();
+  Cuenta.tokenDeAcceso().then(token => {
+    if(!token){ msg('pago-msg','Entre a su cuenta para confirmar el pago.','err'); return; }
+    (function revisar(){
+      intentos++;
+      fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), { headers: { 'authorization': 'Bearer ' + token } })
+        .then(r => r.json().then(d => ({ estado: r.status, d })))
+        .then(({ estado, d }) => {
+          if(d && d.estado === 'pagado' && d.llave){
+            olvidarOrden();
+            try{ localStorage.setItem(LLAVE, d.llave); }catch(e){}
+            msg('pago-msg','Pago confirmado. Ya puede crear la consulta.','ok');
+            setTimeout(() => { if($('c-pago')) $('c-pago').classList.add('hidden'); }, 2600);
+            return;
+          }
+          // 404: la orden no existe o es de otra cuenta. El Worker no dice
+          // cual, y esperar no la va a hacer aparecer.
+          // Antes de quitarla de la direccion se anota en el equipo: si se
+          // pago con otra cuenta, Cuenta.recuperarPagos la entrega al entrar
+          // con ella.
+          if(estado === 404){
+            if(typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(orden);
+            olvidarOrden();
+            msg('pago-msg','No encontramos ese pago en esta cuenta. Si pagó con otra, entre con ella en este equipo y se lo entregaremos.','err');
+            return;
+          }
+          if(estado === 401){ msg('pago-msg','Su sesión terminó. Recargue la página y vuelva a entrar.','err'); return; }
+          if(intentos < 10){ setTimeout(revisar, 2000); return; }
+          msg('pago-msg','Todavía no recibimos la confirmación. Si ya pagó, recargue esta página en un momento.','err');
+        })
+        .catch(() => { if(intentos < 10) setTimeout(revisar, 2000);
+                       else msg('pago-msg','No pudimos verificar el pago.','err'); });
+    })();
+  });
+}
 
 async function crear(btn){
   const condo = $('f-condo').value.trim();
@@ -639,6 +693,9 @@ $('lnk-reanudar').addEventListener('click', function(ev){
     sub: 'Con su cuenta puede volver a la consulta, ver las respuestas y descargar el expediente.'
   }, function(u){
     USUARIO = u;
+    // La vuelta desde la pasarela espera a la sesion: sin su token el Worker
+    // no entrega la llave.
+    retornoDePago();
     // Esto corre en cada carga. Sin la guarda, en vitrina reventaba aqui y la
     // pagina entera quedaba sin arrancar: ni panel, ni consulta recuperada.
     if($('c-pago') && !$('c-pago').classList.contains('hidden')) pintarPago();

@@ -20,7 +20,16 @@ _portada
 _pruebas
 .assetsignore
 .gitignore
+.gitattributes
 .dev.vars
+
+# Documentacion del repositorio. El README se servia en /README.md con el
+# mapa de archivos, los comandos de desarrollo y los nombres de las
+# funciones de la base: reconocimiento gratis para quien busque por donde
+# entrar (comprobado en vivo el 22-09-2026). Esto sigue siendo una lista de
+# exclusion; Pruebas/prueba-seg-worker.mjs compara lo que quedaria
+# publicado contra una lista blanca, y falla si se cuela un archivo nuevo.
+README.md
 
 # Capturas y tutoriales de la version anterior: nadie los enlaza y muestran
 # el nombre viejo, la cabecera antigua y un padron sin la columna de correo.

@@ -6,8 +6,13 @@ desde el teléfono y consulta por escrito del artículo 15.
 
 Operado por **Soluciones CLB SpA** · [actascopropiedad.cl](https://actascopropiedad.cl)
 
-> **Estado:** el sitio está en receso. El Worker responde 503 a todas las rutas
-> mientras `RECESO=1`. Ver [INSTALACION.md](../INSTALACION.md) para publicarlo.
+> **Estado:** el sitio está publicado en modo vitrina (`RECESO=0`, `VITRINA=1`
+> en `wrangler.jsonc`): se muestra el sistema sin precios ni botones de pago.
+> Con `RECESO=1` el Worker responde **404** a todas las rutas web (no 503), y
+> el correo entrante sigue funcionando. Ver [INSTALACION.md](../INSTALACION.md)
+> para publicarlo.
+>
+> Este archivo no se publica: está en `.assetsignore`.
 
 ## Qué hace
 
@@ -65,17 +70,36 @@ terminos.html         términos del servicio
 js/                   todo el JavaScript de las páginas, en archivos aparte
 js/acciones.js        despacha los data-ac= que reemplazaron a los onclick
 
-_worker.js            Cloudflare Worker: pagos, correo entrante, geolocalización
+_worker.js            Cloudflare Worker: pagos, correo entrante, geolocalización,
+                      informes de CSP, límite de tasa
 consulta.js           interpreta las respuestas que llegan por correo   (Worker)
 correo.js             envío saliente, con el proveedor aislado          (Worker)
 cuenta.js             sesión: clave, código por correo o Google      (navegador)
 
 vendor/               librerías de terceros, self-hosted, sin CDN
 fonts/                tipografías self-hosted
-_headers              cabeceras de seguridad y caché
-_assetsignore         qué NO se publica (módulos del Worker, secretos)
+.well-known/          security.txt: el canal para informar vulnerabilidades
+_headers              cabeceras de seguridad y caché de los archivos estáticos
+.assetsignore         qué NO se publica (módulos del Worker, secretos, este README)
 wrangler.jsonc        configuración del Worker
 ```
+
+**Lo que se publica.** `wrangler.jsonc` publica la raíz entera menos lo que
+diga `.assetsignore`. Es una lista de exclusión, así que un archivo nuevo en la
+raíz se publica solo. `Pruebas/prueba-seg-worker.mjs` recorre el árbol, aplica
+`.assetsignore` y falla si lo que quedaría publicado se sale de una lista
+blanca de extensiones y carpetas.
+
+**Respuestas del Worker.** `_headers` solo lo aplica la capa de archivos
+estáticos. Todo lo que el Worker responde por su cuenta (JSON, texto, las
+redirecciones, el 404 del receso) sale de `responder()` en `_worker.js`, que
+le pone nosniff, HSTS, una CSP `default-src 'none'` y `Referrer-Policy`.
+
+**El pago está atado a la cuenta.** `/api/pago/crear` y `/api/pago/estado`
+exigen `Authorization: Bearer <token de Supabase Auth>`; el Worker lo valida
+contra `/auth/v1/user`. La orden guarda el id de quien la creó, y la llave solo
+se le entrega a esa cuenta: una orden ajena y una inexistente responden lo
+mismo (404).
 
 No hay `package.json` ni proceso de build: las librerías van versionadas en
 `vendor/`. Se actualizan a mano, a cambio de no tener superficie de ataque por

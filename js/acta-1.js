@@ -714,9 +714,15 @@ _qpese(n);
 }
 function _possk(str) {
 if (!str) return '[FECHA]';
-const [y,m,d] = str.split('-');
+// El valor va directo al documento. Un <input type=date> siempre entrega
+// AAAA-MM-DD, pero un borrador .json cargado puede traer cualquier cosa, y
+// lo que no tenga esa forma no se imprime.
+var f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str));
+if (!f) return '[FECHA]';
 const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-return parseInt(d) + ' de ' + meses[parseInt(m)-1] + ' de ' + y;
+var mes = meses[parseInt(f[2], 10) - 1];
+if (!mes) return '[FECHA]';
+return parseInt(f[3], 10) + ' de ' + mes + ' de ' + f[1];
 }
 // En Chile el separador decimal es la coma. Queda para los textos que no
 // son derechos; los derechos los formatea Derechos.texto(), que ademas es
@@ -763,8 +769,10 @@ const presidenteNom = escapeHtml(_pvau('nombre-presidente')) || '[PRESIDENTE]';
 const quienConvoco = _pvau('quien-convoco');
 const nombreConv = escapeHtml(_pvau('nombre-convocante')) || '[CONVOCANTE]';
 const fechaCit = _possk(_pvau('fecha-citacion'));
-const medioNotif = _pvau('medio-notif');
-const doc24 = _pvau('doc24');
+// Estos dos los ponen los botones del paso 2, pero se restauran desde el
+// borrador guardado o desde un .json cargado: se escapan como el resto.
+const medioNotif = escapeHtml(_pvau('medio-notif'));
+const doc24 = escapeHtml(_pvau('doc24'));
 const grabacion = _pvau('grabacion');
 const notario = _pvau('notario');
 const notarioNombre = escapeHtml(_pvau('notario-nombre'));
@@ -888,7 +896,7 @@ firmasHTML += '<br><small>' + escapeHtml(fr.cargo) + '</small></div>';
 }
 });
 var notarioRut = escapeHtml(_pvau('notario-rut'));
-var notarioTipo = _pvau('notario-tipo') || 'Notario P\u00fablico';
+var notarioTipo = escapeHtml(_pvau('notario-tipo')) || 'Notario P\u00fablico';
 if (notario === 'Si' && notarioNombre) {
 firmasHTML += '<div class="sig-line"><div style="height:40px"></div>' + notarioNombre;
 if (notarioRut) firmasHTML += '<br><small>RUT: ' + notarioRut + '</small>';
@@ -967,13 +975,13 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 + 'El voto de cada copropietario es proporcional a sus derechos en los bienes de dominio '
 + 'com\u00fan, conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.'
 + (notario === 'Si' && notarioNombre
-? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
+? ' Actu\u00f3 como ' + (escapeHtml(_pvau('notario-tipo')) || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
 : '') + '</p></div>'
 : '<p>Para efectos de la adopci\u00f3n de acuerdos, se consideran \u00fanicamente los derechos '
 + 'correspondientes a copropietarios h\u00e1biles: <strong>' + Derechos.texto(totalHabil) + ' %</strong> '
 + 'de los derechos del condominio.'
 + (notario === 'Si' && notarioNombre
-? ' Actu\u00f3 como ' + (_pvau('notario-tipo') || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
+? ' Actu\u00f3 como ' + (escapeHtml(_pvau('notario-tipo')) || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
 : '') + '</p></div>') +
 '<div class="acta-section"><div class="acta-section-title">5. Desarrollo de la tabla</div>' +
 puntosHTML + '</div>' +
@@ -985,40 +993,99 @@ puntosHTML + '</div>' +
 '<table><thead><tr>' +
 '<th>#</th><th>Acuerdo</th><th>Resultado</th><th>Responsable</th><th>Plazo</th>' +
 '</tr></thead><tbody>' + resumenRows + '</tbody></table></div>' +
-firmasHTML +
-(typeof _actaPagada === 'function' && _actaPagada()
-  ? '<p style="font-size:11px;color:#333;text-align:center;margin-top:24px;border-top:1px solid #ddd;padding-top:12px;line-height:1.55">' +
-    '<strong style="display:block;font-size:11.5px;color:#8B0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">' +
-    'ACTA \u2116 ' + (_actaFolio || '') + ' \u2014 CONSERVE EL ARCHIVO ORIGINAL' +
-    '</strong>' +
-    '<span style="font-style:italic;color:#555">' +
-    'Este documento fue finalizado en actascopropiedad.cl y quedó registrado bajo el folio indicado. Se conserva una copia en el servidor del proveedor, accesible únicamente por la cuenta que lo elaboró y eliminable por ella en cualquier momento. ' +
-    'Si se utilizó la votación en vivo, el padrón y los votos se procesan de forma temporal en un servidor cifrado y se eliminan al terminar la asamblea. ' +
-    'Conserve el archivo original para sus respaldos.' +
-    '</span></p>'
-  : '<p style="font-size:11px;color:#333;text-align:center;margin-top:24px;border-top:1px solid #ddd;padding-top:12px;line-height:1.55">' +
-    '<strong style="display:block;font-size:11.5px;color:#8B0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">' +
-    'BORRADOR — ACTA NO FINALIZADA, SIN FOLIO' +
-    '</strong>' +
-    '<span style="font-style:italic;color:#555">' +
-    'Este documento es un <strong>borrador</strong>: todavía no ha sido finalizado, no tiene folio y no debe presentarse como acta de la asamblea. Para finalizarlo, vuelva al Paso 6 y presione <strong>Finalizar y guardar como PDF</strong>. ' +
-    'Si se utilizó la votación en vivo, el padrón y los votos se procesan de forma temporal en un servidor cifrado y se eliminan al terminar la asamblea. ' +
-    'Conserve el archivo original para sus respaldos.' +
-    '</span></p>');
-acta = _ctgdc(acta);
+firmasHTML;
+// EL CUERPO CANONICO DEL ACTA
+// Es todo el documento salvo el pie: desde el encabezado ("Acta N°...")
+// hasta las firmas, tal como sale de aqui despues de _ctgdc(). Es la cadena
+// exacta sobre la que se calcula la huella (SHA-256 de sus bytes en UTF-8,
+// en hexadecimal minuscula) ANTES de pedir el folio. El pie queda fuera
+// porque lleva el folio, el codigo y la huella misma, que no se pueden
+// conocer antes de sellar lo demas. En el archivo descargado el cuerpo va
+// entre las marcas <!--acta:cuerpo--> y <!--/acta:cuerpo-->, de modo que
+// cualquiera puede rehacer la cuenta sobre el archivo original.
+// Un acta ya finalizada no se vuelve a armar desde el formulario: se usa el
+// cuerpo que se sello, para que la copia que se baje despues sea la misma.
+var cuerpo = _ctgdc(acta);
+var sello = _selloVigente();
+if (sello) cuerpo = sello.cuerpo;
+var pie = _pieDelActa();
+_actaGenerada = { cuerpo: cuerpo, pie: pie };
 const container = document.getElementById('acta-content');
-if (container) container.innerHTML = acta;
+if (container) container.innerHTML = cuerpo + pie;
+}
+
+// ---------------------------------------------------------------------
+//  El pie del documento
+//  Dice lo que el sistema sostiene y nada mas. El folio, el codigo y la
+//  huella quedan registrados en la base (ac_finalizar -> actas_emitidas);
+//  la pagina /verificar los contrasta. Lo que la verificacion NO hace
+//  -certificar la asamblea- se dice tambien, en el mismo lugar.
+// ---------------------------------------------------------------------
+var _PIE_ABRE = '<p style="font-size:11px;color:#333;text-align:center;margin-top:24px;border-top:1px solid #ddd;padding-top:12px;line-height:1.55">';
+var _PIE_TITULO = '<strong style="display:block;font-size:11.5px;color:#8B0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">';
+// La sala se borra al cerrarla, y si nadie la cierra la barre la tarea de
+// las 48 horas. "Servidor cifrado" y "al terminar la asamblea" decian mas
+// de lo que se puede acreditar.
+var _PIE_VOTACION = 'Si se utilizó la votación en vivo, el padrón y los votos se borran del servidor al cerrar la sala o, a más tardar, 48 horas después. ';
+// El plazo de la tarea diaria de conservacion (vv_config) para el
+// contenido de un acta finalizada.
+var _PIE_CONSERVACION = 'La cuenta que la elaboró conserva una copia en el servidor hasta 180 días después de finalizada y puede borrarla antes. ';
+
+function _pieDelActa() {
+  if (!(typeof _actaPagada === 'function' && _actaPagada())) {
+    return _PIE_ABRE + _PIE_TITULO +
+      'BORRADOR — ACTA NO FINALIZADA, SIN FOLIO' +
+      '</strong>' +
+      '<span style="font-style:italic;color:#555">' +
+      'Este documento es un <strong>borrador</strong>: todavía no ha sido finalizado, no tiene folio y no debe presentarse como acta de la asamblea. Para finalizarlo, vuelva al Paso 6 y presione <strong>Finalizar y guardar como PDF</strong>. ' +
+      _PIE_VOTACION +
+      'Conserve el archivo original para sus respaldos.' +
+      '</span></p>';
+  }
+  var s = _selloVigente();
+  if (!s) {
+    // Finalizada, pero sin el cuerpo que se sello a mano: un acta cerrada
+    // antes de que existiera la verificacion, o una copia que se rehizo en
+    // otro equipo. Imprimir un codigo aqui seria afirmar que este texto es
+    // el registrado, y eso no se sabe.
+    return _PIE_ABRE + _PIE_TITULO +
+      'ACTA № ' + escapeHtml(_actaFolio || '') + ' — COPIA REGENERADA' +
+      '</strong>' +
+      '<span style="font-style:italic;color:#555">' +
+      'Esta copia se volvió a generar con los datos guardados y no lleva código de verificación. El documento verificable es el archivo que se descargó al finalizar el acta. ' +
+      _PIE_CONSERVACION + _PIE_VOTACION +
+      '</span></p>';
+  }
+  var demo = /^DEMO-/.test(_actaFolio || '');
+  return _PIE_ABRE + _PIE_TITULO +
+    'ACTA № ' + escapeHtml(_actaFolio || '') + ' — CONSERVE EL ARCHIVO ORIGINAL' +
+    '</strong>' +
+    '<span style="display:block;font-size:12px;color:#24282D;margin-bottom:2px">Código de verificación: <strong style="letter-spacing:1px">' + escapeHtml(s.codigo) + '</strong></span>' +
+    '<span style="display:block;color:#24282D;margin-bottom:6px">Verifique este documento en actascopropiedad.cl/verificar con el folio y el código.</span>' +
+    (demo
+      ? '<span style="display:block;color:#8B0000;font-weight:bold;margin-bottom:6px">Documento de demostración: el folio y el código son simulados y no corresponden a ninguna acta emitida.</span>'
+      : '') +
+    '<span style="display:block;font-size:8.5px;color:#666;word-break:break-all;margin-bottom:6px">Huella SHA-256 del contenido: ' + escapeHtml(s.huella) + '</span>' +
+    '<span style="font-style:italic;color:#555">' +
+    'Al finalizar el acta quedaron registrados su folio, su código, la huella de su contenido y un resumen sin datos de personas. ' +
+    'La página de verificación confirma que el folio y el código corresponden a un acta emitida y muestra ese resumen para compararlo con este documento; no certifica la validez legal de la asamblea ni la exactitud de lo que el acta declara. ' +
+    _PIE_CONSERVACION + 'El registro de verificación se mantiene aunque esa copia se borre. ' +
+    _PIE_VOTACION +
+    'Conserve el archivo original.' +
+    '</span></p>';
 }
 function _actaDocumento(conAviso) {
 generateActa();
 const container = document.getElementById('acta-content');
-if (!container || container.innerHTML.trim() === '') {
+if (!container || container.innerHTML.trim() === '' || !_actaGenerada) {
 alert('Complete los datos del acta antes de descargar el archivo.');
 return;
 }
 const nombreRaw = _pvau('condo-nombre') || 'acta';
 const nombreCondo = nombreRaw.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/ +/g, '_');
-const fecha = _pvau('fecha-sesion') || 'sin_fecha';
+// Va al <title> y al nombre del archivo: solo si tiene forma de fecha.
+const fechaRaw = _pvau('fecha-sesion');
+const fecha = /^\d{4}-\d{2}-\d{2}$/.test(fechaRaw) ? fechaRaw : 'sin_fecha';
 const css =
 '* { box-sizing:border-box; margin:0; padding:0; }' +
 'body { font-family:"Helvetica Neue",Arial,sans-serif; font-size:10.5pt; line-height:1.7; color:#24282D; background:#fff; padding:16mm 14mm; }' +
@@ -1042,14 +1109,23 @@ const css =
 '.signature-name, .sig-name { font-weight:bold; font-size:10.5pt; color:#24282D; }' +
 '.signature-role, .sig-role { font-size:9pt; color:#5C6168; margin-top:2px; }';
 const aviso = '<div class="aviso"><strong>Para guardar como PDF:</strong> Presiona Ctrl+P (Windows) o Cmd+P (Mac) y selecciona "Guardar como PDF" como destino de impresion.</div>';
+// El archivo se abre desde el disco, donde no rige la politica del sitio:
+// lleva la suya. No necesita ningun script, asi que no admite ninguno.
+const politica = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:">';
+// Se arma con las cadenas de generateActa y no con container.innerHTML: el
+// navegador reescribe el HTML al serializarlo, y el cuerpo del archivo
+// tiene que ser, byte a byte, el que se sello.
 const doc =
 '<!DOCTYPE html>\n<html lang="es">\n<head>\n' +
 '<meta charset="UTF-8">\n' +
+politica + '\n' +
 '<title>Acta ' + nombreCondo + ' ' + fecha + '</title>\n' +
 '<style>\n' + css + '\n</style>\n' +
+'<!-- La huella SHA-256 que figura al pie es la del texto exacto entre las marcas acta:cuerpo, en UTF-8. El folio y el codigo se verifican en actascopropiedad.cl/verificar. -->\n' +
 '</head>\n<body>\n' +
 (conAviso ? aviso + '\n' : '') +
-container.innerHTML + '\n\n\n</body>\n</html>';
+'<!--acta:cuerpo-->' + _actaGenerada.cuerpo + '<!--/acta:cuerpo-->\n' +
+_actaGenerada.pie + '\n\n\n</body>\n</html>';
 return { html: doc, nombre: 'acta_' + nombreCondo + '_' + fecha };
 }
 
@@ -1089,11 +1165,14 @@ function savePDF() {
   if (btn) btn.disabled = true;
   showLoading('Finalizando el acta…', 'Estamos cerrando el documento y asignándole su folio.');
 
-  actaFinalizar(function (err) {
+  actaFinalizar(function (err, motivo) {
     if (err) {
       if (btn) btn.disabled = false;
       hideLoading();
       if (err === 'SIN_PAGO') {
+        // Por que se vuelve a pedir el pago, cuando la base lo dijo: sin
+        // esto, quien ya pago veia aparecer el cobro sin explicacion.
+        if (motivo && !enVitrina()) alert(motivo);
         // En vitrina no hay nada que cobrar a la vista, asi que tampoco se
         // saca el cartel del pago. Se dice lo que hay: el documento sale,
         // pero sin folio -ese lo emite Postgres y no se va a inventar aqui-.
@@ -1315,7 +1394,9 @@ celda(fila, 'correo')
 count++;
 } catch(e) {
 errores++;
-console.warn('Error al importar fila ' + (i+1) + ':', e.message, fila);
+// Solo el numero de fila y el motivo: la fila trae nombre, RUT y correo de
+// una persona, y la consola de un equipo compartido no es lugar para eso.
+console.warn('Error al importar fila ' + (i+1) + ':', e.message);
 }
 }
 calcularQuorum();
@@ -1358,7 +1439,9 @@ function rutDvCalza(v) {
 function resumenImportacion(count, errores) {
   var filas = document.querySelectorAll('#asistentes-tbody tr');
   var suma = 0, sinRut = 0, correosMalos = 0, conCorreo = 0, dvMalos = 0;
-  var vistos = {}, repetidos = [];
+  // Sin prototipo: la clave la escribe quien armo la planilla, y un RUT
+  // "constructor" no puede nacer ya visto.
+  var vistos = Object.create(null), repetidos = [];
   filas.forEach(function(tr) {
     var v = function(sel){ var e = tr.querySelector(sel); return e ? String(e.value).trim() : ''; };
     suma += Derechos.desdeTexto(v('.derechos'));
@@ -1563,7 +1646,8 @@ if (header && header.setAttribute) header.setAttribute('aria-expanded', 'true');
 function _qpese(n) {
 var tbody = document.getElementById('pvot-rows-' + n);
 if (!tbody) return;
-var prevPrefs = {};
+// La clave es unidad|nombre, tal como vienen del padron: sin prototipo.
+var prevPrefs = Object.create(null);
 tbody.querySelectorAll('tr').forEach(function(row) {
 var key = row.dataset.key;
 var sel = row.querySelector('.pref-select');
@@ -2065,14 +2149,38 @@ var STORAGE_KEY = 'sistema_actas_v2';
 var _saveTimer = null;
 var _saveIndicatorTimer = null;
 
+// De quien es el borrador del equipo. El computador de la conserjeria es de
+// todos: al cerrar sesion, cuenta.js deja elegir que el borrador se quede, y
+// la cuenta que entra despues no puede encontrarselo ofrecido ni, menos,
+// subirlo a su cuenta con el padron ajeno. Cada borrador lleva el uid de la
+// cuenta que lo escribio y solo se ofrece a esa cuenta (ver _tryRestore).
+// null mientras no se sepa quien entro: exigirSesion lo entrega al llamar
+// de vuelta.
+var _uidSesion = null;
+// Hasta que _tryRestore decide que hacer con el borrador del equipo, el
+// autoguardado no escribe. Lo primero que se teclea en esta pagina suele ser
+// el correo y la clave en el cajon de entrada, y guardar en ese momento
+// pisaba el borrador que se iba a ofrecer con un formulario en blanco.
+var _borradorResuelto = false;
+var _ID_ACTA = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Los campos de cuenta.js (el cajon de entrada, el panel de pago: cta-correo,
+// cta-clave, cta-codigo) viven en esta misma pagina y tienen id. Sin esta
+// exclusion la clave que se tecleaba al entrar quedaba en el borrador del
+// equipo y, con el, en la fila del acta en la cuenta.
+function _campoDelActa(el) {
+  if (!el || !el.id || /^cta-/.test(el.id)) return false;
+  return String(el.type || '').toLowerCase() !== 'password';
+}
+
 function _captureFieldsSnapshot() {
   var snap = { fields: {}, asistentes: [], puntos: [] };
   var isDyn = function(id) {
     return /^asist-\d+-/.test(id) || /^p\d+-/.test(id) || /^pvot-/.test(id) || /^firm-\d+-/.test(id);
   };
-  
+
   document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el) {
-    if (!el.id || isDyn(el.id)) return;
+    if (!el.id || isDyn(el.id) || !_campoDelActa(el)) return;
     snap.fields[el.id] = el.value;
   });
   
@@ -2083,17 +2191,21 @@ function _captureFieldsSnapshot() {
   
   document.querySelectorAll('#asistentes-tbody tr').forEach(function(row) {
     var g = function(sel) { var e = row.querySelector(sel); return e ? e.value : ''; };
+    // El correo va con la fila. isDyn() deja fuera de snap.fields todo lo
+    // que empieza con asist-N-, y el correo no estaba en esta lista: se
+    // perdia en cada guardado, y con el la constancia del voto por correo,
+    // que es lo que vuelve ruidosa una suplantacion en la sala.
     snap.asistentes.push({
       unidad: g('.unidad'), nombre: g('.nombre-asist'), rut: g('.rut-asist'), derechos: g('.derechos'),
-      habil: g('.habil'), asiste: g('.asiste'), rep: g('.representante')
+      habil: g('.habil'), asiste: g('.asiste'), rep: g('.representante'), correo: g('.correo-asist')
     });
   });
-  
+
   document.querySelectorAll('.punto-card').forEach(function(card) {
     var m = (card.id || '').match(/^punto-(\d+)$/);
     var n = m ? m[1] : null;
     var byId = function(suf) { var e = n && document.getElementById('p' + n + '-' + suf); return e ? e.value : ''; };
-    var votos = {};
+    var votos = Object.create(null);
     if (n) {
       var tbody = document.getElementById('pvot-rows-' + n);
       if (tbody) tbody.querySelectorAll('tr').forEach(function(r) {
@@ -2111,24 +2223,34 @@ function _captureFieldsSnapshot() {
 }
 
 function autoSave() {
+  if (!_borradorResuelto) return;
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() {
     try {
       railExpediente();
-      var snap = _captureFieldsSnapshot();
-      snap.savedAt = new Date().toISOString();
-      // Junto al borrador va el identificador de la fila que le corresponde
-      // en la cuenta. Sin esto, al recargar y restaurar, el acta se guardaba
-      // como una fila nueva y quedaban duplicados.
-      snap.actaId = _actaId;
-      snap.actaFolio = _actaFolio;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+      _escribirBorrador();
       _showSaveIndicator();
       actaSincronizar();
     } catch (e) {
       console.warn('No se pudo auto-guardar:', e);
     }
   }, 600);
+}
+
+// El borrador del equipo, entero, con lo que hay en pantalla y de quien es.
+function _escribirBorrador() {
+  var snap = _captureFieldsSnapshot();
+  snap.savedAt = new Date().toISOString();
+  snap.uid = _uidSesion;
+  // Junto al borrador va el identificador de la fila que le corresponde
+  // en la cuenta. Sin esto, al recargar y restaurar, el acta se guardaba
+  // como una fila nueva y quedaban duplicados.
+  snap.actaId = _actaId;
+  snap.actaFolio = _actaFolio;
+  // El cuerpo sellado viaja con el folio: sin el, la copia que se baje
+  // despues de recargar ya no seria la que se registro.
+  snap.sello = _sello;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
 }
 
 function _showSaveIndicator() {
@@ -2140,7 +2262,9 @@ function _showSaveIndicator() {
 }
 
 function _restoreSnapshot(snap) {
-  if (!snap) return false;
+  // Un acta cuyo contenido ya se purgo no trae nada que reponer, y
+  // reponerlo dejaria el formulario en blanco como si fuera suya.
+  if (!snap || _contenidoPurgado(snap)) return false;
   try {
     var asis = snap.asistentes || [];
     var pts  = snap.puntos || [];
@@ -2155,11 +2279,15 @@ function _restoreSnapshot(snap) {
       var set = function(sel, v) { var e = row.querySelector(sel); if (e) e.value = (v != null ? v : ''); };
       set('.unidad', a.unidad); set('.nombre-asist', a.nombre); set('.rut-asist', a.rut); set('.derechos', a.derechos);
       set('.habil', a.habil || 'si'); set('.asiste', a.asiste || 'si'); set('.representante', a.rep);
+      set('.correo-asist', a.correo);
     });
 
     
     var f = snap.fields || {};
     Object.keys(f).forEach(function(id) {
+      // Un borrador de antes puede traer los campos del cajon de entrada
+      // (ver _campoDelActa): esos no se reponen.
+      if (/^cta-/.test(id)) return;
       var el = document.getElementById(id);
       if (el) el.value = f[id];
     });
@@ -2198,7 +2326,8 @@ function _restoreSnapshot(snap) {
       if (tbody && p.votos) {
         tbody.querySelectorAll('tr').forEach(function(r) {
           var sel = r.querySelector('.pref-select');
-          if (sel && p.votos[r.dataset.key] !== undefined) {
+          // Solo las claves propias: la clave es unidad|nombre del padron.
+          if (sel && Object.prototype.hasOwnProperty.call(p.votos, r.dataset.key)) {
             sel.value = p.votos[r.dataset.key];
             sel.className = 'pref-select ' + sel.value;
           }
@@ -2216,31 +2345,128 @@ function _restoreSnapshot(snap) {
   }
 }
 
+// El borrador del equipo se ofrece solo a quien lo escribio, y lo que trae
+// del servidor -la fila y el folio- se le pregunta al servidor antes de
+// creerlo.
+//
+//  - Con uid de otra cuenta: no se ofrece, no se sube y no se toca. Sigue
+//    siendo de su dueno, que lo recupera al volver a entrar en este equipo,
+//    a menos que esta cuenta escriba aqui primero y el autoguardado lo
+//    reemplace (cuenta.js ya le advirtio que lo dejaba a la vista).
+//  - Sin uid (lo escribio la version anterior): con sesion, se ofrece solo si
+//    trae el id de una fila que el servidor le muestra a esta cuenta -las
+//    politicas de actas_guardadas solo dejan ver las propias-, que es la
+//    unica prueba de que es suyo. Si no la trae, o la fila no aparece, se
+//    descarta: ninguna cuenta puede demostrar que es suyo, y dejarlo solo
+//    mantendria el padron de alguien a la vista en un equipo compartido.
+//    Sin cuenta.js no hay sesion ni servidor y se ofrece como antes: nada
+//    sale del equipo (actaSincronizar exige la cuenta).
+//  - El folio nunca sale del borrador. Un borrador heredado de la
+//    demostracion antigua trae "AV-2026-00000N", con la forma de uno real,
+//    y se mostraba como acta emitida. Vale el folio que la base tiene para
+//    esa fila; sin respuesta del servidor, el acta se retoma sin folio, y si
+//    lo tenia, actaSincronizar lo adopta en cuanto la base rechaza el
+//    guardado (C6).
 function _tryRestore() {
+  var snap = null;
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    var snap = JSON.parse(raw);
-    if (!snap || !snap.savedAt) return;
+    snap = raw ? JSON.parse(raw) : null;
+  } catch (e) { snap = null; }
+  if (!snap || typeof snap !== 'object' || !snap.savedAt) { _borradorResuelto = true; return; }
+  // Quien llega con ?acta= desde el panel eligio esa acta, y
+  // actaCargarGuardada ya la esta trayendo del servidor. Ofrecer ademas el
+  // borrador del equipo mezclaba las dos: _restoreSnapshot no quita filas, y
+  // el padron de una quedaba pegado a la otra y se guardaba en su fila. El
+  // borrador no se ofrece; actaCargarGuardada lo reemplaza por el acta
+  // abierta si es de esta cuenta.
+  if (/[?&]acta=[0-9a-f-]{36}/i.test(String(location.search || ''))) { _borradorResuelto = true; return; }
+
+  var descartar = function () {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    _borradorResuelto = true;
+  };
+  var ofrecer = function (id, folio, sello) {
     var when = new Date(snap.savedAt).toLocaleString('es-CL');
-    if (confirm('Encontramos datos de su última sesión (' + when + ').\n\n¿Desea restaurarlos para continuar donde quedó?')) {
+    if (!confirm('Encontramos datos de su última sesión (' + when + ').\n\n¿Desea restaurarlos para continuar donde quedó?')) {
+      // Empieza de cero. El acta anterior queda en su cuenta, intacta.
+      descartar();
+      return;
+    }
+    try {
       _restoreSnapshot(snap);
       railExpediente();
-      // Se retoma la MISMA acta, no una copia: el borrador local trae el
-      // identificador de su fila en la cuenta.
-      _actaId = snap.actaId || null;
-      _actaFolio = snap.actaFolio || null;
-      if (_actaFolio) {
-        _nubeEstado('Acta ' + _actaFolio + ', ya finalizada.', 'ok');
-      } else if (_actaId) {
-        _nubeEstado('Retomando el acta guardada en su cuenta.', 'ok');
-      }
-      actaSincronizar();
-    } else {
-      // Empieza de cero. El acta anterior queda en su cuenta, intacta.
-      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) { console.warn('Restore error:', e); }
+    // Se retoma la MISMA acta, no una copia: la fila que el servidor
+    // confirmo para el id que traia el borrador.
+    _actaId = id;
+    _actaFolio = folio;
+    _sello = sello;
+    _borradorResuelto = true;
+    if (_actaFolio) {
+      _nubeEstado('Acta ' + _actaFolio + ', ya finalizada. Los cambios en el formulario ya no modifican el documento emitido.', 'ok');
+      // La llave se borro al finalizar (SB-01): sin esto, quien recarga
+      // para bajar otra vez su acta quedaba frente a la puerta de pago.
+      abrirAsistente();
+    } else if (_actaId) {
+      _nubeEstado('Retomando el acta guardada en su cuenta.', 'ok');
     }
-  } catch (e) { console.warn('Restore error:', e); }
+    // Reescribe el borrador con el uid de esta cuenta y lo confirmado, y
+    // vuelve a guardar sobre esa fila (autoSave llama a actaSincronizar).
+    autoSave();
+  };
+
+  var c = window.Cuenta && Cuenta.cliente && Cuenta.cliente();
+  if (!c) {
+    if (snap.uid) { _borradorResuelto = true; return; }
+    ofrecer(null, null, null);
+    return;
+  }
+  // Con cuenta.js pero sin saber quien entro (una pagina sin portero) no se
+  // ofrece nada: no hay a quien atribuirselo. El borrador se deja como esta.
+  if (!_uidSesion || (snap.uid && snap.uid !== _uidSesion)) { _borradorResuelto = true; return; }
+
+  var id = (typeof snap.actaId === 'string' && _ID_ACTA.test(snap.actaId)) ? snap.actaId : null;
+  if (!id) {
+    if (snap.uid) ofrecer(null, null, null); else descartar();
+    return;
+  }
+  var sinRespuesta = function () {
+    // Sin uid no hay otra prueba: no se ofrece, y tampoco se borra por una
+    // falla de la red.
+    if (!snap.uid) { _borradorResuelto = true; return; }
+    ofrecer(id, null, null);
+  };
+  Promise.resolve(c.from('actas_guardadas').select('id,folio').eq('id', id)).then(function (r) {
+    if (!r || r.error) { sinRespuesta(); return; }
+    var fila = r.data && r.data[0];
+    if (!fila) {
+      // La fila ya no esta: la borraron desde el panel, o nunca fue de esta
+      // cuenta. Con uid es de esta cuenta y se retoma como acta nueva.
+      if (snap.uid) ofrecer(null, null, null); else descartar();
+      return;
+    }
+    var folio = fila.folio || null;
+    // El sello local solo se usa para el folio que la base confirma, y con
+    // la huella recalculada sobre su cuerpo, igual que el de la cuenta.
+    var s = snap.sello;
+    var propio = folio && s && typeof s === 'object' && (!s.folio || s.folio === folio) ? s : null;
+    if (folio && !propio) {
+      // El borrador de este equipo no trae el sello de ese folio (se
+      // finalizo en otro equipo, o antes de que el borrador lo guardara).
+      // El que vale es el que se subio a la cuenta al finalizar: sin el,
+      // la copia saldria como regenerada aunque el cuerpo sellado exista.
+      return Promise.resolve(c.from('actas_guardadas').select('contenido').eq('id', fila.id)).then(function (q) {
+        var cont = q && !q.error && q.data && q.data[0] && q.data[0].contenido;
+        return _selloDesdeLaCuenta(cont && cont.sello, folio);
+      }, function () { return null; }).then(function (sello) { ofrecer(fila.id, folio, sello); });
+    }
+    return _selloDesdeLaCuenta(propio, folio).then(function (sello) { ofrecer(fila.id, folio, sello); });
+  }, sinRespuesta).then(null, function (e) {
+    // Pase lo que pase aqui, el autoguardado no puede quedar detenido.
+    console.warn('Restore error:', e);
+    _borradorResuelto = true;
+  });
 }
 
 function limpiarFormulario() {
@@ -2394,14 +2620,44 @@ document.addEventListener('change', function(e) {
 });
 
 
+// Lo que necesita la sesion y corre en otro modulo (la vuelta de la pasarela
+// en acta-2.js) espera aqui a que el portero deje pasar. Antes pedirla por
+// su cuenta no servia: cuenta.js ignoraba el segundo pedido mientras el
+// primero estaba abierto y a quien llegaba tarde nadie lo llamaba de vuelta.
+// Desde el 22-09-2026 cuenta.js encola los pedidos, pero se mantiene un solo
+// punto de entrada: asi la pagina sabe siempre quien entro antes de guardar.
+var _porteroPaso = false;
+var _esperanPortero = [];
+function actaTrasElPortero(fn) {
+  if (typeof fn !== 'function') return;
+  if (_porteroPaso) { fn(); return; }
+  _esperanPortero.push(fn);
+}
+
 window.addEventListener('load', function() {
   // Nada de esto ocurre sin sesion: exigirSesion abre el cajon sin salida y
   // solo llama de vuelta cuando la persona entro.
   if (window.Cuenta && Cuenta.exigirSesion) {
-    Cuenta.exigirSesion({
+    // De vuelta de la pasarela, lo que importa es entrar con la cuenta que
+    // pago: solo a ella le entrega el Worker la llave (C1).
+    var vuelveDePagar = /[?&]pago=AV-[A-Z0-9]+/.test(String(location.search || ''));
+    Cuenta.exigirSesion(vuelveDePagar ? {
+      titulo: 'Entre con la cuenta con la que pagó',
+      sub: 'El pago queda asociado a esa cuenta, y solo ella puede recuperarlo.'
+    } : {
       titulo: 'Entre para armar su acta',
       sub: 'Con su cuenta guardamos su avance, le enviamos el comprobante y puede volver a sus asambleas.'
-    }, function () {
+    }, function (u) {
+      // Quien entro: el borrador del equipo se ofrece solo si es suyo.
+      _uidSesion = (u && u.id) || null;
+      _porteroPaso = true;
+      var esperan = _esperanPortero;
+      _esperanPortero = [];
+      esperan.forEach(function (fn) {
+        // Un error en quien espera no deja sin turno al siguiente, ni a lo
+        // que sigue aqui.
+        try { fn(); } catch (e) { console.warn('Tras el portero:', e); }
+      });
       setTimeout(_tryRestore, 350);
       actaIniciarGuardado();
       if (window.track) window.track('acta_abierta');
@@ -2421,6 +2677,11 @@ window.addEventListener('load', function() {
 var _actaId = null;
 var _actaFolio = null;
 var _guardarTimer = null;
+// Lo que se sello al finalizar: { folio, codigo, huella, cuerpo }. Es la
+// unica fuente del documento de un acta con folio (ver generateActa).
+var _sello = null;
+// Lo ultimo que armo generateActa, en cadenas: { cuerpo, pie }.
+var _actaGenerada = null;
 
 // El acta se guarda siempre: es el producto y es lo que permite exigir el
 // pago en el servidor en vez de con un candado de navegador.
@@ -2444,11 +2705,26 @@ function _recordarIdEnBorrador() {
     if (!raw) return;
     var snap = JSON.parse(raw);
     if (!snap) return;
+    // El borrador de otra cuenta, o uno que nadie reclamo todavia, no se
+    // toca: anotarle el id de esta acta lo ataria a una fila ajena.
+    if ((snap.uid || null) !== (_uidSesion || null)) return;
+    // Tampoco el de otra acta de esta misma cuenta: con el id de esta, al
+    // recargar se ofreceria su contenido y se guardaria encima de esta fila.
+    if (snap.actaId && snap.actaId !== _actaId) return;
     snap.actaId = _actaId;
     snap.actaFolio = _actaFolio;
+    snap.sello = _sello;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
   } catch (e) { /* sin borrador local no hay nada que anotar */ }
 }
+
+// C5: la tarea diaria de conservacion reemplaza el contenido de un acta
+// finalizada hace mas de 180 dias por {"purgado": true, ...}. La fila y su
+// registro de verificacion quedan; lo escrito, no.
+function _contenidoPurgado(c) {
+  return !!(c && typeof c === 'object' && c.purgado === true);
+}
+var AVISO_PURGADA = 'El contenido de esta acta se eliminó al cumplirse el plazo de conservación; conserve el archivo que descargó.';
 
 // ¿Hay algo escrito? Los campos vienen todos, llenos o vacíos, así que se
 // miran los que de verdad indican trabajo empezado.
@@ -2469,9 +2745,15 @@ function _actaEnBlanco(snap) {
 
 function actaSincronizar() {
   if (!_nubeEncendida()) return;
+  // C6: un acta con folio ya no se escribe. La base lo rechaza igual (la
+  // politica de UPDATE exige folio IS NULL), pero intentarlo cada vez que
+  // alguien toca el formulario solo produce avisos de error sin sentido:
+  // lo emitido es lo que se sello.
+  if (_actaFolio) return;
   if (!window.Cuenta || !Cuenta.cliente()) return;
   if (_guardarTimer) clearTimeout(_guardarTimer);
   _guardarTimer = setTimeout(function () {
+    if (_actaFolio) return;
     var snap;
     try { snap = _captureFieldsSnapshot(); } catch (e) { return; }
     snap.savedAt = new Date().toISOString();
@@ -2489,7 +2771,8 @@ function actaSincronizar() {
       ? c.from('actas_guardadas').update(fila).eq('id', _actaId).select('id')
       : c.from('actas_guardadas').insert(fila).select('id');
     p.then(function (r) {
-      if (r.error) {
+      var yaCerrada = r.error && /acta_finalizada|ya_finalizada|finalizada/i.test(String(r.error.message || ''));
+      if (r.error && !yaCerrada) {
         var m = String(r.error.message || '');
         _nubeEstado(/relation|does not exist|schema cache/i.test(m)
           ? 'El guardado en la cuenta todavía no está habilitado. Su acta sigue a salvo en este equipo.'
@@ -2498,13 +2781,31 @@ function actaSincronizar() {
             : 'No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
         return;
       }
-      // Un update que no tocó ninguna fila significa que esa acta ya no
-      // está: la borraron desde el panel, o es de otra cuenta. Se vuelve a
-      // crear en vez de perder lo escrito.
-      if (_actaId && r.data && r.data.length === 0) {
-        _actaId = null;
-        _actaFolio = null;
-        actaSincronizar();
+      // Un update que no tocó ninguna fila tiene dos lecturas. Si el acta ya
+      // no está -la borraron desde el panel, o es de otra cuenta- se vuelve
+      // a crear en vez de perder lo escrito. Pero si se finalizo en otra
+      // pestaña u otro equipo, la base la protege (C6) y crear otra seria
+      // duplicar un acta con folio: se pregunta antes cual de las dos es.
+      if (_actaId && ((r.data && r.data.length === 0) || yaCerrada)) {
+        var perdida = _actaId;
+        var noSeGuardo = function () {
+          _nubeEstado('No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
+        };
+        c.from('actas_guardadas').select('id,folio').eq('id', perdida).then(function (q) {
+          if (perdida !== _actaId) return;
+          if (!q || q.error) { noSeGuardo(); return; }
+          var fila = q.data && q.data[0];
+          if (fila && fila.folio) {
+            // Sin ruido: no es un error, es un acta cerrada.
+            _actaFolio = fila.folio;
+            _nubeEstado('Acta ' + fila.folio + ', ya finalizada: los cambios de este formulario ya no se guardan en su cuenta.', 'ok');
+            return;
+          }
+          if (fila) { noSeGuardo(); return; }
+          _actaId = null;
+          _actaFolio = null;
+          actaSincronizar();
+        }, noSeGuardo);
         return;
       }
       if (r.data && r.data[0]) { _actaId = r.data[0].id; _recordarIdEnBorrador(); }
@@ -2521,13 +2822,251 @@ function actaCargarGuardada(id) {
   Cuenta.cliente().from('actas_guardadas').select('id,contenido,folio,pagada').eq('id', id).single()
     .then(function (r) {
       if (r.error || !r.data) return;
+      var contenido = r.data.contenido;
+      if (_contenidoPurgado(contenido)) {
+        // C5: no hay nada que abrir. No se ata la pagina a esa fila: lo que
+        // se escriba desde aqui es un acta nueva, no una edicion de la que
+        // ya se emitio.
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        _nubeEstado(AVISO_PURGADA, 'err');
+        alert(AVISO_PURGADA);
+        return;
+      }
       _actaId = r.data.id;
       _actaFolio = r.data.folio || null;
-      _recordarIdEnBorrador();
-      try { _restoreSnapshot(r.data.contenido); } catch (e) {}
-      _nubeEstado(_actaFolio ? 'Acta ' + _actaFolio + ', ya finalizada.' : 'Abierta desde su cuenta.', 'ok');
-      if (typeof generateActa === 'function') generateActa();
+      _sello = null;
+      try { _restoreSnapshot(contenido); } catch (e) {}
+      // El sello que se subio justo antes de finalizar trae el cuerpo y su
+      // huella; el folio lo pone la fila. Se recalcula la huella antes de
+      // creerle: un cuerpo que no calza no se imprime como verificable.
+      _selloDesdeLaCuenta(contenido && contenido.sello, _actaFolio).then(function (s) {
+        if (r.data.id !== _actaId) return;
+        _sello = s;
+        // El borrador del equipo pasa a ser esta acta, entera: anotarle solo
+        // el id ataba a esta fila el contenido de otra que hubiera quedado en
+        // el equipo. El de otra cuenta no se toca (ver _tryRestore).
+        var previo = null;
+        try { previo = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { previo = null; }
+        if (!previo || !previo.uid || previo.uid === _uidSesion) {
+          try { _escribirBorrador(); } catch (e) { /* sin almacenamiento, sin borrador */ }
+        }
+        _recordarIdEnBorrador();
+        _nubeEstado(_actaFolio
+          ? 'Acta ' + _actaFolio + ', ya finalizada. Los cambios en el formulario ya no modifican el documento emitido.'
+          : 'Abierta desde su cuenta.', 'ok');
+        // Quien vuelve por un acta ya emitida -para bajarla otra vez- no
+        // tiene por que pagar de nuevo: el folio ya lo acredita la base.
+        if (_actaFolio) abrirAsistente();
+        if (typeof generateActa === 'function') generateActa();
+      });
     });
+}
+
+// ---------------------------------------------------------------------
+//  El sello: huella, codigo y resumen del acta que se finaliza (C2)
+// ---------------------------------------------------------------------
+// SHA-256 en hexadecimal minuscula de los bytes UTF-8 del texto.
+function _huellaDe(texto) {
+  var c = (typeof crypto !== 'undefined') ? crypto : null;
+  if (!c || !c.subtle || typeof TextEncoder === 'undefined') {
+    return Promise.reject(new Error('sin_criptografia'));
+  }
+  return Promise.resolve(c.subtle.digest('SHA-256', new TextEncoder().encode(String(texto)))).then(function (buf) {
+    var b = new Uint8Array(buf), h = '';
+    for (var i = 0; i < b.length; i++) h += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+    return h;
+  });
+}
+
+// Los 12 primeros caracteres de la huella, en mayuscula y de a cuatro:
+// "ABCD-EF01-2345". Es lo que se teclea en /verificar.
+function _codigoDe(huella) {
+  var s = String(huella || '').slice(0, 12).toUpperCase();
+  return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12);
+}
+
+// El sello vale solo para el folio vigente, con su cuerpo, una huella bien
+// formada y el codigo que sale de ella. La demostracion no calcula nada en
+// el servidor: su codigo es siempre DEMO-0000-0000 y su folio empieza por
+// DEMO-, para que nada de ahi pueda pasar por un acta emitida.
+function _selloVigente() {
+  var s = _sello;
+  if (!s || typeof s !== 'object' || !_actaFolio || s.folio !== _actaFolio) return null;
+  if (typeof s.cuerpo !== 'string' || !s.cuerpo) return null;
+  if (!/^[0-9a-f]{64}$/.test(String(s.huella || ''))) return null;
+  var esperado = /^DEMO-/.test(_actaFolio) ? 'DEMO-0000-0000' : _codigoDe(s.huella);
+  return s.codigo === esperado ? s : null;
+}
+
+function _selloDesdeLaCuenta(s, folio) {
+  if (!folio || !s || typeof s !== 'object' || typeof s.cuerpo !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(String(s.huella || ''))) {
+    return Promise.resolve(null);
+  }
+  return _huellaDe(s.cuerpo).then(function (h) {
+    if (h !== s.huella) return null;
+    return { folio: folio, codigo: /^DEMO-/.test(folio) ? 'DEMO-0000-0000' : _codigoDe(h), huella: h, cuerpo: s.cuerpo };
+  }, function () { return null; });
+}
+
+// Nombres y RUT que no pueden salir en el resumen publico. El titulo de un
+// punto lo escribe una persona y suele nombrar a otras ("Eleccion del
+// comite: Juan Perez..."): se sacan los RUT con digito verificador y los
+// nombres que el acta conoce -padron, apoderados, firmantes, presidente,
+// convocante, administrador y ministro de fe-. Un nombre que el acta no
+// conoce no se puede reconocer, y por eso el resumen se limita a materias,
+// resultados y porcentajes.
+// Los RUT que el acta conoce se sacan ademas en cualquier forma, con o sin
+// puntos y aunque vengan sin digito verificador: "12345678" en un titulo es
+// tan de una persona como "12.345.678-5".
+// El nombre se busca como palabra entera: "Rosa" no puede comerse "rosado"
+// y dejar una materia ilegible en la pagina de verificacion.
+function _quitarPersonas(texto, nombres, ruts) {
+  var t = String(texto == null ? '' : texto);
+  t = t.replace(/\b\d{1,2}\.?\d{3}\.?\d{3}\s*-\s*[\dkK]\b/g, '[RUT omitido]');
+  (ruts || []).forEach(function (r) {
+    var s = String(r || '').replace(/[^0-9kK]/g, '');
+    var cuerpo = s.slice(0, -1);
+    if (!/^\d{6,8}$/.test(cuerpo)) return;
+    var rx = new RegExp('(^|[^0-9])' + cuerpo.split('').join('\\.?') + '(?:\\s*-\\s*[0-9kK]|[0-9kK])?(?![0-9])', 'g');
+    t = t.replace(rx, '$1[RUT omitido]');
+  });
+  t = t.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '[correo omitido]');
+  nombres.forEach(function (n) {
+    var limpio = String(n || '').trim();
+    if (limpio.length < 4) return;
+    var patron = limpio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+    var rx;
+    try {
+      rx = new RegExp('(^|[^\\p{L}\\p{N}])' + patron + '(?=$|[^\\p{L}\\p{N}])', 'giu');
+    } catch (e) {
+      // Un navegador sin \p{...}: mejor de mas que de menos.
+      rx = new RegExp('()' + patron, 'gi');
+    }
+    t = t.replace(rx, '$1[nombre omitido]');
+  });
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+// Recorta por caracteres, no por unidades UTF-16: cortar un emoji por la
+// mitad deja un sustituto suelto, que JSON.stringify escribe como \ud83d y
+// que Postgres rechaza al leer el jsonb. Con eso fallaba la finalizacion.
+function _recortar(s, n) {
+  var a = Array.from(String(s == null ? '' : s));
+  return a.length > n ? a.slice(0, n).join('') : a.join('');
+}
+
+// ac_resumen_limpio mide el resumen como jsonb::text, que pone un espacio
+// despues de cada ":" y de cada ",". JSON.stringify no los pone, asi que
+// aqui se cuentan igual que alla: un resumen que aqui cabia justo en 16 KB
+// alla no cabia, y la base rechazaba el acta con 'resumen_invalido'.
+function _bytesComoJsonb(v) {
+  if (v === null || typeof v !== 'object') return _bytesUtf8(JSON.stringify(v));
+  if (Array.isArray(v)) {
+    var ba = 2;
+    v.forEach(function (x, i) { ba += (i ? 2 : 0) + _bytesComoJsonb(x); });
+    return ba;
+  }
+  var bo = 2;
+  Object.keys(v).forEach(function (k, i) {
+    bo += (i ? 2 : 0) + _bytesUtf8(JSON.stringify(k)) + 2 + _bytesComoJsonb(v[k]);
+  });
+  return bo;
+}
+
+function _bytesUtf8(s) {
+  try { return new TextEncoder().encode(s).length; } catch (e) { return unescape(encodeURIComponent(s)).length; }
+}
+
+// p_resumen de ac_finalizar: lo que /verificar muestra a quien tenga el
+// folio y el codigo. Sin datos de personas y a lo mas 16 KB.
+function _resumenDelActa() {
+  var padron = _padronDelActa();
+  var presentes = 0;
+  var nombres = [];
+  var ruts = [_pvau('notario-rut')];
+  padron.filas.forEach(function (f) {
+    if (f.asiste) presentes += f.der;
+    nombres.push(f.nombre, f.representante);
+    ruts.push(f.rut);
+  });
+  presentes = Math.min(presentes, Derechos.CIEN);
+  firmLeer().forEach(function (fr) { nombres.push(fr.nombre); ruts.push(fr.rut); });
+  ['nombre-presidente', 'nombre-convocante', 'nombre-admin', 'notario-nombre'].forEach(function (id) {
+    nombres.push(_pvau(id));
+  });
+  // Primero los mas largos: "Maria Gonzalez Perez" antes que "Maria Gonzalez".
+  nombres = nombres.filter(function (n) { return String(n || '').trim(); })
+    .sort(function (a, b) { return String(b).length - String(a).length; });
+
+  var tipo = _pvau('tipo-asamblea');
+  var fecha = _pvau('fecha-sesion');
+  var puntos = [];
+  document.querySelectorAll('.punto-card').forEach(function (pc) {
+    if (puntos.length >= 60) return;
+    var n = String(pc.id || '').replace('punto-', '');
+    var requiere = (document.getElementById('p' + n + '-requiere') || {}).value || 'si';
+    var aprob = pc.dataset.votAprobado || 'pendiente';
+    var conVotos = requiere === 'si' && (pc.dataset.votFavorTxt || '') !== '' && (pc.dataset.votBase || '') !== '';
+    puntos.push({
+      materia: _quitarPersonas(_pvau('p' + n + '-titulo'), nombres, ruts),
+      resultado: requiere === 'no' ? 'sin votacion'
+        : aprob === 'si' ? 'aprobado'
+        : aprob === 'no' ? 'rechazado'
+        : 'pendiente',
+      favor: conVotos ? pc.dataset.votFavorTxt + ' %' : ''
+    });
+  });
+
+  var armar = function (tope) {
+    return {
+      condominio: _recortar(String(_pvau('condo-nombre') || '').trim(), 200),
+      fecha_sesion: /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : null,
+      // Sin tipo elegido no se inventa uno: "extraordinaria" por descarte
+      // quedaba publicado en /verificar como si el acta lo dijera.
+      tipo: tipo === 'ordinaria' ? 'ordinaria'
+        : /^extraordinaria/.test(tipo) ? 'extraordinaria'
+        : null,
+      quorum: Derechos.texto(presentes) + ' %',
+      acuerdos: puntos.map(function (p) {
+        return { materia: _recortar(p.materia, tope), resultado: p.resultado, favor: p.favor };
+      })
+    };
+  };
+  // 60 materias de 300 caracteres con tildes pasan de 16 KB. Se acortan las
+  // materias -nunca los resultados- hasta que quepa, medido como lo mide
+  // la base.
+  var topes = [300, 200, 120, 60, 30];
+  var r = armar(topes[0]);
+  for (var i = 1; i < topes.length && _bytesComoJsonb(r) > 16384; i++) r = armar(topes[i]);
+  return r;
+}
+
+// Antes de pedir el folio se sube lo ultimo que se escribio, junto con el
+// cuerpo sellado: despues del folio la base ya no deja modificar el acta
+// (C6), y lo que quede guardado en la cuenta tiene que ser lo emitido. Si
+// el cuerpo no cabe en el tope de tamano se sube sin el; y si no se puede
+// subir, se finaliza igual: el documento que se descarga es el que vale.
+function _subirAntesDeCerrar(c, sello) {
+  if (_guardarTimer) { clearTimeout(_guardarTimer); _guardarTimer = null; }
+  var snap;
+  try { snap = _captureFieldsSnapshot(); } catch (e) { return Promise.resolve(); }
+  snap.savedAt = new Date().toISOString();
+  snap.sello = sello;
+  var fila = {
+    titulo: (_pvau('condo-nombre') || '').slice(0, 200),
+    fecha_sesion: _pvau('fecha-sesion') || null,
+    contenido: snap
+  };
+  var subir = function () {
+    return Promise.resolve(c.from('actas_guardadas').update(fila).eq('id', _actaId).select('id'));
+  };
+  return subir().then(function (r) {
+    if (r && r.error && /actas_tamano/.test(String(r.error.message || ''))) {
+      delete snap.sello;
+      return subir();
+    }
+  }).then(null, function () {});
 }
 
 // ---------------------------------------------------------------------
@@ -2546,26 +3085,95 @@ function actaFinalizar(alTerminar) {
   var llave = llaveDelActa();
   if (!llave) { alTerminar('SIN_PAGO'); return; }
 
-  c.rpc('ac_finalizar', { p_acta: _actaId, p_llave: llave }).then(function (r) {
-    if (r.error) {
-      var m = String(r.error.message || '');
-      if (/llave_invalida|llave_vencida|pago_ya_usado|pago_de_otra_cuenta/.test(m)) {
+  // El cuerpo se fija y se sella ANTES de conocer el folio: la huella no
+  // puede depender de lo que la base conteste. Ver "EL CUERPO CANONICO".
+  _sello = null;
+  generateActa();
+  var cuerpo = _actaGenerada && _actaGenerada.cuerpo;
+  if (!cuerpo) { alTerminar('Complete los datos del acta antes de finalizarla.'); return; }
+
+  // Se responde una sola vez. Si algo revienta despues de un cierre que
+  // salio bien -al imprimir, por ejemplo-, el catch del final no puede
+  // anunciar "No pudimos finalizar" de un acta que ya tiene folio.
+  var _responder = alTerminar, _respondio = false;
+  alTerminar = function (e, motivo) { if (_respondio) return; _respondio = true; _responder(e, motivo); };
+
+  _huellaDe(cuerpo).then(function (huella) {
+    var resumen = _resumenDelActa();
+    return _subirAntesDeCerrar(c, { huella: huella, cuerpo: cuerpo }).then(function () {
+      return c.rpc('ac_finalizar', { p_acta: _actaId, p_llave: llave, p_huella: huella, p_resumen: resumen });
+    }).then(function (r) {
+      if (r.error) {
+        var m = String(r.error.message || '');
+        // Los errores del contrato C2 que no son de conexion se explican:
+        // "Reintente en unos minutos" no arregla ninguno. Los dos primeros
+        // saltan antes de tocar el pago, y eso tambien se dice.
+        if (/huella_invalida/.test(m)) {
+          alTerminar('El servidor no aceptó la huella del documento, así que el acta no se finalizó y su pago sigue disponible. Recargue la página y vuelva a finalizar; si se repite, pruebe con otro navegador.');
+          return;
+        }
+        if (/resumen_invalido/.test(m)) {
+          alTerminar('El servidor no aceptó el resumen del acta que se publica para verificarla, así que el acta no se finalizó y su pago sigue disponible. Acorte los títulos de los puntos más largos y vuelva a finalizar.');
+          return;
+        }
+        // Una orden, un acta (SB-01): esa llave ya emitio otra y no sirve mas.
+        if (/pago_ya_usado_en_otra_acta/.test(m)) {
+          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
+          alTerminar('SIN_PAGO', 'Ese pago ya se usó para finalizar otra acta: cada acta requiere su propio pago. Active esta asamblea para finalizarla.');
+          return;
+        }
+        // La llave de este equipo la pago otra cuenta. Para esta no sirve,
+        // pero sigue siendo de quien pago: se anota su orden y cuenta.js se
+        // la devuelve cuando esa cuenta entre en este equipo.
+        if (/pago_de_otra_cuenta/.test(m)) {
+          _anotarOrdenDeLlave(llave);
+          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
+          alTerminar('SIN_PAGO', 'El pago guardado en este equipo es de otra cuenta y no sirve para esta acta. Si pagó con otra cuenta, entre con ella en este equipo y se lo devolveremos; si no, active esta asamblea con su propio pago.');
+          return;
+        }
+        if (/pago_vencido/.test(m)) {
+          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
+          alTerminar('SIN_PAGO', 'El pago de esta asamblea venció. Para finalizar el acta debe activarla con un pago nuevo.');
+          return;
+        }
+        if (/llave_invalida|llave_vencida|llave_malformada|pago_requerido|pago_ya_usado|llave_de_otro_producto/.test(m)) {
+          if (/llave_de_otro_producto/.test(m)) _anotarOrdenDeLlave(llave);
+          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
+          alTerminar('SIN_PAGO');
+          return;
+        }
+        if (/does not exist|schema cache|PGRST202/i.test(m)) {
+          alTerminar('El cierre del acta todavía no está habilitado en el servidor.');
+          return;
+        }
+        alTerminar('No pudimos finalizar el acta. Reintente en unos minutos.');
+        return;
+      }
+      var d = r.data || {};
+      var folio = d.folio || null;
+      var demo = /^DEMO-/.test(folio || '');
+      var codigo = demo ? 'DEMO-0000-0000' : _codigoDe(huella);
+      _actaFolio = folio;
+      // El codigo que devuelve la base es el que quedo registrado. Si no
+      // coincide con el de este cuerpo -un acta que ya estaba finalizada
+      // con otro texto-, este documento no se imprime como verificable.
+      _sello = (folio && String(d.codigo || '').toUpperCase() === codigo)
+        ? { folio: folio, codigo: codigo, huella: huella, cuerpo: cuerpo }
+        : null;
+      // SB-01: la llave ya cumplio. Si quedara en el equipo, el panel la
+      // seguiria ofreciendo como "asamblea activada" y pareceria servir
+      // para la proxima acta. Si el acta ya estaba finalizada, la llave que
+      // hay ahora puede ser la de otra asamblea, y esa no se toca.
+      if (!d.ya_estaba) {
         try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-        alTerminar('SIN_PAGO');
-        return;
       }
-      if (/does not exist|schema cache|PGRST202/i.test(m)) {
-        alTerminar('El cierre del acta todavía no está habilitado en el servidor.');
-        return;
-      }
-      alTerminar('No pudimos finalizar el acta. Reintente en unos minutos.');
-      return;
-    }
-    _actaFolio = (r.data && r.data.folio) || null;
-    _recordarIdEnBorrador();
-    generateActa();
-    alTerminar(null);
-  }, function () { alTerminar('No pudimos finalizar el acta. Revise su conexión.'); });
+      _recordarIdEnBorrador();
+      generateActa();
+      alTerminar(null);
+    });
+  }, function () {
+    alTerminar('Este navegador no permite calcular la huella del acta. Actualícelo o use otro navegador para finalizarla.');
+  }).then(null, function () { alTerminar('No pudimos finalizar el acta. Revise su conexión.'); });
 }
 
 function actaIniciarGuardado() {
@@ -2733,7 +3341,9 @@ function addFirmante(datos) {
       '</select>' +
       '<input type="text" class="firm-cargo-otro" id="firm-' + n + '-cargo-otro" maxlength="70"' +
       ' placeholder="Escriba el cargo o la calidad" aria-label="Cargo o calidad del firmante"' +
-      (conocido ? ' hidden' : ' value="' + String(esperado).replace(/"/g, '&quot;') + '"') + '>';
+      // El cargo libre puede venir de un borrador .json que armo otra
+      // persona: se escapa entero, no solo las comillas.
+      (conocido ? ' hidden' : ' value="' + escapeHtml(esperado) + '"') + '>';
   }
 
   var del = document.createElement('button');
@@ -2822,8 +3432,11 @@ function revisarConsistencia() {
 
   var suma = 0, presentes = 0, presentesHabiles = 0;
   var malos = [], negativos = [], sinUnidad = 0;
-  var unidades = {}, unidadesRepetidas = [];
-  var representantes = {}, repDobles = [];
+  // Diccionarios sin prototipo: las claves son unidades y apoderados que
+  // escribio una persona. Con {} una unidad "constructor" salia repetida
+  // desde la primera vez, y un apoderado "toString" nunca llegaba a 2.
+  var unidades = Object.create(null), unidadesRepetidas = [];
+  var representantes = Object.create(null), repDobles = [];
 
   padron.filas.forEach(function (f) {
     suma += f.der;
@@ -2987,17 +3600,37 @@ function renderRevision() {
   // que la ley exige- no puede quedar en la misma pila que un correo mal
   // escrito.
   var graves = items.filter(function (x) { return !x.ok && x.grave; }).length;
-  box.innerHTML =
-    '<h3>Revisi\u00f3n de consistencia'
+  // Nada de esto pasa por innerHTML. Los avisos citan unidades, nombres y
+  // apoderados tal como vienen del padron, y el padron suele llegar en una
+  // planilla que armo otra persona: una unidad escrita como
+  // 101<img src=x onerror=...> se tiene que leer asi, no volverse etiqueta.
+  // Con textContent la proxima frase que alguien agregue tampoco puede
+  // equivocarse, porque aqui no hay nada que interprete HTML.
+  box.textContent = '';
+  var titulo = document.createElement('h3');
+  titulo.textContent = 'Revisi\u00f3n de consistencia'
       + (graves ? ' \u00b7 ' + graves + ' problema(s) de fondo' : '')
       + (advertencias - graves ? ' \u00b7 ' + (advertencias - graves) + ' por revisar' : '')
-      + (advertencias ? '' : ' \u00b7 todo en orden') + '</h3>' +
-    '<p class="rev-nota">Revisa los datos ingresados en esta acta. No verifica la citaci\u00f3n, los poderes ni la calidad de los datos del padr\u00f3n, y no certifica la validez legal de la asamblea.</p>' +
-    items.map(function (x) {
-      var clase = x.ok ? 'ok' : (x.grave ? 'grave' : 'warn');
-      var icono = x.ok ? '\u2713' : (x.grave ? '\u2715' : '\u26a0');
-      return '<div class="rev-item ' + clase + '"><span class="rev-ic">' + icono + '</span><span>' + x.texto + '</span></div>';
-    }).join('');
+      + (advertencias ? '' : ' \u00b7 todo en orden');
+  box.appendChild(titulo);
+  var nota = document.createElement('p');
+  nota.className = 'rev-nota';
+  nota.textContent = 'Revisa los datos ingresados en esta acta. No verifica la citaci\u00f3n, los poderes ni la calidad de los datos del padr\u00f3n, y no certifica la validez legal de la asamblea.';
+  box.appendChild(nota);
+  items.forEach(function (x) {
+    var clase = x.ok ? 'ok' : (x.grave ? 'grave' : 'warn');
+    var icono = x.ok ? '\u2713' : (x.grave ? '\u2715' : '\u26a0');
+    var fila = document.createElement('div');
+    fila.className = 'rev-item ' + clase;
+    var ic = document.createElement('span');
+    ic.className = 'rev-ic';
+    ic.textContent = icono;
+    var texto = document.createElement('span');
+    texto.textContent = x.texto;
+    fila.appendChild(ic);
+    fila.appendChild(texto);
+    box.appendChild(fila);
+  });
 }
 
 // Dos filas vacias para empezar; un borrador restaurado las reemplaza.
@@ -3035,6 +3668,22 @@ function hayPagoDelActa() {
   return !!llaveDelActa();
 }
 
+// La llave es <payload base64url>.<firma>, con la orden en payload.o
+// (emitirLlave en _worker.js). Aqui solo se lee la orden -la firma la
+// valida Postgres- para anotarla antes de borrar una llave que en esta
+// cuenta no sirve: cuenta.js se la devuelve a quien pago cuando entre en
+// este equipo (Cuenta.anotarPago y recuperarPagos).
+function _anotarOrdenDeLlave(llave) {
+  var p = String(llave || '').split('.');
+  if (p.length !== 2) return;
+  try {
+    var b = p[0].replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    var o = String((JSON.parse(atob(b)) || {}).o || '');
+    if (/^AV-[A-Z0-9]{1,32}$/.test(o) && window.Cuenta && typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(o);
+  } catch (e) { /* una llave ilegible no tiene orden que anotar */ }
+}
+
 function puertaMsg(texto, malo) {
   var el = document.getElementById('puerta-msg');
   if (!el) return;
@@ -3052,30 +3701,95 @@ function puertaRecuperar(btn) {
     campo.focus();
     return;
   }
-  btn.disabled = true;
   var _t = btn.textContent;
-  btn.textContent = 'Buscando\u2026';
-  puertaMsg('');
-  fetch('/api/pago/estado?orden=' + encodeURIComponent(orden))
-    .then(function (r) { return r.json().catch(function () { return null; }); })
-    .then(function (d) {
-      btn.disabled = false; btn.textContent = _t;
-      if (!d || d.estado !== 'pagado' || !d.llave) {
-        puertaMsg('No encontramos un pago confirmado con ese n\u00famero. Si acaba de pagarlo, espere un momento y vuelva a intentar.', true);
+  var listo = function () { btn.disabled = false; btn.textContent = _t; };
+  // C1: el numero de orden ya no basta. El comprobante se reenvia -al
+  // tesorero, al contador- y con el numero cualquiera se quedaba con la
+  // llave. El Worker entrega la llave solo a la cuenta que pago, y lo sabe
+  // por el token de la sesion. Sin sesion no se llama: se pide entrar.
+  var consultar = function (puedePedirSesion) {
+    btn.disabled = true;
+    btn.textContent = 'Buscando\u2026';
+    puertaMsg('');
+    _tokenDeAcceso().then(function (token) {
+      if (!token) {
+        listo();
+        puertaMsg('Para recuperar el pago, entre con la cuenta con la que pag\u00f3.', true);
+        if (puedePedirSesion && window.Cuenta && Cuenta.exigirSesion) {
+          Cuenta.exigirSesion({
+            titulo: 'Entre con la cuenta con la que pag\u00f3',
+            sub: 'El pago queda asociado a esa cuenta, y solo ella puede recuperarlo.'
+          }, function (u) {
+            // Si entro otra cuenta que la que abrio la pagina, lo que esta
+            // en pantalla es de la anterior: se recarga, como en acta-2.js.
+            if (u && _uidSesion && u.id !== _uidSesion) { location.reload(); return; }
+            consultar(false);
+          });
+        }
         return;
       }
-      if ((d.producto || 'acta') !== 'acta') {
-        puertaMsg('Ese pago corresponde a una consulta por escrito, no a un acta de asamblea.', true);
-        return;
-      }
-      try { localStorage.setItem(LLAVE_ACTA, d.llave); } catch (e) {}
-      puertaMsg('Pago encontrado. Abriendo su acta\u2026');
-      setTimeout(function () { location.reload(); }, 900);
-    })
-    .catch(function () {
-      btn.disabled = false; btn.textContent = _t;
+      return fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return null; })
+            .then(function (d) { return { status: r.status, d: d }; });
+        })
+        .then(function (x) {
+          listo();
+          var d = x.d;
+          if (x.status === 401) {
+            puertaMsg('Su sesi\u00f3n venci\u00f3. Entre de nuevo con la cuenta con la que pag\u00f3 y vuelva a intentarlo.', true);
+            return;
+          }
+          // 404 dice lo mismo si la orden no existe o si es de otra cuenta:
+          // la pagina tampoco lo distingue. El numero se anota en el equipo,
+          // como en el panel: si se pago con otra cuenta, al entrar con ella
+          // en este equipo Cuenta.recuperarPagos le entrega la llave. Aqui
+          // no hay ?pago= que quitar: el numero lo escribio la persona.
+          if (x.status === 404) {
+            if (window.Cuenta && typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(orden);
+            puertaMsg('No encontramos un pago con ese número en esta cuenta. Revise el número; si pagó con otra cuenta, entre con ella en este equipo y se lo entregaremos.', true);
+            return;
+          }
+          if (!d || d.estado !== 'pagado' || !d.llave) {
+            puertaMsg('No encontramos un pago confirmado con ese n\u00famero en esta cuenta. Si acaba de pagarlo, espere un momento y vuelva a intentar; si pag\u00f3 con otra cuenta, entre con ella.', true);
+            return;
+          }
+          if ((d.producto || 'acta') !== 'acta') {
+            puertaMsg('Ese pago corresponde a una consulta por escrito, no a un acta de asamblea.', true);
+            return;
+          }
+          try { localStorage.setItem(LLAVE_ACTA, d.llave); } catch (e) {}
+          puertaMsg('Pago encontrado. Abriendo su acta\u2026');
+          setTimeout(function () { location.reload(); }, 900);
+        });
+    }).then(null, function () {
+      listo();
       puertaMsg('No pudimos consultar el pago. Revise su conexi\u00f3n e int\u00e9ntelo otra vez.', true);
     });
+  };
+  consultar(true);
+}
+
+// El token de la sesion vigente (contrato C1: Cuenta.tokenDeAcceso, en
+// cuenta.js). null si no hay sesion o si cuenta.js no lo ofrece: en los dos
+// casos lo que corresponde es pedir que entre, no llamar sin credencial.
+function _tokenDeAcceso() {
+  if (!window.Cuenta || typeof Cuenta.tokenDeAcceso !== 'function') return Promise.resolve(null);
+  return Promise.resolve()
+    .then(function () { return Cuenta.tokenDeAcceso(); })
+    .then(function (t) { return t || null; }, function () { return null; });
+}
+
+// Quien vuelve por un acta que la base ya finalizo -para bajarla otra vez-
+// no esta usando el servicio de nuevo: el folio acredita el pago. Tras
+// finalizar, la llave se borra del equipo (SB-01), asi que sin esto el
+// dueno quedaba frente a la puerta de pago con su acta ya pagada adentro.
+var _tituloPagina = null;
+function abrirAsistente() {
+  document.documentElement.classList.add('acta-abierta');
+  if (_tituloPagina) document.title = _tituloPagina;
 }
 
 // El modo vitrina lo pone el Worker: cuando VITRINA=1 agrega la clase al
@@ -3097,6 +3811,7 @@ function revisarPuertaDePago() {
     raiz.classList.add('acta-abierta');
     return;
   }
+  _tituloPagina = document.title;
   document.title = 'Pague su acta antes de la asamblea \u00b7 actaviva';
 }
 

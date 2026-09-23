@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Compruebe si un acta de asamblea emitida en actascopropiedad.cl es auténtica: escriba el folio y el código de verificación impresos en el documento y compare lo que quedó registrado.">
+<title>Verificar un acta · actaviva</title>
+<link rel="canonical" href="https://actascopropiedad.cl/verificar">
+<meta name="theme-color" content="#1E3A6E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="actaviva">
+<meta property="og:locale" content="es_CL">
+<meta property="og:url" content="https://actascopropiedad.cl/verificar">
+<meta property="og:title" content="Verificar un acta · actaviva">
+<meta property="og:description" content="¿Le presentaron un acta emitida en actascopropiedad.cl? Con el folio y el código de verificación puede confirmar que es la que se registró.">
+<meta property="og:image" content="https://actascopropiedad.cl/og.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<style>
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
+  :root{
+    --ink:#1E3A6E; --teal:#0B6BB5; --teal-d:#0B6BB5; --teal-l:#8CC3E8;
+    --orange:#E5692A; --cream:#F3F7FB; --surface:#FFFFFF;
+    --line:rgba(20,24,30,.09); --line-soft:rgba(20,24,30,.06);
+    --tx:#1A3160; --tx2:#4B5C74; --tx3:#647188;
+    --ok:#1F6B45; --ok-bg:#E8F4EC; --ok-line:#B9DCC6;
+    --err:#9B2226; --err-bg:#FBECEC; --err-line:#E9C1C3;
+    --warn:#9A6B1F; --warn-bg:#FBF3E3; --warn-line:#E7D3A4;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Source Sans 3',system-ui,-apple-system,sans-serif;
+    --sh-sm:0 2px 8px rgba(20,24,30,.06);
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+  body{margin:0;font-family:var(--sans);background:var(--cream);color:var(--tx);line-height:1.65;font-size:17px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.04;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  a{color:var(--teal-d);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  :focus-visible{outline:3px solid var(--teal-d);outline-offset:3px;border-radius:5px;}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 26px;}
+
+  header.site{position:sticky;top:0;z-index:100;background:rgba(243,247,251,.86);backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line-soft);}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 26px;max-width:1140px;margin:0 auto;}
+  .nav > #nav-cuenta{margin-left:auto;}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);font-size:16.5px;}
+  .brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 560;font-weight:560;font-size:23px;line-height:1;letter-spacing:-.035em;}
+  .brand b i,.foot-brand b i{font-style:normal;color:var(--teal);}
+  .brand b em,.foot-brand b em{font-style:normal;color:var(--orange);}
+  .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
+  .nav-cta{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:#1E3A6E;background:linear-gradient(180deg,#8CC3E8 0%,#0B6BB5 100%);padding:10px 18px;border-radius:11px;box-shadow:0 8px 20px -8px rgba(11,107,181,.5);transition:transform .25s var(--ease);min-height:44px;}
+  .nav-cta:hover{transform:translateY(-2px);text-decoration:none;}
+
+  .skip{position:absolute;left:-9999px;top:0;background:var(--ink);color:#fff;padding:12px 18px;border-radius:0 0 10px 0;z-index:200;font-weight:600;}
+  .skip:focus{left:0;text-decoration:none;}
+
+  .doc-head{padding:58px 0 30px;max-width:760px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-d);margin-bottom:16px;}
+  .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--teal);opacity:.6;}
+  h1{font-family:var(--serif);font-variation-settings:'opsz' 120,'wght' 560;font-weight:560;font-size:clamp(32px,6vw,46px);line-height:1.08;letter-spacing:-.02em;color:var(--ink);margin:0 0 14px;}
+  .lede{font-size:19px;color:var(--tx2);max-width:60ch;margin:0;}
+
+  .verif{max-width:760px;}
+  .tarjeta{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 26px 24px;box-shadow:var(--sh-sm);}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px;}
+  @media (max-width:640px){ .campos{grid-template-columns:1fr;} }
+  .campo label{display:block;font-weight:700;color:var(--ink);font-size:15.5px;margin-bottom:6px;}
+  .campo input{width:100%;min-height:50px;padding:10px 14px;font:inherit;font-size:18px;letter-spacing:.04em;text-transform:uppercase;font-variant-numeric:tabular-nums;color:var(--ink);background:#fff;border:1.5px solid rgba(20,24,30,.22);border-radius:11px;}
+  .campo input::placeholder{color:var(--tx3);letter-spacing:.04em;}
+  .campo input:focus{outline:3px solid var(--teal-l);outline-offset:1px;border-color:var(--teal-d);}
+  .campo input[aria-invalid="true"]{border-color:var(--err);}
+  .ayuda{margin:6px 0 0;font-size:14px;color:var(--tx2);line-height:1.5;}
+  .aviso-form{margin:16px 0 0;padding:10px 14px;border-radius:10px;background:var(--err-bg);border:1px solid var(--err-line);color:var(--err);font-size:15px;font-weight:600;}
+  .acciones{margin-top:20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+  .bt{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:0 26px;font:inherit;font-size:16.5px;font-weight:700;color:#fff;background:var(--ink);border:none;border-radius:12px;cursor:pointer;transition:transform .22s var(--ease),background .22s var(--ease);}
+  .bt:hover{background:#152A52;transform:translateY(-1px);}
+  .bt[disabled]{opacity:.65;cursor:progress;transform:none;}
+  .bt:focus-visible{outline:3px solid var(--teal-l);outline-offset:3px;}
+
+  /* Vacio sigue en pantalla (sin alto): una region aria-live que nace oculta
+     no alcanza a anunciar lo primero que se le escribe. */
+  .resultado{margin-top:22px;}
+  .resultado:empty{margin-top:0;}
+  .res{border-radius:18px;padding:24px 26px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--sh-sm);}
+  .res h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;font-weight:600;font-size:clamp(21px,3.2vw,25px);line-height:1.25;letter-spacing:-.015em;margin:0 0 10px;display:flex;gap:11px;align-items:center;}
+  .res h2:focus{outline:none;}
+  .res h2::before{content:"";width:12px;height:12px;border-radius:50%;flex-shrink:0;background:currentColor;}
+  .res p{margin:0 0 12px;font-size:16.5px;color:var(--tx2);line-height:1.6;}
+  .res p:last-child{margin-bottom:0;}
+  .res strong{color:var(--ink);font-weight:700;}
+  .res-valido{border-color:var(--ok-line);}
+  .res-valido h2{color:var(--ok);}
+  .res-no-valido h2,.res-demo h2{color:var(--err);}
+  .res-no-valido,.res-demo{border-color:var(--err-line);background:var(--err-bg);}
+  .res-limite h2,.res-red h2,.res-servicio h2{color:var(--warn);}
+  .res-limite,.res-red,.res-servicio{border-color:var(--warn-line);background:var(--warn-bg);}
+
+  .ficha{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:16px 0 18px;padding:16px 18px;background:var(--cream);border-radius:13px;}
+  .ficha dt{font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);padding-top:3px;}
+  .ficha dd{margin:0;font-size:16.5px;color:var(--ink);font-weight:600;overflow-wrap:anywhere;}
+  @media (max-width:520px){ .ficha{grid-template-columns:1fr;gap:2px;} .ficha dd{margin-bottom:10px;} }
+  .res h3{font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);margin:18px 0 8px;}
+  .tabla{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 16px;border:1px solid var(--line);border-radius:13px;background:var(--surface);}
+  table{width:100%;border-collapse:collapse;font-size:15px;min-width:420px;}
+  th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);padding:11px 14px;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+  td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--tx2);}
+  td.num{white-space:nowrap;font-variant-numeric:tabular-nums;}
+  tr:last-child td{border-bottom:none;}
+  .res p.huella{font-size:13.5px;line-height:1.5;}
+  .res p.huella code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;color:var(--ink);overflow-wrap:anywhere;word-break:break-all;}
+  .comparar{background:var(--ok-bg);border-left:3px solid var(--ok);border-radius:0 10px 10px 0;padding:12px 15px;color:var(--tx);}
+
+  .como{max-width:760px;margin:44px 0 0;}
+  .como h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:clamp(21px,3.2vw,25px);line-height:1.25;letter-spacing:-.015em;color:var(--ink);margin:0 0 12px;}
+  .como ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;}
+  .como li{padding-left:19px;position:relative;font-size:16.5px;color:var(--tx2);line-height:1.6;}
+  .como li::before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--teal-l);}
+  .como strong{color:var(--ink);font-weight:600;}
+
+  footer.site{border-top:1px solid var(--line);padding:48px 0 44px;margin-top:56px;}
+  .foot-row{display:flex;flex-wrap:wrap;gap:22px;justify-content:space-between;align-items:center;}
+  .foot-brand{display:flex;align-items:center;gap:11px;color:var(--ink);font-weight:700;}
+  .foot-brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 600;font-size:21px;letter-spacing:-.035em;}
+  .foot-links{display:flex;flex-wrap:wrap;gap:22px;font-size:14.5px;}
+  .foot-links a{color:var(--teal-d);font-weight:600;}
+  .foot-links a:hover{color:var(--ink);text-decoration:none;}
+  .foot-legal{margin-top:22px;font-size:13px;color:var(--tx2);line-height:1.7;}
+
+  @media (max-width:560px){
+    body{font-size:16.5px;}
+    .doc-head{padding:40px 0 26px;}
+    .brand small{display:none;}
+    .nav-cta{padding:10px 14px;font-size:14px;}
+    .tarjeta,.res{padding:20px 18px;border-radius:16px;}
+    .bt{width:100%;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *{transition:none!important;animation:none!important;}
+  }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#doc">Ir al contenido</a>
+
+<header class="site">
+  <div class="nav">
+    <a class="brand" href="/">
+      <span><b>acta<i>viva</i><em>.</em></b><small>Actas y votación en vivo</small></span>
+    </a>
+    <div id="nav-cuenta"></div>
+    <a class="nav-cta" href="/acta">Comenzar mi acta →</a>
+  </div>
+</header>
+
+<main class="wrap" id="doc">
+
+  <div class="doc-head">
+    <span class="eyebrow">Verificación</span>
+    <h1>Verificar un acta</h1>
+    <p class="lede">Cada acta finalizada en actascopropiedad.cl lleva impresos, junto a su folio, un código de verificación. Escríbalos aquí para confirmar que el documento fue emitido por este sistema y ver lo que quedó registrado al emitirlo.</p>
+  </div>
+
+  <div class="verif">
+    <form class="tarjeta" id="v-form" novalidate>
+      <div class="campos">
+        <div class="campo">
+          <label for="v-folio">Folio</label>
+          <input id="v-folio" name="folio" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="AV-2026-000123" aria-describedby="v-folio-ayuda" required>
+          <p class="ayuda" id="v-folio-ayuda">Aparece al final del acta, después de «ACTA №».</p>
+        </div>
+        <div class="campo">
+          <label for="v-codigo">Código de verificación</label>
+          <input id="v-codigo" name="codigo" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="ABCD-EF01-2345" aria-describedby="v-codigo-ayuda" required>
+          <p class="ayuda" id="v-codigo-ayuda">Doce números y letras, junto al folio. Puede escribirlo con o sin guiones.</p>
+        </div>
+      </div>
+      <p class="aviso-form" id="v-aviso" role="alert" hidden></p>
+      <div class="acciones">
+        <button type="submit" class="bt" id="v-enviar">Verificar</button>
+      </div>
+    </form>
+
+    <div class="resultado" id="v-resultado" aria-live="polite"></div>
+  </div>
+
+  <section class="como" aria-labelledby="como-t">
+    <h2 id="como-t">Qué comprueba esta página</h2>
+    <ul>
+      <li><strong>Que el folio existe</strong> y fue emitido por actascopropiedad.cl, en la fecha que se indica.</li>
+      <li><strong>Que el código corresponde a ese folio.</strong> El código sale de la huella digital del contenido del acta (SHA-256), calculada al finalizarla; la huella completa va impresa en letra chica en el mismo documento.</li>
+      <li><strong>Lo que quedó registrado</strong>: condominio, fecha y tipo de la sesión, quórum y el resultado de cada acuerdo. Si el documento que tiene en la mano dice otra cosa, fue modificado después de emitirse.</li>
+      <li><strong>Lo que no muestra</strong>: nombres, RUT ni votos de personas. El registro público no guarda datos personales.</li>
+      <li>Un folio que empieza por <strong>DEMO-</strong> salió de la demostración del sistema: se hizo con datos de ejemplo y no tiene validez.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-row">
+      <div class="foot-brand">
+        <span><b>acta<i>viva</i><em>.</em></b></span>
+      </div>
+      <div class="foot-links">
+        <a href="/">Inicio</a>
+        <a href="/acta">Comenzar mi acta</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/terminos">Términos</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      Herramienta para generar actas de asamblea conforme a la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo.<br>
+      actascopropiedad.cl · <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a> · © 2026 Soluciones CLB SpA
+    </div>
+  </div>
+</footer>
+
+<script src="/js/verificar-1.js"></script>
+
+<script src="/vendor/supabase.min.js"></script>
+<script src="/cuenta.js"></script>
+<script src="/js/verificar-2.js"></script>
+</body>
+</html>

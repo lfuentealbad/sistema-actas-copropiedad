@@ -6,11 +6,10 @@
   <meta name="copyright" content="© 2026 Soluciones CLB SpA. Todos los derechos reservados.">
   <meta name="description" content="actaviva — Elabore el acta de su asamblea de copropietarios conforme a la Ley N° 21.442, con votación en vivo desde el teléfono.">
 <meta charset="UTF-8">
-<meta name="robots" content="noindex, follow">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="same-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>actaviva · Actas de asamblea y votación en vivo</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="actaviva · Acta de asamblea y votación en vivo">
@@ -1862,9 +1861,9 @@
 
 <script src="vendor/xlsx.full.min.js"></script>
 
+<script src="/js/demo-aviso.js"></script>
 <script src="/js/demo-sala.js"></script>
 <script src="/js/demo-acta.js"></script>
-<script src="/js/demo-aviso.js"></script>
 <script src="/cuenta.js"></script>
 <script src="vendor/qrcode-generator.js"></script>
 </head>
@@ -2333,6 +2332,7 @@
         <div style="flex:1;min-width:180px"><div style="font-size: 13px;font-weight:600;color:var(--c-text-2);letter-spacing:.5px">ENLACE PARA LOS TELÉFONOS</div><div id="vv-link" style="font-size: 13px;word-break:break-all;color:var(--c-primary)"></div></div>
       </div>
       <div id="vv-aviso-correos" style="display:none;margin-top:10px;padding:9px 12px;border-radius:9px;background:var(--c-ok-bg);color:var(--c-ok);font-size:12.5px;line-height:1.5"></div>
+      <div id="vv-aviso-padron" role="status" style="display:none;margin-top:10px;padding:9px 12px;border-radius:9px;background:var(--c-warn-bg);color:var(--c-warn);font-size:12.5px;line-height:1.5"></div>
       <div class="vv-guia">
         <strong>Cómo dirigir la votación, paso a paso</strong>
         <ol>
@@ -2421,7 +2421,7 @@
     <div class="card-desc">Revise el contenido antes de guardar el PDF o copiar el texto. Si necesita corregir algo, vuelva al paso correspondiente desde la barra superior.</div>
     <div id="acta-content"></div>
     <div id="lista-revision" class="rev-box" hidden></div>
-    <p class="print-pista">Al finalizar, su acta recibe un <strong>folio</strong> y queda cerrada. Se abrirá el cuadro de impresión: elija <strong>«Guardar como PDF»</strong> como destino. Mientras no la finalice, el documento sale marcado como borrador.</p>
+    <p class="print-pista">Al finalizar, su acta recibe un <strong>folio</strong> y un <strong>código de verificación</strong>, y queda cerrada: desde ahí ya no se puede modificar. Se abrirá el cuadro de impresión: elija <strong>«Guardar como PDF»</strong> como destino. Mientras no la finalice, el documento sale marcado como borrador.</p>
     <div class="print-btn">
       <button class="btn btn-gold" data-ac="savePDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Finalizar y guardar como PDF</button>
       <button class="btn btn-secondary" data-ac="descargarActaHTML" title="Baja un archivo que puede volver a abrir y editar en el navegador o en Word"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Descargar copia editable</button>
@@ -2432,7 +2432,7 @@
   <div class="card guardar-card" id="guardar-card">
     <div class="guardar-texto">
       <b>Su acta se guarda en su cuenta</b>
-      <span>Se guarda sola mientras la escribe, así que puede retomarla desde otro equipo y volver a ella cuando quiera. Puede borrarla desde su panel, y se elimina de inmediato.</span>
+      <span>Se guarda sola mientras la escribe, así que puede retomarla desde otro equipo y volver a ella cuando quiera. Puede borrarla desde su panel, y se elimina de inmediato. Un borrador que pasa un año sin cambios se elimina solo, y el contenido de un acta finalizada se elimina 180 días después de finalizarla: conserve el archivo que descargue.</span>
     </div>
     <div class="guardar-estado" id="guardar-estado"></div>
     <div class="guardar-aviso">
@@ -2450,7 +2450,7 @@
         <li><strong>Trazabilidad de uso:</strong> el registro de quién usó el sistema (nombre, correo y comuna) se mantiene hasta 90 días y luego se purga automáticamente.</li>
       </ul>
       <button type="button" class="btn-tool danger" data-ac="actaCerrarSala" data-args="@"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v5M14 11v5M6 7l1 12a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-12M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2"/></svg>Cerrar sala y borrar datos del servidor</button>
-      <div class="cierre-nota">Si no usó la votación en vivo, no hay nada que borrar: el documento del acta nunca sale de su equipo. En un computador compartido, use además "Limpiar formulario" al terminar.</div>
+      <div class="cierre-nota">Si no usó la votación en vivo, aquí no hay nada que borrar. El acta sigue guardada en su cuenta y se borra desde su panel. En un computador compartido, use además "Limpiar formulario" al terminar.</div>
     </div>
   </div>
 </div>

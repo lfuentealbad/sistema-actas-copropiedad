@@ -13,7 +13,9 @@
  *  se lo tiene que decir.
  *
  *  Los datos viven en el navegador de quien administra (localStorage).
- *  No se suben: el respaldo lo baja y lo guarda la propia persona.
+ *  No se suben: el respaldo lo baja y lo guarda la propia persona. Y como
+ *  ese archivo pasa de mano en mano, el que se importa lo escribio otro: se
+ *  revisa campo por campo antes de entrar (ver sanearEstado, en RESPALDOS).
  *
  *  Sin manejadores en linea: los botones llevan data-ac= y los resuelve
  *  js/acciones.js. Toda funcion invocada desde el HTML tiene que ser
@@ -74,9 +76,15 @@ function cargar(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
-      const data = JSON.parse(raw);
-      estado = Object.assign(JSON.parse(JSON.stringify(estadoInicial)), data);
-      estado.config = Object.assign({}, estadoInicial.config, data.config||{});
+      // Pasa por la misma revision que un respaldo: lo que esta guardado aqui
+      // pudo venir de un respaldo importado antes de que la revision
+      // existiera, y quedo tal cual. Lo que esta pagina guarda pasa intacto.
+      const r = sanearEstado(JSON.parse(raw));
+      estado = r.estado;
+      if(r.descartadas || r.idsNuevos){
+        guardar();
+        toast('Se corrigieron datos guardados que no tenían un formato válido. Conviene revisar las cuentas.', 'warning');
+      }
     }
   }catch(e){ console.error(e); }
 }
@@ -117,17 +125,22 @@ const fmtFecha = s => {
   const d = p ? new Date(+p[1], +p[2]-1, +p[3]) : new Date(s);
   return isNaN(d) ? '' : d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
 };
+// Los dos formatos de periodo solo devuelven un nombre de mes y digitos. Antes
+// copiaban el ano tal como venia ("<lo que sea>-03" salia "marzo <lo que
+// sea>"), y el periodo de un cobro llega del respaldo, que puede haberlo
+// escrito otra persona. Lo que no tiene forma AAAA-MM sale vacio.
+const RE_PERIODO_INICIO = /^(\d{4})-(0[1-9]|1[0-2])/;
 const fmtPeriodoLargo = s => {
-  if(!s) return '';
-  const [y,m] = s.split('-');
+  const p = RE_PERIODO_INICIO.exec(String(s||''));
+  if(!p) return '';
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return `${meses[parseInt(m,10)-1]} ${y}`;
+  return `${meses[parseInt(p[2],10)-1]} ${p[1]}`;
 };
 const fmtPeriodoCorto = s => {
-  if(!s) return '';
-  const [y,m] = s.split('-');
+  const p = RE_PERIODO_INICIO.exec(String(s||''));
+  if(!p) return '';
   const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return `${meses[parseInt(m,10)-1]} '${y.slice(2)}`;
+  return `${meses[parseInt(p[2],10)-1]} '${p[1].slice(2)}`;
 };
 // Fechas en hora local, nunca en UTC. toISOString() convierte a UTC, y Chile
 // va tres o cuatro horas atras: un egreso anotado a las 21:00 del 31 de marzo
@@ -140,6 +153,40 @@ const periodoActual = () => aPeriodoLocal(new Date());
 const fechaHoy = () => aFechaLocal(new Date());
 const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const escapeHtml = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// escapeHtml cubre las dos comillas, asi que sirve tambien dentro de un
+// atributo, y todo dato que va a data-args, id o value pasa por ella. Pero a
+// un identificador no le basta con eso: el despachador (acciones.js) parte
+// data-args por "|" y lee "n:" y "b:" como tipos, de modo que un id con esos
+// caracteres cambia los argumentos aunque no cierre el atributo. Por eso los
+// ids tienen ademas un formato cerrado, que sanearEstado hace cumplir.
+const ID_VALIDO = /^[A-Za-z0-9_-]{1,64}$/;
+const esPeriodo = s => typeof s === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+// Para mirar una tabla con una clave que viene de afuera sin tropezar con
+// lo heredado: PANE_RENDERERS['__proto__'] es "verdadero" y no es funcion.
+const propia = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+// SAST-06. escapeHtml impide cerrar el atributo, pero no mira el esquema:
+// "javascript:alert(1)" no tiene nada que escapar y salia intacto en el href
+// del respaldo digital de un gasto. La CSP igual lo bloquearia (no hay
+// 'unsafe-inline'), pero no puede ser la CSP la unica que sabe que eso no es
+// un enlace. La direccion se interpreta con el mismo lector del navegador
+// -asi " JAVASCRIPT:" o "java<tab>script:" no lo enganan- y solo pasan http
+// y https. Devuelve la direccion normalizada, o null si no es un enlace.
+const urlSegura = s => {
+  if(typeof s !== 'string' || !s.trim()) return null;
+  let u;
+  try{ u = new URL(s.trim()); }catch(_){ return null; }
+  return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null;
+};
+// La firma del administrador termina en un <img src>. Ahi vale ademas una
+// imagen incrustada (data:image/...), que es lo unico que la CSP deja
+// mostrar aparte de lo del propio sitio. Nada de data:text/html ni de SVG.
+const urlImagenSegura = s => {
+  if(typeof s !== 'string') return null;
+  const t = s.trim();
+  if(/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+\/=]+$/i.test(t)) return t;
+  return urlSegura(t);
+};
 const periodosUlt = (n, hasta) => {
   const arr=[]; const [y,m] = (hasta||periodoActual()).split('-').map(Number);
   let d = new Date(y, m-1, 1);
@@ -263,7 +310,7 @@ function renderCintaMeses(){
   const hoy = periodoActual();
   const lista = periodosUlt(12, hoy > mesActivo ? hoy : mesActivo);
   caja.innerHTML = lista.map(p=>
-    `<button type="button" data-ac="irAlMes" data-args="${p}" class="${p===mesActivo?'act':''}"` +
+    `<button type="button" data-ac="irAlMes" data-args="${escapeHtml(p)}" class="${p===mesActivo?'act':''}"` +
     ` aria-pressed="${p===mesActivo}">${escapeHtml(fmtPeriodoCorto(p))}</button>`
   ).join('');
   const act = caja.querySelector('button.act');
@@ -276,7 +323,9 @@ function renderCintaMeses(){
 
 // Cambiar de mes arrastra a todas las secciones que dependen de el.
 function irAlMes(periodo){
-  if(!periodo) return;
+  // El mes activo se vuelve a pintar dentro de atributos (la cinta): solo
+  // entra si tiene forma de periodo.
+  if(!esPeriodo(periodo)) return;
   mesActivo = periodo;
   ['cobroFiltroMes','egFiltroMes','liqMes'].forEach(function(id){
     const el = document.getElementById(id);
@@ -284,7 +333,7 @@ function irAlMes(periodo){
   });
   renderCintaMeses();
   const pane = (location.hash || '#dashboard').slice(1);
-  const pinta = PANE_RENDERERS[pane] || PANE_RENDERERS.dashboard;
+  const pinta = propia(PANE_RENDERERS, pane) ? PANE_RENDERERS[pane] : PANE_RENDERERS.dashboard;
   pinta();
 }
 
@@ -303,7 +352,10 @@ const PANE_RENDERERS = {
   legal:     ()=>{}
 };
 function navegarA(pane){
-  if(!PANE_RENDERERS[pane]) pane = 'dashboard';
+  // El nombre sale de la direccion (#...), que cualquiera puede escribir en
+  // un enlace: "#__proto__" encontraba algo que no era una seccion y la
+  // pagina se caia al llamarlo.
+  if(!propia(PANE_RENDERERS, pane)) pane = 'dashboard';
   // Los enlaces de la cinta marcan donde esta uno; el mes no cambia al
   // moverse entre secciones.
   document.querySelectorAll('.cinta-der a[data-pane], .barra-abajo a[data-pane]').forEach(function(a){
@@ -394,6 +446,16 @@ function guardarConfig(){
     if(el) c[k] = parseFloat(el.value)||0;
   });
   const avisos = [];
+  // La firma va a un <img src> de la liquidacion: solo imagen incrustada o
+  // enlace http(s) (urlImagenSegura). Otra cosa la borraria sola la revision
+  // de cargar() al volver a abrir la pagina, sin decir nada; mejor decirlo
+  // ahora, cuando la persona todavia tiene el campo delante.
+  if(c.admFirma && !urlImagenSegura(c.admFirma)){
+    c.admFirma = '';
+    const campo = document.getElementById('cfgAdmFirma');
+    if(campo) campo.value = '';
+    avisos.push('La firma tiene que ser una imagen (data:image/...) o un enlace https://; la que se escribió no se usará.');
+  }
   // Validación art. 39: mínimo 5%
   if(c.porcFondo < 5){
     c.porcFondo = 5;
@@ -418,6 +480,8 @@ function guardarConfig(){
 }
 
 /* ============ UNIDADES ============ */
+// Los mismos seis del selector #uTipo. Los usan la planilla y el respaldo.
+const TIPOS_UNIDAD = ['departamento','casa','local','bodega','estacionamiento','oficina'];
 let unidadEditId = null;
 function abrirUnidad(id){
   unidadEditId = id||null;
@@ -454,6 +518,7 @@ function guardarUnidad(){
 }
 async function eliminarUnidad(id){
   const u = estado.unidades.find(x=>x.id===id);
+  if(!u) return;
   const ok = await confirmar({
     titulo:`Eliminar unidad ${u.codigo}`,
     mensaje:`Se eliminará la unidad y todos sus cobros (pendientes y pagados).\nEsta acción no se puede deshacer.`,
@@ -495,8 +560,8 @@ function renderUnidades(){
       <td class="num">${fmtPct(u.alicuota)}</td>
       <td class="num">${badge}</td>
       <td><div class="btn-row">
-        <button class="btn sm" data-ac="abrirUnidad" data-args="${u.id}" aria-label="Editar unidad ${escapeHtml(u.codigo)}">Editar</button>
-        <button class="btn sm danger" data-ac="eliminarUnidad" data-args="${u.id}" aria-label="Eliminar unidad ${escapeHtml(u.codigo)}">Eliminar</button>
+        <button class="btn sm" data-ac="abrirUnidad" data-args="${escapeHtml(u.id)}" aria-label="Editar unidad ${escapeHtml(u.codigo)}">Editar</button>
+        <button class="btn sm danger" data-ac="eliminarUnidad" data-args="${escapeHtml(u.id)}" aria-label="Eliminar unidad ${escapeHtml(u.codigo)}">Eliminar</button>
       </div></td>
     </tr>`;
   };
@@ -504,10 +569,10 @@ function renderUnidades(){
     tb.innerHTML = estado.unidades.map(renderRow).join('');
   } else {
     // Virtualización ligera: renderiza primeras 100, oculta resto bajo botón "Mostrar más"
-    const lote = window._unidadesLote || 100;
+    const lote = Number(window._unidadesLote) || 100;
     tb.innerHTML = estado.unidades.slice(0, lote).map(renderRow).join('') +
       `<tr><td colspan="7" style="text-align:center;padding:var(--sp-4)">
-        <button class="btn ghost" data-ac="mostrarMasUnidades" data-args="n:${lote+100}">
+        <button class="btn ghost" data-ac="mostrarMasUnidades" data-args="n:${escapeHtml(lote+100)}">
           Mostrar 100 más (${fmtNum(estado.unidades.length - lote)} restantes)
         </button>
       </td></tr>`;
@@ -617,6 +682,10 @@ function aNumeroCSV(s){
 async function procesarImportacion(){
   const f = document.getElementById('csvFile').files[0];
   if(!f){ toast('Selecciona un archivo'); return; }
+  // La planilla tambien suele venir de otra persona. Un padron de miles de
+  // unidades pesa menos de 1 MB; algo mucho mayor no es un padron y dejaria
+  // la pestana pegada mientras el lector de Excel lo recorre.
+  if(f.size > 10 * 1024 * 1024){ toast('El archivo es demasiado grande para ser una planilla de unidades', 'danger'); return; }
   try{
     let filas;
     if(f.name.toLowerCase().endsWith('.xlsx')){
@@ -679,7 +748,7 @@ function procesarFilasUnidades(filas){
     }
 
     const dataLines = esEncabezado ? filas.slice(1) : filas;
-    const tiposValidos = ['departamento','casa','local','bodega','estacionamiento','oficina'];
+    const tiposValidos = TIPOS_UNIDAD;
 
     dataLines.forEach(cols=>{
       if(!cols[0]) return;
@@ -700,11 +769,15 @@ function procesarFilasUnidades(filas){
       if(correoT && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoT)){ omitidos++; return; }
       const alicNum = aNumeroCSV(alic);
       if(alicNum<=0) sinAlicuota++;
+      // Con los mismos largos que acepta la revision de cargar() (LARGO): si
+      // no, una celda larga se guardaria entera y se recortaria sola al
+      // volver a abrir la pagina.
+      const txt = (v, k) => String(v||'').trim().slice(0, LARGO[k]);
       estado.unidades.push({
-        id:id(), codigo:String(codigo).trim(), tipo,
-        propietario:String(propietario||'').trim(), rut:String(rut||'').trim(),
-        residente:String(residente||'').trim(),
-        correo:correoT, tel:String(tel||'').trim(),
+        id:id(), codigo:txt(codigo, 'codigo'), tipo,
+        propietario:txt(propietario, 'propietario'), rut:txt(rut, 'rut'),
+        residente:txt(residente, 'residente'),
+        correo:correoT.slice(0, LARGO.correo), tel:txt(tel, 'tel'),
         alicuota: alicNum
       });
       count++;
@@ -732,7 +805,7 @@ function abrirCobro(id){
   cobroEditId = id||null;
   const c = id ? estado.cobros.find(x=>x.id===id) : {tipo:'ordinaria', estado:'pendiente', periodo:periodoActual()};
   const sel = document.getElementById('cUnidad');
-  sel.innerHTML = estado.unidades.map(u=>`<option value="${u.id}">${escapeHtml(u.codigo)} — ${escapeHtml(u.propietario||'')}</option>`).join('');
+  sel.innerHTML = estado.unidades.map(u=>`<option value="${escapeHtml(u.id)}">${escapeHtml(u.codigo)} — ${escapeHtml(u.propietario||'')}</option>`).join('');
   if(c.unidadId) sel.value = c.unidadId;
   document.getElementById('cPeriodo').value = c.periodo||periodoActual();
   document.getElementById('cTipo').value = c.tipo||'ordinaria';
@@ -818,7 +891,9 @@ function actualizarSugerenciaTotal(){
   if(egPeriodo.length){
     // Auto-fill con suma de egresos del período
     document.getElementById('genTotal').value = sumEg;
-    const porCat = {};
+    // Sin prototipo: la categoria es texto libre del respaldo, y una llamada
+    // "__proto__" no puede terminar escribiendo en Object.prototype.
+    const porCat = Object.create(null);
     egPeriodo.forEach(e=>{ porCat[e.categoria] = (porCat[e.categoria]||0) + e.monto; });
     const items = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
     breakdown.innerHTML = `
@@ -1032,17 +1107,17 @@ function renderCobros(){
           ? `<span class="badge success">Pagado · F${c.folioBoleta?fmtNum(c.folioBoleta):''}</span>`
           : `<span class="badge danger">Pendiente</span>`;
         return `<tr>
-          <td>${fmtPeriodoLargo(c.periodo)}</td>
+          <td>${escapeHtml(fmtPeriodoLargo(c.periodo))}</td>
           <td><strong>${escapeHtml(u?.codigo||'?')}</strong> · ${escapeHtml(u?.propietario||'')}</td>
           <td>${escapeHtml(c.concepto||'—')}</td>
-          <td>${tipos[c.tipo]||c.tipo}</td>
+          <td>${escapeHtml(tipos[c.tipo]||c.tipo)}</td>
           <td class="num">${fmtCLP(c.adeudado)}</td>
           <td class="num">${c.estado==='pagado'?fmtCLP(c.montoPagado||c.adeudado):'—'}</td>
           <td>${estadoBadge}</td>
           <td><div class="btn-row">
-            ${c.estado==='pendiente'?`<button class="btn sm success" data-ac="pagarCobro" data-args="${c.id}" aria-label="Marcar como pagado">Marcar pagado</button>`:''}
-            <button class="btn sm" data-ac="abrirCobro" data-args="${c.id}" aria-label="Editar cobro">Editar</button>
-            <button class="btn sm danger" data-ac="eliminarCobro" data-args="${c.id}" aria-label="Eliminar cobro">Eliminar</button>
+            ${c.estado==='pendiente'?`<button class="btn sm success" data-ac="pagarCobro" data-args="${escapeHtml(c.id)}" aria-label="Marcar como pagado">Marcar pagado</button>`:''}
+            <button class="btn sm" data-ac="abrirCobro" data-args="${escapeHtml(c.id)}" aria-label="Editar cobro">Editar</button>
+            <button class="btn sm danger" data-ac="eliminarCobro" data-args="${escapeHtml(c.id)}" aria-label="Eliminar cobro">Eliminar</button>
           </div></td>
         </tr>`;
       }).join('')}</tbody>
@@ -1051,7 +1126,7 @@ function renderCobros(){
   }
 
   // Vista AGRUPADA por unidad+período (recomendada)
-  const grupos = {};
+  const grupos = Object.create(null);
   cobros.forEach(c=>{
     const k = `${c.unidadId}__${c.periodo}`;
     if(!grupos[k]) grupos[k] = {unidadId:c.unidadId, periodo:c.periodo, items:[]};
@@ -1104,36 +1179,39 @@ function renderCobros(){
         return `<tr>
           <td></td><td colspan="2" style="padding-left:var(--sp-8);font-size:var(--fs-sm)">
             ${escapeHtml(c.concepto||tipos[c.tipo]||c.tipo)}
-            <span class="muted" style="font-size:var(--fs-xs)"> · ${tipos[c.tipo]||c.tipo}</span>
+            <span class="muted" style="font-size:var(--fs-xs)"> · ${escapeHtml(tipos[c.tipo]||c.tipo)}</span>
           </td>
           <td class="num" style="font-size:var(--fs-sm)">${fmtCLP(c.adeudado)}</td>
           <td>${sBadge}</td>
           <td><div class="btn-row">
-            ${c.estado==='pendiente'?`<button class="btn sm success" data-ac="pagarCobro" data-args="${c.id}" aria-label="Marcar este concepto como pagado">Marcar pagado</button>`:''}
-            <button class="btn sm" data-ac="abrirCobro" data-args="${c.id}" aria-label="Editar concepto">Editar</button>
-            <button class="btn sm danger" data-ac="eliminarCobro" data-args="${c.id}" aria-label="Eliminar concepto">Eliminar</button>
+            ${c.estado==='pendiente'?`<button class="btn sm success" data-ac="pagarCobro" data-args="${escapeHtml(c.id)}" aria-label="Marcar este concepto como pagado">Marcar pagado</button>`:''}
+            <button class="btn sm" data-ac="abrirCobro" data-args="${escapeHtml(c.id)}" aria-label="Editar concepto">Editar</button>
+            <button class="btn sm danger" data-ac="eliminarCobro" data-args="${escapeHtml(c.id)}" aria-label="Eliminar concepto">Eliminar</button>
           </div></td>
         </tr>`;
       }).join('');
+      // groupId va en cuatro atributos (dos data-args y dos id): escapado en
+      // cada uno. El id del boton iba ANTES del data-ac legitimo, asi que un
+      // data-ac colado ahi era el que el navegador se quedaba.
       return `
-        <tr style="cursor:pointer" data-ac="toggleGrupoCobro" data-args="${groupId}">
+        <tr style="cursor:pointer" data-ac="toggleGrupoCobro" data-args="${escapeHtml(groupId)}">
           <td>
-            <button class="btn sm ghost" aria-label="Ver detalle" id="${groupId}_btn" style="padding:2px 6px;min-height:auto" data-ac="toggleGrupoCobro" data-args="${groupId}">
+            <button class="btn sm ghost" aria-label="Ver detalle" id="${escapeHtml(groupId)}_btn" style="padding:2px 6px;min-height:auto" data-ac="toggleGrupoCobro" data-args="${escapeHtml(groupId)}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transition:transform var(--dur-fast) var(--ease-out)"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </td>
-          <td>${fmtPeriodoLargo(g.periodo)}</td>
-          <td><strong>${escapeHtml(u?.codigo||'?')}</strong> · ${escapeHtml(u?.propietario||'—')}<br><span class="muted" style="font-size:var(--fs-xs)">${g.items.length} concepto${g.items.length>1?'s':''}: ${[...new Set(g.items.map(c=>c.tipo))].join(' + ')}</span></td>
+          <td>${escapeHtml(fmtPeriodoLargo(g.periodo))}</td>
+          <td><strong>${escapeHtml(u?.codigo||'?')}</strong> · ${escapeHtml(u?.propietario||'—')}<br><span class="muted" style="font-size:var(--fs-xs)">${g.items.length} concepto${g.items.length>1?'s':''}: ${escapeHtml([...new Set(g.items.map(c=>c.tipo))].join(' + '))}</span></td>
           <td class="num"><strong>${fmtCLP(total)}</strong>${algunoPag&&!allPag?`<br><span class="muted" style="font-size:var(--fs-xs)">Pagado: ${fmtCLP(pagado)}</span>`:''}</td>
           <td>${estadoBadge}</td>
           <td>
             <div class="btn-row">
-              ${!allPag?`<button class="btn sm success" data-ac="pagarTodoGrupo" data-args="${g.unidadId}|${g.periodo}" aria-label="Marcar todo del mes como pagado para ${escapeHtml(u?.codigo||'')}">Marcar todo pagado</button>`:''}
-              <button class="btn sm ghost" data-ac="abrirLiquidacionDirecta" data-args="${g.unidadId}|${g.periodo}" aria-label="Ver liquidación">Ver liquidación</button>
+              ${!allPag?`<button class="btn sm success" data-ac="pagarTodoGrupo" data-args="${escapeHtml(g.unidadId)}|${escapeHtml(g.periodo)}" aria-label="Marcar todo del mes como pagado para ${escapeHtml(u?.codigo||'')}">Marcar todo pagado</button>`:''}
+              <button class="btn sm ghost" data-ac="abrirLiquidacionDirecta" data-args="${escapeHtml(g.unidadId)}|${escapeHtml(g.periodo)}" aria-label="Ver liquidación">Ver liquidación</button>
             </div>
           </td>
         </tr>
-        <tr id="${groupId}_detail" style="display:none;background:var(--bg-subtle)">
+        <tr id="${escapeHtml(groupId)}_detail" style="display:none;background:var(--bg-subtle)">
           <td colspan="6" style="padding:0">
             <table class="table" style="margin:0">
               <tbody>${subRows}</tbody>
@@ -1279,11 +1357,22 @@ function renderEgresos(){
       <td><strong>${escapeHtml(e.categoria)}</strong>${e.subcat?'<br><span class="muted" style="font-size:11px">'+escapeHtml(e.subcat)+'</span>':''}</td>
       <td>${escapeHtml(e.contraparte||'—')}</td>
       <td>${escapeHtml(e.descripcion||'—')}</td>
-      <td>${escapeHtml(e.numDoc||'—')}${e.boletaURL?` <a href="${escapeHtml(e.boletaURL)}" target="_blank" rel="noopener" title="Ver boleta" aria-label="Abrir respaldo digital" style="display:inline-block;margin-left:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71"/></svg></a>`:''}</td>
+      <td>${escapeHtml(e.numDoc||'—')}${enlaceBoleta(e.boletaURL)}</td>
       <td class="num">${fmtCLP(e.monto)}</td>
-      <td><div class="btn-row"><button class="btn sm" data-ac="abrirEgreso" data-args="${e.id}" aria-label="Editar gasto">Editar</button><button class="btn sm danger" data-ac="eliminarEgreso" data-args="${e.id}" aria-label="Eliminar gasto">Eliminar</button></div></td>
+      <td><div class="btn-row"><button class="btn sm" data-ac="abrirEgreso" data-args="${escapeHtml(e.id)}" aria-label="Editar gasto">Editar</button><button class="btn sm danger" data-ac="eliminarEgreso" data-args="${escapeHtml(e.id)}" aria-label="Eliminar gasto">Eliminar</button></div></td>
     </tr>`).join('');
 }
+// El respaldo digital de un gasto. Es enlace solo si la direccion es http o
+// https (urlSegura, SAST-06); si no -una ruta del computador, que el campo
+// admite, o algo peor- se muestra como el texto que es. El enlace abre otra
+// pestana sin darle a esa pagina acceso a esta (noopener) ni la direccion
+// de origen (noreferrer).
+const enlaceBoleta = s => {
+  if(!s) return '';
+  const u = urlSegura(s);
+  if(!u) return ` <span class="muted" style="font-size:11px;word-break:break-all">${escapeHtml(s)}</span>`;
+  return ` <a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer" title="Ver boleta" aria-label="Abrir respaldo digital" style="display:inline-block;margin-left:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71"/></svg></a>`;
+};
 oir(['egFiltroMes','egFiltroCat','egFiltroQ'], 'input', renderEgresos);
 
 // Listener: formatear monto en vivo en modal egreso
@@ -1353,7 +1442,7 @@ function renderIngresos(){
       <td>${escapeHtml(e.contraparte||'—')}</td>
       <td>${escapeHtml(e.descripcion||'—')}</td>
       <td class="num">${fmtCLP(e.monto)}</td>
-      <td><div class="btn-row"><button class="btn sm" data-ac="abrirIngreso" data-args="${e.id}">Editar</button><button class="btn sm danger" data-ac="eliminarIngreso" data-args="${e.id}">Eliminar</button></div></td>
+      <td><div class="btn-row"><button class="btn sm" data-ac="abrirIngreso" data-args="${escapeHtml(e.id)}">Editar</button><button class="btn sm danger" data-ac="eliminarIngreso" data-args="${escapeHtml(e.id)}">Eliminar</button></div></td>
     </tr>`).join('');
 }
 
@@ -1436,7 +1525,7 @@ function renderFondo(){
       <td>${escapeHtml(m.origen||'—')}</td>
       <td>${escapeHtml(m.descripcion||'—')}</td>
       <td class="num">${fmtCLP(m.monto)}</td>
-      <td><button class="btn sm danger" data-ac="eliminarMovFondo" data-args="${m.id}">Eliminar</button></td>
+      <td><button class="btn sm danger" data-ac="eliminarMovFondo" data-args="${escapeHtml(m.id)}">Eliminar</button></td>
     </tr>`).join('');
 }
 
@@ -1619,7 +1708,7 @@ function pintarEvolucion(periodo){
     svg += `<rect x="${pl + (cw*i/12)}" y="${pt}" width="${cw/12}" height="${ch}" fill="transparent"/>`;
     svg += `<rect x="${x}" y="${pt+ch-hEg}" width="${bw}" height="${hEg}" fill="${p===periodo?'#1E3A6E':'#1E3A6E'}" opacity="${p===periodo?'1':'.45'}" rx="3"/>`;
     svg += `</g>`;
-    svg += `<text x="${x+bw/2}" y="${h-pb+15}" text-anchor="middle" font-size="10" fill="${p===periodo?'#1E3A6E':'#6E7276'}" font-weight="${p===periodo?'700':'400'}">${fmtPeriodoCorto(p)}</text>`;
+    svg += `<text x="${x+bw/2}" y="${h-pb+15}" text-anchor="middle" font-size="10" fill="${p===periodo?'#1E3A6E':'#6E7276'}" font-weight="${p===periodo?'700':'400'}">${escapeHtml(fmtPeriodoCorto(p))}</text>`;
   });
   let path = '';
   periodos.forEach((p,i)=>{
@@ -1646,13 +1735,16 @@ function pintarEvolucion(periodo){
 /* ============ LIQUIDACIÓN ============ */
 function prepLiquidacion(){
   const sel = document.getElementById('liqUnidad');
-  sel.innerHTML = estado.unidades.map(u=>`<option value="${u.id}">${escapeHtml(u.codigo)} — ${escapeHtml(u.propietario||'')}</option>`).join('');
+  sel.innerHTML = estado.unidades.map(u=>`<option value="${escapeHtml(u.id)}">${escapeHtml(u.codigo)} — ${escapeHtml(u.propietario||'')}</option>`).join('');
   if(!document.getElementById('liqMes').value) document.getElementById('liqMes').value = periodoActual();
 }
 
 function obtenerEgresosAgrupados(periodo){
   const egs = estado.egresos.filter(e=>e.periodo===periodo);
-  const grupos = {};
+  // Sin prototipo, por la misma razon que en actualizarSugerenciaTotal: con
+  // un objeto comun, la categoria "__proto__" devolvia Object.prototype y la
+  // suma de abajo escribia en el de todos los objetos de la pagina.
+  const grupos = Object.create(null);
   egs.forEach(e=>{
     if(!grupos[e.categoria]) grupos[e.categoria] = { total:0, items:[] };
     grupos[e.categoria].total += e.monto;
@@ -1691,6 +1783,9 @@ function folioLiquidacion(unidadId, periodo){
 }
 
 function buildLiquidacionHTML(unidad, periodo){
+  // El periodo se imprime una docena de veces en el documento; se exige su
+  // forma una vez aqui en vez de escaparlo en cada una.
+  if(!esPeriodo(periodo)) return '';
   const c = estado.config;
   const cobrosPeriodo = estado.cobros.filter(co=>co.unidadId===unidad.id && co.periodo===periodo);
   const totalAPagar = cobrosPeriodo.filter(co=>co.estado==='pendiente').reduce((s,co)=>s+co.adeudado,0);
@@ -1775,7 +1870,7 @@ function buildLiquidacionHTML(unidad, periodo){
 
     <div class="liq-firma">
       <div class="firma-block">
-        ${c.admFirma?`<img src="${escapeHtml(c.admFirma)}" class="firma-img" />`:'<div class="firma-img"></div>'}
+        ${urlImagenSegura(c.admFirma)?`<img src="${escapeHtml(urlImagenSegura(c.admFirma))}" class="firma-img" />`:'<div class="firma-img"></div>'}
         <strong>${escapeHtml(c.admNombre||'Administrador')}</strong><br>
         ${escapeHtml(c.admCorreo||'')}<br>
         ${escapeHtml(c.admTel||'')}
@@ -1880,7 +1975,7 @@ function buildLiquidacionHTML(unidad, periodo){
       <thead><tr><th>Fondo</th><th class="num">Cobrado período</th><th class="num">Ingresos extra</th><th class="num">Egresos período</th><th class="num">Saldo actual</th></tr></thead>
       <tbody>
         <tr>
-          <td><strong>Fondo común de reserva (${c.porcFondo}%)</strong></td>
+          <td><strong>Fondo común de reserva (${fmtPct(c.porcFondo)})</strong></td>
           <td class="num">${fmtCLP(aportesFondoMes)}</td>
           <td class="num">${fmtCLP(estado.fondo.filter(m=>m.tipo==='ingreso'&&m.periodo===periodo).reduce((s,m)=>s+m.monto,0))}</td>
           <td class="num">${fmtCLP(egresosFondoMes)}</td>
@@ -1901,7 +1996,7 @@ function buildLiquidacionHTML(unidad, periodo){
     <table class="liq-table">
       <tbody>
         <tr><td><strong>Compañía</strong></td><td>${escapeHtml(c.segCia)}</td><td><strong>Póliza</strong></td><td>${escapeHtml(c.segPoliza||'—')}</td></tr>
-        <tr><td><strong>Vigencia hasta</strong></td><td>${c.segVig?fmtFecha(c.segVig):'—'}</td><td><strong>Cuota</strong></td><td>${c.segCuotaAct||'—'} de ${c.segCuotas||'—'}</td></tr>
+        <tr><td><strong>Vigencia hasta</strong></td><td>${c.segVig?fmtFecha(c.segVig):'—'}</td><td><strong>Cuota</strong></td><td>${escapeHtml(c.segCuotaAct||'—')} de ${escapeHtml(c.segCuotas||'—')}</td></tr>
         <tr><td><strong>Prima mensual</strong></td><td>${fmtCLP(c.segPrima)}</td><td colspan="2" style="font-size:10.5px;color:#6E7276">Prorrateada según alícuota — incluida en el aviso de cobro (art. 37 D.7).</td></tr>
       </tbody>
     </table>
@@ -1925,7 +2020,7 @@ function renderLiquidacion(){
   const uid = document.getElementById('liqUnidad').value;
   const periodo = document.getElementById('liqMes').value;
   if(!uid){ toast('Selecciona una unidad'); return; }
-  if(!periodo){ toast('Selecciona un período'); return; }
+  if(!esPeriodo(periodo)){ toast('Selecciona un período'); return; }
   const u = estado.unidades.find(x=>x.id===uid);
   if(!u){ toast('Unidad no encontrada'); return; }
   document.getElementById('liqContenedor').innerHTML = buildLiquidacionHTML(u, periodo);
@@ -1933,8 +2028,9 @@ function renderLiquidacion(){
 function imprimirLiquidacion(){
   const uid = document.getElementById('liqUnidad').value;
   const periodo = document.getElementById('liqMes').value;
-  if(!uid || !periodo){ toast('Selecciona unidad y período', 'warning'); return; }
+  if(!uid || !esPeriodo(periodo)){ toast('Selecciona unidad y período', 'warning'); return; }
   const u = estado.unidades.find(x=>x.id===uid);
+  if(!u){ toast('Unidad no encontrada'); return; }
   document.getElementById('liquidacionPrint').innerHTML = buildLiquidacionHTML(u, periodo);
   // Sugerir nombre del PDF
   const oldTitle = document.title;
@@ -1946,7 +2042,7 @@ function imprimirLiquidacion(){
 }
 async function generarTodasLiquidaciones(){
   const periodo = document.getElementById('liqMes').value;
-  if(!periodo){ toast('Selecciona un período', 'warning'); return; }
+  if(!esPeriodo(periodo)){ toast('Selecciona un período', 'warning'); return; }
   if(!estado.unidades.length){ toast('No hay unidades', 'warning'); return; }
   const ok = await confirmar({
     titulo:'Generar todas las liquidaciones',
@@ -1973,7 +2069,7 @@ async function generarTodasLiquidaciones(){
 function calcularPresupuesto(){
   // Promedio mensual de últimos 12 meses por categoría
   const periodos = periodosUlt(12);
-  const porCat = {};
+  const porCat = Object.create(null);   // ver actualizarSugerenciaTotal
   estado.egresos.filter(e=>periodos.includes(e.periodo)).forEach(e=>{
     if(!porCat[e.categoria]) porCat[e.categoria] = 0;
     porCat[e.categoria] += e.monto;
@@ -2047,15 +2143,264 @@ function renderMantenciones(){
   }
   tb.innerHTML = items.map(m=>`
     <tr>
-      <td>${fmtPeriodoLargo(m.mes)}</td>
-      <td>${escapeHtml(m.concepto)} <span class="badge ${m.prioridad==='alta'?'danger':m.prioridad==='media'?'warning':'mute'}">${m.prioridad}</span></td>
+      <td>${escapeHtml(fmtPeriodoLargo(m.mes))}</td>
+      <td>${escapeHtml(m.concepto)} <span class="badge ${m.prioridad==='alta'?'danger':m.prioridad==='media'?'warning':'mute'}">${escapeHtml(m.prioridad)}</span></td>
       <td>${escapeHtml(m.tipo)}</td>
       <td class="num">${fmtCLP(m.costo)}</td>
-      <td><button class="btn sm danger" data-ac="eliminarMantencion" data-args="${m.id}">Eliminar</button></td>
+      <td><button class="btn sm danger" data-ac="eliminarMantencion" data-args="${escapeHtml(m.id)}">Eliminar</button></td>
     </tr>`).join('');
 }
 
 /* ============ RESPALDOS ============ */
+
+/*  Lo que llega de afuera
+ *
+ *  El respaldo es un archivo hecho para pasar de mano en mano: el tesorero
+ *  saliente se lo entrega al que entra, la administradora se lo manda al
+ *  comite. Lo que trae lo escribio otra persona, y hasta el 22-09-2026 se
+ *  metia entero al estado con un Object.assign.
+ *
+ *  El dano concreto estaba en los identificadores. Se pintan dentro de
+ *  atributos (data-args, id, value) y no se escapaban: un id con una
+ *  comilla cerraba el atributo y le colgaba al boton otro data-ac, con la
+ *  funcion que eligio quien armo el archivo (resetearTodo, por ejemplo), que
+ *  corria en cuanto alguien tocaba el boton. Ahora los ids se escapan al
+ *  pintarlos y, ademas, aqui:
+ *
+ *    - cada fila se reconstruye con sus claves conocidas, su tipo y un
+ *      largo maximo; lo que el archivo traiga de mas no entra;
+ *    - un id que no cumple ID_VALIDO, o que se repite en su lista, se cambia
+ *      por uno nuevo, y se corrigen las referencias que lo nombraban (los
+ *      cobros a su unidad, los folios de liquidacion a la suya);
+ *    - la fila que no se puede interpretar -un cobro sin monto, un periodo
+ *      que no es periodo, un tipo que no existe, una referencia ilegible- no
+ *      se adivina: se descarta y se cuenta, para decirselo a la persona
+ *      antes de reemplazar nada.
+ *
+ *  Todo lo que esta misma pagina guarda pasa sin cambios (lo comprueba
+ *  Pruebas/prueba-seg-finanzas.mjs con los datos de demostracion), porque
+ *  cargar() tambien pasa por aqui.
+ */
+const MAX_RESPALDO = 15 * 1024 * 1024;   // bytes
+const TIPOS_COBRO = ['ordinaria','extraordinaria','fondo','seguro','multa','interes'];
+const TIPOS_MANTENCION = ['mantencion','reparacion','certificacion','inspeccion'];
+const PRIORIDADES = ['alta','media','baja'];
+// Largo maximo de cada texto de la configuracion. La firma es larga porque
+// puede venir como imagen incrustada (data:image/...).
+const LARGO_CONFIG = {
+  condNombre:200, condRut:20, condDir:200, condComuna:120,
+  admNombre:200, admRut:20, admCorreo:254, admTel:40, admRegistro:60, admFirma:500000,
+  banco:120, bancoTipo:60, bancoNum:40, bancoTitular:200,
+  obs:10000, segCia:120, segPoliza:60, segVig:10,
+};
+// Largo maximo de los textos de cada fila. Son los mismos maxlength de los
+// campos de finanzas.html y los que aplica el importador de planillas: si la
+// pagina dejara escribir mas de lo que esta revision acepta, cargar()
+// recortaria en silencio lo que la propia persona anoto.
+const LARGO = {
+  codigo:60, propietario:200, residente:200, correo:254, tel:40, rut:20,
+  concepto:300, categoria:120, subcat:200, contraparte:200, numDoc:60,
+  descripcion:2000, boletaURL:2000, origen:200,
+};
+
+const esFila = v => !!v && typeof v === 'object' && !Array.isArray(v);
+// Texto: una cadena, o un numero que una planilla pudo dejar como tal. Otra
+// cosa (un objeto, una lista) queda vacia en vez de volverse "[object Object]".
+const textoCampo = (v, max) =>
+  typeof v === 'string' ? v.slice(0, max)
+  : (typeof v === 'number' && Number.isFinite(v)) ? String(v).slice(0, max) : '';
+// Numero finito, escrito como numero o como texto ("1500"). Si no, null.
+const numeroCampo = v => {
+  const n = typeof v === 'number' ? v
+          : (typeof v === 'string' && v.trim() !== '') ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+// Un monto de cobro o de gasto no es negativo: la pagina exige mas de cero.
+const montoCampo = v => { const n = numeroCampo(v); return n !== null && n >= 0 ? n : null; };
+// Fecha y periodo: vacio vale (la pagina lo deja asi si se borra el campo);
+// cualquier otra forma no se puede interpretar y devuelve null.
+const fechaCampo = v => (v == null || v === '') ? ''
+  : (typeof v === 'string' && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) ? v : null;
+const periodoCampo = v => (v == null || v === '') ? '' : esPeriodo(v) ? v : null;
+
+// Devuelve { estado, descartadas, idsNuevos }. Lanza un error solo si lo que
+// llega ni siquiera es un objeto: eso no es un respaldo de estas cuentas.
+function sanearEstado(data){
+  if(!esFila(data)) throw new Error('no tiene la forma de un respaldo de estas cuentas');
+  const limpio = JSON.parse(JSON.stringify(estadoInicial));
+  let descartadas = 0, idsNuevos = 0;
+  const lista = v => Array.isArray(v) ? v : [];
+
+  // El id de una fila: si cumple el formato y no se repite en su lista, se
+  // conserva. Si no, se cambia por uno nuevo; y si el viejo era ilegible, se
+  // anota en "cambios" para corregir las referencias que lo nombraban. Un id
+  // repetido no se anota: sus referencias siguen yendo a la primera fila.
+  // El id nuevo tampoco puede coincidir con uno valido que aparece MAS ABAJO
+  // en la misma lista ("reservados"): esa fila tendria que cambiarlo a su vez,
+  // y lo que la nombraba pasaria a nombrar a la otra.
+  const reservar = v => new Set(lista(v).map(x=>esFila(x) ? x.id : null)
+    .filter(x=>typeof x === 'string' && ID_VALIDO.test(x)));
+  const tomarId = (viejo, usados, cambios, reservados) => {
+    if(typeof viejo === 'string' && ID_VALIDO.test(viejo) && !usados.has(viejo)){
+      usados.add(viejo);
+      return viejo;
+    }
+    let nuevo;
+    do { nuevo = id(); }
+    while(usados.has(nuevo) || (reservados && reservados.has(nuevo)) || !ID_VALIDO.test(nuevo));
+    usados.add(nuevo);
+    idsNuevos++;
+    if(cambios && typeof viejo === 'string' && !ID_VALIDO.test(viejo) && !cambios.has(viejo))
+      cambios.set(viejo, nuevo);
+    return nuevo;
+  };
+
+  // ---- configuracion: solo las claves que la pagina conoce ----
+  const cfg = esFila(data.config) ? data.config : {};
+  Object.keys(estadoInicial.config).forEach(k=>{
+    if(!propia(cfg, k)) return;
+    if(typeof estadoInicial.config[k] === 'number'){
+      const n = numeroCampo(cfg[k]);
+      if(n !== null) limpio.config[k] = n;
+    } else {
+      limpio.config[k] = textoCampo(cfg[k], LARGO_CONFIG[k] || 200);
+    }
+  });
+  // La firma termina en un <img src> y el vencimiento del seguro es fecha.
+  // La fecha se mira en lo que vino, no en lo recortado: cortado a diez
+  // caracteres, "2026-12-31<cualquier cosa>" pareceria una fecha valida.
+  // Lo mismo con la firma: una imagen recortada sigue pareciendo base64 valido
+  // y saldria rota en cada liquidacion. Si no cabe entera, no entra.
+  if(typeof cfg.admFirma === 'string' && cfg.admFirma.length > LARGO_CONFIG.admFirma) limpio.config.admFirma = '';
+  if(limpio.config.admFirma && !urlImagenSegura(limpio.config.admFirma)) limpio.config.admFirma = '';
+  limpio.config.segVig = propia(cfg, 'segVig') ? (fechaCampo(cfg.segVig) || '') : '';
+
+  // ---- unidades ----
+  // Una unidad sin codigo sigue siendo una unidad (una planilla con la
+  // celda en blanco la deja asi): solo se descarta lo que no es una fila.
+  const usadosU = new Set(), cambiosU = new Map(), reservadosU = reservar(data.unidades);
+  lista(data.unidades).forEach(u=>{
+    if(!esFila(u)){ descartadas++; return; }
+    const alic = numeroCampo(u.alicuota);
+    const fila = {
+      id: tomarId(u.id, usadosU, cambiosU, reservadosU),
+      codigo: textoCampo(u.codigo, LARGO.codigo),
+      tipo: TIPOS_UNIDAD.includes(u.tipo) ? u.tipo : 'departamento',
+      propietario: textoCampo(u.propietario, LARGO.propietario),
+      residente: textoCampo(u.residente, LARGO.residente),
+      correo: textoCampo(u.correo, LARGO.correo),
+      tel: textoCampo(u.tel, LARGO.tel),
+      alicuota: alic !== null ? alic : 0,
+    };
+    if(propia(u, 'rut')) fila.rut = textoCampo(u.rut, LARGO.rut);
+    limpio.unidades.push(fila);
+  });
+  // A que unidad apunta una referencia: la nueva si su id se cambio, la misma
+  // si tiene formato valido, vacio si venia vacio (un cobro anotado cuando
+  // aun no habia unidades). Cualquier otra cosa es ilegible: null.
+  const refUnidad = v => {
+    if(typeof v !== 'string') return null;
+    if(cambiosU.has(v)) return cambiosU.get(v);
+    return (v === '' || ID_VALIDO.test(v)) ? v : null;
+  };
+
+  // ---- cobros ----
+  const usadosC = new Set();
+  lista(data.cobros).forEach(c=>{
+    const ok = esFila(c);
+    const unidadId = ok ? refUnidad(c.unidadId) : null;
+    const periodo = ok ? periodoCampo(c.periodo) : null;
+    const adeudado = ok ? montoCampo(c.adeudado) : null;
+    if(unidadId === null || periodo === null || adeudado === null ||
+       !TIPOS_COBRO.includes(c.tipo) || (c.estado !== 'pendiente' && c.estado !== 'pagado')){
+      descartadas++; return;
+    }
+    const fila = { id: tomarId(c.id, usadosC), unidadId, periodo, tipo: c.tipo,
+      concepto: textoCampo(c.concepto, LARGO.concepto), adeudado, estado: c.estado };
+    if(propia(c, 'fechaPago')) fila.fechaPago = fechaCampo(c.fechaPago) || '';
+    if(propia(c, 'montoPagado')) fila.montoPagado = numeroCampo(c.montoPagado) || 0;
+    if(propia(c, 'folioBoleta')) fila.folioBoleta = Math.floor(montoCampo(c.folioBoleta) || 0);
+    limpio.cobros.push(fila);
+  });
+
+  // ---- egresos, ingresos y fondo: fecha, periodo y monto son la fila ----
+  // "resto" arma los demas campos de la fila, o devuelve null si alguno
+  // esencial no se puede interpretar.
+  const movimiento = (x, usados, resto) => {
+    if(!esFila(x)) return null;
+    const fecha = fechaCampo(x.fecha);
+    let periodo = periodoCampo(x.periodo);
+    const monto = montoCampo(x.monto);
+    const campos = resto(x);
+    if(fecha === null || periodo === null || monto === null || !campos) return null;
+    // La pagina deriva el periodo de la fecha; si falta, se deriva igual.
+    if(!periodo && fecha) periodo = fecha.slice(0,7);
+    return Object.assign({ id: tomarId(x.id, usados), fecha, periodo, monto }, campos);
+  };
+  const usadosE = new Set(), usadosI = new Set(), usadosF = new Set();
+  lista(data.egresos).forEach(e=>{
+    const fila = movimiento(e, usadosE, x=>({
+      categoria: textoCampo(x.categoria, LARGO.categoria), subcat: textoCampo(x.subcat, LARGO.subcat),
+      contraparte: textoCampo(x.contraparte, LARGO.contraparte), numDoc: textoCampo(x.numDoc, LARGO.numDoc),
+      descripcion: textoCampo(x.descripcion, LARGO.descripcion),
+      // Se guarda como texto: si es enlace o no lo decide enlaceBoleta al
+      // pintarlo. Una ruta del computador es un dato legitimo.
+      boletaURL: textoCampo(x.boletaURL, LARGO.boletaURL),
+    }));
+    if(fila) limpio.egresos.push(fila); else descartadas++;
+  });
+  lista(data.ingresos).forEach(i=>{
+    const fila = movimiento(i, usadosI, x=>({
+      categoria: textoCampo(x.categoria, LARGO.categoria), contraparte: textoCampo(x.contraparte, LARGO.contraparte),
+      descripcion: textoCampo(x.descripcion, LARGO.descripcion),
+    }));
+    if(fila) limpio.ingresos.push(fila); else descartadas++;
+  });
+  lista(data.fondo).forEach(m=>{
+    // Aporte o uso: otro tipo no se puede sumar ni restar al fondo.
+    const fila = movimiento(m, usadosF, x=>
+      (x.tipo === 'ingreso' || x.tipo === 'egreso') ? {
+        tipo: x.tipo, origen: textoCampo(x.origen, LARGO.origen), descripcion: textoCampo(x.descripcion, LARGO.descripcion),
+      } : null);
+    if(fila) limpio.fondo.push(fila); else descartadas++;
+  });
+
+  // ---- programa de mantenciones: sin mes o sin concepto no es un item ----
+  const usadosM = new Set();
+  lista(data.mantenciones).forEach(m=>{
+    const mes = esFila(m) ? periodoCampo(m.mes) : null;
+    const concepto = esFila(m) ? textoCampo(m.concepto, LARGO.concepto) : '';
+    if(!mes || !concepto.trim()){ descartadas++; return; }
+    const costo = numeroCampo(m.costo);
+    limpio.mantenciones.push({ id: tomarId(m.id, usadosM), mes, concepto,
+      costo: costo !== null ? costo : 0,
+      tipo: TIPOS_MANTENCION.includes(m.tipo) ? m.tipo : 'mantencion',
+      prioridad: PRIORIDADES.includes(m.prioridad) ? m.prioridad : 'media' });
+  });
+
+  // ---- folios de liquidacion: "unidadId|AAAA-MM" -> numero ----
+  const fl = esFila(data.foliosLiq) ? data.foliosLiq : {};
+  Object.keys(fl).forEach(clave=>{
+    // Se corta en el ULTIMO "|": un id ilegible pudo traer otros adentro.
+    const corte = clave.lastIndexOf('|');
+    const uid = corte > 0 ? refUnidad(clave.slice(0, corte)) : null;
+    const periodo = clave.slice(corte + 1);
+    const folio = montoCampo(fl[clave]);
+    if(!uid || !esPeriodo(periodo) || !folio){ descartadas++; return; }
+    limpio.foliosLiq[uid + '|' + periodo] = Math.floor(folio);
+  });
+
+  // El correlativo no puede quedar por debajo de un folio ya emitido: el
+  // proximo pago repetiria numero en un documento con merito ejecutivo.
+  let tope = 0;
+  limpio.cobros.forEach(c=>{ if(c.folioBoleta > tope) tope = c.folioBoleta; });
+  Object.keys(limpio.foliosLiq).forEach(k=>{ if(limpio.foliosLiq[k] > tope) tope = limpio.foliosLiq[k]; });
+  const cf = montoCampo(data.contadorFolio);
+  limpio.contadorFolio = Math.max(cf !== null ? Math.floor(cf) : estadoInicial.contadorFolio, tope);
+
+  return { estado: limpio, descartadas, idsNuevos };
+}
+
 function exportarRespaldo(){
   const data = JSON.stringify(estado, null, 2);
   const blob = new Blob([data], {type:'application/json'});
@@ -2069,25 +2414,43 @@ function exportarRespaldo(){
 async function importarRespaldo(){
   const f = document.getElementById('importFile').files[0];
   if(!f){ toast('Selecciona un archivo', 'warning'); return; }
-  const r = new FileReader();
-  r.onload = async e=>{
-    try{
-      const data = JSON.parse(e.target.result);
-      const ok = await confirmar({
-        titulo:'Reemplazar todos los datos',
-        mensaje:`Esto reemplazará todos los datos actuales del condominio con los del archivo de respaldo.\nLa acción no se puede deshacer.`,
-        okText:'Reemplazar',
-        variant:'warning'
-      });
-      if(!ok) return;
-      estado = Object.assign(JSON.parse(JSON.stringify(estadoInicial)), data);
-      estado.config = Object.assign({}, estadoInicial.config, data.config||{});
-      guardar();
-      toast('Respaldo importado', 'success');
-      location.reload();
-    }catch(err){ toast('Archivo inválido: '+err.message, 'danger'); }
-  };
-  r.readAsText(f);
+  // El respaldo de un condominio grande, con anos de cobros, pesa unos pocos
+  // MB, y el navegador no guarda mucho mas. Algo muy superior no es un
+  // respaldo de estas cuentas y no vale la pena leerlo entero.
+  if(f.size > MAX_RESPALDO){ toast('El archivo es demasiado grande para ser un respaldo de estas cuentas', 'danger'); return; }
+  let r;
+  try{
+    // Se revisa ANTES de preguntar: la persona decide si reemplaza sus datos
+    // sabiendo lo que trae el archivo, no despues.
+    r = sanearEstado(JSON.parse(await f.text()));
+  }catch(err){ toast('Archivo inválido: '+err.message, 'danger'); return; }
+  const avisos = [];
+  if(r.descartadas) avisos.push(r.descartadas === 1
+    ? '1 fila no se pudo leer y se descarta.'
+    : `${fmtNum(r.descartadas)} filas no se pudieron leer y se descartan.`);
+  if(r.idsNuevos) avisos.push(r.idsNuevos === 1
+    ? '1 identificador venía con un formato inválido o repetido y se reemplaza.'
+    : `${fmtNum(r.idsNuevos)} identificadores venían con un formato inválido o repetidos y se reemplazan.`);
+  if(avisos.length) avisos.push('Si nadie editó el archivo a mano, conviene preguntar a quien lo envió.');
+  const ok = await confirmar({
+    titulo:'Reemplazar todos los datos',
+    mensaje:`Esto reemplazará todos los datos actuales del condominio con los del archivo de respaldo.\nLa acción no se puede deshacer.` +
+      (avisos.length ? '\n\nAl revisar el archivo: ' + avisos.join(' ') : ''),
+    okText:'Reemplazar',
+    variant:'warning'
+  });
+  if(!ok) return;
+  estado = r.estado;
+  try{ guardar(); }
+  catch(err){
+    // No cupo: se vuelve a lo que estaba guardado, que sigue intacto.
+    estado = JSON.parse(JSON.stringify(estadoInicial));
+    cargar();
+    toast('No se pudo guardar en este navegador: '+err.message, 'danger');
+    return;
+  }
+  toast('Respaldo importado', 'success');
+  location.reload();
 }
 async function resetearTodo(){
   const ok1 = await confirmar({
@@ -2359,7 +2722,7 @@ function montarOyentesFinos(){
 // El listado de copropietarios se corta en lotes cuando el condominio es
 // grande; este es el "ver 100 mas".
 function mostrarMasUnidades(n){
-  window._unidadesLote = n;
+  window._unidadesLote = Number(n) || 100;
   renderUnidades();
 }
 

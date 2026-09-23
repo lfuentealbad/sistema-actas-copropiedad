@@ -4,11 +4,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="same-origin">
 <!-- Se abre escaneando el QR de la Mesa: aparecer en buscadores solo confunde. -->
-<meta name="robots" content="noindex">
+<meta name="robots" content="noindex, nofollow">
 <title>Sala de Votación · Asamblea de Copropietarios</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -24,8 +23,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 
-<script src="/js/demo-sala.js"></script>
 <script src="/js/demo-aviso.js"></script>
+<script src="/js/demo-sala.js"></script>
 <script src="/vendor/xlsx.full.min.js"></script>
 <script src="/vendor/qrcode-generator.js"></script>
 <style>
@@ -184,11 +183,13 @@
         </div>
         <div style="overflow-x:auto">
         <table id="m-padron-tabla">
-          <thead><tr><th>Unidad</th><th>Nombre</th><th>RUT</th><th>% Derechos</th><th>Hábil</th><th>Asiste</th><th></th></tr></thead>
+          <thead><tr><th>Unidad</th><th>Nombre</th><th>RUT</th><th>% Derechos</th><th>Hábil</th><th>Asiste</th><th>Teléfono</th><th></th></tr></thead>
           <tbody id="m-padron-body"></tbody>
         </table>
         </div>
         <p class="hint" id="m-padron-sum">—</p>
+        <p class="hint">Cada RUT queda vinculado al primer teléfono desde el que se identifica, y nadie más puede votar con él. Si alguien cambia de teléfono, pulse <strong>Liberar</strong> en su fila: sus votos se conservan.
+          <button class="btn btn-ghost btn-sm" style="margin-left:6px" data-ac="actualizarVinculos" data-args="@">Actualizar teléfonos</button></p>
         <button class="btn btn-teal" style="margin-top:8px" data-ac="guardarPadron" data-args="@">Guardar padrón</button>
         <span id="m-padron-ok" class="muted" style="margin-left:10px"></span>
       </div>
@@ -243,7 +244,7 @@
 
     <div class="card hidden" id="votar-id">
       <h2>Identifíquese</h2>
-      <p class="muted">Ingrese su RUT para votar.</p>
+      <p class="muted">Ingrese su RUT para votar. Su RUT quedará vinculado a este teléfono durante la asamblea: nadie más podrá votar con él.</p>
       <div style="margin-top:12px"><label for="rut-input">RUT</label><input type="text" id="rut-input" placeholder="12.345.678-5" autocomplete="off"></div>
       <button class="btn btn-teal" style="margin-top:12px;width:100%" data-ac="identificar" data-args="@">Continuar</button>
       <div id="rut-error" class="hidden" role="alert" style="color:var(--err);font-size:13.5px;margin-top:10px"></div>
@@ -265,7 +266,9 @@
         </div>
         <div id="v-done" class="status hidden"><div class="big" style="color:var(--ok)">✓ Voto registrado</div>Puede cambiarlo mientras la votación siga abierta.</div>
       </div>
-      <div id="v-inhabil" class="status hidden"><div class="big" style="color:var(--err)">No habilitado para votar</div>Usted figura como <strong>inhábil</strong> (no al día con los gastos comunes). Puede asistir, pero no votar.</div>
+      <div id="v-inhabil" class="status hidden"><div class="big" style="color:var(--err)">No habilitado para votar</div>Usted figura como <strong>inhábil</strong> (no al día con los gastos comunes). Puede asistir, pero no votar.
+        <div><button class="btn btn-ghost btn-sm" style="margin-top:12px" data-ac="identificar" data-args="@">Consultar de nuevo</button></div></div>
+      <button class="back" style="margin-top:8px" data-ac="cambiarRut">¿No es usted? Ingresar otro RUT</button>
     </div>
   </section>
 </main>

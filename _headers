@@ -1,5 +1,30 @@
 # Cabeceras HTTP para Cloudflare Pages
 # https://developers.cloudflare.com/pages/configuration/headers/
+#
+# Esto lo aplica la capa de assets. Lo que el Worker responde por su cuenta
+# (/api/*, /cf-geo, redirecciones) lleva sus propias cabeceras: ver
+# responder() en _worker.js.
+#
+# La CSP, directiva por directiva, lo que no es evidente:
+#   Scripts      solo del propio origen. Estaba autorizado tambien el
+#                beacon de Cloudflare Web Analytics, pero ninguna pagina lo
+#                carga (comprobado el 22-09-2026 con grep sobre todo el
+#                sitio): era un permiso para ejecutar JavaScript de un
+#                tercero que no se usaba. Salio de la lista de scripts y de
+#                la de conexiones.
+#   Estilos      los estilos en linea se siguen admitiendo, a sabiendas.
+#                Quitarlos rompe la maqueta (bloques <style> y anchos
+#                calculados en style=) y lo que habilitan -reestilizar o
+#                exfiltrar por CSS- no tiene adonde ir: imagenes, conexiones
+#                y formularios no admiten ningun origen ajeno. Y el origen no
+#                sirve nada que haya escrito un usuario.
+#   Informes     las violaciones se informan a /api/csp y quedan en el log
+#                de observabilidad. report-uri queda para los navegadores que
+#                todavia no conocen report-to.
+#
+# Cross-Origin-Resource-Policy same-site y no same-origin: si algun dia
+# vuelve a servirse algo desde www o un subdominio, same-origin lo trataria
+# como ajeno.
 
 /*
   X-Frame-Options: DENY
@@ -7,8 +32,10 @@
   Referrer-Policy: same-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), browsing-topics=()
   Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-site
   Strict-Transport-Security: max-age=31536000; includeSubDomains
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Reporting-Endpoints: csp="/api/csp"
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri /api/csp; report-to csp
 
 # Librerías y fuentes son inmutables (versionadas): cache agresivo
 /vendor/*
@@ -16,3 +43,47 @@
 
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Las demostraciones no se indexan. Ya llevan <meta name="robots">, pero eso
+# solo lo lee quien descarga el HTML; la cabecera vale tambien para lo que
+# un buscador guarde sin procesar la pagina. Cada ruta en sus tres formas:
+# sin extension, con barra final y con .html.
+# Dice lo mismo que el meta que pone Pruebas/regenerar-demos.mjs, "noindex,
+# nofollow": la copia no reparte autoridad a sus enlaces. Hasta el
+# 22-09-2026 aqui decia solo "noindex". prueba-seg-plataforma.mjs compara
+# las dos.
+/acta-demo
+  X-Robots-Tag: noindex, nofollow
+
+/acta-demo/
+  X-Robots-Tag: noindex, nofollow
+
+/acta-demo.html
+  X-Robots-Tag: noindex, nofollow
+
+/cuenta-demo
+  X-Robots-Tag: noindex, nofollow
+
+/cuenta-demo/
+  X-Robots-Tag: noindex, nofollow
+
+/cuenta-demo.html
+  X-Robots-Tag: noindex, nofollow
+
+/consulta/demo
+  X-Robots-Tag: noindex, nofollow
+
+/consulta/demo/
+  X-Robots-Tag: noindex, nofollow
+
+/consulta/demo.html
+  X-Robots-Tag: noindex, nofollow
+
+/votacion/demo
+  X-Robots-Tag: noindex, nofollow
+
+/votacion/demo/
+  X-Robots-Tag: noindex, nofollow
+
+/votacion/demo.html
+  X-Robots-Tag: noindex, nofollow

@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
+# Las demostraciones (/acta-demo, /cuenta-demo, /consulta/demo,
+# /votacion/demo) NO van con Disallow a proposito. Llevan noindex en la
+# pagina y en la cabecera X-Robots-Tag (_headers), y un buscador solo ve
+# ese noindex si se le deja descargarlas: con Disallow no las lee, y como
+# la portada enlaza /acta-demo, igual podria indexar la direccion sola.
+
 Sitemap: https://actascopropiedad.cl/sitemap.xml

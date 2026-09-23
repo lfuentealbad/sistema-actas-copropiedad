@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co wss://rujwokagmjbqtrcvosye.supabase.co https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Referrer-Policy" content="same-origin">
 <title>Mi panel · actaviva</title>
@@ -12,10 +11,10 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
+<script src="/js/demo-aviso.js"></script>
 <script src="/js/demo-sala.js"></script>
 <script src="/js/demo-consulta.js"></script>
 <script src="/js/demo-acta.js"></script>
-<script src="/js/demo-aviso.js"></script>
 <script src="/cuenta.js"></script>
 <style>
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
@@ -376,7 +375,12 @@
 
           <div class="caja">
             <h3 style="font-size:16.5px;font-weight:700;color:var(--ink);margin-bottom:4px">Cambiar mi clave</h3>
-            <p style="margin:0 0 15px;font-size:14.5px;color:var(--tx2)">Al menos 8 caracteres. Si entró con Google o con un código, aquí puede ponerse una clave para entrar más rápido.</p>
+            <p style="margin:0 0 15px;font-size:14.5px;color:var(--tx2)">Al menos 8 caracteres. Para cambiarla le pedimos la actual, salvo que acabe de entrar con el enlace para recuperarla o con un código por correo.</p>
+            <div class="campo" id="p-clave-actual-caja">
+              <label for="p-clave-actual">Clave actual</label>
+              <input type="password" id="p-clave-actual" autocomplete="current-password" placeholder="La que usa hoy para entrar">
+              <p style="margin:7px 0 0;font-size:13px;color:var(--tx2)">¿No la recuerda, o nunca tuvo una? Cierre sesión y entre con «¿Olvidó su clave?» o con un código por correo: durante los 10 minutos siguientes puede ponerse una sin escribir la actual.</p>
+            </div>
             <div class="campo">
               <label for="p-clave">Clave nueva</label>
               <input type="password" id="p-clave" autocomplete="new-password" placeholder="Invente una clave">

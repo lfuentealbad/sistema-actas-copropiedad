@@ -13,8 +13,8 @@
  *  Sirve para ver el circuito completo sin pasarela de pago ni casilla de
  *  correo entrante, que hoy están cerradas a propósito.
  *
- *  Corre en las páginas -demo, en localhost y en modo vitrina. En
- *  cualquier otra página se ignora solo.
+ *  Corre en las páginas -demo, con su aviso cargado antes, y en localhost.
+ *  En cualquier otra página se ignora solo.
  * ===================================================================== */
 (function (global) {
   'use strict';
@@ -33,23 +33,46 @@
     console.warn('El simulador de consulta solo funciona en las páginas de demostración. Ignorado.');
     return;
   }
+  // Sin el aviso no hay demostración: ver la misma nota en js/demo-acta.js.
+  // Fuera de localhost el aviso tiene que haber corrido antes; si no, aquí
+  // no se finge nada.
+  if (!enLocal && !(global.DEMO_AVISO && global.DEMO_AVISO.activo)) {
+    console.error('Falta js/demo-aviso.js antes de este archivo: sin el aviso, la demostración no arranca.');
+    return;
+  }
 
   // --- La cuenta de la Mesa --------------------------------------------
   // Cuenta.usuario() solo mira la sesión, así que con esto el portero de la
   // página deja pasar. En producción la sesión la emite Supabase.
-  var SESION = {
-    user: {
-      id: '00000000-0000-4000-8000-000000000001',
-      email: 'administracion@ejemplo.cl',
-      user_metadata: { nombre: 'Elena Pizarro' }
-    }
+  // El access_token es el que las páginas mandan al cobro con
+  // Cuenta.tokenDeAcceso(); lo contesta js/demo-aviso.js y no sale de aquí.
+  // Es el mismo valor que usa el simulador del acta: el panel carga los dos.
+  // La cuenta va aparte de la sesion, como en js/demo-acta.js: cerrar la
+  // sesion y volver a entrar con la clave encuentra la misma cuenta.
+  var CUENTA = {
+    id: '00000000-0000-4000-8000-000000000001',
+    email: 'administracion@ejemplo.cl',
+    user_metadata: { nombre: 'Elena Pizarro' }
   };
+  function sesionNueva() {
+    return {
+      access_token: 'demo-sesion-sin-validez',
+      token_type: 'bearer',
+      refresh_token: 'demo-sesion-sin-validez',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      user: CUENTA
+    };
+  }
+  var SESION = sesionNueva();
 
   var LLAVE = 'demo_consulta_estado';
   var base = null;
 
+  // 'pagos': las llaves que ya abrieron su consulta. En Postgres es la fila
+  // de vv_pagos_usados que cc_crear escribe (ver cc_crear).
   function vacia() {
-    return { consultas: {} };   // codigo -> { ...campos, destinatarios[], respuestas{} }
+    return { consultas: {}, pagos: {} };   // codigo -> { ...campos, destinatarios[], respuestas{} }
   }
 
   function guardar() {
@@ -60,6 +83,16 @@
       var g = JSON.parse(localStorage.getItem(LLAVE));
       base = (g && g.consultas) ? g : vacia();
     } catch (e) { base = vacia(); }
+    // Lo guardado antes del 22-09-2026 no traia 'pagos'.
+    if (!base.pagos || typeof base.pagos !== 'object' || Array.isArray(base.pagos)) base.pagos = {};
+  }
+  // La llave del pago viene de afuera: se lee con hasOwnProperty, como los
+  // diccionarios de js/demo-sala.js (SAST-12).
+  function usada(llave) {
+    return Object.prototype.hasOwnProperty.call(base.pagos, llave) && base.pagos[llave] === true;
+  }
+  function marcarUsada(llave) {
+    Object.defineProperty(base.pagos, llave, { value: true, enumerable: true, writable: true, configurable: true });
   }
   recuperar();
   global.addEventListener('storage', function (e) {
@@ -110,18 +143,31 @@
 
   // --- Las funciones, con las mismas firmas que en Postgres -------------
   var FN = {
+    // En el mismo orden que Postgres: el plazo, el tipo y recien despues el
+    // pago.
     cc_crear: function (a) {
       recuperar();
-      // El candado del pago vive en Postgres y aquí no se puede reproducir:
-      // esta demostración lo da por pagado. En producción, sin una llave
-      // válida y sin usar, cc_crear responde 'pago_requerido'.
-      if (!a.p_llave) return fallar('pago_requerido');
-      if (new Date(a.p_plazo_fin) <= new Date()) {
+      var fin = new Date(a.p_plazo_fin);
+      if (!a.p_plazo_fin || isNaN(fin.getTime()) || fin <= new Date()) {
         return fallar('el plazo debe terminar en el futuro');
       }
       if (['ordinaria', 'ext-abs', 'ext-ref'].indexOf(a.p_tipo) < 0) {
         return fallar('tipo invalido');
       }
+      // El candado del pago vive en Postgres y aquí no se puede reproducir:
+      // esta demostración lo da por pagado. En producción, sin una llave
+      // válida y sin usar, cc_crear responde 'pago_requerido'.
+      if (!a.p_llave) return fallar('pago_requerido');
+      // Lo que sí se reproduce: a diferencia del acta, el pago de la
+      // consulta NO se comparte. Una llave abre una consulta, y la segunda
+      // vez Postgres responde 'pago_ya_utilizado' (consulta-1.js entonces
+      // borra la llave y pide otro pago). Antes la demostracion dejaba abrir
+      // consultas sin fin con un solo pago, y decia que eso era la regla.
+      // 'llave_de_otro_producto' no se simula: aqui la llave del acta y la
+      // de la consulta son la misma marca.
+      var orden = String(a.p_llave);
+      if (usada(orden)) return fallar('pago_ya_utilizado');
+      marcarUsada(orden);
       var cod = codigoNuevo();
       base.consultas[cod] = {
         id: 'demo-' + cod,
@@ -141,9 +187,6 @@
         destinatarios: [],
         respuestas: {}          // destinatario_id -> { sentido, texto, recibida, resuelta }
       };
-      // Un pago cubre TODA la asamblea: el acta, la sala y la consulta por
-      // escrito. La llave no se borra; en Postgres se marca usada y se deja
-      // pasar mientras sea la misma cuenta ('pago_de_otra_cuenta' si no).
       return responder({ id: base.consultas[cod].id, codigo: cod, admin_token: 'token-' + cod });
     },
 
@@ -249,6 +292,28 @@
     }
   };
 
+  // --- Entrar ----------------------------------------------------------
+  // Lo mismo que en js/demo-acta.js, que tiene la explicacion completa:
+  // cuenta.js comprueba la clave actual entrando de nuevo con ella antes de
+  // cambiarla (AUTH-05). Vale la cuenta simulada con cualquier clave de 8 o
+  // mas caracteres; lo demas, "Invalid login credentials", como Supabase.
+  function entrarConClave(datos) {
+    var correo = String((datos && datos.email) || '').trim().toLowerCase();
+    var clave = datos && datos.password;
+    if (correo !== CUENTA.email || typeof clave !== 'string' || clave.length < 8) {
+      return Promise.resolve({ data: { user: null, session: null },
+                               error: { message: 'Invalid login credentials', status: 400 } });
+    }
+    SESION = sesionNueva();
+    return Promise.resolve({ data: { session: SESION, user: SESION.user }, error: null });
+  }
+  // Codigo por correo, Google, crear cuenta, recuperar la clave: aqui no
+  // hay a donde mandarlos. Un error, y cuenta.js dice "No pudimos...".
+  function noEnDemostracion() {
+    return Promise.resolve({ data: { user: null, session: null },
+                             error: { message: 'no_disponible_en_demostracion' } });
+  }
+
   // --- El cliente falso -------------------------------------------------
   global.supabase = {
     createClient: function () {
@@ -260,8 +325,25 @@
         },
         auth: {
           getSession: function () { return Promise.resolve({ data: { session: SESION }, error: null }); },
-          getUser: function () { return Promise.resolve({ data: { user: SESION.user }, error: null }); },
+          getUser: function () { return Promise.resolve({ data: { user: SESION && SESION.user }, error: null }); },
+          refreshSession: function () { return Promise.resolve({ data: { session: SESION }, error: null }); },
           signOut: function () { SESION = null; return Promise.resolve({ error: null }); },
+          signInWithPassword: entrarConClave,
+          signInWithOtp: noEnDemostracion,
+          verifyOtp: noEnDemostracion,
+          signUp: noEnDemostracion,
+          resend: noEnDemostracion,
+          resetPasswordForEmail: noEnDemostracion,
+          signInWithOAuth: noEnDemostracion,
+          // La clave no se guarda en ninguna parte: en produccion la recibe
+          // Supabase, aqui se descarta. El nombre si, en la cuenta simulada.
+          updateUser: function (datos) {
+            if (!SESION) return Promise.resolve({ data: null, error: { message: 'no autorizado' } });
+            if (datos && datos.data && datos.data.nombre) {
+              SESION.user.user_metadata.nombre = String(datos.data.nombre);
+            }
+            return Promise.resolve({ data: { user: SESION.user }, error: null });
+          },
           onAuthStateChange: function () { return { data: { subscription: { unsubscribe: function () {} } } }; }
         },
         channel: function () {
@@ -307,6 +389,19 @@
     });
   }
 
+  // Simular la vuelta de la pasarela es un pago NUEVO. La llave es siempre
+  // la misma marca, asi que lo que se renueva es que no se haya usado: sin
+  // esto, despues de la primera consulta la demostracion quedaba sin pago
+  // posible.
+  var LLAVE_PAGO = 'consulta_pago_llave';
+  var MARCA = 'DEMO-PAGO-SIMULADO';
+  function pagoNuevo() {
+    recuperar();
+    if (Object.prototype.hasOwnProperty.call(base.pagos, MARCA)) delete base.pagos[MARCA];
+    guardar();
+    try { localStorage.setItem(LLAVE_PAGO, MARCA); } catch (e) {}
+  }
+
   // Atajos para conducir la demostración desde la consola.
   global.DEMOC = {
     _fn: FN,                    // lo usa el simulador del acta para delegar
@@ -335,12 +430,12 @@
       base = vacia(); guardar();
       try {
         localStorage.removeItem('cc_mesa');
-        localStorage.removeItem('consulta_pago_llave');
+        localStorage.removeItem(LLAVE_PAGO);
       } catch (e) {}
     },
     // Hace las veces de una vuelta desde la pasarela con el pago confirmado.
     pagar: function () {
-      try { localStorage.setItem('consulta_pago_llave', 'DEMO-PAGO-SIMULADO'); } catch (e) {}
+      pagoNuevo();
       return 'pagado. Recargue el panel.';
     }
   };
@@ -351,10 +446,18 @@
   // acta no sirve. En el panel se empieza sin pagar, porque ahí el pago es el
   // primer paso y es lo que se prueba; entrando directo a la consulta se da
   // por pagada, porque en el producto no se llega hasta aquí sin pagar.
+  //
+  // Esta escritura cae en demo_consulta_pago_llave: js/demo-aviso.js aparta
+  // el almacenamiento de las páginas -demo. Antes caía en la casilla de
+  // verdad, y /consulta/ la tomaba por una llave pagada.
+  //
+  // Si la casilla ya tiene la llave, es el mismo pago de antes: recargar no
+  // regala otra consulta. Queda vacía cuando consulta-1.js la borra tras un
+  // 'pago_ya_utilizado', y entonces entrar de nuevo es un pago nuevo.
   try {
     if (!/\/cuenta/.test(global.location.pathname) &&
-        !localStorage.getItem('consulta_pago_llave')) {
-      localStorage.setItem('consulta_pago_llave', 'DEMO-PAGO-SIMULADO');
+        !localStorage.getItem(LLAVE_PAGO)) {
+      pagoNuevo();
     }
   } catch (e) {}
 

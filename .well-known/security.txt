@@ -1,0 +1,7 @@
+# Canal para informar vulnerabilidades de actascopropiedad.cl (RFC 9116).
+# Se agradece el aviso responsable: describa el problema y como reproducirlo,
+# y denos un plazo razonable para corregirlo antes de publicarlo.
+Contact: mailto:contacto@actascopropiedad.cl
+Expires: 2027-09-22T00:00:00Z
+Preferred-Languages: es
+Canonical: https://actascopropiedad.cl/.well-known/security.txt

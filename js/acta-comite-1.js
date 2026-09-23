@@ -37,6 +37,20 @@ var acGuardando = false;  // hay un guardado viajando
 var acPendiente = false;  // se escribió algo mientras viajaba
 var acEspera    = [];     // quienes esperan a que ese guardado termine
 
+// De quién es el borrador del equipo. El computador de la conserjería es de
+// todos: la cuenta que entra después no puede recibir el borrador de otra
+// ni, menos, subirlo a la suya con los nombres de otro comité. Cada
+// borrador lleva el uid de la cuenta que lo escribió (ver
+// acRetomarBorrador). null mientras no se sepa quién entró.
+var acUid = null;
+// Hasta que acCargar decide qué acta se abre y qué hacer con el borrador
+// del equipo, no se guarda nada. Lo primero que se teclea en esta página
+// suele ser el correo y la clave en el cajón de entrada, y el despachador
+// de acta-comite-2.js agenda un guardado con cada tecla: sin esto, ese
+// guardado pisaba el borrador que se iba a retomar con un acta en blanco,
+// o la subía a la cuenta recién abierta.
+var acListo = false;
+
 var acta = {
   condominio: '', direccion: '', fecha: '', hora: '', modalidad: 'presencial', lugar: '',
   total: 3,
@@ -94,6 +108,37 @@ function acMensaje(donde, texto, clase) {
   var el = $ac(donde);
   if (!el) return;
   el.innerHTML = texto ? '<div class="msg ' + clase + '">' + acEsc(texto) + '</div>' : '';
+}
+
+/* El contenido que ya no está.
+ *
+ *  La tarea diaria de conservación (C5) reemplaza el contenido de un acta
+ *  cerrada hace más de 180 días por {"purgado": true, "purgado_en": ...}.
+ *  La fila sigue -condominio, fecha y folio-, pero sin asistentes ni
+ *  temas. Tratarla como un acta más dejaba el formulario en blanco o, al
+ *  «traer datos», borraba los asistentes ya escritos. La marca llega en el
+ *  contenido o, cuando se pidió solo ella, en la columna 'purgado'.
+ */
+var AC_PURGADA = 'se eliminó al cumplirse el plazo de conservación; conserve el archivo que descargó.';
+function acPurgada(fila) {
+  if (!fila) return false;
+  if (fila.purgado === true) return true;
+  var c = fila.contenido;
+  return !!(c && typeof c === 'object' && c.purgado === true);
+}
+
+/* El acta que se pidió abrir.
+ *
+ *  Con ?acta=<id> la persona eligió un acta guardada: se abre esa, y no la
+ *  más reciente sin cerrar ni el borrador del equipo. Devuelve lo que trae
+ *  el parámetro -'' o un texto que no es id también cuentan: igual se pidió
+ *  una, y no se la reemplaza por otra- o null si no vino.
+ */
+var AC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var AC_NO_ESTA = 'No encontramos esa acta en su cuenta. Puede escribir una nueva aquí.';
+function acActaPedida() {
+  var m = String((window.location && window.location.search) || '').match(/[?&]acta=([^&#]*)/);
+  return m ? m[1] : null;
 }
 
 
@@ -500,6 +545,7 @@ function acFaltantes() {
  * ───────────────────────────────────────────────────────────────────── */
 
 function acGuardar() {
+  if (!acListo) return;   // ver acListo: todavía no hay acta que guardar
   clearTimeout(acReloj);
   acReloj = setTimeout(function () { acGuardarYa(null); }, 900);
 }
@@ -529,7 +575,7 @@ function acGuardarYa(cb) {
 
   var c = window.Cuenta && Cuenta.cliente();
   if (!c) {
-    try { localStorage.setItem(AC_BORRADOR, JSON.stringify(acta)); } catch (e) {}
+    acEscribirBorrador();
     if (cb) cb(false);
     return;
   }
@@ -542,6 +588,33 @@ function acGuardarYa(cb) {
 
   acGuardando = true;
 
+  // La sesión la comparten todas las pestañas del navegador. Si en otra se
+  // salió y entró otra cuenta, el cliente ya habla con el token de esa, y
+  // lo que está en esta pantalla sigue siendo de la que abrió la página: un
+  // insert lo dejaba en la cuenta nueva, y un update tocaba 0 filas, se
+  // anunciaba «Guardado» y se borraba el borrador del equipo. Antes de
+  // mandar nada se pregunta quién tiene la sesión; si es otra cuenta, no se
+  // guarda y la página se recarga para quien entró, como acta-2.js
+  // (otraCuenta). Lo en pantalla no se deja en el equipo: su dueña cerró
+  // sesión, y al hacerlo cuenta.js ya le preguntó qué hacer con lo pendiente.
+  // Sin saber quién abrió la página, o quién tiene ahora la sesión, no hay
+  // con qué comparar y se guarda como siempre: sin sesión, la base lo
+  // rechaza y va al borrador.
+  acQuienEntro(function (ahora) {
+    if (acUid && ahora && ahora !== acUid) {
+      acGuardando = false;
+      acPendiente = false;
+      acListo = false;   // nada más de esta página va a ninguna cuenta
+      acAviso('Entró otra cuenta en este navegador. Recargamos la página.', true);
+      acAvisarEspera(false, cb);
+      try { window.location.reload(); } catch (e) {}
+      return;
+    }
+    acEnviar(c, fila, cb);
+  });
+}
+
+function acEnviar(c, fila, cb) {
   var q = acId
     ? c.from('actas_comite').update(fila).eq('id', acId).select('id,folio')
     : c.from('actas_comite').insert(fila).select('id,folio');
@@ -556,6 +629,7 @@ function acGuardarYa(cb) {
       acAviso(/tamano|too large|value too long/i.test(m)
         ? 'El acta es demasiado extensa para guardarla. Acorte los textos más largos.'
         : 'No pudimos guardar. Su texto sigue en pantalla.', true);
+      acEscribirBorrador();
       acAvisarEspera(false, cb);
       return;
     }
@@ -571,8 +645,82 @@ function acGuardarYa(cb) {
   }, function () {
     acGuardando = false;
     acAviso('No pudimos guardar. Su texto sigue en pantalla.', true);
+    acEscribirBorrador();
     acAvisarEspera(false, cb);
   });
+}
+
+/* El borrador del equipo: lo que no llegó al servidor.
+ *
+ *  Antes se escribía solo cuando no había cliente de Supabase, que es
+ *  cuando tampoco hay sesión: nunca podía decir de quién era, y un guardado
+ *  que fallaba con la red caída no dejaba nada, aunque cuenta.js lo trata
+ *  como «lo que no pudo hablar con el servidor» al cerrar sesión. Ahora se
+ *  escribe también cuando el guardado falla, con el uid de la cuenta que
+ *  abrió la página. Va junto a los campos del acta y no dentro de ella:
+ *  acta es lo que se sube a la cuenta, y el uid no es parte del documento.
+ *  El primer guardado bueno lo borra, como siempre.
+ */
+function acEscribirBorrador() {
+  var b = {};
+  for (var k in acta) b[k] = acta[k];
+  b.uid = acUid;
+  try { localStorage.setItem(AC_BORRADOR, JSON.stringify(b)); } catch (e) {}
+}
+
+/* Quién entró. acta-1.js lo recibe del portero (exigirSesion); aquí el
+ *  arranque -acta-comite-2.js- no lo pasa, así que se le pregunta a la
+ *  misma sesión con Cuenta.usuario. Sin respuesta, null: el borrador no se
+ *  le atribuye a nadie.
+ *
+ *  Con plazo, el mismo de borradoresPendientes en cuenta.js: getSession
+ *  puede quedarse esperando la red si tiene que renovar el token, y sin
+ *  plazo la página se quedaba en «cargando» y el guardado con el candado
+ *  puesto para siempre. Una respuesta que llega tarde no cuenta.
+ */
+function acQuienEntro(cb) {
+  var hecho = false;
+  var reloj = null;
+  var una = function (u) {
+    if (hecho) return;
+    hecho = true;
+    clearTimeout(reloj);
+    cb((u && u.id) || null);
+  };
+  reloj = setTimeout(function () { una(null); }, 4000);
+  try {
+    if (window.Cuenta && typeof Cuenta.usuario === 'function') { Cuenta.usuario(una); return; }
+  } catch (e) {}
+  una(null);
+}
+
+/* El borrador del equipo se retoma solo si es de quien entró. Mismas
+ *  reglas que _tryRestore en acta-1.js:
+ *
+ *  - Con uid de otra cuenta: no se retoma, no se sube y aquí no se borra.
+ *    Sigue siendo de su dueño -al cerrar sesión, cuenta.js le dejó elegir
+ *    que se quedara-, hasta que esta cuenta guarde algo en este equipo: el
+ *    primer guardado bueno lo quita, como el autoguardado de acta-1.js lo
+ *    reemplaza.
+ *  - Sin uid (lo escribió la versión anterior): acta-1.js lo retoma solo si
+ *    trae el id de una fila que el servidor le muestra a esta cuenta, la
+ *    única prueba de que es suyo. Los del comité nunca trajeron id: ninguna
+ *    cuenta puede demostrar que es suyo, y se descarta.
+ *  - Sin saber quién entró no se retoma ni se toca: no hay a quién
+ *    atribuírselo.
+ */
+function acRetomarBorrador() {
+  var b = null;
+  try { b = JSON.parse(localStorage.getItem(AC_BORRADOR) || 'null'); } catch (e) { b = null; }
+  if (!b || typeof b !== 'object' || !acUid) return;
+  if (!b.uid) {
+    try { localStorage.removeItem(AC_BORRADOR); } catch (e) {}
+    return;
+  }
+  if (b.uid !== acUid) return;
+  // Solo las claves del acta: lo demás que traiga el borrador (el uid, o
+  // cualquier cosa ajena) no entra al documento ni viaja a la cuenta.
+  for (var j in acta) if (b[j] !== undefined) acta[j] = b[j];
 }
 
 /* Un acta con folio ya no se toca.
@@ -635,39 +783,91 @@ function acCargar(alTerminar) {
   var c = window.Cuenta && Cuenta.cliente();
   if (!c) { if (alTerminar) alTerminar(); return; }
 
-  // La que se estaba escribiendo: la mas reciente sin finalizar.
-  c.from('actas_comite')
-    .select('id,contenido,folio')
-    .is('folio', null)
-    .order('actualizada', { ascending: false })
-    .limit(1)
-    .then(function (r) {
-      if (!r.error && r.data && r.data.length) {
-        var f = r.data[0];
+  // Quien llega con ?acta=<id> eligió esa acta. Antes el parámetro se
+  // ignoraba: se abría la última sin cerrar o, sin ella, el borrador del
+  // equipo, que podía ser de otra acta. Con ?acta= se abre la pedida, y al
+  // abrir el borrador no se retoma ni se borra. Ojo: el primer guardado
+  // bueno de la pedida sí lo quita, como quita cualquier borrador (ver
+  // acEnviar); el borrador no dice de qué acta es.
+  var pedida = acActaPedida();
+  var fin = function () { if (alTerminar) alTerminar(); };
+
+  acQuienEntro(function (uid) {
+    acUid = uid;
+
+    if (pedida !== null && !AC_ID.test(pedida)) {
+      acMensaje('msg-acta', AC_NO_ESTA, 'msg-warn');
+      fin();
+      return;
+    }
+
+    // La pedida, cerrada o no (acIniciar la sella si tiene folio); sin
+    // pedido, la que se estaba escribiendo: la más reciente sin finalizar.
+    var q = c.from('actas_comite').select('id,contenido,folio');
+    q = pedida !== null
+      ? q.eq('id', pedida).limit(1)
+      : q.is('folio', null).order('actualizada', { ascending: false }).limit(1);
+
+    q.then(function (r) {
+      var f = !r.error && r.data && r.data[0];
+      // La purga borra los borradores en vez de vaciarlos, así que esto no
+      // debería llegar nunca. Si llega, no se retoma: con su id, lo que se
+      // escribiera a continuación iría a parar a esa fila vacía.
+      if (f && acPurgada(f)) {
+        acMensaje('msg-acta', 'El contenido de ' + (pedida !== null ? 'esta acta ' : 'su última acta ') +
+          AC_PURGADA + ' Puede escribir una nueva aquí.', 'msg-warn');
+        f = null;
+      } else if (!f && pedida !== null) {
+        acMensaje('msg-acta', r.error
+          ? 'No pudimos abrir el acta que pidió. Revise su conexión y recargue la página.'
+          : AC_NO_ESTA, 'msg-warn');
+      }
+      if (f) {
         acId = f.id; acFolio = f.folio || null;
         var cont = f.contenido || {};
         for (var k in acta) if (cont[k] !== undefined) acta[k] = cont[k];
-      } else {
-        try {
-          var raw = localStorage.getItem(AC_BORRADOR);
-          if (raw) {
-            var b = JSON.parse(raw);
-            if (b && typeof b === 'object') for (var j in acta) if (b[j] !== undefined) acta[j] = b[j];
-          }
-        } catch (e) {}
+      } else if (pedida === null) {
+        acRetomarBorrador();
       }
-      if (alTerminar) alTerminar();
+      fin();
+    }, function () {
+      // Sin respuesta la página arranca igual: quedarse en «cargando» no
+      // le sirve a nadie.
+      if (pedida !== null) {
+        acMensaje('msg-acta', 'No pudimos abrir el acta que pidió. Revise su conexión y recargue la página.', 'msg-warn');
+      } else {
+        acRetomarBorrador();
+      }
+      fin();
     });
+  });
+}
+
+/* La última acta que no es la que se está escribiendo. La usan la
+   invitación a copiar y la copia misma: si cada una eligiera por su lado,
+   la invitación podría ofrecer un acta y el botón traer otra. */
+function acAnteriorDe(filas) {
+  for (var i = 0; i < (filas || []).length; i++) {
+    if (filas[i] && filas[i].id !== acId) return filas[i];
+  }
+  return null;
 }
 
 /* ¿Hay alguna acta anterior de la que copiar? Se pregunta solo por eso:
-   no se guarda ninguna lista de personas en ninguna otra parte. */
+   no se guarda ninguna lista de personas en ninguna otra parte. Se pide la
+   marca de la purga y no el contenido: una anterior purgada no tiene nada
+   que copiar, y ofrecerlo terminaba en un formulario sin asistentes. */
 function acHayAnterior(cb) {
   var c = window.Cuenta && Cuenta.cliente();
   if (!c) { cb(false); return; }
-  c.from('actas_comite').select('id').limit(1).then(function (r) {
-    cb(!r.error && r.data && r.data.length > 0);
-  });
+  c.from('actas_comite')
+    .select('id,purgado:contenido->purgado')
+    .order('fecha_reunion', { ascending: false, nullsFirst: false })
+    .limit(2)
+    .then(function (r) {
+      var previa = !r.error && acAnteriorDe(r.data);
+      cb(!!previa && !acPurgada(previa));
+    });
 }
 
 function acTraerAnterior() {
@@ -684,11 +884,19 @@ function acTraerAnterior() {
         return;
       }
       // Si la primera es la que estoy escribiendo, tomo la siguiente.
-      var previa = null;
-      for (var i = 0; i < r.data.length; i++) {
-        if (r.data[i].id !== acId) { previa = r.data[i]; break; }
-      }
+      var previa = acAnteriorDe(r.data);
       if (!previa) { acAviso('Todavía no hay un acta anterior de dónde copiar', true); return; }
+
+      // Purgada: no hay de dónde copiar. Lo ya escrito queda como estaba, y
+      // la explicación va en el mismo recuadro de la invitación, que es
+      // donde la persona está mirando; el botón se va con ella.
+      if (acPurgada(previa)) {
+        var invita = $ac('n-repetir');
+        if (invita) invita.textContent = 'El contenido de su acta anterior ' + AC_PURGADA +
+          ' Escriba los datos de esta reunión.';
+        acAviso('Su acta anterior ya no tiene contenido', true);
+        return;
+      }
 
       var v = previa.contenido || {};
       acta.condominio = v.condominio || acta.condominio;
@@ -874,6 +1082,9 @@ function acCerrarModal(id) {
  * ───────────────────────────────────────────────────────────────────── */
 
 function acIniciar() {
+  // Desde aquí lo que se teclea es el acta: acCargar ya decidió cuál es y
+  // qué hacer con el borrador del equipo (ver acListo).
+  acListo = true;
   if (!acta.fecha) acta.fecha = acHoy();
   acPintarFormulario();
   acRefrescar();
@@ -884,9 +1095,12 @@ function acIniciar() {
   if (cargando) cargando.hidden = true;
   if (todo) todo.hidden = false;
 
-  // La invitación a copiar solo aparece si de verdad hay de dónde.
+  // La invitación a copiar solo aparece si de verdad hay de dónde, y no en
+  // una cerrada: con ?acta= se puede abrir una con folio, que ya no se
+  // modifica, y la respuesta llega después de que acSellarFormulario la
+  // escondió.
   acHayAnterior(function (hay) {
     var n = $ac('n-repetir');
-    if (n) n.hidden = !hay;
+    if (n) n.hidden = !hay || !!acFolio;
   });
 }

@@ -143,16 +143,43 @@ function cuerpoBase64(texto) {
   return (b64.match(/.{1,76}/g) || []).join('\r\n');
 }
 
+// Una cabecera termina donde hay un salto de linea: un CR o un LF dentro de
+// un valor abre otra cabecera a gusto de quien lo escribio (un Bcc, otro
+// Content-Type). Hoy los tres valores llegan de capas que no dejan pasar
+// saltos -el sobre SMTP y el objeto Headers de Cloudflare-, pero esa es una
+// garantia de otro que no estaba escrita en ninguna parte. Ahora se
+// comprueba aqui, y no depende de como se llame a esta funcion.
+function sinSaltos(v) {
+  return String(v == null ? '' : v).replace(/[\r\n\0]/g, '').trim();
+}
+
+// La forma simple de una direccion: parte local sin espacios, comillas ni
+// separadores, una arroba y un dominio con al menos un punto. Basta para lo
+// que llega del sobre SMTP y rechaza lo que traiga un nombre visible, varias
+// direcciones o cualquier cosa que no sea una casilla.
+const DIRECCION = /^[^\s@<>()[\]\\,;:"]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+
 export function construirRespuestaMime(de, para, asunto, cuerpo, messageId) {
+  const desde = sinSaltos(de), hacia = sinSaltos(para);
+  if (desde.length > 254 || hacia.length > 254 || !DIRECCION.test(desde) || !DIRECCION.test(hacia)) {
+    // Lanza en vez de armar algo a medias: quien llama (acusarRecibo) lo
+    // captura y el voto ya quedo registrado; solo se pierde el acuse.
+    throw new Error('direccion_invalida');
+  }
+  // Un Message-ID es "<algo>" sin espacios. Si lo que llego no tiene esa
+  // forma no se cita: el acuse sale igual, solo que sin hilo.
+  const id = sinSaltos(messageId).slice(0, 998);
+  const citable = /^<[^<>\s]+>$/.test(id);
+
   const lineas = [
-    'From: ' + de,
-    'To: ' + para,
+    'From: ' + desde,
+    'To: ' + hacia,
     'Subject: ' + asuntoCodificado(asunto),
     'Message-ID: <' + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())) + '@actascopropiedad.cl>'
   ];
-  if (messageId) {
-    lineas.push('In-Reply-To: ' + messageId);
-    lineas.push('References: ' + messageId);
+  if (citable) {
+    lineas.push('In-Reply-To: ' + id);
+    lineas.push('References: ' + id);
   }
   lineas.push('MIME-Version: 1.0');
   lineas.push('Content-Type: text/plain; charset="utf-8"');

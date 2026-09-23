@@ -9,7 +9,10 @@
   }
   function fecha(v){
     if(!v) return '';
-    var d = new Date(v);
+    // Una fecha sola ('2026-01-10', como fecha_sesion) el navegador la lee
+    // en UTC, y en Chile se pintaba el dia anterior. Se arma en hora local.
+    var f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v));
+    var d = f ? new Date(+f[1], +f[2] - 1, +f[3]) : new Date(v);
     return isNaN(d) ? '' : d.toLocaleDateString('es-CL', { day:'2-digit', month:'long', year:'numeric' });
   }
   function fechaCorta(v){
@@ -51,7 +54,16 @@
   //  de votacion; la de la consulta abre una consulta y nada mas.
   var LLAVE_PAGO = 'acta_pago_llave';
   var LLAVE_CONSULTA = 'consulta_pago_llave';
-  function guardado(k){ try { return localStorage.getItem(k) || ''; } catch(e){ return ''; } }
+  // Ver la nota en acta-1.js y sinPagos() mas abajo: la marca que dejaba la
+  // demostracion no es un pago. Sin esto, quien habia visitado /acta-demo o
+  // /consulta/demo veia aqui «Comenzar mi acta» y «Crear consulta» como si
+  // hubiera pagado, y el acta recien le pedia el pago al entrar.
+  function guardado(k){
+    var v = '';
+    try { v = localStorage.getItem(k) || ''; } catch(e){ return ''; }
+    return (v === 'DEMO-PAGO-SIMULADO' &&
+      !/(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname)) ? '' : v;
+  }
   function llavePago(){ return guardado(LLAVE_PAGO); }
   function llaveConsulta(){ return guardado(LLAVE_CONSULTA); }
 
@@ -97,6 +109,19 @@
     }
   }
 
+  // La URL de la pasarela la arma el Worker con lo que contesta Flow. Antes
+  // de mandar a la persona a pagar se comprueba que de verdad sea Flow: si
+  // algun dia llegara otra cosa, no se sigue.
+  function esPasarela(u){
+    return typeof u === 'string' && /^https:\/\/(www|sandbox)\.flow\.cl\//.test(u);
+  }
+
+  // Sin sesion no hay pago: el Worker ata la orden a la cuenta. Se abre el
+  // cajon para entrar y, ya dentro, el panel se vuelve a pintar.
+  function pedirSesion(){
+    Cuenta.abrirCajon({ alEntrar: function(){ location.reload(); } });
+  }
+
   function irAPagar(btn, producto, idCasilla){
     producto = producto || 'acta';
     if(idCasilla && !Cuenta.terminos.aceptados(idCasilla)){
@@ -107,56 +132,92 @@
     btn.disabled = true; var t = btn.textContent; btn.textContent = 'Conectando…';
     pagoMsg('', false, producto);
     var correo = ($('p-correo') && $('p-correo').textContent) || '';
-    fetch('/api/pago/crear', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ correo: correo, producto: producto, acepta: Cuenta.terminos.VERSION })
-    }).then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, d: d }; }); })
-      .then(function(x){
-        if(!x.ok || !x.d || !x.d.redirigir){
-          pagoMsg(x.d && x.d.error === 'pasarela_no_configurada'
-            ? 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.'
-            : 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', true, producto);
-          btn.disabled = false; btn.textContent = t;
-          return;
-        }
-        location.href = x.d.redirigir;
-      }, function(){
-        pagoMsg('No pudimos conectar con el medio de pago. Revise su conexión.', true, producto);
+    Cuenta.tokenDeAcceso().then(function(token){
+      if(!token){
+        pagoMsg('Su sesión terminó. Vuelva a entrar para pagar.', true, producto);
         btn.disabled = false; btn.textContent = t;
-      });
+        pedirSesion();
+        return;
+      }
+      return fetch('/api/pago/crear', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + token },
+        body: JSON.stringify({ correo: correo, producto: producto, acepta: Cuenta.terminos.VERSION })
+      }).then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, estado: r.status, d: d }; }); })
+        .then(function(x){
+          if(!x.ok || !x.d || !esPasarela(x.d.redirigir)){
+            var sinSesion = x.estado === 401;
+            pagoMsg(sinSesion
+              ? 'Su sesión terminó. Vuelva a entrar para pagar.'
+              : x.d && x.d.error === 'pasarela_no_configurada'
+                ? 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.'
+                : 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', true, producto);
+            btn.disabled = false; btn.textContent = t;
+            if(sinSesion) pedirSesion();
+            return;
+          }
+          location.href = x.d.redirigir;
+        });
+    }).then(null, function(){
+      pagoMsg('No pudimos conectar con el medio de pago. Revise su conexión.', true, producto);
+      btn.disabled = false; btn.textContent = t;
+    });
   }
 
   // Vuelta desde la pasarela: /cuenta?pago=AV-XXXX
-  (function retornoDePago(){
+  // Corre ya con la sesion abierta: el Worker entrega la llave solo a la
+  // cuenta que pidio la orden. La orden se quita de la direccion recien
+  // cuando hay una respuesta definitiva; antes, recargar -que es lo que el
+  // mensaje de espera recomienda- tiene que volver a intentarlo.
+  function retornoDePago(){
     var m = /[?&]pago=(AV-[A-Z0-9]+)/.exec(location.search);
     if(!m) return;
     var orden = m[1], intentos = 0;
-    try { history.replaceState(null, '', location.pathname); } catch(e){}
+    var olvidarOrden = function(){ try { history.replaceState(null, '', location.pathname); } catch(e){} };
     pagoMsg('Confirmando el pago…');
-    (function revisar(){
-      intentos++;
-      fetch('/api/pago/estado?orden=' + encodeURIComponent(orden))
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if(d && d.estado === 'pagado' && d.llave){
-            // La llave se guarda en el casillero del servicio que se pago.
-            var esConsulta = d.producto === 'consulta';
-            try { localStorage.setItem(esConsulta ? LLAVE_CONSULTA : LLAVE_PAGO, d.llave); } catch(e){}
-            pagoMsg(esConsulta
-              ? 'Pago confirmado. Ya puede crear su consulta.'
-              : 'Pago confirmado. Ya puede comenzar su acta.', false, esConsulta ? 'consulta' : 'acta');
-            pintarServicios();
-            return;
-          }
-          if(intentos < 10){ setTimeout(revisar, 2000); return; }
-          pagoMsg('Todavía no recibimos la confirmación. Si ya pagó, recargue esta página en un momento.', true);
+    Cuenta.tokenDeAcceso().then(function(token){
+      if(!token){ pagoMsg('Entre a su cuenta para confirmar el pago.', true); return; }
+      (function revisar(){
+        intentos++;
+        fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), {
+          headers: { 'authorization': 'Bearer ' + token }
         })
-        .catch(function(){
-          if(intentos < 10){ setTimeout(revisar, 2000); return; }
-          pagoMsg('No pudimos verificar el pago.', true);
-        });
-    })();
-  })();
+          .then(function(r){ return r.json().then(function(d){ return { estado: r.status, d: d }; }); })
+          .then(function(x){
+            var d = x.d;
+            if(d && d.estado === 'pagado' && d.llave){
+              olvidarOrden();
+              // La llave se guarda en el casillero del servicio que se pago.
+              var esConsulta = d.producto === 'consulta';
+              try { localStorage.setItem(esConsulta ? LLAVE_CONSULTA : LLAVE_PAGO, d.llave); } catch(e){}
+              pagoMsg(esConsulta
+                ? 'Pago confirmado. Ya puede crear su consulta.'
+                : 'Pago confirmado. Ya puede comenzar su acta.', false, esConsulta ? 'consulta' : 'acta');
+              pintarServicios();
+              return;
+            }
+            // 404: la orden no existe o es de otra cuenta. El Worker no dice
+            // cual de las dos, y esperar no la va a hacer aparecer.
+            // Se anota el numero en el equipo antes de quitarlo de la
+            // direccion: si se pago con otra cuenta, al entrar con ella
+            // Cuenta.recuperarPagos lo entrega.
+            if(x.estado === 404){
+              if(typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(orden);
+              olvidarOrden();
+              pagoMsg('No encontramos ese pago en esta cuenta. Si pagó con otra, entre con ella en este equipo y se lo entregaremos.', true);
+              return;
+            }
+            if(x.estado === 401){ pagoMsg('Su sesión terminó. Vuelva a entrar para confirmar el pago.', true); pedirSesion(); return; }
+            if(intentos < 10){ setTimeout(revisar, 2000); return; }
+            pagoMsg('Todavía no recibimos la confirmación. Si ya pagó, recargue esta página en un momento.', true);
+          })
+          .catch(function(){
+            if(intentos < 10){ setTimeout(revisar, 2000); return; }
+            pagoMsg('No pudimos verificar el pago.', true);
+          });
+      })();
+    });
+  }
 
   Cuenta.montarNav('nav-cuenta');
 
@@ -212,22 +273,62 @@
       });
     });
 
+    // La clave actual se pide salvo que la persona acabe de probar que es
+    // duena del correo (enlace de recuperacion o codigo): cuenta.js lo decide
+    // y aqui solo se muestra u oculta el campo.
+    var cajaActual = $('p-clave-actual-caja');
+    Cuenta.pideClaveActual(function(pide){ if(cajaActual) cajaActual.hidden = !pide; });
+
     $('p-guardar-clave').addEventListener('click', function(){
       var b = this, m = $('p-clave-msg'), clave = $('p-clave').value;
+      var actual = $('p-clave-actual') ? $('p-clave-actual').value : '';
       m.className = 'msg'; m.textContent = '';
       b.disabled = true; b.textContent = 'Guardando…';
       Cuenta.cambiarClave(clave, function(err){
         b.disabled = false; b.textContent = 'Guardar la clave';
+        if(err === 'FALTA_CLAVE_ACTUAL'){
+          // Pudo vencer el plazo desde que se pinto el panel: el campo
+          // aparece recien ahora.
+          if(cajaActual) cajaActual.hidden = false;
+          m.className = 'msg err';
+          m.textContent = 'Escriba su clave actual.';
+          if($('p-clave-actual')) $('p-clave-actual').focus();
+          return;
+        }
         m.className = 'msg ' + (err ? 'err' : 'ok');
         m.textContent = err === 'CLAVE_FILTRADA'
           ? 'Le sugerimos otra: combine letras, números y símbolos.'
           : (err || 'Listo. La próxima vez puede entrar con su correo y esta clave.');
-        if(!err) $('p-clave').value = '';
-      });
+        if(!err){
+          $('p-clave').value = '';
+          if($('p-clave-actual')) $('p-clave-actual').value = '';
+          Cuenta.pideClaveActual(function(pide){ if(cajaActual) cajaActual.hidden = !pide; });
+        }
+      }, actual);
     });
+
+    // Vuelta desde el enlace para recuperar la clave (/cuenta?recuperar=1):
+    // la persona viene a poner una nueva, asi que se la lleva a ese campo.
+    if(/[?&]recuperar=1/.test(location.search)){
+      // Se quita solo 'recuperar': si la direccion trae tambien ?pago=, esa
+      // orden la necesita retornoDePago() mas abajo.
+      try {
+        var sp = new URLSearchParams(location.search); sp.delete('recuperar');
+        var q = sp.toString();
+        history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
+      } catch(e){}
+      var sc = $('s-cuenta'); if(sc && sc.scrollIntoView) sc.scrollIntoView();
+      var mc = $('p-clave-msg');
+      if(mc){ mc.className = 'msg ok'; mc.textContent = 'Escriba su clave nueva y guárdela.'; }
+      if($('p-clave')) $('p-clave').focus();
+    }
 
     marcarRail();
     pintarServicios();
+    retornoDePago();
+    // Si al cerrar sesion quedo un pago sin usar, vuelve a su casillero y los
+    // servicios se pintan de nuevo. Sin nada anotado no hace nada.
+    Cuenta.recuperarPagos(function(n){ if(n) pintarServicios(); });
     pintarActas();
     pintarComite();
     pintarSala();
@@ -252,6 +353,37 @@
       es.forEach(function(e){ if(e.isIntersecting && enlaces[e.target.id]) marcar(e.target.id); });
     }, { rootMargin: '-86px 0px -68% 0px', threshold: 0 });
     [].slice.call(document.querySelectorAll('.seccion')).forEach(function(s){ obs.observe(s); });
+  }
+
+  // ---- actas cuyo contenido ya se elimino ----
+  // C5: la tarea diaria de conservacion reemplaza el contenido de un acta
+  // finalizada hace mas de 180 dias por {"purgado": true, ...}. La fila
+  // queda -titulo, fecha y folio-, pero ya no hay nada que abrir: ofrecer
+  // «Abrir» llevaba a un formulario vacio con apariencia de acta.
+  // Se lee la marca con 'purgado:contenido->purgado' para no bajar el padron
+  // de cada acta; si la fila trae el contenido entero (el cliente de la
+  // demostracion lo hace), se mira ahi.
+  var AVISO_PURGADA = 'Contenido eliminado al cumplirse el plazo de conservación; conserve el archivo que descargó.';
+  function purgada(f){
+    return !!f && (f.purgado === true ||
+      !!(f.contenido && typeof f.contenido === 'object' && f.contenido.purgado === true));
+  }
+
+  // ac_mis_actas no trae el contenido, asi que la marca se pide aparte y
+  // solo si hay actas finalizadas, que son las unicas que se purgan. Si esa
+  // consulta falla se pinta igual, sin la marca: abrir una purgada lo
+  // explica el propio asistente, y el listado no puede quedar en blanco.
+  function marcarPurgadas(c, filas, cb){
+    var m = Object.create(null);
+    if(!filas.some(function(a){ return a.folio; })){ cb(m); return; }
+    var hecho = false;
+    var listo = function(){ if(hecho) return; hecho = true; cb(m); };
+    try {
+      c.from('actas_guardadas').select('id,purgado:contenido->purgado').then(function(r){
+        if(r && !r.error && Array.isArray(r.data)) r.data.forEach(function(f){ if(purgada(f)) m[f.id] = true; });
+        listo();
+      }, listo);
+    } catch(e){ listo(); }
   }
 
   // ---- actas: las guardadas en la cuenta y el borrador de este equipo ----
@@ -279,24 +411,32 @@
 
     c.rpc('ac_mis_actas').then(function(r){
       if(r.error){ pintar(fallo(r.error, 'actas guardadas'), true); return; }
-      var guardadas = (r.data || []).map(function(a){
-        var sello = a.folio
-          ? '<span class="pill ok">' + esc(a.folio) + '</span>'
-          : '<span class="pill esp">borrador</span>';
-        return '<div class="it" data-id="' + esc(a.id) + '">' +
-          '<div class="info">' +
-            '<b>' + esc(a.titulo || 'Acta sin nombre') + sello + '</b>' +
-            '<span>' + (a.fecha_sesion ? 'Sesión del ' + esc(fecha(a.fecha_sesion)) + ' · ' : '') +
-            (a.folio ? 'Finalizada' : 'Sin finalizar') + ' · Actualizada el ' + esc(fechaCorta(a.actualizada)) + '</span>' +
-          '</div>' +
-          '<div class="acc">' +
-            '<a class="btn btn-p btn-sm" href="/acta?acta=' + encodeURIComponent(a.id) + '">Abrir</a>' +
-            '<button type="button" class="btn btn-d btn-sm" data-borrar="' + esc(a.id) + '">Borrar</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-      pintar(guardadas);
+      var filas = r.data || [];
+      marcarPurgadas(c, filas, function(purgadas){
+        pintar(filas.map(function(a){ return filaActa(a, !!(a.folio && purgadas[a.id])); }).join(''));
+      });
     }, function(e){ pintar(fallo(e, 'actas guardadas'), true); });
+
+    // Una purgada conserva su folio y su borrado, pero no «Abrir». Tampoco
+    // dice «Actualizada el»: esa fecha es la de la purga, no un cambio suyo.
+    function filaActa(a, sinContenido){
+      var sello = a.folio
+        ? '<span class="pill ok">' + esc(a.folio) + '</span>'
+        : '<span class="pill esp">borrador</span>';
+      return '<div class="it" data-id="' + esc(a.id) + '">' +
+        '<div class="info">' +
+          '<b>' + esc(a.titulo || 'Acta sin nombre') + sello + '</b>' +
+          '<span>' + (a.fecha_sesion ? 'Sesión del ' + esc(fecha(a.fecha_sesion)) + ' · ' : '') +
+          (sinContenido
+            ? 'Finalizada · ' + esc(AVISO_PURGADA)
+            : (a.folio ? 'Finalizada' : 'Sin finalizar') + ' · Actualizada el ' + esc(fechaCorta(a.actualizada))) + '</span>' +
+        '</div>' +
+        '<div class="acc">' +
+          (sinContenido ? '' : '<a class="btn btn-p btn-sm" href="/acta?acta=' + encodeURIComponent(a.id) + '">Abrir</a>') +
+          '<button type="button" class="btn btn-d btn-sm" data-borrar="' + esc(a.id) + '">Borrar</button>' +
+        '</div>' +
+      '</div>';
+    }
 
     function pintar(guardadas, esAviso){
       var cuerpo = filaLocal + (esAviso ? '' : guardadas);
@@ -343,8 +483,10 @@
     var c = Cuenta.cliente();
     if(!c){ host.innerHTML = noDisponible('actas del comité'); return; }
 
+    // La purga de C5 alcanza tambien a las actas del comite: se pide la
+    // marca, no el contenido.
     c.from('actas_comite')
-      .select('id,condominio,fecha_reunion,folio,actualizada')
+      .select('id,condominio,fecha_reunion,folio,actualizada,purgado:contenido->purgado')
       .order('fecha_reunion', { ascending: false, nullsFirst: false })
       .then(function(r){
         if(r.error){ host.innerHTML = fallo(r.error, 'actas del comité'); return; }
@@ -356,17 +498,22 @@
           return;
         }
         host.innerHTML = lista(l.map(function(a){
+          var sinContenido = purgada(a);
           var sello = a.folio
             ? '<span class="pill ok">' + esc(a.folio) + '</span>'
             : '<span class="pill esp">borrador</span>';
-          var accion = a.folio
+          // /acta-comite no retoma una purgada: «Continuar» abriria otra
+          // en blanco.
+          var accion = (a.folio || sinContenido)
             ? ''
             : '<a class="btn btn-p btn-sm" href="/acta-comite">Continuar</a>';
           return '<div class="it">' +
             '<div class="info">' +
               '<b>' + esc(a.condominio || 'Acta sin condominio') + sello + '</b>' +
               '<span>' + (a.fecha_reunion ? 'Reunión del ' + esc(fecha(a.fecha_reunion)) + ' · ' : '') +
-              (a.folio ? 'Cerrada' : 'Sin cerrar') + ' · Actualizada el ' + esc(fechaCorta(a.actualizada)) + '</span>' +
+              (sinContenido
+                ? (a.folio ? 'Cerrada · ' : '') + esc(AVISO_PURGADA)
+                : (a.folio ? 'Cerrada' : 'Sin cerrar') + ' · Actualizada el ' + esc(fechaCorta(a.actualizada))) + '</span>' +
             '</div>' +
             '<div class="acc">' + accion +
               '<button type="button" class="btn btn-d btn-sm" data-borrar-comite="' + esc(a.id) + '">Borrar</button>' +

@@ -6,7 +6,9 @@
 //
 // Dos vias, ambas sobre Supabase Auth:
 //   - Google, para quien lo tenga (la mayoria de los administradores)
-//   - Codigo de 6 digitos al correo, que funciona siempre y no depende de nadie
+//   - Codigo de 6 digitos al correo, que funciona siempre y no depende de nadie.
+//     Solo entra a una cuenta que ya existe: las cuentas se crean con
+//     crearCuenta, que pide nombre y clave.
 //
 // Se carga como script clasico (el proyecto no tiene empaquetador):
 //   <script src="/vendor/supabase.min.js"></script>
@@ -85,10 +87,375 @@
     }, function () { cb('No pudimos guardar su nombre.'); });
   }
 
+  // El token de la sesion vigente, para las llamadas al Worker que cobran
+  // (/api/pago/*): el Worker ata cada orden a la cuenta que la pidio y no
+  // entrega la llave a nadie mas. null si no hay sesion; la pagina que lo
+  // pide se encarga de hacer entrar a la persona.
+  function tokenDeAcceso() {
+    var c = cliente();
+    if (!c) return Promise.resolve(null);
+    return Promise.resolve().then(function () {
+      return c.auth.getSession();
+    }).then(function (r) {
+      var s = r && r.data && r.data.session;
+      return (s && s.access_token) || null;
+    }, function () { return null; });
+  }
+
+  // -------------------------------------------------------------------
+  //  Lo que queda en el equipo al cerrar sesion
+  // -------------------------------------------------------------------
+  // signOut() borra solo el token de Supabase. Lo demas lo dejaron las
+  // paginas, y en la conserjeria el computador es de todos: el que se sienta
+  // despues no tiene por que encontrar el padron de otro condominio, la
+  // clave de la Mesa de una sala o una llave de pago que todavia sirve.
+  var DEL_EQUIPO = ['acta_pago_llave', 'consulta_pago_llave', 'acta_pago_llave_real',
+                    'acta_sala', 'cc_mesa'];
+  var PREFIJOS_DEL_EQUIPO = ['sala-mesa-', 'sala-voto-'];
+  // Los borradores van aparte porque pueden ser lo unico que existe de un
+  // trabajo: ver borradoresPendientes().
+  var BORRADOR_ACTA = 'sistema_actas_v2';
+  var BORRADOR_COMITE = 'acta_comite_borrador';
+  // Fuera a proposito: 'actaviva_finanzas_v1'. Las cuentas del condominio
+  // viven SOLO en este navegador, sin copia en el servidor; borrarlas al
+  // salir destruiria lo unico que hay. Y 'ac_ya_entro', que es un "1".
+
+  function almacen() {
+    try { return global.localStorage || null; } catch (e) { return null; }
+  }
+
+  // Una llave de pago sin usar es plata de la persona. Borrarla sin mas la
+  // obliga a pagar de nuevo; dejarla, que otro la use en este equipo. Se
+  // guarda el numero de la orden, que desde que el Worker ata el pago a la
+  // cuenta no sirve sin la sesion de quien pago, y al volver a entrar la
+  // llave se pide otra vez con su token (recuperarPagos).
+  var POR_RECUPERAR = 'pagos_por_recuperar';
+
+  // La llave es <payload en base64url>.<hmac>, con {o: orden, e: vence, p:
+  // producto} (emitirLlave en _worker.js). Solo se lee: la firma la valida
+  // Postgres, no el navegador.
+  function b64urlJson(txt) {
+    var b = String(txt || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    return JSON.parse(global.atob(b));
+  }
+  function ordenDeLlave(llave) {
+    var partes = String(llave || '').split('.');
+    if (partes.length !== 2) return null;
+    try {
+      var d = b64urlJson(partes[0]);
+      if (!d || !/^AV-[A-Z0-9]{1,32}$/.test(String(d.o || ''))) return null;
+      return { o: String(d.o), e: Number(d.e) || 0, p: d.p === 'consulta' ? 'consulta' : 'acta' };
+    } catch (e) { return null; }
+  }
+  function leerPorRecuperar() {
+    var ls = almacen();
+    try {
+      var l = ls && JSON.parse(ls.getItem(POR_RECUPERAR));
+      // Lo que se lee del equipo se revisa: solo ordenes con su forma.
+      return Array.isArray(l) ? l.filter(function (x) {
+        return x && /^AV-[A-Z0-9]{1,32}$/.test(String(x.o || ''));
+      }) : [];
+    } catch (e) { return []; }
+  }
+  function escribirPorRecuperar(l) {
+    var ls = almacen();
+    if (!ls) return;
+    // Una orden vencida ya no tiene llave que devolver.
+    var ahora = Date.now() / 1000;
+    var vigentes = l.filter(function (x) { return x && x.o && Number(x.e) > ahora; });
+    try {
+      if (vigentes.length) ls.setItem(POR_RECUPERAR, JSON.stringify(vigentes));
+      else ls.removeItem(POR_RECUPERAR);
+    } catch (e) {}
+  }
+
+  // La vuelta desde la pasarela con una orden que el Worker no reconoce en
+  // esta cuenta: o se pago con otra cuenta en este mismo equipo, o el
+  // registro de la orden todavia no se ve desde aqui. En los dos casos el
+  // numero de la direccion es lo unico que queda de ese pago; se anota para
+  // que recuperarPagos lo pida con la cuenta que entre despues. Plazo corto:
+  // mientras siga anotada, cada pagina con portero pregunta por ella.
+  var ANOTADA_SIN_VER = 7 * 86400;
+  function anotarPago(orden) {
+    var o = String(orden || '');
+    if (!/^AV-[A-Z0-9]{1,32}$/.test(o)) return;
+    var l = leerPorRecuperar();
+    if (l.some(function (x) { return x.o === o; })) return;
+    l.push({ o: o, e: Math.floor(Date.now() / 1000) + ANOTADA_SIN_VER, p: 'acta' });
+    escribirPorRecuperar(l);
+  }
+
+  // Devuelve a su casillero las llaves de las ordenes anotadas al salir.
+  // cb(n) con cuantas volvieron. Sin nada anotado responde en el acto, para
+  // no demorar la carga de ninguna pagina.
+  //
+  // /api/pago/estado va con el limite estricto del Worker: 20 consultas por
+  // minuto por IP, y en una conserjeria esa IP es la de todo el edificio.
+  // Preguntar por todas las ordenes a la vez gastaba el cupo de un golpe, y
+  // la vuelta de un pago recien hecho se quedaba sin respuesta. Por eso se
+  // pregunta una tras otra, a lo mas POR_VISITA por carga de pagina, y ante
+  // un 429 se para: las que quedan van en la proxima visita. Las que se
+  // preguntaron sin exito pasan al final de la fila; si no, una orden de
+  // otra cuenta, que sigue anotada hasta vencer, se llevaria siempre los
+  // primeros turnos y taparia a las de atras.
+  var POR_VISITA = 5;
+  var cupoVisita = POR_VISITA;
+  // Mismo criterio que llaveDelActa() en acta-1.js y llaveGuardada() en
+  // consulta-1.js: 'DEMO-PAGO-SIMULADO' solo cuenta en una pagina -demo.
+  function casilleroOcupado(v) {
+    if (!v) return false;
+    if (v !== 'DEMO-PAGO-SIMULADO') return true;
+    return /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(String((global.location || {}).pathname || ''));
+  }
+  // Si otra parte de la pagina pide lo mismo mientras se pregunta, espera
+  // esa vuelta en vez de preguntar de nuevo por las mismas ordenes.
+  var esperanRecuperar = null;
+
+  function recuperarPagos(cb) {
+    if (esperanRecuperar) { if (cb) esperanRecuperar.push(cb); return; }
+    var lista = leerPorRecuperar();
+    if (!lista.length || cupoVisita <= 0) { if (cb) cb(0); return; }
+    esperanRecuperar = cb ? [cb] : [];
+    var hecho = false, vueltas = 0, devueltas = [], preguntadas = [];
+    var terminar = function () {
+      if (hecho) return;
+      hecho = true;
+      clearTimeout(reloj);
+      // Se relee el equipo: mientras se preguntaba, la pagina pudo anotar
+      // otra orden (anotarPago) y escribir la lista del comienzo la borraba.
+      var quedan = leerPorRecuperar().filter(function (x) { return devueltas.indexOf(x.o) < 0; });
+      var yaPreguntada = function (x) { return preguntadas.indexOf(x.o) >= 0; };
+      escribirPorRecuperar(quedan.filter(function (x) { return !yaPreguntada(x); })
+        .concat(quedan.filter(yaPreguntada)));
+      var esperan = esperanRecuperar;
+      esperanRecuperar = null;
+      // Un error en quien espera no puede dejar sin respuesta al siguiente
+      // (el portero de la pagina quedaria cerrado); se relanza aparte para
+      // que igual se vea en la consola.
+      esperan.forEach(function (f) {
+        try { f(vueltas); } catch (e) { setTimeout(function () { throw e; }, 0); }
+      });
+    };
+    // La red no puede dejar la pagina esperando: pasado el plazo se sigue, y
+    // lo que no volvio queda anotado para la proxima.
+    var reloj = setTimeout(terminar, 6000);
+    tokenDeAcceso().then(function (token) {
+      if (!token) { terminar(); return; }
+      var turno = lista.slice(0, cupoVisita), i = 0;
+      var siguiente = function () {
+        if (hecho || i >= turno.length) { terminar(); return; }
+        var x = turno[i++];
+        cupoVisita--;
+        fetch('/api/pago/estado?orden=' + encodeURIComponent(x.o), {
+          headers: { authorization: 'Bearer ' + token }
+        }).then(function (r) {
+          // Pasado el limite, seguir solo suma rechazos y alarga la espera.
+          // Y el cupo de esta pagina se da por gastado: otra llamada en la
+          // misma carga (el panel pregunta despues del portero) volveria a
+          // chocar con el limite y le quitaria turnos a la vuelta de Flow.
+          if (r.status === 429) { cupoVisita = 0; terminar(); return; }
+          preguntadas.push(x.o);
+          return r.json().catch(function () { return null; }).then(function (d) {
+            // Lo que llega despues del plazo ya no se usa: la lista se
+            // escribio sin esta respuesta y la orden sigue anotada.
+            if (hecho) return;
+            if (d && d.estado === 'pagado' && d.llave) {
+              var casillero = d.producto === 'consulta' ? 'consulta_pago_llave' : 'acta_pago_llave';
+              var ls = almacen();
+              // Si el casillero ya tiene otra llave, esta espera su turno.
+              // La marca que dejaba la demostracion no es una llave: fuera
+              // de una pagina -demo los lectores la descartan, y tomarla por
+              // ocupado dejaba el pago de verdad esperando hasta vencer.
+              if (ls && !casilleroOcupado(ls.getItem(casillero))) {
+                try { ls.setItem(casillero, d.llave); devueltas.push(x.o); vueltas++; } catch (e) {}
+              }
+            }
+            siguiente();
+          });
+        }).then(null, function () { terminar(); });
+      };
+      siguiente();
+    }).then(null, terminar);
+  }
+
+  // Lo mismo que _actaEnBlanco() de acta-1.js: los campos vienen todos,
+  // llenos o vacios, asi que se miran los que indican trabajo empezado.
+  function actaEnBlanco(snap) {
+    var f = snap.fields || {};
+    for (var k in f) if (String(f[k] || '').trim() !== '') return false;
+    var a = snap.asistentes || [];
+    for (var i = 0; i < a.length; i++) {
+      var p = a[i] || {};
+      if (String(p.nombre || '').trim() !== '' || String(p.rut || '').trim() !== '') return false;
+    }
+    var q = snap.puntos || [];
+    for (var j = 0; j < q.length; j++) if (String((q[j] || {}).titulo || '').trim() !== '') return false;
+    return true;
+  }
+
+  // ¿Que borradores tienen algo que no llego a la cuenta? cb([claves]).
+  //
+  //  - Acta: acta-1.js escribe cada cambio en sistema_actas_v2 y, 1,2 s
+  //    despues, sube a actas_guardadas una copia con un savedAt nuevo. Si esa
+  //    subida fallo o no alcanzo a salir, la fila de la cuenta queda con un
+  //    savedAt ANTERIOR al del borrador. Sin actaId, el borrador nunca subio.
+  //    Con folio, el acta ya quedo sellada en el servidor y el servidor no
+  //    acepta mas cambios: lo local no agrega nada.
+  //  - Comite: acta-comite-1.js escribe acta_comite_borrador solo cuando no
+  //    pudo hablar con el servidor, y lo borra en el primer guardado bueno.
+  //    Si existe, es por definicion lo que no subio.
+  //
+  //  Ante la duda (sin red, sin respuesta) se cuenta como pendiente:
+  //  preguntar de mas cuesta un clic; no preguntar puede costar el acta.
+  //
+  //  Lo que no se pregunta es por el borrador de OTRA cuenta. Cada borrador
+  //  lleva el uid de quien lo escribio (acta-1.js lo pone en snap.uid;
+  //  acta-comite-1.js, en la clave "uid" del objeto guardado). Si ese uid no
+  //  es el de quien esta cerrando sesion, el borrador lo dejo aqui otra
+  //  persona que eligio «Cancelar» al salir. Preguntarle a esta si lo
+  //  conserva es pedirle que decida sobre el padron de un condominio ajeno,
+  //  y con Cancelar lo dejaria a la vista de nuevo: se borra sin preguntar.
+  //  Sin uid (lo escribio la version anterior) o sin saber quien sale, no
+  //  hay como saber de quien es y vale lo de siempre.
+  function borradoresPendientes(c, cb) {
+    var ls = almacen();
+    var pend = [];
+    if (!ls) { cb(pend); return; }
+    // El del comite cuenta con solo existir, aunque no se pueda leer: asi
+    // era antes de mirar su uid, y un JSON roto no es razon para no avisar.
+    var hayComite = false, comite = null;
+    try {
+      var rc = ls.getItem(BORRADOR_COMITE);
+      hayComite = !!rc;
+      comite = rc ? JSON.parse(rc) : null;
+    } catch (e) { comite = null; }
+    var snap = null;
+    try { snap = JSON.parse(ls.getItem(BORRADOR_ACTA)); } catch (e) { snap = null; }
+    var actaEnJuego = !!(snap && typeof snap === 'object' && !snap.actaFolio && !actaEnBlanco(snap));
+    if (!hayComite && !actaEnJuego) { cb(pend); return; }
+
+    var uid = null;
+    var ajeno = function (b) {
+      return !!(uid && b && typeof b === 'object' && typeof b.uid === 'string' && b.uid && b.uid !== uid);
+    };
+    var hecho = false;
+    var fin = function (actaPendiente) {
+      if (hecho) return;
+      hecho = true;
+      clearTimeout(reloj);
+      if (hayComite && !ajeno(comite)) pend.push(BORRADOR_COMITE);
+      if (actaPendiente) pend.push(BORRADOR_ACTA);
+      cb(pend);
+    };
+    // Un solo plazo para las dos preguntas (quien sale y que tiene la
+    // cuenta): getSession tambien puede quedarse esperando la red si tiene
+    // que renovar el token.
+    var reloj = setTimeout(function () { fin(actaEnJuego); }, 4000);
+    uidDeLaSesion(c, function (u) {
+      if (hecho) return;
+      uid = u;
+      if (!actaEnJuego || ajeno(snap)) { fin(false); return; }
+      if (!snap.actaId || !c || typeof c.from !== 'function') { fin(true); return; }
+      try {
+        // Se pide solo la fecha que trae el contenido, no el acta entera: para
+        // comparar no hace falta bajar el padron.
+        c.from('actas_guardadas').select('guardada:contenido->>savedAt').eq('id', snap.actaId)
+          .then(function (r) {
+            var f = r && !r.error && r.data && r.data[0];
+            var g = f ? (f.guardada != null ? f.guardada : (f.contenido && f.contenido.savedAt)) : null;
+            fin(!(Date.parse(g) >= Date.parse(snap.savedAt)));
+          }, function () { fin(true); });
+      } catch (e) { fin(true); }
+    });
+  }
+
+  // El uid de quien tiene la sesion abierta, o null si no se sabe (sin
+  // cliente, sin sesion, o Supabase fallo). Como tokenDeAcceso: nunca lanza.
+  function uidDeLaSesion(c, cb) {
+    if (!c || !c.auth || typeof c.auth.getSession !== 'function') { cb(null); return; }
+    var uid = null;
+    Promise.resolve().then(function () {
+      return c.auth.getSession();
+    }).then(function (r) {
+      var s = r && r.data && r.data.session;
+      uid = (s && s.user && s.user.id) || null;
+    }, function () { uid = null; }).then(function () { cb(uid); });
+  }
+
+  function borrarDelEquipo(conservar) {
+    var ls = almacen();
+    if (!ls) return;
+    // Antes de soltar las llaves se anota de que orden eran.
+    var pend = leerPorRecuperar();
+    ['acta_pago_llave', 'consulta_pago_llave', 'acta_pago_llave_real'].forEach(function (k) {
+      var d = null;
+      try { d = ordenDeLlave(ls.getItem(k)); } catch (e) {}
+      if (d && !pend.some(function (x) { return x.o === d.o; })) pend.push(d);
+    });
+    escribirPorRecuperar(pend);
+
+    var quitar = DEL_EQUIPO.slice();
+    [BORRADOR_ACTA, BORRADOR_COMITE].forEach(function (k) {
+      if ((conservar || []).indexOf(k) < 0) quitar.push(k);
+    });
+    try {
+      for (var i = 0; i < ls.length; i++) {
+        var k = ls.key(i);
+        if (k && PREFIJOS_DEL_EQUIPO.some(function (p) { return k.indexOf(p) === 0; })) quitar.push(k);
+      }
+    } catch (e) {}
+    quitar.forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
+  }
+
+  // signOut() no suelta la sesion local si no alcanza al servidor: sin red
+  // devuelve el error y deja el token donde estaba. Cerrar sesion no puede
+  // depender de la conexion, asi que en ese caso se suelta a mano.
+  var LLAVE_SESION = 'sb-' + URL_SB.replace(/^https:\/\//, '').split('.')[0] + '-auth-token';
+  function soltarSesionLocal() {
+    var ls = almacen();
+    if (!ls) return;
+    [LLAVE_SESION, LLAVE_SESION + '-code-verifier'].forEach(function (k) {
+      try { ls.removeItem(k); } catch (e) {}
+    });
+  }
+
+  // Aceptar es borrar, que es lo que se espera de «Cerrar sesión» y lo que
+  // pasa si la persona aprieta Enter sin leer.
+  var AVISO_BORRADOR =
+    'En este equipo quedaron cambios de su acta que no alcanzaron a guardarse en su cuenta.\n\n' +
+    'Aceptar: borrarlos de este equipo y cerrar sesión.\n' +
+    'Cancelar: dejarlos en este navegador para retomarlos después. ' +
+    'Cualquiera que use este equipo podrá verlos.';
+
   function salir(cb) {
     var c = cliente();
-    if (!c) { if (cb) cb(); return; }
-    c.auth.signOut().then(function () { if (cb) cb(); }, function () { if (cb) cb(); });
+    var fin = function () { if (cb) cb(); };
+    // La comparacion con la cuenta necesita la sesion: va antes de cerrarla.
+    borradoresPendientes(c, function (pend) {
+      var conservar = [];
+      if (pend.length) {
+        var borrar = true;
+        var t0 = Date.now();
+        try { borrar = global.confirm(AVISO_BORRADOR); } catch (e) { borrar = true; }
+        // Un navegador que no muestra el dialogo (pestana en segundo plano,
+        // dialogos bloqueados) devuelve false al instante, sin que nadie
+        // haya elegido Cancelar. Eso no puede convertir en "conservar" lo
+        // que por omision se borra.
+        if (!borrar && Date.now() - t0 < 50) borrar = true;
+        if (!borrar) conservar = pend;
+      }
+      // Se limpia DESPUES de cerrar: si mientras viajaba el cierre el asistente
+      // alcanzo a autoguardar, eso tambien se va.
+      var cerrar = function () { borrarDelEquipo(conservar); fin(); };
+      if (!c) { cerrar(); return; }
+      try {
+        c.auth.signOut().then(function (r) {
+          if (r && r.error) soltarSesionLocal();
+          cerrar();
+        }, function () { soltarSesionLocal(); cerrar(); });
+      } catch (e) { soltarSesionLocal(); cerrar(); }
+    });
   }
 
   // -------------------------------------------------------------------
@@ -116,8 +483,12 @@
   // Traduce los errores de Supabase a algo que una persona entienda.
   function motivo(e, porDefecto) {
     var m = String((e && e.message) || '').toLowerCase();
+    // No se afirma que la cuenta existe. Hoy Supabase no manda este error
+    // porque exige confirmar el correo; el dia que alguien active la
+    // confirmacion automatica en el panel, un "ya tiene cuenta" convertiria
+    // el registro en un buscador de quien es cliente.
     if (/already registered|already exists|user already/.test(m))
-      return 'Ese correo ya tiene cuenta. Use «Entrar» o recupere su clave.';
+      return 'No pudimos crear la cuenta con ese correo. Si ya tiene una, use «Entrar» o recupere su clave.';
     if (/invalid login|invalid credentials/.test(m))
       return 'El correo o la clave no coinciden.';
     if (/email not confirmed|not confirmed/.test(m))
@@ -215,30 +586,103 @@
     }, function () { cb('No pudimos enviar el enlace.'); });
   }
 
-  function cambiarClave(clave, cb) {
+  // Cambiar la clave pide la actual. Con la sola sesion abierta, cualquiera
+  // que encontrara el computador sin bloquear se quedaba con la cuenta para
+  // siempre: le bastaba poner una clave suya.
+  //
+  // La excepcion es quien acaba de probar que es dueno del correo: llego por
+  // el enlace para recuperar la clave (la olvido) o entro con un codigo (puede
+  // no haber tenido clave nunca). Ahi el correo ya hizo de segundo factor.
+  // Lo dice el propio token de Supabase en 'amr': como se autentico y cuando.
+  //
+  // Es una puerta de la interfaz: quien tenga la sesion y la consola puede
+  // llamar updateUser igual. La que no se salta es la del panel de Supabase
+  // ('Secure password change'), que exige un codigo enviado al correo.
+  var VENTANA_CORREO = 10 * 60;   // segundos desde que probo el correo
+
+  function correoRecienProbado(token) {
+    var partes = String(token || '').split('.');
+    if (partes.length !== 3) return false;
+    try {
+      var amr = b64urlJson(partes[1]).amr;
+      var ahora = Date.now() / 1000;
+      return Array.isArray(amr) && amr.some(function (m) {
+        return m && /^(recovery|otp|magiclink|email|email\/signup|invite)$/.test(String(m.method)) &&
+               ahora - Number(m.timestamp) < VENTANA_CORREO;
+      });
+    } catch (e) { return false; }
+  }
+
+  // cb(true) si para cambiar la clave hay que escribir la actual.
+  function pideClaveActual(cb) {
+    var c = cliente();
+    if (!c) { cb(true); return; }
+    c.auth.getSession().then(function (r) {
+      var s = r && r.data && r.data.session;
+      cb(!correoRecienProbado(s && s.access_token));
+    }, function () { cb(true); });
+  }
+
+  // cb(err): 'FALTA_CLAVE_ACTUAL' y 'CLAVE_FILTRADA' son codigos para que la
+  // pagina decida que mostrar; lo demas es un mensaje listo.
+  function cambiarClave(clave, cb, actual) {
     if (!claveValida(clave)) { cb('La clave debe tener al menos ' + CLAVE_MIN + ' caracteres.'); return; }
-    claveFiltrada(clave, function (mala) {
-      if (mala) { cb('CLAVE_FILTRADA'); return; }
-      cambiarClaveYa(clave, cb);
+    pideClaveActual(function (pide) {
+      if (pide && !actual) { cb('FALTA_CLAVE_ACTUAL'); return; }
+      claveFiltrada(clave, function (mala) {
+        if (mala) { cb('CLAVE_FILTRADA'); return; }
+        cambiarClaveYa(clave, cb, pide ? actual : null);
+      });
     });
   }
 
-  function cambiarClaveYa(clave, cb) {
+  function cambiarClaveYa(clave, cb, actual) {
     var c = cliente();
     if (!c) { cb('Sin conexión con el servicio.'); return; }
-    c.auth.updateUser({ password: clave }).then(function (r) {
-      if (r && r.error) { cb(motivo(r.error, 'No pudimos cambiar la clave.')); return; }
-      cb(null);
-    }, function () { cb('No pudimos cambiar la clave.'); });
+    var cambiar = function () {
+      c.auth.updateUser({ password: clave }).then(function (r) {
+        if (r && r.error) { cb(motivo(r.error, 'No pudimos cambiar la clave.')); return; }
+        cb(null);
+      }, function () { cb('No pudimos cambiar la clave.'); });
+    };
+    if (actual == null) { cambiar(); return; }
+    // La clave actual se comprueba entrando de nuevo con ella, contra el
+    // correo de la sesion abierta y no contra uno que se escriba.
+    c.auth.getSession().then(function (r) {
+      var s = r && r.data && r.data.session;
+      var correo = s && s.user && s.user.email;
+      if (!correo) { cb('Su sesión terminó. Vuelva a entrar.'); return; }
+      return c.auth.signInWithPassword({ email: correo, password: actual }).then(function (r2) {
+        if (r2 && r2.error) {
+          var m = String(r2.error.message || '').toLowerCase();
+          cb(/rate|seconds|exceed|often|too many/.test(m)
+            ? 'Demasiados intentos seguidos. Espere un minuto.'
+            : 'La clave actual no es correcta.');
+          return;
+        }
+        cambiar();
+      });
+    }).then(null, function () { cb('No pudimos comprobar su clave actual.'); });
   }
 
   function pedirCodigo(correo, cb) {
     if (!correoValido(correo)) { cb('Revise el correo electrónico.'); return; }
     var c = cliente();
     if (!c) { cb('Sin conexión con el servicio. Recargue la página.'); return; }
-    c.auth.signInWithOtp({ email: correo }).then(function (r) {
+    // El codigo sirve para ENTRAR, no para abrir cuentas. Con el valor por
+    // omision (true), cualquiera escribia el correo de un tercero y Supabase
+    // le creaba una cuenta y le mandaba un mensaje que no pidio. El alta pasa
+    // siempre por crearCuenta, que pide nombre y revisa la clave.
+    c.auth.signInWithOtp({ email: correo, options: { shouldCreateUser: false } }).then(function (r) {
       if (r && r.error) {
         var m = String(r.error.message || '');
+        // Sin cuenta, Supabase contesta "Signups not allowed for otp".
+        // Decirlo convertiria este boton en un buscador de quien es cliente:
+        // se responde igual que cuando el codigo sale, y el paso siguiente
+        // lo explica ("si ese correo tiene cuenta...").
+        if (/signups? not allowed|otp_disabled|user not found/i.test(m + ' ' + (r.error.code || ''))) {
+          cb(null); return;
+        }
         cb(/rate|seconds|exceed|often/i.test(m)
           ? 'Demasiados envíos seguidos. Espere un minuto.'
           : 'No pudimos enviar el código a ese correo.');
@@ -485,7 +929,7 @@
                 '<button type="button" class="cta-prov" id="cta-google" aria-label="Continuar con Google">' + SVG_G + '<span>Google</span></button>' +
               '</div>'
             : '') +
-          '<p class="cta-pie"><a href="#" id="cta-sincl">Prefiero un código por correo</a></p>' +
+          '<p class="cta-pie" id="cta-sincl-caja"><a href="#" id="cta-sincl">Prefiero un código por correo</a></p>' +
         '</div>' +
 
         '<p class="cta-pie">Al continuar acepta los <a href="/terminos" target="_blank" rel="noopener">t&eacute;rminos del servicio</a> ' +
@@ -523,6 +967,9 @@
       $('cta-req').style.display = entrar ? 'none' : 'block';
       $('cta-olvide-caja').style.display = entrar ? 'block' : 'none';
       $('cta-nombre-caja').style.display = entrar ? 'none' : 'block';
+      // El codigo por correo solo sirve para entrar (no abre cuentas): en
+      // «Crear cuenta» seria un camino que no lleva a ninguna parte.
+      $('cta-sincl-caja').style.display = entrar ? '' : 'none';
       $('cta-lbl-correo').style.marginTop = entrar ? '' : '13px';
       if (!tituloPropio) {
         $('cta-tit').textContent = entrar ? 'Entre a su cuenta' : 'Cree su cuenta';
@@ -587,7 +1034,9 @@
       aviso('');
       recuperarClave(correo, function (err) {
         if (err) { aviso(err); return; }
-        aviso('Le enviamos un enlace a <b>' + correo + '</b> para poner una clave nueva.', 'ok');
+        // aviso() escribe con innerHTML: el correo va escapado, como en el
+        // resto del panel.
+        aviso('Le enviamos un enlace a <b>' + esc(correo) + '</b> para poner una clave nueva.', 'ok');
       });
     });
 
@@ -599,7 +1048,10 @@
       $('cta-dest').textContent = correo;
       $('cta-instr').innerHTML = tipo === 'signup'
         ? 'Su cuenta quedó creada. Para activarla, escriba el código que enviamos a <b>' + esc(correo) + '</b>. Si no aparece, revise el spam.'
-        : 'Le enviamos un código a <b>' + esc(correo) + '</b>. Búsquelo en su correo y escríbalo aquí. Si no aparece, revise el spam.';
+        // Condicional a proposito: pedirCodigo responde igual exista o no la
+        // cuenta, y este texto no puede desmentirlo.
+        : 'Si <b>' + esc(correo) + '</b> tiene una cuenta, le enviamos un código. Búsquelo en su correo y escríbalo aquí. ' +
+          'Si no aparece, revise el spam. Si todavía no tiene cuenta, vuelva y regístrese.';
       $('cta-tit').textContent = tipo === 'signup' ? 'Confirme su correo' : 'Escriba su código';
       $('cta-subt').style.display = 'none';
       $('cta-verificar').textContent = tipo === 'signup' ? 'Confirmar y entrar' : 'Entrar';
@@ -652,7 +1104,9 @@
       aviso('Enviando…', 'ok');
       var listoAviso = function (err) {
         if (err) { aviso(err); return; }
-        aviso('Le enviamos otro código a ' + esc(pendiente) + '.', 'ok');
+        aviso(tipoCodigo === 'signup'
+          ? 'Le enviamos otro código a ' + esc(pendiente) + '.'
+          : 'Si ' + esc(pendiente) + ' tiene una cuenta, le enviamos otro código.', 'ok');
       };
       if (tipoCodigo === 'signup') reenviarConfirmacion(pendiente, listoAviso);
       else pedirCodigo(pendiente, listoAviso);
@@ -729,7 +1183,10 @@
         // Recargar la misma pagina lo dejaba donde estaba, sin senal de que
         // algo habia pasado. En /acta y en la consulta no pasa por aqui: ahi
         // el cajon es el portero y se vuelve a lo que se estaba haciendo.
-        abrirCajon({ alEntrar: function () { location.href = '/cuenta'; } });
+        // Si el portero llega con este cajon abierto (en /acta pregunta
+        // recien con el evento load, y la cabecera ya esta pintada), manda
+        // el: ir al panel sacaba a la persona de la pagina que la esperaba.
+        abrirCajon({ alEntrar: function () { location.href = '/cuenta'; }, cedeAlPortero: true });
       });
     }
 
@@ -806,6 +1263,9 @@
   function cerrarCajon() {
     if (!abiertoCajon) return;
     var c = abiertoCajon; abiertoCajon = null;
+    // Lo que esperaba a que la persona entrara se descarta: cerro sin entrar.
+    // (Al entrar, la fila se toma antes de llamar aqui.)
+    c.alEntrar = [];
     (c.apagados || []).forEach(function (hijo) {
       hijo.removeAttribute('aria-hidden');
       hijo.inert = false;
@@ -820,10 +1280,48 @@
     if (c.foco && c.foco.focus) { try { c.foco.focus(); } catch (e) {} }
   }
 
-  // opciones: { titulo, sub, bloqueante, alEntrar }
+  // Un pedido bloqueante que llega con un cajon que se puede cerrar abierto
+  // (el de la cabecera, apretado justo antes de que el portero preguntara)
+  // lo deja sin salida, como si lo hubiera abierto el portero. Si no, la
+  // persona lo cerraba, el alEntrar del portero se descartaba con el y la
+  // pagina quedaba esperando a un portero que no volvia a abrir.
+  function volverBloqueante(rec) {
+    if (rec.bloqueante) return;
+    rec.bloqueante = true;
+    // Lo que solo servia fuera de una pagina con portero (ir al panel desde
+    // la cabecera) se retira de la fila: se llamaba primero, navegaba a
+    // /cuenta y el portero, aunque tambien se llamaba, quedaba en una
+    // pagina que se estaba yendo.
+    rec.alEntrar = rec.alEntrar.filter(function (f) { return rec.cedibles.indexOf(f) < 0; });
+    try { if (rec.x) rec.x.remove(); } catch (e) {}
+    var interior = rec.cajon.querySelector && rec.cajon.querySelector('.cta-cajon-int');
+    if (interior) {
+      var volver = document.createElement('a');
+      volver.className = 'cta-volver';
+      volver.href = '/';
+      volver.textContent = '← Volver al inicio';
+      interior.appendChild(volver);
+    }
+  }
+
+  // opciones: { titulo, sub, bloqueante, alEntrar, cedeAlPortero }
+  // cedeAlPortero: este alEntrar se descarta si un pedido bloqueante llega
+  // con el cajon abierto (ver volverBloqueante).
   function abrirCajon(opciones) {
     var o = opciones || {};
-    if (abiertoCajon) return;
+    if (abiertoCajon) {
+      // El cajon es uno solo: un segundo pedido no abre otro. Pero tampoco
+      // se ignora, que es lo que pasaba antes: su alEntrar nunca se llamaba
+      // y la pagina que lo pidio quedaba esperando (en /acta piden la sesion
+      // a la vez el portero de acta-1.js y la vuelta del pago de acta-2.js).
+      // Queda en la fila y se llama, en orden, cuando la persona entra.
+      if (typeof o.alEntrar === 'function') {
+        abiertoCajon.alEntrar.push(o.alEntrar);
+        if (o.cedeAlPortero) abiertoCajon.cedibles.push(o.alEntrar);
+      }
+      if (o.bloqueante) volverBloqueante(abiertoCajon);
+      return;
+    }
     inyectarCss();
 
     var foco = document.activeElement;
@@ -862,7 +1360,13 @@
       hijo.inert = true;
     });
 
-    abiertoCajon = { cajon: cajon, velo: velo, foco: foco, apagados: apagados, bloqueante: !!o.bloqueante };
+    // alEntrar es la fila de lo que espera a que la persona entre: el de
+    // quien abrio el cajon y los de los pedidos que llegaron con el abierto.
+    var este = abiertoCajon = {
+      cajon: cajon, velo: velo, foco: foco, apagados: apagados, bloqueante: !!o.bloqueante,
+      alEntrar: typeof o.alEntrar === 'function' ? [o.alEntrar] : [], x: null,
+      cedibles: (o.cedeAlPortero && typeof o.alEntrar === 'function') ? [o.alEntrar] : []
+    };
 
     // un cuadro para que la transicion arranque desde fuera de la pantalla
     requestAnimationFrame(function () {
@@ -874,20 +1378,46 @@
       titulo: o.titulo,
       sub: o.sub,
       alEntrar: function (u) {
+        // La persona cerro el cajon antes de que terminara de entrar: lo que
+        // esperaba se descarto con el. La sesion igual quedo abierta, y la
+        // cabecera tiene que mostrarlo; recargar podia llevarse lo que
+        // hubiera escrito en la pagina.
+        if (abiertoCajon !== este) { refrescarNav(); return; }
+        // La fila se toma antes de cerrar, porque cerrarCajon la descarta.
+        var esperan = este.alEntrar;
+        este.alEntrar = [];
         cerrarCajon();
-        if (o.alEntrar) o.alEntrar(u);
-        else location.reload();
+        // Nadie pidio nada al entrar: se recarga, para que la pagina se vea
+        // con la sesion. Con algo en la fila no, que la recarga lo cortaria.
+        if (!esperan.length) { location.reload(); return; }
+        // Un error en uno no deja sin llamar a los que siguen (el portero
+        // de la pagina quedaria cerrado); se relanza aparte para que igual
+        // se vea en la consola, como en recuperarPagos.
+        esperan.forEach(function (f) {
+          try { f(u); } catch (e) { setTimeout(function () { throw e; }, 0); }
+        });
       }
     });
 
     var campo = document.getElementById('cta-correo');
     if (campo) setTimeout(function () { try { campo.focus(); } catch (e) {} }, 320);
 
+    // Cerrar lo decide la persona, y solo mientras este cajon siga abierto y
+    // no se haya vuelto bloqueante (volverBloqueante).
+    var cerrarSiSePuede = function () {
+      if (abiertoCajon === este && !este.bloqueante) cerrarCajon();
+    };
     if (!o.bloqueante) {
-      document.getElementById('cta-cerrar').addEventListener('click', cerrarCajon);
-      velo.addEventListener('click', cerrarCajon);
+      este.x = document.getElementById('cta-cerrar');
+      este.x.addEventListener('click', cerrarSiSePuede);
+      velo.addEventListener('click', cerrarSiSePuede);
       document.addEventListener('keydown', function esc(e) {
-        if (e.key === 'Escape' && abiertoCajon) { cerrarCajon(); document.removeEventListener('keydown', esc); }
+        if (e.key !== 'Escape') return;
+        // Cerrado este cajon, el oyente sobra. Y no puede cerrar el que se
+        // abra despues, que puede ser el portero: antes bastaba que hubiera
+        // alguno abierto.
+        if (abiertoCajon !== este) { document.removeEventListener('keydown', esc); return; }
+        cerrarSiSePuede();
       });
     }
 
@@ -903,15 +1433,25 @@
   }
 
   // Portero: deja pasar si hay sesion; si no, abre el cajon sin salida.
+  // Antes de dejar pasar se devuelven las llaves de pago que quedaron
+  // anotadas al cerrar sesion: la pagina que viene detras las lee apenas
+  // arranca. Sin nada anotado, recuperarPagos contesta en el acto.
+  // Si el cajon ya esta abierto (otro pedido de sesion en la misma pagina),
+  // este alEntrar espera en su fila y se llama cuando la persona entra,
+  // despues de los que llegaron antes (ver abrirCajon).
   function exigirSesion(opciones, alEntrar) {
     var o = opciones || {};
     usuario(function (u) {
-      if (u) { if (alEntrar) alEntrar(u); return; }
+      if (u) { recuperarPagos(function () { if (alEntrar) alEntrar(u); }); return; }
       abrirCajon({
         titulo: o.titulo || 'Entre para continuar',
-        sub: o.sub || 'Necesita una cuenta para usar esta herramienta. Le enviamos un código a su correo y listo.',
+        // El codigo por correo ya no abre cuentas (AUTH-03): el texto no
+        // puede prometer que basta con el.
+        sub: o.sub || 'Necesita una cuenta para usar esta herramienta. Entre, o cree la suya en un minuto.',
         bloqueante: true,
-        alEntrar: function (u2) { if (alEntrar) alEntrar(u2); else location.reload(); }
+        alEntrar: function (u2) {
+          recuperarPagos(function () { if (alEntrar) alEntrar(u2); else location.reload(); });
+        }
       });
     });
   }
@@ -952,6 +1492,9 @@
     // sesion que abre uno no la ve el otro y auth.uid() llega nulo a Postgres.
     cliente: cliente,
     usuario: usuario,
+    tokenDeAcceso: tokenDeAcceso,
+    recuperarPagos: recuperarPagos,
+    anotarPago: anotarPago,
     salir: salir,
     panel: panel,
     montarNav: montarNav,
@@ -967,6 +1510,7 @@
     entrarConClave: entrarConClave,
     recuperarClave: recuperarClave,
     cambiarClave: cambiarClave,
+    pideClaveActual: pideClaveActual,
     guardarNombre: guardarNombre,
     reenviarConfirmacion: reenviarConfirmacion
   };

@@ -4,7 +4,6 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = r => String(r||'').replace(/[.\-\s]/g,'').toLowerCase();
 function validarRut(rut){
   const c=String(rut||'').replace(/[.\s-]/g,'').toUpperCase();
@@ -23,10 +22,31 @@ function formatRut(rut){
   while(cuerpo.length>3){ out='.'+cuerpo.slice(-3)+out; cuerpo=cuerpo.slice(0,-3); }
   return cuerpo+out+'-'+dv;
 }
-const codigoNuevo = () => { const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; };
+// El codigo de la sala lo acuna vv_crear en Postgres; aqui solo se recibe.
+// Habia un generador local con Math.random que nadie llamaba (SAST-08): se
+// fue, para que nadie lo tome por el que vale.
 function setBusy(btn,busy,txt){ if(!btn||!btn.tagName) return; if(busy){ if(btn.dataset.t===undefined) btn.dataset.t=btn.textContent; btn.disabled=true; if(txt) btn.textContent=txt; } else { btn.disabled=false; if(btn.dataset.t!==undefined){ btn.textContent=btn.dataset.t; delete btn.dataset.t; } } }
 function setConn(txt,cls){ const e=$('conn'); if(!e) return; e.textContent=txt; e.className='conn '+(cls||''); }
 function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (más del 50% de los derechos del condominio)':t==='ext-ref'?'Extraordinaria · reforzada (66% de los derechos del condominio)':'Ordinaria · acuerdos por mayoría absoluta de los derechos presentes'; }
+function leyendaVoto(c){ return c==='favor'?'A favor':c==='contra'?'En contra':c==='abst'?'Abstención':''; }
+
+// Arma un elemento con trozos de texto sin pasar por innerHTML. Lo que se
+// pinta en la sala mezcla cifras con nombres, unidades y RUT que llegan del
+// padron -de una planilla o de la base-, y por textContent un nombre como
+// "<img src=x>" se ve tal cual en vez de volverse una etiqueta. Cada trozo
+// es un texto o {txt, cls, color, tag}.
+function pintar(el, partes){
+  if(!el) return el;
+  el.textContent='';
+  partes.forEach(p=>{
+    if(p==null||p==='') return;
+    const n=document.createElement((p&&p.tag)||'span');
+    if(typeof p==='object'){ if(p.cls) n.className=p.cls; if(p.color) n.style.color=p.color; n.textContent=String(p.txt); }
+    else n.textContent=String(p);
+    el.appendChild(n);
+  });
+  return el;
+}
 
 
 let ROL=null;
@@ -39,6 +59,15 @@ let mesaTimer=null, seqVotos=0;
 // Verdadero cuando el padron se recupero del servidor sin datos de
 // asistencia: hay que pedirla, no inventarla.
 let asistenciaSupuesta=false;
+// Lo mismo con los correos: vv_set_padron reemplaza el padron entero, asi
+// que si el servidor no los devolvio, guardar desde aqui los borra y apaga
+// en silencio el aviso de voto por correo, que es lo que vuelve ruidosa una
+// suplantacion. Se dice en el resumen en vez de perderlos sin avisar.
+let correoDesconocido=false;
+// La celda "Teléfono" de cada fila del padron, para repintar solo esa al
+// refrescar los vinculos: repintar la tabla entera le quitaria el foco a la
+// Mesa si justo esta escribiendo.
+let celdasVinculo=[];
 
 // Normaliza un padron que viene de fuera -del servidor, de localStorage, de
 // una planilla- a booleanos de verdad.
@@ -58,7 +87,9 @@ function normalizarPadron(filas){
       unidad: p.unidad||'', nombre: p.nombre||'', rut: p.rut||'',
       der: Derechos.aNumero(Derechos.desdeTexto(p.der)),
       habil: h === null ? true : h,
-      asiste: a === null ? true : a
+      asiste: a === null ? true : a,
+      correo: typeof p.correo === 'string' ? p.correo : '',
+      vinculado: p.vinculado === true
     });
   });
 }
@@ -86,13 +117,20 @@ async function crearAsamblea(btn){
     const condo=$('m-condo').value.trim(), tipo=$('m-tipo').value;
     const { data, error }=await sb.rpc('vv_crear',{p_titulo:condo,p_llave:llave});
     if(error) throw error;
-    asamblea={id:data.id,codigo:data.codigo,condo,tipo,token:data.admin_token}; padron=[]; puntos=[]; puntoActivo=null; votacionAbierta=false; padronDirty=false;
+    asamblea={id:data.id,codigo:data.codigo,condo,tipo,token:data.admin_token}; padron=[]; puntos=[]; puntoActivo=null; votacionAbierta=false; padronDirty=false; correoDesconocido=false;
     padronEjemplo();
     await abrirPanelMesa({votacion_abierta:false});
     await autoGuardarPadron();
     persistMesa();
   }catch(e){
     const m=String((e&&e.message)||e||'');
+    // El tope es de salas por pago (tres) y lo pone la base. No es un
+    // problema de conexion ni del pago: decirlo asi evita que la Mesa lo
+    // reintente sin fin o crea que perdio el pago.
+    if(/demasiadas_salas_con_este_pago/.test(m)){
+      alert('Con el pago de esta asamblea ya se abrieron 3 salas de votación, que es el máximo por pago, así que no se puede abrir otra.\n\nSi necesita retomar una sala anterior, use «Continuar asamblea» en este mismo equipo.');
+      return;
+    }
     alert(/pago_|llave_/.test(m)
       ? 'No pudimos validar el pago de esta asamblea. Créela desde actascopropiedad.cl/acta.'
       : 'No se pudo crear la asamblea. Revisa tu conexión a internet e inténtalo nuevamente.');
@@ -114,9 +152,10 @@ async function reanudar(btn){
     // pendiente en Prototipo Votacion en Vivo/). Hasta que la guarde, lo
     // que vuelve del servidor no trae asistencia: se marca para poder
     // avisarlo en vez de dar por presente a todo el mundo en silencio.
-    asistenciaSupuesta = false;
+    asistenciaSupuesta = false; correoDesconocido = false;
     if (data.padron && data.padron.length) {
       asistenciaSupuesta = data.padron.some(p => Derechos.bandera(p.asiste) === null);
+      correoDesconocido = data.padron.every(p => !Object.prototype.hasOwnProperty.call(p||{}, 'correo'));
       padron = normalizarPadron(data.padron);
     } else {
       padron = normalizarPadron(saved.padron);
@@ -134,14 +173,26 @@ async function abrirPanelMesa(row){
   $('mesa-crear').classList.add('hidden');
   $('mesa-panel').classList.remove('hidden');
   $('m-codigo').textContent=asamblea.codigo;
-  const link=location.origin+location.pathname+'?code='+asamblea.codigo;
+  const link=location.origin+location.pathname+'?code='+encodeURIComponent(asamblea.codigo);
   $('m-link').textContent=link;
-  try{ const qr=qrcode(0,'M'); qr.addData(link); qr.make(); $('m-qr').innerHTML=qr.createImgTag(3,8); }catch(e){}
+  // La imagen se arma como elemento y no con createImgTag + innerHTML: asi
+  // no queda ningun innerHTML con contenido variable en este archivo.
+  try{
+    const qr=qrcode(0,'M'); qr.addData(link); qr.make();
+    const img=document.createElement('img'); img.src=qr.createDataURL(3,8); img.alt='Código QR para entrar a la asamblea';
+    const caja=$('m-qr'); caja.textContent=''; caja.appendChild(img);
+  }catch(e){}
   renderPadron(); renderPuntos();
   if(row && row.votacion_abierta){ votacionAbierta=true; puntoActivo=row.punto; mostrarVotacionMesa(); }
   if(mesaTimer) clearInterval(mesaTimer);
   setConn('● en línea','ok');
-  mesaTimer=setInterval(()=>{ if(puntoActivo) cargarVotos(); }, 6000);
+  // Cada 6 s los votos del punto abierto; cada 30 s, quienes ya quedaron
+  // vinculados a su telefono, para que la Mesa vea a quien puede liberar.
+  let vueltas=0;
+  mesaTimer=setInterval(()=>{
+    if(puntoActivo) cargarVotos();
+    if(++vueltas%5===0 && !document.hidden) refrescarVinculos(null, true);
+  }, 6000);
 }
 function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent).then(()=>{ if(btn){ const t=btn.textContent; btn.textContent='¡Copiado!'; setTimeout(()=>btn.textContent=t,1500); } }); }
 
@@ -149,28 +200,50 @@ function copiarLink(btn){ navigator.clipboard.writeText($('m-link').textContent)
 function markDirty(){ padronDirty=true; const ok=$('m-padron-ok'); if(ok) ok.textContent='Cambios sin guardar…'; persistMesa(); clearTimeout(autoTimer); autoTimer=setTimeout(autoGuardarPadron,900); }
 async function persistirPadronDB(filas){
   // Booleanos de verdad, no cadenas: del otro lado hay un ::boolean.
-  // `asiste` viaja aunque la tabla todavia no lo guarde -ver la migracion
-  // pendiente-; cuando la guarde, deja de perderse al recargar.
+  // Viajan los siete campos de vv_set_padron (contrato C4). El correo va
+  // aunque aqui no se edite: el padron se reemplaza entero, y sin el se
+  // perderian los que trajo el acta.
   const arr=filas.map(p=>({rut:norm(p.rut),nombre:p.nombre,unidad:p.unidad,
     habil:Derechos.habilSegura(p.habil),
     asiste:Derechos.bandera(p.asiste)!==false,
-    der:Derechos.aNumero(Derechos.desdeTexto(p.der))}));
+    der:Derechos.aNumero(Derechos.desdeTexto(p.der)),
+    correo:String(p.correo||'').trim().toLowerCase()}));
   const {data,error}=await sb.rpc('vv_set_padron',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_padron:arr});
   if(error) throw error;
-  return (data&&data.n)||arr.length;
+  // n=0 es una respuesta valida (el servidor no guardo ninguna fila): no se
+  // reemplaza por lo enviado, que haria creer que quedo todo.
+  return { n:(data&&typeof data.n==='number')?data.n:arr.length,
+           descartadas:(data&&Array.isArray(data.descartadas))?data.descartadas:[] };
+}
+// El servidor conserva la primera fila de cada unidad y descarta las demas.
+// Aqui se revisa antes de mandar, pero si algo se le escapa a esa revision,
+// la Mesa tiene que saber que filas no quedaron: son derechos que no votan.
+function textoDescartadas(d){
+  if(!d||!d.length) return '';
+  const muestra=d.slice(0,10).map(u=>String(u)).join(', ')+(d.length>10?' y '+(d.length-10)+' más':'');
+  return ' No se guardaron '+d.length+' fila(s) por unidad repetida ('+muestra+'): quedó la primera de cada unidad.';
+}
+// Una unidad repetida cuenta sus derechos dos veces; un RUT repetido no es
+// un error, es un copropietario con mas de una unidad. Con Object.create(null)
+// una unidad llamada "constructor" no se da por vista antes de tiempo (SAST-12).
+function unidadesRepetidas(filas){
+  const vistas=Object.create(null), dobles=[];
+  filas.forEach(p=>{ const k=String(p.unidad||'').trim().toLowerCase(); if(!k) return;
+    if(vistas[k]){ if(dobles.indexOf(p.unidad)<0) dobles.push(p.unidad); } else vistas[k]=1; });
+  return dobles;
 }
 async function autoGuardarPadron(){
   clearTimeout(autoTimer); if(!asamblea) return;
   const filas=padron.filter(p=>norm(p.rut));
   const malRut=filas.filter(p=>!validarRut(p.rut));
-  const seen={}; let dup=false; filas.forEach(p=>{ const k=norm(p.rut); if(seen[k]) dup=true; else seen[k]=1; });
+  const dup=unidadesRepetidas(filas).length>0;
   const ok=$('m-padron-ok');
-  if(malRut.length||dup){ if(ok) ok.textContent='Sin guardar — '+(malRut.length?malRut.length+' RUT con formato inválido':'hay RUT repetido')+' (corrige para guardar).'; return; }
-  try{ const n=await persistirPadronDB(filas); padronDirty=false; if(ok) ok.textContent='✓ Guardado automáticamente ('+n+').'; persistMesa(); }
+  if(malRut.length||dup){ if(ok) ok.textContent='Sin guardar — '+(malRut.length?malRut.length+' RUT con formato inválido':'hay una unidad repetida')+' (corrige para guardar).'; return; }
+  try{ const r=await persistirPadronDB(filas); padronDirty=false; if(ok) ok.textContent='✓ Guardado automáticamente ('+r.n+').'+textoDescartadas(r.descartadas); persistMesa(); }
   catch(e){ if(ok) ok.textContent='Sin conexión: no se pudo guardar. Reintenta.'; }
 }
 function renderPadron(){
-  const tb=$('m-padron-body'); tb.innerHTML='';
+  const tb=$('m-padron-body'); tb.innerHTML=''; celdasVinculo=[];
   padron.forEach((p,i)=>{
     const tr=document.createElement('tr');
     const td=ch=>{ const c=document.createElement('td'); c.appendChild(ch); return c; };
@@ -193,6 +266,7 @@ function renderPadron(){
     const a2=document.createElement('option'); a2.value='no'; a2.textContent='No';
     selA.appendChild(a1); selA.appendChild(a2); selA.value=p.asiste===false?'no':'si';
     selA.addEventListener('change',()=>{padron[i].asiste=selA.value==='si';renderPadronSum();markDirty();}); tr.appendChild(td(selA));
+    const tdV=document.createElement('td'); pintarVinculo(tdV,p); celdasVinculo.push(tdV); tr.appendChild(tdV);
     const del=document.createElement('button'); del.className='btn-del'; del.textContent='✕'; del.title='Quitar';
     del.addEventListener('click',()=>{ if(confirm('¿Quitar a '+(p.nombre||'esta persona')+' del padrón?')){ padron.splice(i,1); renderPadron(); markDirty(); } });
     tr.appendChild(td(del));
@@ -208,19 +282,75 @@ function renderPadronSum(){
   const hab=conArt14.filas.filter(p=>p.habil!==false).length;
   const pres=conArt14.filas.filter(p=>p.habil!==false&&p.asiste!==false).length;
   const malRut=padron.filter(p=>p.rut&&!validarRut(p.rut)).length;
-  // Una unidad repetida cuenta sus derechos dos veces. Un RUT repetido no
-  // es un error: es un copropietario con mas de una unidad.
-  const vistas={}; let unidadesDobles=0;
-  padron.forEach(p=>{ const u=String(p.unidad||'').trim().toLowerCase(); if(!u) return;
-    if(vistas[u]) unidadesDobles++; else vistas[u]=1; });
+  const unidadesDobles=unidadesRepetidas(padron).length;
 
-  let h=padron.length+' copropietarios · '+hab+' hábiles · '+pres+' presentes hábiles · suma de derechos: <strong>'+Derechos.texto(sum)+' %</strong>';
-  if(Math.abs(sum-Derechos.CIEN)>0.5*Derechos.ESCALA&&sum>0) h+=' <span style="color:var(--warn)">(no suma 100 %)</span>';
-  if(malRut) h+=' <span style="color:var(--err)">· '+malRut+' RUT inválido</span>';
-  if(unidadesDobles) h+=' <span style="color:var(--err)">· '+unidadesDobles+' unidad(es) repetida(s)</span>';
-  if(conArt14.arrastrados.length) h+=' <span style="color:var(--warn)">· '+conArt14.arrastrados.length+' inhábil(es) por otra unidad (art. 14)</span>';
-  if(asistenciaSupuesta) h+=' <span style="color:var(--warn)">· la asistencia no viene guardada: revísela antes de abrir la votación</span>';
-  $('m-padron-sum').innerHTML=h;
+  const ERR='var(--err)', WARN='var(--warn)';
+  const partes=[padron.length+' copropietarios · '+hab+' hábiles · '+pres+' presentes hábiles · suma de derechos: ',
+    {tag:'strong', txt:Derechos.texto(sum)+' %'}];
+  if(Math.abs(sum-Derechos.CIEN)>0.5*Derechos.ESCALA&&sum>0) partes.push({txt:' (no suma 100 %)', color:WARN});
+  if(malRut) partes.push({txt:' · '+malRut+' RUT inválido', color:ERR});
+  if(unidadesDobles) partes.push({txt:' · '+unidadesDobles+' unidad(es) repetida(s)', color:ERR});
+  if(conArt14.arrastrados.length) partes.push({txt:' · '+conArt14.arrastrados.length+' inhábil(es) por otra unidad (art. 14)', color:WARN});
+  if(asistenciaSupuesta) partes.push({txt:' · la asistencia no viene guardada: revísela antes de abrir la votación', color:WARN});
+  if(correoDesconocido) partes.push({txt:' · los correos del padrón no se recuperaron: si lo guarda desde aquí se apagan los avisos de voto por correo (importe el padrón con su columna de correo)', color:WARN});
+  const vinc=padron.filter(p=>p.vinculado).length;
+  if(vinc) partes.push(' · '+vinc+' con teléfono vinculado');
+  pintar($('m-padron-sum'), partes);
+}
+
+// ---------------------------------------------------------------------
+//  Telefonos vinculados (contrato C3)
+// ---------------------------------------------------------------------
+// Cada RUT queda atado al primer telefono desde el que se identifica. Si
+// la persona cambia de telefono -se le acabo la bateria, se equivoco otro
+// y tomo su RUT-, la Mesa lo libera aqui y puede identificarse de nuevo.
+// Los votos que ya emitio se conservan.
+function pintarVinculo(td, p){
+  td.textContent='';
+  if(!p.vinculado){ const s=document.createElement('span'); s.className='muted'; s.textContent='—'; td.appendChild(s); return; }
+  const s=document.createElement('span'); s.className='pill f'; s.textContent='vinculado'; td.appendChild(s);
+  const b=document.createElement('button'); b.type='button'; b.className='btn btn-ghost btn-sm'; b.textContent='Liberar';
+  b.style.display='block'; b.style.marginTop='4px';
+  // El RUT viaja en dataset, no concatenado en HTML: un RUT mal escrito en
+  // la planilla no puede cerrar el atributo.
+  b.dataset.ac='liberarVinculo'; b.dataset.args='@'; b.dataset.rut=norm(p.rut);
+  b.title='Liberar el teléfono de '+(p.nombre||formatRut(p.rut));
+  td.appendChild(b);
+}
+function pintarVinculos(){
+  celdasVinculo.forEach((td,i)=>{ if(padron[i]) pintarVinculo(td,padron[i]); });
+  renderPadronSum();
+}
+// Pide a la base quienes estan vinculados y lo cruza por RUT con el padron
+// que la Mesa tiene en pantalla, sin pisar lo que este editando.
+async function refrescarVinculos(btn, silencioso){
+  if(!asamblea) return;
+  setBusy(btn,true,'Actualizando…');
+  try{
+    const { data, error }=await sb.rpc('vv_reanudar',{p_codigo:asamblea.codigo,p_token:asamblea.token});
+    if(error||!data) throw error||new Error('sin datos');
+    const vinc=Object.create(null);
+    (data.padron||[]).forEach(p=>{ if(p&&p.vinculado===true) vinc[norm(p.rut)]=true; });
+    padron.forEach(p=>{ p.vinculado=vinc[norm(p.rut)]===true; });
+    pintarVinculos();
+  }catch(e){ if(!silencioso) alert('No se pudo consultar los teléfonos vinculados. Revise su conexión.'); }
+  finally{ setBusy(btn,false); }
+}
+function actualizarVinculos(btn){ return refrescarVinculos(btn,false); }
+async function liberarVinculo(btn){
+  if(!asamblea||!btn||!btn.dataset) return;
+  const rut=norm(btn.dataset.rut); if(!rut) return;
+  const quien=padron.find(p=>norm(p.rut)===rut);
+  const nombre=(quien&&quien.nombre)||formatRut(rut);
+  if(!confirm('¿Liberar el teléfono de '+nombre+'?\n\nPodrá identificarse desde otro teléfono. Los votos que ya emitió se conservan.')) return;
+  setBusy(btn,true,'Liberando…');
+  try{
+    const { error }=await sb.rpc('vv_liberar',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_rut:rut});
+    if(error) throw error;
+    padron.forEach(p=>{ if(norm(p.rut)===rut) p.vinculado=false; });
+    pintarVinculos();
+  }catch(e){ alert('No se pudo liberar el teléfono. Revise su conexión e intente de nuevo.'); }
+  finally{ setBusy(btn,false); }
 }
 function agregarFila(){ padron.push({unidad:'',nombre:'',rut:'',der:0,habil:true,asiste:true}); renderPadron(); markDirty(); }
 function padronEjemplo(){
@@ -253,10 +383,13 @@ function importarPadron(input){
         const der=Derechos.aNumero(Derechos.desdeTexto(String(derRaw||'0').replace('%','').trim()));
         nuevo.push({ unidad:String(pick(o,['unidad','depto','casa','nro','numero'])||'').trim(), nombre, rut:formatRut(rut), der,
           habil:!/^(no|n|inhabil|0|false)$/.test(na(String(pick(o,['habil','aldia','estado'])||'si'))),
-          asiste:!/^(no|n|ausente|0|false)$/.test(na(String(pick(o,['asiste','presente','asistio'])||'si'))) });
+          asiste:!/^(no|n|ausente|0|false)$/.test(na(String(pick(o,['asiste','presente','asistio'])||'si'))),
+          // Para el aviso de voto por correo: si el padron trae la columna,
+          // cada voto emitido le llega a su dueno como constancia.
+          correo:String(pick(o,['correo','email','mail'])||'').trim() });
       });
       if(nuevo.length===0){ alert('No reconocí los datos. El archivo debería tener columnas como: unidad, nombre, rut, derechos, hábil.'); input.value=''; return; }
-      padron=nuevo; renderPadron(); markDirty();
+      padron=nuevo; correoDesconocido=false; renderPadron(); markDirty();
       const cero=nuevo.filter(p=>!p.der).length, malR=nuevo.filter(p=>p.rut&&!validarRut(p.rut)).length;
       let msg='✓ Importados '+nuevo.length+' copropietarios.';
       if(omit) msg+='\nSe omitieron '+omit+' filas sin RUT ni nombre.';
@@ -279,16 +412,15 @@ async function guardarPadron(btn){
   // vota una vez con la suma de sus derechos. Rechazarlo bloqueaba justo
   // el caso que regula el art. 14 del Reglamento. Lo que no puede
   // repetirse es la UNIDAD.
-  const seenU={}, dupsU=[];
-  padron.forEach(p=>{ const k=String(p.unidad||'').trim().toLowerCase(); if(!k) return;
-    if(seenU[k]){ if(dupsU.indexOf(p.unidad)<0) dupsU.push(p.unidad); } else seenU[k]=1; });
-  if(dupsU.length){ alert('Hay unidades repetidas en el padrón: '+dupsU.join(', ')+'.' + String.fromCharCode(10) + 'Cada unidad debe aparecer una sola vez.'); return; }
+  const dupsU=unidadesRepetidas(padron);
+  if(dupsU.length){ alert('Hay unidades repetidas en el padrón: '+dupsU.join(', ')+'.\nCada unidad debe aparecer una sola vez.'); return; }
   const sum=Derechos.suma(padron.map(p=>Derechos.desdeTexto(p.der)));
   if(sum>0 && Math.abs(sum-Derechos.CIEN)>0.5*Derechos.ESCALA){ if(!confirm('La suma de derechos es '+Derechos.texto(sum)+' %, no 100 %. Esto afecta el cálculo de mayorías. ¿Guardar de todas formas?')) return; }
   setBusy(btn,true,'Guardando…'); const ok=$('m-padron-ok');
   try{
-    const n=await persistirPadronDB(filas);
-    padronDirty=false; ok.textContent='✓ Padrón guardado ('+n+').'; persistMesa();
+    const r=await persistirPadronDB(filas);
+    padronDirty=false; ok.textContent='✓ Padrón guardado ('+r.n+').'+textoDescartadas(r.descartadas); persistMesa();
+    if(r.descartadas.length) alert(textoDescartadas(r.descartadas).trim());
   }catch(e){ ok.textContent=''; alert('No se pudo guardar el padrón. Revisa tu conexión e intenta de nuevo.'); }
   finally{ setBusy(btn,false); }
 }
@@ -312,7 +444,7 @@ function renderPuntos(){
 function quitarPunto(i){ if(puntos[i].key===puntoActivo && votacionAbierta){ alert('No puedes quitar un punto mientras está en votación. Ciérralo primero.'); return; } if(!confirm('¿Quitar el punto "'+puntos[i].titulo+'"?')) return; puntos.splice(i,1); renderPuntos(); persistMesa(); }
 async function abrirPunto(key,btn){
   if(padronDirty){ await autoGuardarPadron(); }
-  if(padronDirty){ alert('Hay RUT inválidos o repetidos en el padrón (marcados en rojo). Corrígelos antes de abrir la votación.'); return; }
+  if(padronDirty){ alert('Hay RUT inválidos o unidades repetidas en el padrón. Corrígelos antes de abrir la votación.'); return; }
   if(Derechos.habilidadPorCopropietario(padron).filas.filter(p=>Derechos.habilSegura(p.habil)).length===0){ alert('No hay copropietarios hábiles en el padrón.'); return; }
   setBusy(btn,true,'Abriendo…');
   try{
@@ -350,7 +482,9 @@ async function cargarVotos(){
   renderResultados((data&&data.votos)||[]);
 }
 function calc(votos){
-  const map={}; votos.forEach(v=>map[v.rut]=v.choice);
+  // Sin prototipo: un RUT mal cargado como "constructor" no puede encontrar
+  // un "voto" heredado de Object y contarse como abstencion (SAST-12).
+  const map=Object.create(null); votos.forEach(v=>{ map[v.rut]=v.choice; });
   // Enteros escalados: la suma es exacta y no depende del orden del padron.
   // Y la habilidad se arrastra por copropietario, no por unidad (art. 14
   // del Reglamento): quien tiene dos unidades y debe en una, no vota.
@@ -404,21 +538,27 @@ function renderResultados(votos){
     set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
     // La mitad exacta de la base, con el mismo formateador que el acta.
     const minimo=Derechos.texto(r.derPresentes, 2*Derechos.ESCALA);
-    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' presentes hábiles · base: <strong>'+Derechos.texto(r.derPresentes)+' %</strong> de derechos presentes · se adopta con <strong>más de '+minimo+' %</strong> a favor.';
+    pintar($('mesa-base'), ['Han votado ', {tag:'strong', txt:r.n}, ' de '+r.habPresentes+' presentes hábiles · base: ',
+      {tag:'strong', txt:Derechos.texto(r.derPresentes)+' %'}, ' de derechos presentes · se adopta con ',
+      {tag:'strong', txt:'más de '+minimo+' %'}, ' a favor.']);
   } else {
     const set=(b,pc,val)=>{ $(b).style.width=Math.min(Derechos.aNumero(val),100)+'%'; $(pc).textContent=Derechos.texto(val)+' %'; };
     set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
-    $('mesa-base').innerHTML='Han votado <strong>'+r.n+'</strong> de '+r.habPresentes+' hábiles · base hábil: <strong>'+Derechos.texto(r.totalHabil)+' %</strong> · total condominio: '+Derechos.texto(r.totalCond)+' % · se requiere % de los <strong>derechos del condominio</strong>.';
+    pintar($('mesa-base'), ['Han votado ', {tag:'strong', txt:r.n}, ' de '+r.habPresentes+' hábiles · base hábil: ',
+      {tag:'strong', txt:Derechos.texto(r.totalHabil)+' %'}, ' · total condominio: '+Derechos.texto(r.totalCond)+' % · se requiere % de los ',
+      {tag:'strong', txt:'derechos del condominio'}, '.']);
   }
   const cn=conclusionTipo(r,cerrada); const cc=$('mesa-concl'); cc.className='concl '+cn.cls; cc.textContent=(cerrada?'':'Tendencia: ')+cn.txt;
   const tb=$('mesa-tbody'); tb.innerHTML='';
+  // Unidad y nombre vienen del padron: van por textContent, celda a celda.
   r.filas.forEach(p=>{ const v=r.map[norm(p.rut)];
-    const inhabil=p.habil===false
-      ? (p.inhabilPorOtraUnidad?'<span class="pill p">inhábil (otra unidad)</span>':'<span class="pill p">inhábil</span>')
-      : null;
-    const pill=p.asiste===false?'<span class="pill p">ausente</span>':inhabil||(v==='favor'?'<span class="pill f">A favor</span>':v==='contra'?'<span class="pill c">En contra</span>':v==='abst'?'<span class="pill a">Abstención</span>':'<span class="pill p">pendiente</span>');
+    const pill = p.asiste===false ? ['p','ausente']
+      : p.habil===false ? ['p', p.inhabilPorOtraUnidad?'inhábil (otra unidad)':'inhábil']
+      : v==='favor' ? ['f','A favor'] : v==='contra' ? ['c','En contra'] : v==='abst' ? ['a','Abstención'] : ['p','pendiente'];
     const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+esc(p.unidad)+'</td><td>'+esc(p.nombre)+'</td><td>'+Derechos.texto(Derechos.desdeTexto(p.der))+' %</td><td>'+(p.habil===false?'No':'Sí')+'</td><td>'+pill+'</td>';
+    [p.unidad, p.nombre, Derechos.texto(Derechos.desdeTexto(p.der))+' %', p.habil===false?'No':'Sí'].forEach(t=>{
+      const td=document.createElement('td'); td.textContent=t==null?'':String(t); tr.appendChild(td); });
+    const tdV=document.createElement('td'); pintar(tdV, [{cls:'pill '+pill[0], txt:pill[1]}]); tr.appendChild(tdV);
     tb.appendChild(tr);
   });
 }
@@ -450,7 +590,59 @@ function copiarResumen(){ const ta=$('m-export'); const go=()=>navigator.clipboa
 
 
 let asambleaP=null, yo=null, miVoto=null, estado={isOpen:false,question:''};
-let fonoTimer=null, pollTick=0, seqMiVoto=0;
+let fonoTimer=null, seqMiVoto=0;
+
+// ---------------------------------------------------------------------
+//  El telefono del votante (contrato C3)
+// ---------------------------------------------------------------------
+// Antes bastaba el codigo de la sala -que se proyecta en pantalla- y un RUT
+// para votar por otro, ver como voto y saber si esta al dia (SB-02,
+// AUTH-04). Ahora cada RUT queda atado al primer telefono que se identifica
+// con el; cualquier otro recibe "ocupado", sin ningun dato de la persona, y
+// solo la Mesa puede liberarlo.
+//
+// Lo que ata es este identificador: 16 bytes de crypto.getRandomValues. Es
+// lo unico que separa al dueno del RUT de quien lo conozca, asi que
+// Math.random no sirve. Se guarda junto al RUT en este telefono para que,
+// si la persona recarga la pagina, siga siendo ella; en la base queda solo
+// su hash.
+const LSV = c => 'sala-voto-'+c;
+const DISPOSITIVO_OK = /^[0-9a-f]{32}$/;
+const MSJ_OCUPADO = 'Este RUT ya se identificó desde otro teléfono. Acérquese a la Mesa para que lo libere.';
+// En memoria ademas de en localStorage: en una ventana privada el guardado
+// puede fallar, y dentro de la misma visita el telefono sigue siendo el mismo.
+let miDispositivo=null;   // { codigo, id }
+function leerVinculo(codigo){
+  try{
+    const g=JSON.parse(localStorage.getItem(LSV(codigo))||'null');
+    if(g && typeof g.dispositivo==='string' && DISPOSITIVO_OK.test(g.dispositivo))
+      return { rut: typeof g.rut==='string' ? g.rut : '', dispositivo: g.dispositivo };
+  }catch(e){}
+  return null;
+}
+function guardarVinculo(codigo, rut, dispositivo){
+  try{ localStorage.setItem(LSV(codigo), JSON.stringify({ rut: rut||'', dispositivo: dispositivo })); }catch(e){}
+}
+function dispositivoNuevo(){
+  const c=(typeof crypto!=='undefined' && crypto && typeof crypto.getRandomValues==='function') ? crypto : null;
+  if(!c) return null;
+  const b=new Uint8Array(16); c.getRandomValues(b);
+  let s=''; for(let i=0;i<b.length;i++) s+=(b[i]<16?'0':'')+b[i].toString(16);
+  return s;
+}
+function dispositivoDe(codigo){
+  if(miDispositivo && miDispositivo.codigo===codigo) return miDispositivo.id;
+  const g=leerVinculo(codigo);
+  const id=g ? g.dispositivo : dispositivoNuevo();
+  if(!id) return null;
+  miDispositivo={ codigo: codigo, id: id };
+  if(!g) guardarVinculo(codigo, '', id);
+  return id;
+}
+function olvidarDispositivo(codigo){
+  miDispositivo=null;
+  try{ localStorage.removeItem(LSV(codigo)); }catch(e){}
+}
 
 function initVotar(){
   const cod=new URLSearchParams(location.search).get('code');
@@ -472,6 +664,11 @@ async function unirse(btn){
     setConn('● en línea','ok');
     if(fonoTimer) clearInterval(fonoTimer);
     fonoTimer=setInterval(pollEstado, 6000);
+    // Si este telefono ya se identifico en esta sala -la persona recargo la
+    // pagina o volvio a escanear el QR-, se reanuda con el mismo
+    // identificador: el vinculo sigue siendo suyo y no tiene que ir a la Mesa.
+    const g=leerVinculo(code);
+    if(g && g.rut && ri){ ri.value=formatRut(g.rut); await identificar(); }
   }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revisa tu internet e intenta de nuevo.'; }
   finally{ setBusy(btn,false); }
 }
@@ -489,35 +686,89 @@ async function pollEstado(){
   setConn('● en línea','ok');
   const nuevo={isOpen:!!r.data.abierta, question:r.data.punto||''};
   if(nuevo.isOpen!==estado.isOpen || nuevo.question!==estado.question) onEstado(nuevo);
-  if(yo && (++pollTick % 3 === 0)) refrescarYo();
+  // Aqui se volvia a llamar vv_identificar cada 18 s para refrescar la
+  // habilidad. Ya no: vv_identificar vincula, y un telefono viejo que lo
+  // llamara solo le quitaria el RUT al telefono nuevo justo despues de que
+  // la Mesa lo libero para el. La habilidad se vuelve a consultar a pedido
+  // (boton del aviso de inhabil) y vv_emitir la exige igual.
 }
 async function identificar(btn){
   const raw=$('rut-input').value, r=norm(raw);
   const err=$('rut-error'); err.classList.add('hidden');
-  if(!asambleaP){ err.classList.remove('hidden'); err.textContent='Aún conectando con la asamblea, intente de nuevo en un segundo.'; return; }
-  if(r.length<2){ err.classList.remove('hidden'); err.textContent='Escriba su RUT para continuar (ej: 12.345.678-5).'; return; }
+  // El error se ve en la pantalla del RUT. Si se pidio desde el aviso de
+  // inhabil ("Consultar de nuevo"), se vuelve a ella con el RUT escrito.
+  const fallo=t=>{ yo=null; miVoto=null; $('votar-panel').classList.add('hidden'); $('votar-id').classList.remove('hidden');
+    err.classList.remove('hidden'); err.textContent=t; };
+  if(!asambleaP){ fallo('Aún conectando con la asamblea, intente de nuevo en un segundo.'); return; }
+  if(r.length<2){ fallo('Escriba su RUT para continuar (ej: 12.345.678-5).'); return; }
+  const disp=dispositivoDe(asambleaP.codigo);
+  if(!disp){ fallo('Este navegador no permite identificar el teléfono de forma segura. Actualícelo o use otro teléfono.'); return; }
   setBusy(btn,true,'Verificando…');
   try{
-    const q=await sb.rpc('vv_identificar',{p_codigo:asambleaP.codigo,p_rut:r});
-    if(q.error){ err.classList.remove('hidden'); err.textContent='Hubo un problema al verificar su RUT. Intente nuevamente.'; return; }
+    const q=await sb.rpc('vv_identificar',{p_codigo:asambleaP.codigo,p_rut:r,p_dispositivo:disp});
+    if(q.error){
+      // Un identificador que la base no acepta no sirve para nada: se
+      // descarta y el proximo intento genera uno nuevo.
+      const m=String(q.error.message||'');
+      if(/dispositivo_invalido/.test(m)) olvidarDispositivo(asambleaP.codigo);
+      // Si la base limita los intentos por conexion, se dice tal cual: un
+      // "intente nuevamente" haria reintentar justo lo que la frena.
+      fallo(/demasiados_intentos/.test(m)
+        ? 'Demasiados intentos desde esta conexión. Espere unos minutos o acérquese a la Mesa.'
+        : 'Hubo un problema al verificar su RUT. Intente nuevamente.'); return;
+    }
     const data=q.data;
-    if(!data||!data.existe){ err.classList.remove('hidden'); err.textContent = validarRut(raw) ? 'No encontramos ese RUT en el padrón de esta asamblea. Verifique con la Mesa.' : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-5) o consulte con la Mesa.'; return; }
-    yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.der)};
+    if(!data||!data.existe){
+      fallo(data&&data.motivo==='asamblea' ? 'Esta asamblea ya no existe. Verifique el código con la Mesa.'
+        : validarRut(raw) ? 'No encontramos ese RUT en el padrón de esta asamblea. Verifique con la Mesa.'
+        : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-5) o consulte con la Mesa.');
+      return;
+    }
+    // Otro telefono ya tiene este RUT. La respuesta no trae nada de la
+    // persona, y aqui tampoco se guarda nada: este telefono no es suyo.
+    // Si era el RUT que este telefono tenia guardado, se olvida, para no
+    // volver a chocar con "ocupado" en cada recarga.
+    if(data.ocupado){
+      const g=leerVinculo(asambleaP.codigo);
+      if(g && norm(g.rut)===r) guardarVinculo(asambleaP.codigo, '', disp);
+      fallo(MSJ_OCUPADO); return;
+    }
+    const rut=typeof data.rut==='string'&&data.rut ? data.rut : r;
+    guardarVinculo(asambleaP.codigo, rut, disp);
+    yo={rut:rut, nombre:String(data.nombre||''), unidad:String(data.unidad||''), habil:data.habil===true, der:Number(data.der)||0};
     $('votar-id').classList.add('hidden'); $('votar-panel').classList.remove('hidden');
-    $('v-nom').textContent=yo.nombre+' · Unidad '+yo.unidad;
+    // Con varias unidades la base las junta con ", " y suma sus derechos.
+    $('v-nom').textContent=yo.nombre+(yo.unidad.indexOf(',')>=0?' · Unidades ':' · Unidad ')+yo.unidad;
     $('v-peso').textContent=yo.der.toFixed(2)+'%';
     aplicarHabilidad();
-  }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revise su internet.'; }
+  }catch(e){ fallo('No pudimos conectar. Revise su internet.'); }
   finally{ setBusy(btn,false); }
 }
-async function refrescarYo(){
-  if(!yo||!asambleaP) return;
-  const { data }=await sb.rpc('vv_identificar',{p_codigo:asambleaP.codigo,p_rut:yo.rut});
-  if(!data||!data.existe) return;
-  const wasHabil=yo.habil;
-  yo={rut:data.rut,nombre:data.nombre,unidad:data.unidad,habil:data.habil,der:Number(data.der)};
-  $('v-peso').textContent=yo.der.toFixed(2)+'%';
-  if(wasHabil!==yo.habil) aplicarHabilidad();
+// El telefono dejo de representar a este RUT: la Mesa lo libero, volvio a
+// cargar el padron o ya lo tomo otro telefono. Se vuelve a la pantalla del
+// RUT con el motivo a la vista y no se reintenta solo, por la misma razon
+// que en pollEstado.
+//
+// Tambien se olvida el RUT guardado (no el identificador): si no, al recargar
+// la pagina unirse() lo retomaba solo y le quitaba el RUT a la persona a
+// quien la Mesa acababa de liberarlo, sin que nadie aqui lo pidiera.
+function perderVinculo(msg){
+  const rut=yo?yo.rut:'';
+  yo=null; miVoto=null;
+  if(asambleaP && miDispositivo && miDispositivo.codigo===asambleaP.codigo) guardarVinculo(asambleaP.codigo, '', miDispositivo.id);
+  $('votar-panel').classList.add('hidden'); $('votar-id').classList.remove('hidden');
+  const ri=$('rut-input'); if(ri && rut) ri.value=formatRut(rut);
+  const err=$('rut-error'); err.classList.remove('hidden'); err.textContent=msg;
+}
+// Para cuando dos personas votan desde el mismo telefono, o se equivoco de
+// RUT. El identificador del telefono se conserva: el RUT anterior sigue
+// atado a este telefono y puede volver a identificarse desde aqui.
+function cambiarRut(){
+  if(asambleaP && miDispositivo && miDispositivo.codigo===asambleaP.codigo) guardarVinculo(asambleaP.codigo, '', miDispositivo.id);
+  yo=null; miVoto=null;
+  $('votar-panel').classList.add('hidden'); $('votar-id').classList.remove('hidden');
+  $('rut-error').classList.add('hidden');
+  const ri=$('rut-input'); if(ri){ ri.value=''; try{ri.focus();}catch(e){} }
 }
 function aplicarHabilidad(){
   if(!yo) return;
@@ -528,9 +779,10 @@ function aplicarHabilidad(){
 async function cargarMiVoto(){
   if(!yo||!yo.habil||!estado.question) return;
   const punto=estado.question, myseq=++seqMiVoto;
-  const { data }=await sb.rpc('vv_mi_voto',{p_codigo:asambleaP.codigo,p_rut:yo.rut,p_punto:punto});
-  if(myseq!==seqMiVoto||punto!==estado.question) return;
-  miVoto=(data&&data.choice)||null;
+  // Sin el identificador de este telefono la base no dice como voto nadie.
+  const { data }=await sb.rpc('vv_mi_voto',{p_codigo:asambleaP.codigo,p_rut:yo.rut,p_punto:punto,p_dispositivo:dispositivoDe(asambleaP.codigo)});
+  if(myseq!==seqMiVoto||punto!==estado.question||!yo) return;
+  miVoto=leyendaVoto(data&&data.choice) ? data.choice : null;
   document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===miVoto));
   $('v-done').classList.toggle('hidden', !miVoto);
 }
@@ -556,7 +808,7 @@ function pintarVotar(){
   const sub=$('v-wait-sub');
   if(!ab){
     if(miVoto){
-      const leyenda={favor:'A favor',contra:'En contra',abst:'Abstención'}[miVoto];
+      const leyenda=leyendaVoto(miVoto);
       $('v-q').textContent='Votación cerrada';
       if(sub) sub.textContent='Su voto ('+leyenda+') quedó registrado.';
       anunciar('La votación se cerró. Su voto quedó registrado como '+leyenda+'.');
@@ -570,13 +822,26 @@ async function emitir(choice){
   const btns=[...document.querySelectorAll('.vbtn')]; btns.forEach(b=>b.disabled=true);
   document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===choice));
   try{
-    const { error }=await sb.rpc('vv_emitir',{p_codigo:asambleaP.codigo,p_rut:yo.rut,p_punto:punto,p_choice:choice});
+    const { error }=await sb.rpc('vv_emitir',{p_codigo:asambleaP.codigo,p_rut:yo.rut,p_punto:punto,p_choice:choice,
+      p_dispositivo:dispositivoDe(asambleaP.codigo)});
     if(error) throw error;
     miVoto=choice; $('v-done').classList.remove('hidden');
-    anunciar('Voto registrado: '+({favor:'A favor',contra:'En contra',abst:'Abstención'}[choice])+'. Puede cambiarlo mientras la votación siga abierta.');
+    anunciar('Voto registrado: '+leyendaVoto(choice)+'. Puede cambiarlo mientras la votación siga abierta.');
   }catch(e){
     document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('sel', b.dataset.c===miVoto));
-    alert('No se pudo enviar su voto. Revise su conexión e intente de nuevo.');
+    const m=String((e&&e.message)||e||'');
+    // Los rechazos de la base se explican uno por uno: "revise su conexion"
+    // ante un voto que no se conto por otra razon deja a la persona
+    // reintentando algo que nunca va a pasar.
+    if(/identifiquese_primero/.test(m))
+      perderVinculo('Su RUT ya no está vinculado a este teléfono (la Mesa lo liberó o volvió a cargar el padrón). Su voto anterior se conserva. Pulse Continuar para identificarse de nuevo.');
+    else if(/rut_en_otro_dispositivo/.test(m))
+      perderVinculo('Su RUT quedó vinculado a otro teléfono, así que desde este ya no puede votar. Si no fue usted, avise a la Mesa de inmediato.');
+    else if(/no esta en el padron/.test(m))
+      perderVinculo('Su RUT ya no figura en el padrón de esta asamblea. Consulte con la Mesa.');
+    else if(/inhabil/.test(m)){ if(yo){ yo.habil=false; aplicarHabilidad(); } }
+    else if(/cerrada|punto cambio/.test(m)){ alert('La votación de este punto ya se cerró o cambió de punto. Su pantalla se actualizará.'); pollEstado(); }
+    else alert('No se pudo enviar su voto. Revise su conexión e intente de nuevo.');
   }
   finally{ setTimeout(()=>btns.forEach(b=>b.disabled=false), 400); }
 }

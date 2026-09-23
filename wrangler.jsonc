@@ -24,13 +24,41 @@
   //   del acta- para mostrar el sistema sin hablar de plata. No toca el cobro:
   //   Postgres sigue exigiendo la llave del pago para emitir un folio.
   // FLOW_ENTORNO: "sandbox" mientras se prueba, "produccion" para cobrar de verdad.
+  // SUPABASE_URL y SUPABASE_ANON son publicos por diseno: son los mismos que
+  //   lleva cuenta.js, y la clave anon no abre nada que RLS no deje abrir. El
+  //   Worker los usa para validar la sesion de quien paga (/auth/v1/user) y
+  //   para las RPC del correo. Si cambian, cambian aqui y en cuenta.js.
   "vars": {
     "RECESO": "0",
     "VITRINA": "1",
     "FLOW_ENTORNO": "sandbox",
     "PRECIO_CLP": "14990",
-    "PRECIO_CONSULTA_CLP": "7990"
+    "PRECIO_CONSULTA_CLP": "7990",
+    "SUPABASE_URL": "https://rujwokagmjbqtrcvosye.supabase.co",
+    "SUPABASE_ANON": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0"
   },
+
+  // Limite de tasa por IP, contado por Cloudflare y no por nosotros: un
+  // contador en KV sumaria latencia y costo a cada llamada. El Worker elige
+  // el limite segun la ruta (limiteDe en _worker.js):
+  //   LIMITE_ESTRICTO  /api/pago/crear, /api/pago/estado, /api/clave/filtrada.
+  //                    La vuelta del pago consulta el estado hasta 10 veces en
+  //                    20 segundos; 20 por minuto le deja holgura.
+  //   LIMITE_GENERAL   /cf-geo, /api/csp, /api/voto/avisos y el webhook de Flow.
+  // namespace_id es un numero elegido por nosotros, unico en la cuenta.
+  // "period" solo admite 10 o 60 segundos.
+  "ratelimits": [
+    {
+      "name": "LIMITE_ESTRICTO",
+      "namespace_id": "1001",
+      "simple": { "limit": 20, "period": 60 }
+    },
+    {
+      "name": "LIMITE_GENERAL",
+      "namespace_id": "1002",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ],
 
   // Crear con:  wrangler kv namespace create PAGOS
   // y pegar aqui el id que entrega el comando.
@@ -42,10 +70,16 @@
   ]
 
   // Secretos (NO van en este archivo, se cargan con "wrangler secret put"):
-  //   FLOW_API_KEY, FLOW_SECRET_KEY, PAGO_SECRET
-  //   SUPABASE_URL, SUPABASE_ANON, CORREO_SECRET  -> respuestas de consulta escrita
+  //   FLOW_API_KEY, FLOW_SECRET_KEY, PAGO_SECRET  -> pasarela de pago
+  //   CORREO_SECRET   -> respuestas de consulta escrita y avisos de voto
+  //   CORREO_API_KEY, CORREO_DESDE -> envio de correo saliente (Resend)
   //   CORREO_FALLBACK -> casilla humana donde caen las respuestas que no se
   //                      pudieron registrar. Sin esto, se pierden en silencio.
+  //
+  // SUPABASE_URL y SUPABASE_ANON dejaron de ser secretos: estan arriba, en
+  // "vars". Si alguna vez se cargaron con "wrangler secret put", borrarlos
+  // antes de desplegar (wrangler secret delete SUPABASE_URL, y lo mismo con
+  // SUPABASE_ANON): un secreto y una variable con el mismo nombre chocan.
   //
   // Ademas hay que enrutar el correo entrante:
   //   Cloudflare -> Email Routing -> catch-all -> "Send to a Worker"
