@@ -100,13 +100,16 @@ const LOTE_AVISOS = 20;
 //  prueba prueba-seg-worker.mjs se queja si aparece otro new Response.
 //
 //  La CSP es la minima que existe porque estas respuestas no son documentos
-//  y no cargan nada. HSTS dice lo mismo que _headers.
+//  y no cargan nada. HSTS y Permissions-Policy dicen lo mismo que _headers;
+//  la segunda faltaba y Acunetix la marca en cada respuesta que no la trae
+//  (comprobado en vivo el 28-09-2026 en /api/* y /cf-geo).
 // ---------------------------------------------------------------------
 const CABECERAS_SEGURIDAD = {
   'x-content-type-options': 'nosniff',
   'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
   'referrer-policy': 'same-origin',
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
+  'permissions-policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=(), browsing-topics=()',
   'x-frame-options': 'DENY'
 };
 
