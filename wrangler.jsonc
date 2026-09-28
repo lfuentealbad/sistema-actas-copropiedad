@@ -14,9 +14,13 @@
     // de Cloudflare. El Worker cae aqui al final de su fetch.
     "not_found_handling": "404-page"
   },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  // Sin nodejs_compat (CN-034, 28-09-2026): el Worker no usa nada de Node, y
+  // el flag carga los secretos tambien en process.env, al alcance de
+  // cualquier dependencia. Y sin *.workers.dev ni URL de vista previa
+  // (CN-033): el sitio vive en un solo nombre, y cada nombre de mas es una
+  // puerta que hay que vigilar.
+  "workers_dev": false,
+  "preview_urls": false,
 
   // RECESO=1 suspende el sitio: el Worker responde 404 a todo.
   // Poner "0" y volver a desplegar para reactivarlo.
@@ -24,6 +28,9 @@
   //   del acta- para mostrar el sistema sin hablar de plata. No toca el cobro:
   //   Postgres sigue exigiendo la llave del pago para emitir un folio.
   // FLOW_ENTORNO: "sandbox" mientras se prueba, "produccion" para cobrar de verdad.
+  //   Fuera de localhost, con "sandbox" la pasarela no atiende (CN-005), salvo
+  //   que se agregue PAGOS_PRUEBA: "1" para ensayarla a proposito. Aun asi,
+  //   Postgres no acepta esas llaves si vv_config no tiene pagos_de_prueba='si'.
   // SUPABASE_URL y SUPABASE_ANON son publicos por diseno: son los mismos que
   //   lleva cuenta.js, y la clave anon no abre nada que RLS no deje abrir. El
   //   Worker los usa para validar la sesion de quien paga (/auth/v1/user) y
@@ -41,7 +48,8 @@
   // Limite de tasa por IP, contado por Cloudflare y no por nosotros: un
   // contador en KV sumaria latencia y costo a cada llamada. El Worker elige
   // el limite segun la ruta (limiteDe en _worker.js):
-  //   LIMITE_ESTRICTO  /api/pago/crear, /api/pago/estado, /api/clave/filtrada.
+  //   LIMITE_ESTRICTO  /api/pago/crear, /api/pago/estado, /api/clave/filtrada
+  //                    y /api/voto/codigo (manda un correo por llamada).
   //                    La vuelta del pago consulta el estado hasta 10 veces en
   //                    20 segundos; 20 por minuto le deja holgura.
   //   LIMITE_GENERAL   /cf-geo, /api/csp, /api/voto/avisos y el webhook de Flow.

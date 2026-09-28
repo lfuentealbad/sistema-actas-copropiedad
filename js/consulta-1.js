@@ -352,7 +352,14 @@ async function guardarPadron(btn){
         avisos.length ? 'warn' : 'ok');
     setTimeout(abrirPanel, avisos.length ? 2600 : 900);
   }catch(e){
-    msg('padron-msg','No se pudo guardar el padrón. ' + (e.message||''), 'err');
+    // Desde el 28-09-2026 (CN-028) la base no cambia el padrón de una
+    // consulta cerrada o que ya recibió respuestas: se perderían las
+    // respuestas o cambiaría el cómputo a mitad de camino.
+    const m = String((e && e.message) || '');
+    msg('padron-msg',
+      /consulta_con_respuestas/.test(m) ? 'Esta consulta ya recibió respuestas: el padrón no se puede cambiar, porque se perderían o cambiaría el cómputo. Si el padrón estaba mal, cree una consulta nueva.'
+      : /consulta_cerrada/.test(m) ? 'Esta consulta ya está cerrada: el padrón no se puede cambiar.'
+      : 'No se pudo guardar el padrón. ' + m, 'err');
   }finally{ busy(btn, false); }
 }
 
@@ -588,8 +595,12 @@ async function generarDocumento(btn){
       '<p>La consulta se remitió a los correos electrónicos singularizados en el Registro de Copropietarios, ' +
       'conforme al artículo 17 del Reglamento de la Ley N° 21.442. El plazo para responder se extendió desde ' +
       'el <strong>' + fmtFecha(est.plazo_inicio) + '</strong> hasta el <strong>' + fmtFecha(est.plazo_fin) + '</strong>.</p>' +
+      // Desde el 28-09-2026 (CN-011) el Worker verifica la firma DKIM del
+      // dominio remitente: el acta dice lo que de verdad se comprobó.
       '<p>La identidad de quienes respondieron se verificó por la casilla de correo desde la cual fue enviada ' +
-      'cada respuesta, la que debe corresponder a la registrada para la respectiva unidad. Se consultó a ' +
+      'cada respuesta, la que debe corresponder a la registrada para la respectiva unidad, y por la firma ' +
+      'electrónica (DKIM) con que el proveedor de esa casilla autentica sus envíos. Una respuesta sin esa firma ' +
+      'no se contó por sí sola: quedó para calificación de la Mesa. Se consultó a ' +
       '<strong>' + (est.convocados || 0) + '</strong> copropietarios.</p></div>' +
 
       '<div class="sec"><div class="sec-t">4. Respuestas recibidas</div>' +

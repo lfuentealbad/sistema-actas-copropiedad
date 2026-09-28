@@ -1856,7 +1856,6 @@
 
 </style>
 
-<script src="vendor/jszip.min.js"></script>
 
 <script src="vendor/xlsx.full.min.js"></script>
 
@@ -2337,7 +2336,7 @@
           <li>Cuando llegue el momento de votar un punto, pulse <strong>▶ Abrir</strong> en ese punto. <em>Recién ahí los teléfonos pueden votarlo.</em></li>
           <li>Mantenga abierto <strong>un solo punto a la vez</strong>. Cuando todos hayan votado, pulse <strong>■ Cerrar</strong>.</li>
           <li>Pulse <strong>⤵ Traer al acta</strong> para volcar esos votos al registro del punto.</li>
-          <li>Si un vecino no puede entrar porque su RUT <em>ya se identificó desde otro teléfono</em>, libérelo en <strong>Teléfonos identificados</strong>, más abajo.</li>
+          <li>Cada vecino confirma su identidad con un código de 6 cifras que le llega al correo. Si no tiene correo o no le llega, en <strong>Teléfonos identificados y códigos de voto</strong>, más abajo, escriba su RUT con su carnet a la vista y dígale el código.</li>
           <li>Al terminar la asamblea, en el <strong>paso 6</strong> (bajo el acta generada) encontrará <strong>Cerrar sala y borrar datos del servidor</strong>.</li>
         </ol>
         <div class="vv-aviso"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg><strong>Al terminar, cierre el último punto.</strong> Si queda abierto, los asistentes podrían seguir votando después de la asamblea.</div>
@@ -2345,9 +2344,15 @@
       <div id="vv-reminder" role="status" aria-live="polite"></div>
       <div id="vv-temas"></div>
       <details id="vv-telefonos" style="margin-top:14px">
-        <summary style="cursor:pointer;font-weight:600">Teléfonos identificados</summary>
-        <p style="font-size:12.5px;color:var(--c-text-2);line-height:1.5;margin:8px 0">Cada RUT queda atado al teléfono con que se identificó, para que nadie más pueda votar por esa persona. Si a un vecino se le apagó el teléfono, o le aparece que su RUT ya se identificó desde otro, libérelo aquí y podrá entrar de nuevo. Sus votos se conservan.</p>
+        <summary style="cursor:pointer;font-weight:600">Teléfonos identificados y códigos de voto</summary>
+        <p style="font-size:12.5px;color:var(--c-text-2);line-height:1.5;margin:8px 0">Para votar, cada vecino confirma su identidad con un código de 6 cifras que le llega al correo del padrón. Si no tiene correo o no le llega, escriba aquí su RUT <strong>con su carnet a la vista</strong> y dígale el código: vence en 15 minutos. Su teléfono queda atado a su RUT y nadie más puede votar por esa persona; si cambia de teléfono, con un código nuevo se cambia solo, o puede liberarlo en la lista. Sus votos se conservan.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:0 0 10px">
+          <div><label for="vv-codigo-rut" style="font-size:12.5px;display:block">RUT del vecino</label><input type="text" id="vv-codigo-rut" placeholder="12.345.678-5" autocomplete="off" style="width:150px"></div>
+          <button type="button" class="btn-tool" data-ac="actaDarCodigo" data-args="@">Dar código</button>
+        </div>
+        <div id="vv-codigo-dado" role="status" aria-live="polite" style="font-size:13px;margin:0 0 10px"></div>
         <button type="button" class="btn-tool" data-ac="actaActualizarTelefonos" data-args="@">Actualizar la lista</button>
+        <button type="button" class="btn-tool" data-ac="actaReiniciarIntentos" data-args="@" title="Si en la sala aparece «demasiados intentos», vuelve a cero los contadores de esta asamblea">Reiniciar intentos</button>
         <div id="vv-telefonos-lista" role="status" aria-live="polite" style="margin-top:8px"></div>
       </details>
     </div>

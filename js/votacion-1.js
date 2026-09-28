@@ -307,15 +307,58 @@ function renderPadronSum(){
 // Los votos que ya emitio se conservan.
 function pintarVinculo(td, p){
   td.textContent='';
-  if(!p.vinculado){ const s=document.createElement('span'); s.className='muted'; s.textContent='—'; td.appendChild(s); return; }
-  const s=document.createElement('span'); s.className='pill f'; s.textContent='vinculado'; td.appendChild(s);
-  const b=document.createElement('button'); b.type='button'; b.className='btn btn-ghost btn-sm'; b.textContent='Liberar';
-  b.style.display='block'; b.style.marginTop='4px';
-  // El RUT viaja en dataset, no concatenado en HTML: un RUT mal escrito en
-  // la planilla no puede cerrar el atributo.
-  b.dataset.ac='liberarVinculo'; b.dataset.args='@'; b.dataset.rut=norm(p.rut);
-  b.title='Liberar el teléfono de '+(p.nombre||formatRut(p.rut));
-  td.appendChild(b);
+  if(!p.vinculado){ const s=document.createElement('span'); s.className='muted'; s.textContent='—'; td.appendChild(s); }
+  else{
+    const s=document.createElement('span'); s.className='pill f'; s.textContent='vinculado'; td.appendChild(s);
+    const b=document.createElement('button'); b.type='button'; b.className='btn btn-ghost btn-sm'; b.textContent='Liberar';
+    b.style.display='block'; b.style.marginTop='4px';
+    // El RUT viaja en dataset, no concatenado en HTML: un RUT mal escrito en
+    // la planilla no puede cerrar el atributo.
+    b.dataset.ac='liberarVinculo'; b.dataset.args='@'; b.dataset.rut=norm(p.rut);
+    b.title='Liberar el teléfono de '+(p.nombre||formatRut(p.rut));
+    td.appendChild(b);
+  }
+  // CN-010: el codigo que la Mesa entrega en la sala a quien no tiene
+  // correo o no lo recibe. Solo con el padron guardado: la base no da
+  // codigo a un RUT que no esta en el suyo.
+  if(p.rut && validarRut(p.rut)){
+    const c=document.createElement('button'); c.type='button'; c.className='btn btn-ghost btn-sm'; c.textContent='Código';
+    c.style.display='block'; c.style.marginTop='4px';
+    c.dataset.ac='darCodigoMesa'; c.dataset.args='@'; c.dataset.rut=norm(p.rut);
+    c.title='Dar un código de voto a '+(p.nombre||formatRut(p.rut))+', con su carnet a la vista';
+    td.appendChild(c);
+  }
+}
+async function darCodigoMesa(btn){
+  if(!asamblea||!btn||!btn.dataset) return;
+  const rut=norm(btn.dataset.rut); if(!rut) return;
+  const quien=padron.find(p=>norm(p.rut)===rut);
+  const nombre=(quien&&quien.nombre)||formatRut(rut);
+  if(padronDirty){ alert('Guarde primero el padrón: el código solo se da a quien está en el padrón guardado.'); return; }
+  if(!confirm('¿Dar un código de voto a '+nombre+' ('+formatRut(rut)+')?\n\nHágalo solo con su carnet a la vista. El código le permite votar desde cualquier teléfono.')) return;
+  setBusy(btn,true,'Generando…');
+  try{
+    const { data, error }=await sb.rpc('vv_codigo_mesa',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_rut:rut});
+    if(error) throw error;
+    const c=String((data&&data.clave)||'');
+    alert('Código para '+nombre+':\n\n      '+c.slice(0,3)+' '+c.slice(3)+'\n\nDíganselo solo a esa persona. Vence en '+((data&&data.minutos)||15)+' minutos y sirve una sola vez.');
+  }catch(e){
+    const m=String((e&&e.message)||'');
+    alert(/no esta en el padron/.test(m) ? 'Ese RUT no está en el padrón guardado. Guarde el padrón y vuelva a intentarlo.'
+      : /demasiados_codigos/.test(m) ? 'Se generaron demasiados códigos en la última hora. Espere unos minutos.'
+      : 'No se pudo generar el código. Revise su conexión e intente de nuevo.');
+  }finally{ setBusy(btn,false); }
+}
+async function reiniciarIntentos(btn){
+  if(!asamblea) return;
+  if(!confirm('¿Volver a cero los intentos de identificación de esta asamblea?\n\nÚselo si en la sala aparece «demasiados intentos»: en el WiFi del edificio todos comparten la misma conexión.')) return;
+  setBusy(btn,true,'Reiniciando…');
+  try{
+    const { error }=await sb.rpc('vv_limites_reiniciar',{p_codigo:asamblea.codigo,p_token:asamblea.token});
+    if(error) throw error;
+    alert('Listo: los intentos de esta asamblea quedaron en cero.');
+  }catch(e){ alert('No se pudo reiniciar. Revise su conexión e intente de nuevo.'); }
+  finally{ setBusy(btn,false); }
 }
 function pintarVinculos(){
   celdasVinculo.forEach((td,i)=>{ if(padron[i]) pintarVinculo(td,padron[i]); });
@@ -597,18 +640,18 @@ let fonoTimer=null, seqMiVoto=0;
 // ---------------------------------------------------------------------
 // Antes bastaba el codigo de la sala -que se proyecta en pantalla- y un RUT
 // para votar por otro, ver como voto y saber si esta al dia (SB-02,
-// AUTH-04). Ahora cada RUT queda atado al primer telefono que se identifica
-// con el; cualquier otro recibe "ocupado", sin ningun dato de la persona, y
-// solo la Mesa puede liberarlo.
+// AUTH-04). Desde el 22-09-2026 cada RUT queda atado a un telefono, y desde
+// el 28-09-2026 (CN-010) el telefono se ata SOLO despues de escribir un
+// codigo de 6 cifras que llega al correo del padron o que entrega la Mesa:
+// el primero que tecleaba un RUT libre ya no se queda con el. Mientras no
+// hay codigo, la base no devuelve ningun dato de la persona.
 //
-// Lo que ata es este identificador: 16 bytes de crypto.getRandomValues. Es
-// lo unico que separa al dueno del RUT de quien lo conozca, asi que
-// Math.random no sirve. Se guarda junto al RUT en este telefono para que,
-// si la persona recarga la pagina, siga siendo ella; en la base queda solo
-// su hash.
+// Lo que ata es este identificador: 16 bytes de crypto.getRandomValues. Una
+// vez verificado, es lo que hace que este telefono siga siendo de este RUT
+// al recargar la pagina, asi que Math.random no sirve. Se guarda junto al
+// RUT en este telefono; en la base queda solo su hash.
 const LSV = c => 'sala-voto-'+c;
 const DISPOSITIVO_OK = /^[0-9a-f]{32}$/;
-const MSJ_OCUPADO = 'Este RUT ya se identificó desde otro teléfono. Acérquese a la Mesa para que lo libere.';
 // En memoria ademas de en localStorage: en una ventana privada el guardado
 // puede fallar, y dentro de la misma visita el telefono sigue siendo el mismo.
 let miDispositivo=null;   // { codigo, id }
@@ -697,7 +740,8 @@ async function identificar(btn){
   const err=$('rut-error'); err.classList.add('hidden');
   // El error se ve en la pantalla del RUT. Si se pidio desde el aviso de
   // inhabil ("Consultar de nuevo"), se vuelve a ella con el RUT escrito.
-  const fallo=t=>{ yo=null; miVoto=null; $('votar-panel').classList.add('hidden'); $('votar-id').classList.remove('hidden');
+  const fallo=t=>{ yo=null; miVoto=null; verificando=null; $('votar-panel').classList.add('hidden');
+    $('votar-verif').classList.add('hidden'); $('votar-id').classList.remove('hidden');
     err.classList.remove('hidden'); err.textContent=t; };
   if(!asambleaP){ fallo('Aún conectando con la asamblea, intente de nuevo en un segundo.'); return; }
   if(r.length<2){ fallo('Escriba su RUT para continuar (ej: 12.345.678-5).'); return; }
@@ -724,24 +768,108 @@ async function identificar(btn){
         : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-5) o consulte con la Mesa.');
       return;
     }
-    // Otro telefono ya tiene este RUT. La respuesta no trae nada de la
-    // persona, y aqui tampoco se guarda nada: este telefono no es suyo.
-    // Si era el RUT que este telefono tenia guardado, se olvida, para no
-    // volver a chocar con "ocupado" en cada recarga.
-    if(data.ocupado){
-      const g=leerVinculo(asambleaP.codigo);
-      if(g && norm(g.rut)===r) guardarVinculo(asambleaP.codigo, '', disp);
-      fallo(MSJ_OCUPADO); return;
+    // CN-010 (28-09-2026): el RUT esta en el padron pero este telefono
+    // todavia no es suyo. Falta el codigo de 6 cifras. La respuesta no trae
+    // nada de la persona salvo su correo enmascarado; y si era el RUT que
+    // este telefono tenia guardado, se olvida, para no pedir codigo en cada
+    // recarga por un RUT que ya no es de aqui.
+    if(data.verificar){
+      if(data.ocupado){
+        const g=leerVinculo(asambleaP.codigo);
+        if(g && norm(g.rut)===r) guardarVinculo(asambleaP.codigo, '', disp);
+      }
+      mostrarVerificacion(r, data);
+      return;
     }
-    const rut=typeof data.rut==='string'&&data.rut ? data.rut : r;
-    guardarVinculo(asambleaP.codigo, rut, disp);
-    yo={rut:rut, nombre:String(data.nombre||''), unidad:String(data.unidad||''), habil:data.habil===true, der:Number(data.der)||0};
-    $('votar-id').classList.add('hidden'); $('votar-panel').classList.remove('hidden');
-    // Con varias unidades la base las junta con ", " y suma sus derechos.
-    $('v-nom').textContent=yo.nombre+(yo.unidad.indexOf(',')>=0?' · Unidades ':' · Unidad ')+yo.unidad;
-    $('v-peso').textContent=yo.der.toFixed(2)+'%';
-    aplicarHabilidad();
+    entrarComoVotante(data, r, disp);
   }catch(e){ fallo('No pudimos conectar. Revise su internet.'); }
+  finally{ setBusy(btn,false); }
+}
+// Lo que pasa cuando el telefono ya es de este RUT: por un codigo recien
+// confirmado, o porque ya lo era (recargo la pagina).
+function entrarComoVotante(data, r, disp){
+  const rut=typeof data.rut==='string'&&data.rut ? data.rut : r;
+  guardarVinculo(asambleaP.codigo, rut, disp);
+  yo={rut:rut, nombre:String(data.nombre||''), unidad:String(data.unidad||''), habil:data.habil===true, der:Number(data.der)||0};
+  verificando=null;
+  $('votar-id').classList.add('hidden'); $('votar-verif').classList.add('hidden'); $('votar-panel').classList.remove('hidden');
+  // Con varias unidades la base las junta con ", " y suma sus derechos.
+  $('v-nom').textContent=yo.nombre+(yo.unidad.indexOf(',')>=0?' · Unidades ':' · Unidad ')+yo.unidad;
+  $('v-peso').textContent=yo.der.toFixed(2)+'%';
+  aplicarHabilidad();
+}
+
+// ---------------------------------------------------------------------
+//  El codigo del votante (CN-010, 28-09-2026)
+// ---------------------------------------------------------------------
+// El RUT no es secreto: por eso un telefono queda atado a un RUT solo
+// despues de escribir un codigo de 6 cifras de un solo uso. Llega al correo
+// que el padron tiene para ese RUT (lo manda el servidor: esta pagina nunca
+// ve ni el codigo ni la direccion completa), o lo entrega la Mesa en la sala
+// a quien no tiene correo o no lo recibe, con el carnet a la vista.
+let verificando=null;   // { rut, correo }
+function mostrarVerificacion(rut, data){
+  verificando={ rut: rut, correo: typeof data.correo==='string' && data.correo ? data.correo : '' };
+  $('votar-id').classList.add('hidden'); $('votar-panel').classList.add('hidden');
+  $('votar-verif').classList.remove('hidden');
+  $('verif-error').classList.add('hidden'); $('verif-msg').textContent='';
+  $('verif-ocupado').classList.toggle('hidden', !data.ocupado);
+  const env=$('verif-enviar');
+  if(verificando.correo){
+    $('verif-texto').textContent='Le enviaremos un código de 6 cifras al correo que el padrón tiene registrado ('+verificando.correo+'). Si no le llega, o prefiere, pídalo a la Mesa con su carnet.';
+    env.classList.remove('hidden'); env.textContent='Enviar el código a '+verificando.correo;
+  }else{
+    $('verif-texto').textContent='El padrón no tiene un correo registrado para usted. Acérquese a la Mesa con su carnet: le dará un código de 6 cifras para escribir aquí.';
+    env.classList.add('hidden');
+  }
+  const vi=$('verif-input'); if(vi){ vi.value=''; setTimeout(()=>{try{vi.focus();}catch(e){}},120); }
+}
+function errorVerif(t){ const e=$('verif-error'); e.textContent=t; e.classList.remove('hidden'); }
+async function pedirCodigoCorreo(btn){
+  if(!asambleaP||!verificando) return;
+  const disp=dispositivoDe(asambleaP.codigo); if(!disp) return;
+  $('verif-error').classList.add('hidden'); $('verif-msg').textContent='';
+  setBusy(btn,true,'Enviando…');
+  try{
+    const r=await fetch('/api/voto/codigo',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({codigo:asambleaP.codigo, rut:verificando.rut, dispositivo:disp})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok && d.enviado){
+      $('verif-msg').textContent='Listo: le enviamos el código a '+(d.correo||verificando.correo)+'. Vence en '+(d.minutos||10)+' minutos. Revise también la carpeta de spam.';
+    }else if(d.motivo==='correo_no_configurado' || d.motivo==='sin_correo'){
+      errorVerif('Esta asamblea no puede enviar códigos por correo. Pida su código a la Mesa, con su carnet.');
+    }else if(d.motivo==='demasiados_codigos' || r.status===429){
+      errorVerif('Ya se enviaron varios códigos. Espere unos minutos, revise su correo (también spam) o pida el código a la Mesa.');
+    }else{
+      errorVerif('No pudimos enviar el código. Inténtelo de nuevo en un momento o pídalo a la Mesa.');
+    }
+  }catch(e){ errorVerif('No pudimos conectar. Revise su internet.'); }
+  finally{ setBusy(btn,false); }
+}
+async function confirmarCodigo(btn){
+  if(!asambleaP||!verificando) return;
+  const disp=dispositivoDe(asambleaP.codigo); if(!disp) return;
+  const clave=String($('verif-input').value||'').replace(/\D/g,'');
+  $('verif-error').classList.add('hidden');
+  if(clave.length!==6){ errorVerif('El código tiene 6 cifras.'); return; }
+  setBusy(btn,true,'Confirmando…');
+  try{
+    const q=await sb.rpc('vv_verificar_codigo',{p_codigo:asambleaP.codigo,p_rut:verificando.rut,p_dispositivo:disp,p_clave:clave});
+    if(q.error){
+      const m=String(q.error.message||'');
+      if(/dispositivo_invalido/.test(m)) olvidarDispositivo(asambleaP.codigo);
+      errorVerif(/demasiados_intentos/.test(m)
+        ? 'Demasiados intentos. Espere unos minutos o acérquese a la Mesa.'
+        : 'Hubo un problema al confirmar el código. Intente nuevamente.');
+      return;
+    }
+    const d=q.data||{};
+    if(d.ok){ entrarComoVotante(d, verificando.rut, disp); return; }
+    errorVerif(d.motivo==='codigo_incorrecto' ? 'Ese código no es correcto. Revíselo e inténtelo de nuevo.'
+      : d.motivo==='sin_codigo_vigente' ? 'Ese código ya no sirve: venció, ya se usó o se pidió desde otro teléfono. Pida uno nuevo.'
+      : d.motivo==='asamblea' ? 'Esta asamblea ya no existe. Verifique el código con la Mesa.'
+      : 'No pudimos confirmar el código. Pida uno nuevo o acérquese a la Mesa.');
+  }catch(e){ errorVerif('No pudimos conectar. Revise su internet.'); }
   finally{ setBusy(btn,false); }
 }
 // El telefono dejo de representar a este RUT: la Mesa lo libero, volvio a
@@ -754,9 +882,9 @@ async function identificar(btn){
 // quien la Mesa acababa de liberarlo, sin que nadie aqui lo pidiera.
 function perderVinculo(msg){
   const rut=yo?yo.rut:'';
-  yo=null; miVoto=null;
+  yo=null; miVoto=null; verificando=null;
   if(asambleaP && miDispositivo && miDispositivo.codigo===asambleaP.codigo) guardarVinculo(asambleaP.codigo, '', miDispositivo.id);
-  $('votar-panel').classList.add('hidden'); $('votar-id').classList.remove('hidden');
+  $('votar-panel').classList.add('hidden'); $('votar-verif').classList.add('hidden'); $('votar-id').classList.remove('hidden');
   const ri=$('rut-input'); if(ri && rut) ri.value=formatRut(rut);
   const err=$('rut-error'); err.classList.remove('hidden'); err.textContent=msg;
 }
@@ -765,8 +893,8 @@ function perderVinculo(msg){
 // atado a este telefono y puede volver a identificarse desde aqui.
 function cambiarRut(){
   if(asambleaP && miDispositivo && miDispositivo.codigo===asambleaP.codigo) guardarVinculo(asambleaP.codigo, '', miDispositivo.id);
-  yo=null; miVoto=null;
-  $('votar-panel').classList.add('hidden'); $('votar-id').classList.remove('hidden');
+  yo=null; miVoto=null; verificando=null;
+  $('votar-panel').classList.add('hidden'); $('votar-verif').classList.add('hidden'); $('votar-id').classList.remove('hidden');
   $('rut-error').classList.add('hidden');
   const ri=$('rut-input'); if(ri){ ri.value=''; try{ri.focus();}catch(e){} }
 }
@@ -840,6 +968,8 @@ async function emitir(choice){
     else if(/no esta en el padron/.test(m))
       perderVinculo('Su RUT ya no figura en el padrón de esta asamblea. Consulte con la Mesa.');
     else if(/inhabil/.test(m)){ if(yo){ yo.habil=false; aplicarHabilidad(); } }
+    else if(/no_figura_presente/.test(m))
+      alert('La Mesa no lo tiene registrado como presente en esta asamblea, así que su voto no se contó. Acérquese a la Mesa.');
     else if(/cerrada|punto cambio/.test(m)){ alert('La votación de este punto ya se cerró o cambió de punto. Su pantalla se actualizará.'); pollEstado(); }
     else alert('No se pudo enviar su voto. Revise su conexión e intente de nuevo.');
   }

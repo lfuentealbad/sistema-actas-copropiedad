@@ -33,3 +33,6 @@ credentials*.json
 service-account*.json
 .npmrc
 .pypirc
+
+# La version fija de wrangler se instala con "npm ci" (CN-006)
+node_modules/

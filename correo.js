@@ -21,11 +21,20 @@ function limpio(v, max) {
     .replace(/[\r\n]+/g, ' ').trim().slice(0, max);
 }
 
+// CN-024 (28-09-2026). El punto y el nombre del condominio los escribe
+// quien paga, y la constancia sale del dominio verificado del sitio hacia
+// cada casilla del padron: con un enlace adentro es un correo de phishing
+// con nuestra firma. Todo lo que parezca direccion web se reemplaza.
+const ENLACE = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:cl|com|net|org|io|app|link|xyz|info|co|me|ly|site|online|top|click|live|shop|store|biz|us|ru|cn|tk)\b\S*/gi;
+export function sinEnlaces(t) {
+  return String(t == null ? '' : t).replace(ENLACE, '[enlace omitido]');
+}
+
 export function textoAvisoVoto({ nombre, unidad, sentido, punto, condominio, codigo }) {
-  nombre = limpio(nombre, 120);
-  unidad = limpio(unidad, 40);
-  punto = limpio(punto, 300);
-  condominio = limpio(condominio, 120);
+  nombre = sinEnlaces(limpio(nombre, 120));
+  unidad = sinEnlaces(limpio(unidad, 40));
+  punto = sinEnlaces(limpio(punto, 300));
+  condominio = sinEnlaces(limpio(condominio, 120));
   const quien = [nombre, unidad ? 'unidad ' + unidad : ''].filter(Boolean).join(', ');
   const cuerpo =
     'Se deja constancia de su voto en la asamblea' +
@@ -38,6 +47,26 @@ export function textoAvisoVoto({ nombre, unidad, sentido, punto, condominio, cod
     'para que lo deje sin efecto antes de cerrar el acta.' +
     '\r\n\r\n—\r\nMensaje automático de la asamblea ' + limpio(codigo, 12) + '.';
   return { asunto: 'Constancia de su voto — ' + (ETIQUETA[sentido] || limpio(sentido, 20)), cuerpo };
+}
+
+// El codigo con que el votante ata su telefono a su RUT (CN-010). Nada de lo
+// que escriben la Mesa o el votante entra aqui: solo el codigo, cuanto dura
+// y el codigo de la sala, que la persona ve en la pantalla de la sala y le
+// sirve para reconocer que el correo es de la asamblea en la que esta.
+export function textoCodigoVoto({ clave, minutos, sala }) {
+  const c = String(clave == null ? '' : clave).replace(/\D/g, '').slice(0, 6);
+  const m = Math.max(1, Math.min(60, Number(minutos) || 10));
+  const s = String(sala == null ? '' : sala).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  return {
+    asunto: 'Su código para votar: ' + c,
+    cuerpo:
+      'Su código para votar en la sala ' + s + ' es:\r\n\r\n' +
+      '    ' + c + '\r\n\r\n' +
+      'Escríbalo en el teléfono desde el que lo pidió. Vence en ' + m + ' minutos y sirve una sola vez.\r\n\r\n' +
+      'Si usted no lo pidió, no haga nada: sin el código nadie puede votar por usted. ' +
+      'Si alguien se lo pide, no lo entregue.' +
+      '\r\n\r\n—\r\nMensaje automático de la sala de votación ' + s + '.'
+  };
 }
 
 export function correoConfigurado(env) {

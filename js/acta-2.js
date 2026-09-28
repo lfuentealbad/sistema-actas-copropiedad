@@ -547,6 +547,49 @@
     }
     await window.actaActualizarTelefonos(null);
   };
+  // CN-010 (28-09-2026): el codigo que la Mesa entrega en la sala a quien no
+  // tiene correo o no lo recibe, con el carnet a la vista. Vence a los 15
+  // minutos, sirve una sola vez y en cualquier telefono. Se muestra con
+  // textContent y se borra solo a los 60 segundos: no queda en pantalla para
+  // el siguiente que mire.
+  var borrarCodigoDado=null;
+  window.actaDarCodigo=async function(btn){
+    var caja=document.getElementById('vv-codigo-dado');
+    var inp=document.getElementById('vv-codigo-rut');
+    if(!caja || !inp) return;
+    if(!asam){ caja.textContent='No hay una sala abierta en esta sesión.'; return; }
+    var rut=norm(inp.value);
+    if(!rut || !rutDvCalza(inp.value)){ caja.textContent='Revise el RUT (ej: 12.345.678-5).'; return; }
+    var c=client(); if(!c) return;
+    btn.disabled=true; caja.textContent='Generando…';
+    try{
+      var r=await c.rpc('vv_codigo_mesa',{p_codigo:asam.codigo,p_token:asam.token,p_rut:rut});
+      if(r.error) throw r.error;
+      var k=String((r.data&&r.data.clave)||'');
+      caja.textContent='Código para '+rutFormateado(rut)+': '+k.slice(0,3)+' '+k.slice(3)+
+        ' — vence en '+((r.data&&r.data.minutos)||15)+' minutos. Dígaselo solo a esa persona.';
+      inp.value='';
+      clearTimeout(borrarCodigoDado);
+      borrarCodigoDado=setTimeout(function(){ caja.textContent=''; }, 60000);
+    }catch(e){
+      var m=String((e&&e.message)||'');
+      caja.textContent=/no esta en el padron/.test(m) ? 'Ese RUT no está en el padrón de esta sala.'
+        : /demasiados_codigos/.test(m) ? 'Se generaron demasiados códigos en la última hora. Espere unos minutos.'
+        : 'No se pudo generar el código. Revise su conexión e inténtelo de nuevo.';
+    }finally{ btn.disabled=false; }
+  };
+  window.actaReiniciarIntentos=async function(btn){
+    if(!asam){ avisoTelefonos('No hay una sala abierta en esta sesión.'); return; }
+    if(!confirm('¿Volver a cero los intentos de identificación de esta sala?\n\nÚselo si en la sala aparece «demasiados intentos»: en el WiFi del edificio todos comparten la misma conexión.')) return;
+    var c=client(); if(!c) return;
+    btn.disabled=true;
+    try{
+      var r=await c.rpc('vv_limites_reiniciar',{p_codigo:asam.codigo,p_token:asam.token});
+      if(r.error) throw r.error;
+      alert('Listo: los intentos de esta sala quedaron en cero.');
+    }catch(e){ alert('No se pudo reiniciar. Revise su conexión e inténtelo de nuevo.'); }
+    finally{ btn.disabled=false; }
+  };
 
   function renderTemas(){
     var cont=document.getElementById('vv-temas'); cont.innerHTML='';

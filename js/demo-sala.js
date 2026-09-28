@@ -13,8 +13,11 @@
  *  Sirve para ver la sala funcionando sin crear una asamblea de verdad,
  *  que hoy exige un pago validado en Postgres.
  *
- *  Sigue los contratos de la base: cada RUT atado al telefono que primero
- *  se identifica (C3: "ocupado", vv_liberar, "vinculado" en vv_reanudar),
+ *  Sigue los contratos de la base: cada RUT atado a un telefono (C3:
+ *  vv_liberar, "vinculado" en vv_reanudar) y, desde el 28-09-2026, solo
+ *  despues de un codigo de 6 cifras (CN-010: vv_codigo_mesa,
+ *  vv_verificar_codigo, y el correo de /api/voto/codigo, que aqui se
+ *  muestra en pantalla en vez de enviarse),
  *  el padron canonico (C4: una unidad una vez, "descartadas" siempre) y
  *  el tope de tres salas por pago. Si la demostracion no se comportara
  *  como la base, ensenaria una sala que no existe. Lo vigila
@@ -58,12 +61,13 @@
   var CODIGO = 'DEMO01';
   var TOKEN  = 'token-de-demostracion';
 
+  // Los correos son de ejemplo.cl: un dominio que no recibe correo de nadie.
   var PADRON_DEMO = [
-    { rut: '123456785',  nombre: 'María González Pérez',    unidad: '101', habil: true,  asiste: true, der: 5.25 },
-    { rut: '112223339',  nombre: 'Juan Sepúlveda Rojas',    unidad: '102', habil: true,  asiste: true, der: 4.80 },
-    { rut: '156789011',  nombre: 'Ana Castro Muñoz',        unidad: '201', habil: false, asiste: true, der: 5.10 },
+    { rut: '123456785',  nombre: 'María González Pérez',    unidad: '101', habil: true,  asiste: true, der: 5.25, correo: 'maria@ejemplo.cl' },
+    { rut: '112223339',  nombre: 'Juan Sepúlveda Rojas',    unidad: '102', habil: true,  asiste: true, der: 4.80, correo: 'juan@ejemplo.cl' },
+    { rut: '156789011',  nombre: 'Ana Castro Muñoz',        unidad: '201', habil: false, asiste: true, der: 5.10, correo: 'ana@ejemplo.cl' },
     { rut: '98765433',   nombre: 'Carlos Vega Soto',        unidad: '202', habil: true,  asiste: true, der: 4.75 },
-    { rut: '8765432k',   nombre: 'Patricia Soto López',     unidad: '301', habil: true,  asiste: true, der: 5.40 },
+    { rut: '8765432k',   nombre: 'Patricia Soto López',     unidad: '301', habil: true,  asiste: true, der: 5.40, correo: 'patricia@ejemplo.cl' },
     { rut: '101112225',  nombre: 'Rodrigo Fernández Tapia', unidad: '302', habil: true,  asiste: true, der: 4.95 }
   ];
 
@@ -149,6 +153,16 @@
       base.salas[CODIGO] = salaNueva(CODIGO, TOKEN, 'Condominio Las Araucarias',
                                      JSON.parse(JSON.stringify(PADRON_DEMO)));
     }
+    // La sala de ejemplo guardada antes del 28-09-2026 no traia correos:
+    // sin ellos no se podria probar el codigo al correo. Se completan una
+    // sola vez; despues manda lo que la Mesa guarde.
+    if (!base.conCorreos) {
+      base.salas[CODIGO].padron.forEach(function (p) {
+        if (p.correo) return;
+        PADRON_DEMO.forEach(function (d) { if (d.rut === p.rut && d.correo) p.correo = d.correo; });
+      });
+      base.conCorreos = true;
+    }
   }
   recuperar();
   guardar();
@@ -196,6 +210,32 @@
     for (var i = 0; i < 6; i++) s += A[Math.floor(Math.random() * A.length)];
     return s;
   }
+  // El codigo de 6 cifras del votante (CN-010). Aunque sea la demostracion,
+  // sale de crypto: es lo que ensena como se hace.
+  function claveNueva() {
+    var c = global.crypto && typeof global.crypto.getRandomValues === 'function' ? global.crypto : null;
+    var n;
+    if (c) { var b = new Uint32Array(1); c.getRandomValues(b); n = b[0] % 1000000; }
+    else n = Math.floor(Math.random() * 1000000);
+    return ('000000' + n).slice(-6);
+  }
+  function enmascarar(correo) {
+    if (!correo || correo.indexOf('@') < 0) return null;
+    return correo.charAt(0) + '•••@' + correo.split('@')[1];
+  }
+  // Los codigos vigentes de la sala: rut -> [{ clave, disp, vence, intentos }].
+  // Como en la base: 10 minutos el del correo (atado al telefono que lo
+  // pidio), 15 el de la Mesa (sirve en cualquiera), 5 intentos lo matan.
+  function codigosDe(sala) {
+    if (!sala.codigos || typeof sala.codigos !== 'object') sala.codigos = {};
+    return sala.codigos;
+  }
+  function guardarClave(sala, rut, disp, minutos) {
+    var clave = claveNueva();
+    var lista = propio(codigosDe(sala), rut) || poner(codigosDe(sala), rut, []);
+    lista.push({ clave: clave, disp: disp || null, vence: Date.now() + minutos * 60000, intentos: 0 });
+    return clave;
+  }
 
   var lento = 180;   // se simula la latencia de la red, para que se note real
   function responder(data) {
@@ -218,9 +258,9 @@
       return responder({ existe: true, titulo: s.titulo, abierta: s.abierta, punto: s.punto });
     },
 
-    // El primer telefono que se identifica con un RUT se lo queda. A los
-    // demas se les dice "ocupado" y nada mas: ni nombre, ni unidad, ni si
-    // esta al dia.
+    // Identificarse ya no ata (CN-010): si el telefono ya es de este RUT
+    // entrega sus datos; si no, pide el codigo, y lo unico que dice de la
+    // persona es su correo enmascarado.
     // El limite de intentos por conexion ('demasiados_intentos') no se
     // simula: aqui todo corre en este navegador y no hay a quien frenar.
     vv_identificar: function (a) {
@@ -230,9 +270,54 @@
       var filas = filasDe(s, a.p_rut);
       if (!filas.length) return responder({ existe: false, motivo: 'rut' });
       var d = vinculoDe(filas);
-      if (d && d !== a.p_dispositivo) return responder({ existe: true, ocupado: true });
-      filas.forEach(function (p) { p.dispositivo = a.p_dispositivo; });
+      if (d !== a.p_dispositivo) {
+        var correo = null;
+        filas.forEach(function (p) { if (!correo && p.correo) correo = p.correo; });
+        return responder({ existe: true, verificar: true, ocupado: !!d, correo: enmascarar(correo) });
+      }
       return responder(resumen(filas));
+    },
+
+    // La Mesa entrega un codigo en la sala a quien no tiene correo.
+    vv_codigo_mesa: function (a) {
+      var s = laSala(a.p_codigo);
+      if (!s || a.p_token !== s.token) return fallar('no autorizado');
+      var filas = filasDe(s, a.p_rut);
+      if (!filas.length) return fallar('no esta en el padron');
+      return responder({ ok: true, clave: guardarClave(s, filas[0].rut, null, 15), minutos: 15 });
+    },
+
+    // El telefono prueba el codigo: si calza, queda atado (aunque el RUT
+    // estuviera en otro) y los demas codigos del RUT mueren.
+    vv_verificar_codigo: function (a) {
+      if (!DISPOSITIVO.test(String(a.p_dispositivo || ''))) return fallar('dispositivo_invalido');
+      var s = laSala(a.p_codigo);
+      if (!s) return responder({ ok: false, motivo: 'asamblea' });
+      var filas = filasDe(s, a.p_rut);
+      if (!/^[0-9]{6}$/.test(String(a.p_clave || ''))) return responder({ ok: false, motivo: 'codigo_incorrecto' });
+      var ahora = Date.now();
+      var lista = (propio(codigosDe(s), filas.length ? filas[0].rut : '') || []).filter(function (k) {
+        return !k.usado && k.vence > ahora && (!k.disp || k.disp === a.p_dispositivo);
+      });
+      var bueno = null;
+      lista.forEach(function (k) { if (!bueno && k.clave === String(a.p_clave)) bueno = k; });
+      if (!bueno) {
+        lista.forEach(function (k) { k.intentos++; if (k.intentos >= 5) k.vence = ahora; });
+        return responder({ ok: false, motivo: lista.length ? 'codigo_incorrecto' : 'sin_codigo_vigente' });
+      }
+      if (!filas.length) return responder({ ok: false, motivo: 'rut' });
+      (propio(codigosDe(s), filas[0].rut) || []).forEach(function (k) { k.usado = true; });
+      var habia = vinculoDe(filas);
+      filas.forEach(function (p) { p.dispositivo = a.p_dispositivo; });
+      var r = resumen(filas);
+      r.ok = true; r.reemplazo = !!(habia && habia !== a.p_dispositivo);
+      return responder(r);
+    },
+
+    vv_limites_reiniciar: function (a) {
+      var s = laSala(a.p_codigo);
+      if (!s || a.p_token !== s.token) return fallar('no autorizado');
+      return responder({ ok: true, reiniciados: 0 });
     },
 
     // Como voto alguien solo se le dice al telefono que tiene su RUT.
@@ -262,6 +347,7 @@
       var d = vinculoDe(filas);
       if (!d) return fallar('identifiquese_primero');
       if (d !== a.p_dispositivo) return fallar('rut_en_otro_dispositivo');
+      if (!filas.some(function (p) { return p.asiste !== false; })) return fallar('no_figura_presente');
       if (!resumen(filas).habil) return fallar('inhabil');
       var votos = votosDe(s, a.p_punto);
       if (!votos) votos = poner(s.votos, a.p_punto, {});
@@ -400,6 +486,39 @@
 
     // La medición de uso. En la demostración no se guarda nada.
     vv_log: function () { return responder({ ok: true }); }
+  };
+
+  // El correo del codigo (/api/voto/codigo). En la demostracion no sale
+  // ningun correo: se muestra en pantalla lo que diria. Todo lo demas que
+  // la pagina pida por fetch sigue su camino.
+  var fetchReal = typeof global.fetch === 'function' ? global.fetch.bind(global) : null;
+  global.fetch = function (url, init) {
+    if (String(url) !== '/api/voto/codigo') {
+      return fetchReal ? fetchReal(url, init) : Promise.reject(new Error('sin red en la demostración'));
+    }
+    var d = {};
+    try { d = JSON.parse((init && init.body) || '{}'); } catch (e) { d = {}; }
+    var s = laSala(d.codigo);
+    var filas = s ? filasDe(s, d.rut) : [];
+    var correo = null;
+    filas.forEach(function (p) { if (!correo && p.correo) correo = p.correo; });
+    var cuerpo, estado = 200;
+    if (!s || !filas.length) { cuerpo = { enviado: false, motivo: s ? 'rut' : 'asamblea' }; estado = 404; }
+    else if (!correo) cuerpo = { enviado: false, motivo: 'sin_correo' };
+    else {
+      var clave = guardarClave(s, filas[0].rut, String(d.dispositivo || ''), 10);
+      guardar();
+      setTimeout(function () {
+        global.alert('(Demostración) Así llegaría el correo a ' + correo + ':\n\n' +
+          'Su código para votar en la sala ' + s.codigo + ' es ' + clave + '.\nVence en 10 minutos y sirve una sola vez.');
+      }, 0);
+      cuerpo = { enviado: true, correo: enmascarar(correo), minutos: 10 };
+    }
+    return new Promise(function (res) {
+      setTimeout(function () {
+        res({ ok: estado < 400, status: estado, json: function () { return Promise.resolve(cuerpo); } });
+      }, lento);
+    });
   };
 
   global.supabase = {

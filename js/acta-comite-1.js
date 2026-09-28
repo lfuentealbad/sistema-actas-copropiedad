@@ -75,19 +75,22 @@ function $ac(id) { return document.getElementById(id); }
 function acVal(id) { var e = $ac(id); return e ? e.value.trim() : ''; }
 function acPon(id, v) { var e = $ac(id); if (e && v != null) e.value = v; }
 
+// Las dos van dentro del HTML del acta. Lo que no es una fecha AAAA-MM-DD
+// (un borrador restaurado puede traer cualquier cosa en "fecha") sale
+// escapado, no tal cual (CN-040, 26-09-2026).
 function acFecha(iso) {
   if (!iso) return '';
-  var p = String(iso).slice(0, 10).split('-');
-  if (p.length !== 3) return iso;
-  return p[2] + '/' + p[1] + '/' + p[0];
+  var p = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  if (!p) return acEsc(iso);
+  return p[3] + '/' + p[2] + '/' + p[1];
 }
 function acFechaLarga(iso) {
   if (!iso) return '—';
   var m = ['enero','febrero','marzo','abril','mayo','junio',
            'julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  var p = String(iso).slice(0, 10).split('-');
-  if (p.length !== 3) return iso;
-  return parseInt(p[2], 10) + ' de ' + m[parseInt(p[1], 10) - 1] + ' de ' + p[0];
+  var p = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso));
+  if (!p || !m[parseInt(p[2], 10) - 1]) return acEsc(iso);
+  return parseInt(p[3], 10) + ' de ' + m[parseInt(p[2], 10) - 1] + ' de ' + p[1];
 }
 function acHoy() {
   var d = new Date();
@@ -1022,9 +1025,13 @@ function acDescargar() {
     '@page{size:A4;margin:20mm 18mm;}';
 
   var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    // El archivo se abre desde el disco, donde no rige la politica del
+    // sitio: lleva la suya, como el acta de asamblea. No necesita ningun
+    // script, asi que no admite ninguno (CN-040).
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:">' +
     // Sin esto, el acta abierta en el teléfono sale del tamaño de un sello.
     '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-    '<title>' + doc.titulo + (acFolio ? ' ' + acEsc(acFolio) : '') + '</title>' +
+    '<title>' + acEsc(doc.titulo) + (acFolio ? ' ' + acEsc(acFolio) : '') + '</title>' +
     '<style>' + estilos + '</style></head><body>' +
     (esBorrador ? '<div class="agua" aria-hidden="true">BORRADOR</div>' : '') +
     '<h1>' + doc.titulo + '</h1>' +

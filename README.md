@@ -137,7 +137,6 @@ node ../Pruebas/correr.mjs
 
 ## Licencias de terceros
 
-- **JSZip** — MIT
 - **SheetJS Community Edition** — Apache 2.0
 - **Source Sans 3**, **Fraunces** — SIL Open Font License 1.1
 

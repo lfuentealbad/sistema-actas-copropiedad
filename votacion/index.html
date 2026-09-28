@@ -18,7 +18,7 @@
 <meta property="og:locale" content="es_CL">
 <meta property="og:url" content="https://actascopropiedad.cl/votacion/">
 <meta property="og:title" content="Sala de Votación · Asamblea de Copropietarios">
-<meta property="og:description" content="Vote en vivo desde su teléfono en la asamblea de su comunidad, identificándose con su RUT. Conforme a la Ley N° 21.442.">
+<meta property="og:description" content="Vote en vivo desde su teléfono en la asamblea de su comunidad, identificándose con su RUT y un código de un solo uso. Conforme a la Ley N° 21.442.">
 <meta property="og:image" content="https://actascopropiedad.cl/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
@@ -187,8 +187,9 @@
         </table>
         </div>
         <p class="hint" id="m-padron-sum">—</p>
-        <p class="hint">Cada RUT queda vinculado al primer teléfono desde el que se identifica, y nadie más puede votar con él. Si alguien cambia de teléfono, pulse <strong>Liberar</strong> en su fila: sus votos se conservan.
-          <button class="btn btn-ghost btn-sm" style="margin-left:6px" data-ac="actualizarVinculos" data-args="@">Actualizar teléfonos</button></p>
+        <p class="hint">Para votar, cada copropietario confirma su identidad con un código de 6 cifras que le llega al correo del padrón. Si no tiene correo o no le llega, pulse <strong>Código</strong> en su fila, con su carnet a la vista, y dígale el código: vence en 15 minutos. Su teléfono queda vinculado a su RUT y nadie más puede votar con él. Si cambia de teléfono, con un código nuevo se cambia solo; también puede pulsar <strong>Liberar</strong>. Sus votos se conservan.
+          <button class="btn btn-ghost btn-sm" style="margin-left:6px" data-ac="actualizarVinculos" data-args="@">Actualizar teléfonos</button>
+          <button class="btn btn-ghost btn-sm" style="margin-left:6px" data-ac="reiniciarIntentos" data-args="@" title="Si en la sala aparece «demasiados intentos», vuelve a cero los contadores de esta asamblea">Reiniciar intentos</button></p>
         <button class="btn btn-teal" style="margin-top:8px" data-ac="guardarPadron" data-args="@">Guardar padrón</button>
         <span id="m-padron-ok" class="muted" style="margin-left:10px"></span>
       </div>
@@ -243,10 +244,22 @@
 
     <div class="card hidden" id="votar-id">
       <h2>Identifíquese</h2>
-      <p class="muted">Ingrese su RUT para votar. Su RUT quedará vinculado a este teléfono durante la asamblea: nadie más podrá votar con él.</p>
+      <p class="muted">Ingrese su RUT. Después le pediremos un código de 6 cifras, que le llega a su correo o que le entrega la Mesa: así nadie puede votar por usted. Su RUT quedará vinculado a este teléfono durante la asamblea.</p>
       <div style="margin-top:12px"><label for="rut-input">RUT</label><input type="text" id="rut-input" placeholder="12.345.678-5" autocomplete="off"></div>
       <button class="btn btn-teal" style="margin-top:12px;width:100%" data-ac="identificar" data-args="@">Continuar</button>
       <div id="rut-error" class="hidden" role="alert" style="color:var(--err);font-size:13.5px;margin-top:10px"></div>
+    </div>
+
+    <div class="card hidden" id="votar-verif">
+      <h2>Confirme que es usted</h2>
+      <p class="muted" id="verif-texto">—</p>
+      <p class="hidden" id="verif-ocupado" style="font-size:13.5px;margin:8px 0 0">Este RUT ya se identificó desde otro teléfono. Si es usted, con el código este teléfono pasa a ser el suyo. Si no fue usted, avise a la Mesa.</p>
+      <button class="btn btn-ghost hidden" id="verif-enviar" style="margin-top:12px;width:100%" data-ac="pedirCodigoCorreo" data-args="@">Enviarme el código por correo</button>
+      <div style="margin-top:12px"><label for="verif-input">Código de 6 cifras</label><input type="text" id="verif-input" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" style="letter-spacing:4px;font-weight:700"></div>
+      <button class="btn btn-teal" style="margin-top:12px;width:100%" data-ac="confirmarCodigo" data-args="@">Confirmar</button>
+      <div id="verif-msg" role="status" aria-live="polite" style="font-size:13.5px;margin-top:10px"></div>
+      <div id="verif-error" class="hidden" role="alert" style="color:var(--err);font-size:13.5px;margin-top:10px"></div>
+      <button class="back" style="margin-top:8px" data-ac="cambiarRut">← Ingresar otro RUT</button>
     </div>
 
     <p id="v-anuncio" role="status" aria-live="polite" class="solo-lector"></p>

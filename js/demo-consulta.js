@@ -195,6 +195,9 @@
       var c = laConsulta(a.p_codigo, a.p_token);
       if (!c) return fallar('no autorizado');
       if (!Array.isArray(a.p_padron) || a.p_padron.length === 0) return fallar('padron invalido');
+      // Como la base desde el 28-09-2026 (CN-028): ni cerrada ni con respuestas.
+      if (c.cerrada) return fallar('consulta_cerrada');
+      if (Object.keys(c.respuestas || {}).length) return fallar('consulta_con_respuestas');
       c.destinatarios = [];
       c.respuestas = {};
       var vistos = {};

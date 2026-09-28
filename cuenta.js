@@ -504,7 +504,10 @@
   //  Claves filtradas
   //  Supabase lo trae en el plan Pro. Aqui se hace igual: se calcula el
   //  SHA-1 en el navegador y solo se mandan los 5 primeros caracteres al
-  //  Worker, que consulta HaveIBeenPwned. La clave no sale de aqui.
+  //  Worker, que consulta HaveIBeenPwned y devuelve los sufijos filtrados
+  //  que empiezan asi. La comparacion se hace aqui: ni la clave ni su hash
+  //  completo salen del navegador. (Hasta el 28-09-2026 se mandaba tambien
+  //  el sufijo, y prefijo mas sufijo son el hash entero: CN-021.)
   // -------------------------------------------------------------------
   function sha1Hex(txt) {
     if (!global.crypto || !global.crypto.subtle) return Promise.resolve(null);
@@ -526,10 +529,14 @@
       fetch('/api/clave/filtrada', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prefijo: h.slice(0, 5), sufijo: h.slice(5) }),
+        body: JSON.stringify({ prefijo: h.slice(0, 5) }),
         signal: ctrl.signal
       }).then(function (r) { return r.json(); })
-        .then(function (d) { clearTimeout(reloj); cb(!!(d && d.filtrada)); })
+        .then(function (d) {
+          clearTimeout(reloj);
+          var lista = d && Array.isArray(d.sufijos) ? d.sufijos : [];
+          cb(lista.indexOf(h.slice(5)) >= 0);
+        })
         .catch(function () { clearTimeout(reloj); cb(false); });
     });
   }
@@ -1463,7 +1470,7 @@
    *  texto. Si los terminos cambian de fecha, cambia aqui y en _worker.js
    *  -hay una prueba que no deja que se desincronicen-.
    */
-  var TERMINOS_VERSION = '2026-08-20';
+  var TERMINOS_VERSION = '2026-09-28';
 
   function terminosHtml(id) {
     return '<label for="' + id + '" style="display:flex;gap:9px;align-items:flex-start;' +

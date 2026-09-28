@@ -5,6 +5,7 @@
 //   POST /api/pago/confirmar        webhook de Flow (servidor a servidor)
 //   GET  /api/pago/estado?orden=    la aplicacion consulta si ya se pago (con sesion)
 //   POST /api/voto/avisos           constancia de voto por correo; la pide la Mesa
+//   POST /api/voto/codigo           codigo de un solo uso al correo del votante
 //   POST /api/clave/filtrada        clave filtrada, por k-anonimato contra HIBP
 //   POST /api/csp                   informes de violacion de la CSP
 //
@@ -18,7 +19,9 @@ import {
   construirRespuestaMime, textoAcuse
 } from './consulta.js';
 
-import { enviarCorreo, textoAvisoVoto, correoConfigurado } from './correo.js';
+import { enviarCorreo, textoAvisoVoto, textoCodigoVoto, correoConfigurado } from './correo.js';
+
+import { verificarDkim, txtPorDoh } from './dkim.js';
 
 const FLOW = {
   sandbox: 'https://sandbox.flow.cl/api',
@@ -56,7 +59,7 @@ const VIGENCIA_LLAVE_DIAS = 60;
 // navegador declara haber aceptado y lo que queda guardado con cada orden.
 // Si se publican terminos nuevos, cambia aqui, en terminos.html y en el
 // TERMINOS_VERSION de cuenta.js: hay una prueba que no los deja separarse.
-const TERMINOS_VERSION = '2026-08-20';
+const TERMINOS_VERSION = '2026-09-28';
 
 // El sitio tiene un solo nombre. Las URL que se le entregan a Flow salen de
 // aqui y no de la peticion: asi da lo mismo por que nombre se entro y que
@@ -70,7 +73,7 @@ const HOSTS_LOCALES = new Set(['localhost', '127.0.0.1']);
 // Cuanto puede pesar el cuerpo de cada ruta. Ninguno necesita mas de un par
 // de kilobytes; el de /api/csp es el que fija el navegador y trae la muestra
 // del codigo bloqueado, por eso es el mas holgado.
-const TOPE = { crear: 2048, confirmar: 4096, avisos: 4096, clave: 1024, csp: 8192 };
+const TOPE = { crear: 2048, confirmar: 4096, avisos: 4096, codigo: 1024, clave: 1024, csp: 8192 };
 
 // Un correo de respuesta a una consulta cabe en unas lineas. Del mensaje se
 // lee solo el primer mega: el interprete trabaja con expresiones regulares
@@ -80,7 +83,7 @@ const TOPE_CORREO = 1024 * 1024;
 // Ninguna llamada a un tercero puede quedarse colgada mas que esto. Sin
 // tope, un proveedor lento se come el tiempo del Worker y el que espera es
 // el copropietario o la Mesa.
-const ESPERA = { flow: 10000, supabase: 8000, hibp: 5000 };
+const ESPERA = { flow: 10000, supabase: 8000, hibp: 5000, dns: 5000 };
 
 // Constancias de voto por invocacion. Cada una es una subpeticion y el
 // Worker tiene un tope por invocacion (50 en el plan gratuito): 1 consulta
@@ -157,8 +160,12 @@ async function firmarFlow(params, secretKey) {
 // Se exportan solo para las pruebas; el runtime de Workers usa "default".
 export { hmacHex, firmarFlow, emitirLlave };
 
+// El entorno de Flow: solo "produccion" cobra de verdad. Cualquier otro
+// valor, o ninguno, es el sandbox.
+const entornoFlow = env => env.FLOW_ENTORNO === 'produccion' ? 'produccion' : 'sandbox';
+
 function base(env) {
-  return FLOW[env.FLOW_ENTORNO === 'produccion' ? 'produccion' : 'sandbox'];
+  return FLOW[entornoFlow(env)];
 }
 
 // Sin red o sin respuesta a tiempo, para quien llama es lo mismo que un
@@ -202,7 +209,11 @@ async function emitirLlave(env, orden, producto) {
   // 'p' es el producto pagado. Postgres lo lee para no dejar que una llave de
   // consulta abra un acta, ni al reves. Sin 'p' se entiende 'acta', que es lo
   // que valian todas las llaves anteriores a esta separacion.
-  const payload = b64url(JSON.stringify({ o: orden, e: vence, p: producto || 'acta' }));
+  // 's' es el entorno de Flow en que se pago (CN-005, 28-09-2026). En el
+  // sandbox cualquiera paga con las tarjetas de prueba publicadas: Postgres
+  // (vv_validar_pago) rechaza toda llave que no diga "produccion", salvo que
+  // se le pida a proposito para ensayar la pasarela.
+  const payload = b64url(JSON.stringify({ o: orden, e: vence, p: producto || 'acta', s: entornoFlow(env) }));
   const firma = await hmacHex(env.PAGO_SECRET, payload);
   return `${payload}.${firma}`;
 }
@@ -295,7 +306,11 @@ async function jsonAcotado(request, max) {
 // ---------------------------------------------------------------------
 function limiteDe(ruta) {
   if (ruta === '/api/pago/confirmar') return 'LIMITE_GENERAL';
-  if (ruta.startsWith('/api/pago/') || ruta === '/api/clave/filtrada') return 'LIMITE_ESTRICTO';
+  // /api/voto/codigo manda un correo por llamada: va en el estricto, como el
+  // pago y la clave filtrada.
+  if (ruta.startsWith('/api/pago/') || ruta === '/api/clave/filtrada' || ruta === '/api/voto/codigo') {
+    return 'LIMITE_ESTRICTO';
+  }
   if (ruta === '/cf-geo' || ruta.startsWith('/api/')) return 'LIMITE_GENERAL';
   return null;
 }
@@ -354,9 +369,15 @@ function sinSesion(s) {
   return json({ error: 'sesion_no_verificable' }, 503);
 }
 
-async function crearPago(request, env, url) {
-  if (faltaConfig(env)) return json({ error: 'pasarela_no_configurada' }, 503);
+// CN-005 (28-09-2026). En el sandbox de Flow cualquiera paga con las
+// tarjetas de prueba publicadas. Fuera de desarrollo, la pasarela solo
+// atiende en produccion, salvo que PAGOS_PRUEBA=1 lo pida a proposito para
+// ensayar (y aun asi Postgres no acepta esas llaves si no se le dice).
+function sandboxVedado(env, url) {
+  return entornoFlow(env) !== 'produccion' && !HOSTS_LOCALES.has(url.hostname) && String(env.PAGOS_PRUEBA) !== '1';
+}
 
+async function crearPago(request, env, url) {
   const leido = await jsonAcotado(request, TOPE.crear);
   if (leido.respuesta) return leido.respuesta;
   const cuerpo = leido.datos;
@@ -375,14 +396,22 @@ async function crearPago(request, env, url) {
   const s = await sesionDe(request, env);
   if (s.estado !== 'ok') return sinSesion(s);
 
+  // Lo que falte de configuracion se dice recien a quien tiene sesion
+  // (CN-032): antes, cualquiera sabia por esta ruta que faltaban los
+  // secretos de la pasarela.
+  if (faltaConfig(env)) return json({ error: 'pasarela_no_configurada' }, 503);
+  if (sandboxVedado(env, url)) return json({ error: 'pasarela_en_pruebas' }, 503);
+
   // El comprobante de Flow va al correo de la cuenta. El que venga en el
   // cuerpo ya no cuenta: era la unica forma de amarrar la orden a alguien,
   // y ahora la amarra la sesion.
   const correo = s.correo;
   if (!correoValido(correo)) return json({ error: 'correo_invalido' }, 400);
 
-  // Que se esta comprando. Cualquier otra cosa se trata como acta.
-  const producto = PRODUCTOS[cuerpo.producto] ? cuerpo.producto : 'acta';
+  // Que se esta comprando. Cualquier otra cosa se trata como acta. Con
+  // Object.hasOwn: PRODUCTOS['__proto__'] existe como herencia (CN-039).
+  const producto = typeof cuerpo.producto === 'string' && Object.hasOwn(PRODUCTOS, cuerpo.producto)
+    ? cuerpo.producto : 'acta';
   const cfg = PRODUCTOS[producto];
 
   // El monto lo fija el servidor. Lo que mande el cliente se ignora.
@@ -479,10 +508,9 @@ async function confirmarPago(request, env) {
 }
 
 async function estadoPago(request, env, url) {
-  if (faltaConfig(env)) return json({ error: 'pasarela_no_configurada' }, 503);
-
   const s = await sesionDe(request, env);
   if (s.estado !== 'ok') return sinSesion(s);
+  if (faltaConfig(env)) return json({ error: 'pasarela_no_configurada' }, 503);
 
   // Una orden que no existe, una de otra cuenta y un numero mal formado
   // responden exactamente lo mismo (contrato C1). Si no, esta ruta serviria
@@ -505,7 +533,9 @@ async function estadoPago(request, env, url) {
 
 // Respuestas a una consulta por escrito que llegan a c-CODIGO@el-dominio.
 // La identidad se verifica por casilla: vale porque llega DESDE el correo
-// inscrito en el Registro de Copropietarios (art. 17 del reglamento).
+// inscrito en el Registro de Copropietarios (art. 17 del reglamento), y
+// desde el 28-09-2026 "desde" quiere decir firmado por el dominio de esa
+// casilla (DKIM, ver registrarRespuesta), no solo declarado en el sobre.
 // Nunca se descarta una respuesta en silencio: si no se puede registrar, se
 // reenvia a una casilla humana. Perder un voto sin que nadie se entere es
 // peor que cualquier error visible.
@@ -560,17 +590,30 @@ async function registrarRespuesta(message, env) {
     return;
   }
 
-  const remitente = normalizarCorreo(message.from);
-
+  // CN-011 (28-09-2026). El remitente del sobre SMTP lo escribe quien envia,
+  // y Cloudflare hoy no le entrega al Worker los veredictos SPF/DKIM/DMARC.
+  // Por eso la firma DKIM se verifica aqui (dkim.js): el voto se atribuye a
+  // la casilla del From solo si su dominio firmo el mensaje. Lo que no se
+  // puede verificar llega a la base como no autenticado: nunca pisa una
+  // respuesta y, si es la primera, queda 'ambigua' para que la Mesa la
+  // confirme con la persona.
   let texto = '';
+  let firma = { ok: false, motivo: 'no_leido' };
   try {
     // Un correo truncado que no se entiende queda 'ambigua' y va a la Mesa,
-    // que es exactamente lo que se quiere con uno de varios megas.
-    const { bytes } = await leerHasta(message.raw, TOPE_CORREO);
+    // que es exactamente lo que se quiere con uno de varios megas. Truncado,
+    // ademas, la firma no se puede verificar.
+    const { bytes, excedido } = await leerHasta(message.raw, TOPE_CORREO);
     texto = extraerTextoPlano(new TextDecoder('utf-8').decode(bytes));
+    firma = excedido
+      ? { ok: false, motivo: 'demasiado_grande' }
+      : await verificarDkim(bytes, { resolverTxt: n => txtPorDoh(n, ESPERA.dns) });
   } catch (e) {
     console.log('consulta: no se pudo leer el MIME', paraLog(e && e.message, 200));
   }
+  const autenticado = firma.ok === true;
+  const remitente = autenticado ? firma.desde : normalizarCorreo(message.from);
+  if (!autenticado) console.log('consulta', codigo, 'remitente sin autenticar:', paraLog(firma.motivo, 40));
 
   // Si el texto no se pudo leer o no es concluyente, queda 'ambigua' y la
   // Mesa la resuelve a mano. Nunca se adivina el sentido de un voto.
@@ -589,7 +632,8 @@ async function registrarRespuesta(message, env) {
       p_sentido: sentido,
       p_texto: texto.slice(0, 4000),
       p_message_id: (message.headers.get('message-id') || '').slice(0, 998) || null,
-      p_secreto: env.CORREO_SECRET
+      p_secreto: env.CORREO_SECRET,
+      p_autenticado: autenticado
     }),
     signal: AbortSignal.timeout(ESPERA.supabase)
   });
@@ -789,11 +833,83 @@ async function avisarVotos(request, env) {
 }
 
 // ---------------------------------------------------------------------
+//  Codigo de un solo uso para el votante (CN-010, 28-09-2026)
+//
+//  El telefono pide un codigo para su RUT en la sala. La base (con
+//  correo_secret) lo genera, guarda su huella y le devuelve al Worker el
+//  codigo y el correo que el padron tiene para ese RUT; el Worker lo envia.
+//  Ni el codigo ni la direccion completa llegan nunca al navegador: este
+//  solo sabe si salio y a que casilla enmascarada.
+//
+//  El texto del correo no lleva nada que escriba la Mesa ni el votante
+//  (correo.js): solo el codigo, sus minutos y el codigo de la sala. Y los
+//  topes viven en la base -3 por RUT cada 15 minutos, 10 por casilla por
+//  hora, y por sala 2 por fila del padron mas 20 al dia-, ademas del limite
+//  estricto por IP de este Worker.
+// ---------------------------------------------------------------------
+async function codigoVotante(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON || !env.CORREO_SECRET || !correoConfigurado(env)) {
+    return json({ enviado: false, motivo: 'correo_no_configurado' }, 503);
+  }
+  const leido = await jsonAcotado(request, TOPE.codigo);
+  if (leido.respuesta) return leido.respuesta;
+  const d = leido.datos;
+  const codigo = String(d.codigo || '').toUpperCase();
+  const rut = String(d.rut || '');
+  const dispositivo = String(d.dispositivo || '');
+  if (!/^[A-Z0-9]{4,12}$/.test(codigo) || !/^[0-9kK.\- ]{2,20}$/.test(rut) || !/^[0-9a-f]{32}$/.test(dispositivo)) {
+    return json({ error: 'parametros_invalidos' }, 400);
+  }
+
+  let r, datos;
+  try {
+    r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/vv_codigo_correo`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        apikey: env.SUPABASE_ANON,
+        authorization: `Bearer ${env.SUPABASE_ANON}`
+      },
+      body: JSON.stringify({ p_codigo: codigo, p_rut: rut, p_dispositivo: dispositivo, p_secreto: env.CORREO_SECRET }),
+      signal: AbortSignal.timeout(ESPERA.supabase)
+    });
+    datos = await r.json().catch(() => null);
+  } catch (e) {
+    return json({ enviado: false, motivo: 'base_no_disponible' }, 503);
+  }
+  if (!r.ok) {
+    // Un secreto que no calza con el de la base, o la base sin configurar:
+    // para quien vota es lo mismo, y el mensaje no le cuenta cual de los dos.
+    const m = String((datos && datos.message) || '');
+    if (/correo_no_configurado|no autorizado/.test(m)) {
+      console.log('codigo: la base rechazo el secreto del correo o no lo tiene', paraLog(m, 60));
+      return json({ enviado: false, motivo: 'correo_no_configurado' }, 503);
+    }
+    return json({ enviado: false, motivo: 'base_no_disponible' }, 503);
+  }
+  if (!datos || datos.ok !== true) {
+    const motivo = String((datos && datos.motivo) || 'desconocido');
+    const estado = motivo === 'demasiados_codigos' ? 429 : motivo === 'sin_correo' ? 200 : 404;
+    return json({ enviado: false, motivo }, estado);
+  }
+
+  const t = textoCodigoVoto({ clave: datos.clave, minutos: datos.minutos, sala: codigo });
+  const envio = await enviarCorreo(env, { para: datos.para, asunto: t.asunto, texto: t.cuerpo });
+  if (!envio.ok) return json({ enviado: false, motivo: 'envio_fallido' }, 502);
+  return json({ enviado: true, correo: String(datos.correo || ''), minutos: Number(datos.minutos) || 10 });
+}
+
+// ---------------------------------------------------------------------
 //  Claves filtradas (HaveIBeenPwned, k-anonimato)
 //
-//  El navegador manda SOLO los 5 primeros caracteres del SHA-1 de la clave.
-//  Con eso HIBP devuelve varios cientos de sufijos, y aqui se busca el que
-//  corresponde. La clave completa no viaja nunca, ni a nosotros ni a ellos.
+//  El navegador manda SOLO los 5 primeros caracteres del SHA-1 de la clave,
+//  y recibe los sufijos filtrados que empiezan asi: la comparacion la hace
+//  el navegador. Ni nosotros ni HIBP vemos el hash completo.
+//
+//  Hasta el 28-09-2026 el navegador mandaba tambien el sufijo y aqui se
+//  buscaba (CN-021): prefijo y sufijo juntos son el SHA-1 entero, y el
+//  comentario decia lo contrario. Si un navegador con la pagina vieja lo
+//  sigue mandando, se ignora.
 //
 //  Supabase trae esto en el plan Pro. El algoritmo es publico, asi que se
 //  hace igual y gratis.
@@ -802,11 +918,10 @@ async function claveFiltrada(request) {
   const leido = await jsonAcotado(request, TOPE.clave);
   if (leido.respuesta) return leido.respuesta;
   const prefijo = String(leido.datos.prefijo || '').toUpperCase();
-  const sufijo  = String(leido.datos.sufijo  || '').toUpperCase();
 
   // Solo un prefijo hexadecimal de 5. Cualquier otra cosa es un intento de
   // usarnos de proxy hacia otro sitio.
-  if (!/^[0-9A-F]{5}$/.test(prefijo) || !/^[0-9A-F]{35}$/.test(sufijo)) {
+  if (!/^[0-9A-F]{5}$/.test(prefijo)) {
     return json({ error: 'formato_invalido' }, 400);
   }
 
@@ -822,20 +937,22 @@ async function claveFiltrada(request) {
   } catch (e) {
     // Si el servicio no responde, no se bloquea el registro: se deja pasar.
     // Preferible una clave sin revisar que una persona sin poder entrar.
-    return json({ filtrada: false, revisada: false });
+    return json({ revisada: false });
   }
 
-  let veces = 0;
+  // Los sufijos que de verdad se filtraron. Con Add-Padding, HIBP agrega
+  // lineas de relleno con cuenta 0 para que el tamano de la respuesta no
+  // delate el prefijo: esas se dejan fuera.
+  const sufijos = [];
   for (const linea of texto.split('\n')) {
     const c = linea.indexOf(':');
     if (c < 0) continue;
-    if (linea.slice(0, c).trim().toUpperCase() === sufijo) {
-      veces = parseInt(linea.slice(c + 1).trim(), 10) || 0;
-      break;
-    }
+    const suf = linea.slice(0, c).trim().toUpperCase();
+    const veces = parseInt(linea.slice(c + 1).trim(), 10) || 0;
+    if (veces > 0 && /^[0-9A-F]{35}$/.test(suf)) sufijos.push(suf);
   }
 
-  return json({ filtrada: veces > 0, veces: veces, revisada: true });
+  return json({ revisada: true, sufijos });
 }
 
 // ---------------------------------------------------------------------
@@ -969,6 +1086,11 @@ async function atender(request, env) {
   if (url.pathname === '/api/voto/avisos') {
     if (request.method !== 'POST') return json({ error: 'metodo_no_permitido' }, 405, { allow: 'POST' });
     return avisarVotos(request, env);
+  }
+
+  if (url.pathname === '/api/voto/codigo') {
+    if (request.method !== 'POST') return json({ error: 'metodo_no_permitido' }, 405, { allow: 'POST' });
+    return codigoVotante(request, env);
   }
 
   if (url.pathname === '/api/clave/filtrada') {

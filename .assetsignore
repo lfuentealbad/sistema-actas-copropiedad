@@ -1,7 +1,23 @@
 _worker.js
 consulta.js
 correo.js
+dkim.js
 wrangler.jsonc
+# CN-015 (28-09-2026). Lo que nunca debe salir aunque alguien lo deje en la
+# carpeta: secretos, llaves, certificados y mapas de fuente. La lista blanca
+# de Pruebas/prueba-seg-worker.mjs lo detecta tambien, pero solo si se corre.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.map
+*.log
+*.sql
+*.bak
+*.zip
 # Estado local de wrangler. Sin esta linea, 'wrangler deploy' publica los
 # temporales de 'wrangler dev' -incluido el source map del Worker y el id
 # de la cuenta de Cloudflare- como archivos servibles del sitio.
@@ -10,6 +26,11 @@ wrangler.jsonc
 # Publicar .git dejaria el historial completo descargable.
 .git
 node_modules
+# La version fija de wrangler (CN-006) y el script de despliegue (CN-013):
+# herramientas del repositorio, no parte del sitio.
+package.json
+package-lock.json
+desplegar.ps1
 
 # Trabajo en curso. Llevan guion bajo justamente porque no son parte del
 # sitio publicado: el acta de comite a medio hacer y el banco falso de

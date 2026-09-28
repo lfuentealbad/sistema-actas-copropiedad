@@ -2484,46 +2484,48 @@ async function cargarDemo(){
   estado = JSON.parse(JSON.stringify(estadoInicial));
   estado.config = {
     condNombre:'Edificio Cordillera de los Andes',
-    condRut:'53.142.879-K',
+    condRut:'22.222.222-2',
     condDir:'Avenida Pedro de Valdivia 4520, Torre B',
     condComuna:'Ñuñoa, Región Metropolitana',
     admNombre:'María Eugenia Salinas Henríquez',
-    admRut:'10.432.156-7',
-    admCorreo:'administracion@cordilleradelosandes.cl',
-    admTel:'+56 9 8765 4321',
+    admRut:'11.111.111-1',
+    admCorreo:'administracion@ejemplo.cl',
+    admTel:'+56 9 0000 0000',
     admRegistro:'RNA-2024-08731',
     admFirma:'',
     porcFondo:5, tasaMora:1.5, diaVenc:18,
     banco:'Banco Estado', bancoTipo:'Cuenta corriente',
-    bancoNum:'00891234567', bancoTitular:'Edificio Cordillera de los Andes',
-    obs:'Datos para transferencia electrónica:\nBanco Estado · Cta Cte 00891234567 · RUT 53.142.879-K\nDestinatario: Edificio Cordillera de los Andes\n\nEnviar comprobante a administracion@cordilleradelosandes.cl indicando el N° de departamento.\nRecuerde: el plazo de pago es de 10 días desde la emisión del aviso, salvo que el reglamento de copropiedad fije otro (art. 7 Ley 21.442). Pasado ese plazo corre el interés por mora indicado más abajo.',
+    bancoNum:'0000000000', bancoTitular:'Edificio Cordillera de los Andes',
+    obs:'Datos para transferencia electrónica:\nBanco Estado · Cta Cte 0000000000 · RUT 22.222.222-2\nDestinatario: Edificio Cordillera de los Andes\n\nEnviar comprobante a administracion@ejemplo.cl indicando el N° de departamento.\nRecuerde: el plazo de pago es de 10 días desde la emisión del aviso, salvo que el reglamento de copropiedad fije otro (art. 7 Ley 21.442). Pasado ese plazo corre el interés por mora indicado más abajo.',
     segCia:'HDI Seguros', segPoliza:'POL-2025-44782', segVig:'2026-12-31',
     segPrima:65000, segCuotas:12, segCuotaAct:5,
   };
 
-  // 18 unidades con datos verosímiles (alícuotas suman 100%)
+  // 18 unidades de ejemplo (alícuotas suman 100%). Correos en ejemplo.cl,
+  // teléfonos 0000 y RUT 11.111.111-1 / 22.222.222-2: nada que pueda ser de
+  // una persona o una casilla reales (hallazgo CN-017 del 26-09-2026).
   // Edificio de 6 pisos, 3 deptos por piso (101-103, 201-203, ..., 601-603)
   // Alícuotas calibradas para sumar exactamente 100% (penthouse con mayor metraje paga más)
   const ROSTER = [
     // [codigo, propietario, residente_distinto?, correo, tel, alicuota, tipo]
-    ['101','Roberto Andrés Hernández Cabrera', null,                            'roberto.hernandez@gmail.com',   '+56 9 6543 2189', 5.20, 'departamento'],
-    ['102','Patricia Andrea Soto Ríos',         'Camila Soto (arrendataria)',   'patricia.soto.r@gmail.com',     '+56 9 9821 3344', 4.80, 'departamento'],
-    ['103','Jorge Luis Méndez Vargas',          null,                            'jmendez@outlook.com',           '+56 9 7234 1958', 5.10, 'departamento'],
-    ['201','Sergio Manuel Tapia Bravo',         null,                            'sergio.tapia@hotmail.com',      '+56 9 5412 8876', 5.30, 'departamento'],
-    ['202','Constanza Belén Pizarro Silva',     null,                            'cpizarrosilva@gmail.com',       '+56 9 8965 4123', 4.90, 'departamento'],
-    ['203','Francisco Javier Cornejo Lagos',    null,                            'fcornejo.lagos@gmail.com',      '+56 9 7654 3021', 5.20, 'departamento'],
-    ['301','Marta Ximena Aguirre Olmos',        null,                            'marta.aguirre@yahoo.com',       '+56 9 6712 9954', 5.40, 'departamento'],
-    ['302','Inversiones Las Palmas SpA',        'Daniel Rojas (arrendatario)',  'contacto@inversioneslp.cl',     '+56 2 2987 6543', 5.00, 'departamento'],
-    ['303','Hernán Alejandro Saavedra Pino',    null,                            'hsaavedra.p@gmail.com',         '+56 9 5567 8821', 5.30, 'departamento'],
-    ['401','Andrea Paulina Veloso Maldonado',   null,                            'andreaveloso@gmail.com',        '+56 9 8743 2156', 5.50, 'departamento'],
-    ['402','Eduardo Sebastián Rojas Bustamante',null,                            'eduardo.rojas.b@gmail.com',     '+56 9 9456 7812', 5.20, 'departamento'],
-    ['403','Carolina Ester Mardones Quintana',  null,                            'cmardones@gmail.com',           '+56 9 6789 1234', 5.30, 'departamento'],
-    ['501','Luis Antonio Cifuentes Pereira',    null,                            'lcifuentes.p@gmail.com',        '+56 9 7891 2345', 5.50, 'departamento'],
-    ['502','Ignacio José Bravo Arancibia',      null,                            'ignacio.bravo.a@gmail.com',     '+56 9 5634 7821', 5.40, 'departamento'],
-    ['503','Verónica Lorena Espinoza Tobar',    null,                            'veronica.espinoza@gmail.com',   '+56 9 8123 4567', 5.50, 'departamento'],
-    ['601','Familia Henríquez-Vargas',          'Don Mario y señora',            'mariohv@gmail.com',             '+56 9 7345 6789', 7.50, 'departamento'],
-    ['602','Cristián Felipe Donoso Toro',       null,                            'cdonoso.toro@gmail.com',        '+56 9 9012 3456', 7.00, 'departamento'],
-    ['603','Susana del Carmen Riquelme Núñez',  null,                            'susanariquelme@gmail.com',      '+56 9 6543 8721', 6.90, 'departamento'],
+    ['101','Roberto Andrés Hernández Cabrera', null,                            'roberto.hernandez@ejemplo.cl',   '+56 9 0000 0101', 5.20, 'departamento'],
+    ['102','Patricia Andrea Soto Ríos',         'Camila Soto (arrendataria)',   'patricia.soto.r@ejemplo.cl',     '+56 9 0000 0102', 4.80, 'departamento'],
+    ['103','Jorge Luis Méndez Vargas',          null,                            'jmendez@ejemplo.cl',           '+56 9 0000 0103', 5.10, 'departamento'],
+    ['201','Sergio Manuel Tapia Bravo',         null,                            'sergio.tapia@ejemplo.cl',      '+56 9 0000 0201', 5.30, 'departamento'],
+    ['202','Constanza Belén Pizarro Silva',     null,                            'cpizarrosilva@ejemplo.cl',       '+56 9 0000 0202', 4.90, 'departamento'],
+    ['203','Francisco Javier Cornejo Lagos',    null,                            'fcornejo.lagos@ejemplo.cl',      '+56 9 0000 0203', 5.20, 'departamento'],
+    ['301','Marta Ximena Aguirre Olmos',        null,                            'marta.aguirre@ejemplo.cl',       '+56 9 0000 0301', 5.40, 'departamento'],
+    ['302','Inversiones Las Palmas SpA',        'Daniel Rojas (arrendatario)',  'contacto.302@ejemplo.cl',     '+56 9 0000 0302', 5.00, 'departamento'],
+    ['303','Hernán Alejandro Saavedra Pino',    null,                            'hsaavedra.p@ejemplo.cl',         '+56 9 0000 0303', 5.30, 'departamento'],
+    ['401','Andrea Paulina Veloso Maldonado',   null,                            'andreaveloso@ejemplo.cl',        '+56 9 0000 0401', 5.50, 'departamento'],
+    ['402','Eduardo Sebastián Rojas Bustamante',null,                            'eduardo.rojas.b@ejemplo.cl',     '+56 9 0000 0402', 5.20, 'departamento'],
+    ['403','Carolina Ester Mardones Quintana',  null,                            'cmardones@ejemplo.cl',           '+56 9 0000 0403', 5.30, 'departamento'],
+    ['501','Luis Antonio Cifuentes Pereira',    null,                            'lcifuentes.p@ejemplo.cl',        '+56 9 0000 0501', 5.50, 'departamento'],
+    ['502','Ignacio José Bravo Arancibia',      null,                            'ignacio.bravo.a@ejemplo.cl',     '+56 9 0000 0502', 5.40, 'departamento'],
+    ['503','Verónica Lorena Espinoza Tobar',    null,                            'veronica.espinoza@ejemplo.cl',   '+56 9 0000 0503', 5.50, 'departamento'],
+    ['601','Familia Henríquez-Vargas',          'Don Mario y señora',            'mariohv@ejemplo.cl',             '+56 9 0000 0601', 7.50, 'departamento'],
+    ['602','Cristián Felipe Donoso Toro',       null,                            'cdonoso.toro@ejemplo.cl',        '+56 9 0000 0602', 7.00, 'departamento'],
+    ['603','Susana del Carmen Riquelme Núñez',  null,                            'susanariquelme@ejemplo.cl',      '+56 9 0000 0603', 6.90, 'departamento'],
   ];
   // Verificación: las alícuotas suman 100.00%
   ROSTER.forEach(r=>{

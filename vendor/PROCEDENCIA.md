@@ -1,6 +1,6 @@
 # Procedencia de las librerías de `vendor/`
 
-El sitio no tiene `package.json` ni proceso de compilación: estas cuatro
+El sitio no tiene `package.json` ni proceso de compilación: estas tres
 librerías son copias servidas desde el propio origen (`script-src 'self'`).
 Eso las deja fuera de `npm audit` y de cualquier aviso automático. Este archivo
 es el registro de qué versión es cada una y cuál es su huella, y
@@ -11,7 +11,6 @@ No se publica: está en `.assetsignore`.
 
 | Archivo | Librería y versión | Origen declarado | Bytes | SHA-256 |
 |---|---|---|---|---|
-| `jszip.min.js` | JSZip 3.10.1 | npm `jszip@3.10.1`, `dist/jszip.min.js` | 97630 | `acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e` |
 | `qrcode-generator.js` | QR Code Generator (Kazuhiko Arase), sin versión declarada en el archivo | npm `qrcode-generator` | 56694 | `18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780` |
 | `supabase.min.js` | @supabase/supabase-js 2.117.2 | npm `@supabase/supabase-js@2.117.2`, `dist/umd/supabase.js` tal cual (ya viene minificado); integridad sha512 del paquete comprobada contra el registro de npm | 217945 | `59d39487c3589843b410322d8a3d562ce022aba1e5ccb16898ef3fb2a0da2ecd` |
 | `xlsx.full.min.js` | SheetJS 0.20.3 | `cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js` (SheetJS dejó de publicar en npm) | 951904 | `cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41` |
@@ -24,8 +23,9 @@ No se publica: está en `.assetsignore`.
   lee el Excel del padrón que sube la Mesa, o sea entrada de un tercero.
   Muchos escáneres la marcan igual, porque la versión de npm quedó congelada en
   0.18.5; si aparece en un informe, es eso.
-- **JSZip 3.10.1**: por encima de CVE-2022-48285 (corregida en 3.8.0). Se usa
-  para generar archivos, no para leer los del usuario.
+- **JSZip** se quitó el 28-09-2026: la página la cargaba y ningún código la
+  usaba (la auditoría del 26-09 lo marcó). Una librería que no se usa es
+  superficie sin beneficio.
 - **supabase-js 2.117.2** (revisado el 28-09-2026): corrige CVE-2026-56812,
   que traía la 2.108.2 anterior. El defecto está en la Presence de Realtime
   (Phoenix): una clave como `constructor` o `__proto__` devolvía el prototipo
@@ -44,7 +44,7 @@ No se publica: está en `.assetsignore`.
 3. Correr `node Pruebas/correr.mjs`: si la huella no calza, la suite lo dice.
 4. Revisar sus avisos de seguridad y dejar la fecha arriba.
 
-Las huellas de JSZip, qrcode-generator y SheetJS son las de los archivos
+Las huellas de qrcode-generator y SheetJS son las de los archivos
 que había en el repositorio el 23-09-2026; el 26-09 se comprobó que
 coincidían byte a byte con sus originales publicados. La de supabase.min.js
 es la del archivo oficial del paquete de npm, bajado y comprobado el
