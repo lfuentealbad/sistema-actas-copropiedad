@@ -2164,6 +2164,130 @@ var _uidSesion = null;
 var _borradorResuelto = false;
 var _ID_ACTA = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// ---------------------------------------------------------------------
+//  La sesion de esta pestana (CN-001 de la revision del 30-09-2026)
+// ---------------------------------------------------------------------
+// La sesion de Supabase es una sola para todo el navegador. Si en otra
+// pestana se cierra la sesion, o se cierra y entra otra cuenta, esta sigue
+// mostrando el acta de quien la abrio, pero el cliente ya habla con el token
+// nuevo. Antes, el guardado de esta pestana mandaba el UPDATE con la cuenta
+// nueva, la base no le mostraba la fila (RLS), y la recuperacion de "fila
+// perdida" insertaba el acta entera -padron, RUT, votos- como documento
+// nuevo de la otra cuenta. Ahora:
+//   1) antes de escribir -en la cuenta o en el equipo- se pregunta quien
+//      tiene la sesion, y si no es quien abrio la pagina no se escribe;
+//   2) la fila viaja atada a su dueno: el insert lleva dueno y el update y
+//      la recuperacion filtran por dueno. Si la sesion cambia entre la
+//      pregunta y el envio, la base lo rechaza (RLS: dueno = auth.uid());
+//   3) al notar el cambio -aviso de supabase-js, cambio del almacenamiento
+//      de otra pestana, volver a esta pestana, o una escritura-, la pestana
+//      se bloquea: tapa el acta, para los temporizadores y no vuelve a
+//      escribir nada, ni en la cuenta ni en el equipo. Lo que esta en
+//      pantalla no se borra; se recarga solo si la persona lo pide. Lo que
+//      quedo pendiente lo cubre cuenta.js al cerrar sesion (pregunta si se
+//      conserva el borrador del equipo).
+var _sesionAjena = false;
+
+// Quien tiene ahora la sesion del navegador: { sabe, uid }. sabe es false
+// si no se pudo averiguar (sin cuenta.js, o la sesion no se pudo leer o
+// renovar por la red); en ese caso no se bloquea, pero tampoco se escribe
+// en la cuenta.
+function _sesionActual() {
+  var c = window.Cuenta && Cuenta.cliente && Cuenta.cliente();
+  if (!c || !c.auth || typeof c.auth.getSession !== 'function') return Promise.resolve({ sabe: false, uid: null });
+  return Promise.resolve().then(function () { return c.auth.getSession(); }).then(function (r) {
+    if (!r || r.error) return { sabe: false, uid: null };
+    var s = r.data && r.data.session;
+    return { sabe: true, uid: (s && s.user && s.user.id) || null };
+  }, function () { return { sabe: false, uid: null }; });
+}
+
+// Pregunta y, si la sesion ya no es la de quien abrio la pagina, bloquea.
+// Devuelve lo que contesto la sesion, con misma: true solo si se sabe y es
+// la misma cuenta.
+function _comprobarSesion() {
+  return _sesionActual().then(function (s) {
+    s.misma = !_sesionAjena && s.sabe && !!_uidSesion && s.uid === _uidSesion;
+    if (s.sabe && _uidSesion && s.uid !== _uidSesion) _actaBloquear(s.uid ? 'otra' : 'cerrada');
+    return s;
+  });
+}
+
+function _actaBloquear(motivo) {
+  if (_sesionAjena) return;
+  _sesionAjena = true;
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  if (_guardarTimer) { clearTimeout(_guardarTimer); _guardarTimer = null; }
+  if (typeof window.actaSalaDetener === 'function') { try { window.actaSalaDetener(); } catch (e) {} }
+  try {
+    var cuerpo = document.body;
+    if (!cuerpo) return;
+    // Lo de atras queda inerte: ni el teclado ni el lector de pantalla
+    // llegan al acta tapada.
+    Array.prototype.forEach.call(cuerpo.children || [], function (el) {
+      try { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); } catch (e) {}
+    });
+    var capa = document.createElement('div');
+    capa.id = 'acta-bloqueo';
+    capa.setAttribute('role', 'alertdialog');
+    capa.setAttribute('aria-modal', 'true');
+    capa.setAttribute('aria-labelledby', 'acta-bloqueo-t');
+    capa.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#F4F4F0;display:flex;' +
+      'align-items:center;justify-content:center;padding:24px;';
+    var caja = document.createElement('div');
+    caja.style.cssText = 'max-width:520px;background:#fff;border:1px solid #D7D6CE;border-radius:12px;padding:28px;' +
+      'font:16px/1.55 system-ui,sans-serif;color:#24282D;';
+    var t = document.createElement('h2');
+    t.id = 'acta-bloqueo-t';
+    t.style.cssText = 'margin:0 0 10px;font-size:20px;';
+    t.textContent = motivo === 'otra' ? 'En este navegador entró otra cuenta' : 'En este navegador se cerró la sesión';
+    var p = document.createElement('p');
+    p.style.cssText = 'margin:0 0 18px;';
+    p.textContent = 'Esta pestaña era de la cuenta que abrió el acta. Para proteger sus datos, la tapamos y dejamos de ' +
+      'guardar desde aquí: no se escribe nada en ninguna cuenta ni en este equipo. Lo último que se alcanzó a guardar ' +
+      'sigue en la cuenta que la abrió.';
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-primary';
+    b.textContent = 'Recargar la página';
+    b.addEventListener('click', function () { try { location.reload(); } catch (e) {} });
+    caja.appendChild(t); caja.appendChild(p); caja.appendChild(b);
+    capa.appendChild(caja);
+    cuerpo.appendChild(capa);
+    try { b.focus(); } catch (e) {}
+  } catch (e) { /* sin documento no hay nada que tapar */ }
+}
+
+// Se vigila desde que se sabe quien entro (el portero). Tres avisos, porque
+// ninguno basta solo: supabase-js avisa los cambios de otras pestanas por
+// BroadcastChannel, el evento storage llega aunque ese canal no exista, y
+// al volver a la pestana se pregunta de nuevo por si la pestana durmio.
+var _vigilando = false;
+function _vigilarSesion() {
+  if (_vigilando || !_uidSesion) return;
+  _vigilando = true;
+  var revisar = function () { if (!_sesionAjena) _comprobarSesion(); };
+  try {
+    var c = window.Cuenta && Cuenta.cliente && Cuenta.cliente();
+    if (c && c.auth && typeof c.auth.onAuthStateChange === 'function') {
+      c.auth.onAuthStateChange(function (evento, sesion) {
+        if (_sesionAjena) return;
+        var uid = (sesion && sesion.user && sesion.user.id) || null;
+        // Lo que dice el aviso ya basta para bloquear; dentro del aviso no
+        // se llama a supabase-js (se podria trabar), por eso no se pregunta.
+        if (uid !== _uidSesion) setTimeout(function () { _actaBloquear(uid ? 'otra' : 'cerrada'); }, 0);
+      });
+    }
+  } catch (e) {}
+  window.addEventListener('storage', function (e) {
+    if (!e || e.key === null || /^sb-.*-auth-token$/.test(String(e.key))) setTimeout(revisar, 0);
+  });
+  window.addEventListener('focus', revisar);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') revisar();
+  });
+}
+
 // Los campos de cuenta.js (el cajon de entrada, el panel de pago: cta-correo,
 // cta-clave, cta-codigo) viven en esta misma pagina y tienen id. Sin esta
 // exclusion la clave que se tecleaba al entrar quedaba en el borrador del
@@ -2223,16 +2347,30 @@ function _captureFieldsSnapshot() {
 }
 
 function autoSave() {
-  if (!_borradorResuelto) return;
+  if (!_borradorResuelto || _sesionAjena) return;
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() {
-    try {
-      railExpediente();
-      _escribirBorrador();
-      _showSaveIndicator();
-      actaSincronizar();
-    } catch (e) {
-      console.warn('No se pudo auto-guardar:', e);
+    _saveTimer = null;
+    var escribir = function () {
+      if (_sesionAjena) return;
+      try {
+        railExpediente();
+        _escribirBorrador();
+        _showSaveIndicator();
+        actaSincronizar();
+      } catch (e) {
+        console.warn('No se pudo auto-guardar:', e);
+      }
+    };
+    // CN-001: con cuenta, el borrador del equipo se escribe solo si la sesion
+    // sigue siendo la de quien abrio la pagina. Si cambio, el equipo puede
+    // tener ya el borrador de la otra cuenta, y no se pisa. Si no se pudo
+    // saber (la red no deja renovar la sesion), el borrador si se escribe:
+    // es justo cuando hace falta, y la subida a la cuenta igual no sale.
+    if (_uidSesion && window.Cuenta && Cuenta.cliente && Cuenta.cliente()) {
+      _comprobarSesion().then(function (s) { if (s.misma || !s.sabe) escribir(); });
+    } else {
+      escribir();
     }
   }, 600);
 }
@@ -2651,6 +2789,7 @@ window.addEventListener('load', function() {
       // Quien entro: el borrador del equipo se ofrece solo si es suyo.
       _uidSesion = (u && u.id) || null;
       _porteroPaso = true;
+      _vigilarSesion();
       var esperan = _esperanPortero;
       _esperanPortero = [];
       esperan.forEach(function (fn) {
@@ -2700,6 +2839,7 @@ function _nubeEstado(txt, clase) {
 // conoce. Si se esperara al próximo autoguardado, una recarga en medio dejaría
 // el borrador sin id y al restaurarlo nacería un acta duplicada.
 function _recordarIdEnBorrador() {
+  if (_sesionAjena) return;
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -2749,11 +2889,15 @@ function actaSincronizar() {
   // politica de UPDATE exige folio IS NULL), pero intentarlo cada vez que
   // alguien toca el formulario solo produce avisos de error sin sentido:
   // lo emitido es lo que se sello.
-  if (_actaFolio) return;
+  if (_actaFolio || _sesionAjena) return;
   if (!window.Cuenta || !Cuenta.cliente()) return;
   if (_guardarTimer) clearTimeout(_guardarTimer);
   _guardarTimer = setTimeout(function () {
-    if (_actaFolio) return;
+    _guardarTimer = null;
+    if (_actaFolio || _sesionAjena) return;
+    // CN-001: sin saber quien abrio la pagina no se escribe en ninguna cuenta.
+    var dueno = _uidSesion;
+    if (!dueno) return;
     var snap;
     try { snap = _captureFieldsSnapshot(); } catch (e) { return; }
     snap.savedAt = new Date().toISOString();
@@ -2765,56 +2909,83 @@ function actaSincronizar() {
     // Un acta en blanco no se guarda: si no hay nada escrito todavía, no
     // tiene sentido ocupar una de las 100 filas de la cuenta.
     if (!_actaId && _actaEnBlanco(snap)) return;
+    var id = _actaId;
 
-    var c = Cuenta.cliente();
-    var p = _actaId
-      ? c.from('actas_guardadas').update(fila).eq('id', _actaId).select('id')
-      : c.from('actas_guardadas').insert(fila).select('id');
-    p.then(function (r) {
-      var yaCerrada = r.error && /acta_finalizada|ya_finalizada|finalizada/i.test(String(r.error.message || ''));
-      if (r.error && !yaCerrada) {
-        var m = String(r.error.message || '');
-        _nubeEstado(/relation|does not exist|schema cache/i.test(m)
-          ? 'El guardado en la cuenta todavía no está habilitado. Su acta sigue a salvo en este equipo.'
-          : /tope_de_actas/.test(m)
-            ? 'Llegó al máximo de 100 actas guardadas. Borre alguna desde su panel.'
-            : 'No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
+    _comprobarSesion().then(function (s) {
+      if (!s.misma) {
+        if (!s.sabe && !_sesionAjena) _nubeEstado('No pudimos comprobar su sesión. Su acta sigue a salvo en este equipo.', 'err');
         return;
       }
-      // Un update que no tocó ninguna fila tiene dos lecturas. Si el acta ya
-      // no está -la borraron desde el panel, o es de otra cuenta- se vuelve
-      // a crear en vez de perder lo escrito. Pero si se finalizo en otra
-      // pestaña u otro equipo, la base la protege (C6) y crear otra seria
-      // duplicar un acta con folio: se pregunta antes cual de las dos es.
-      if (_actaId && ((r.data && r.data.length === 0) || yaCerrada)) {
-        var perdida = _actaId;
-        var noSeGuardo = function () {
-          _nubeEstado('No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
-        };
-        c.from('actas_guardadas').select('id,folio').eq('id', perdida).then(function (q) {
-          if (perdida !== _actaId) return;
-          if (!q || q.error) { noSeGuardo(); return; }
-          var fila = q.data && q.data[0];
-          if (fila && fila.folio) {
-            // Sin ruido: no es un error, es un acta cerrada.
-            _actaFolio = fila.folio;
-            _nubeEstado('Acta ' + fila.folio + ', ya finalizada: los cambios de este formulario ya no se guardan en su cuenta.', 'ok');
-            return;
-          }
-          if (fila) { noSeGuardo(); return; }
-          _actaId = null;
-          _actaFolio = null;
-          actaSincronizar();
-        }, noSeGuardo);
-        return;
-      }
-      if (r.data && r.data[0]) { _actaId = r.data[0].id; _recordarIdEnBorrador(); }
-      _nubeEstado('Guardada en su cuenta a las ' +
-        new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }) + '.', 'ok');
-    }, function () {
-      _nubeEstado('No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
+      var c = Cuenta.cliente();
+      // La fila viaja atada a su dueno: si la sesion cambio despues de la
+      // pregunta, el insert lo rechaza la base (dueno = auth.uid()) y el
+      // update no encuentra la fila.
+      var p = id
+        ? c.from('actas_guardadas').update(fila).eq('id', id).eq('dueno', dueno).select('id')
+        : c.from('actas_guardadas').insert({ dueno: dueno, titulo: fila.titulo, fecha_sesion: fila.fecha_sesion,
+            contenido: fila.contenido }).select('id');
+      return Promise.resolve(p).then(function (r) { _alGuardar(c, r, id, dueno); },
+        function () { if (!_sesionAjena) _nubeEstado('No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err'); });
     });
   }, 1200);
+}
+
+// Lo que contesto la base a un guardado. Si en el camino la pestana se
+// bloqueo, la respuesta se descarta: no se anota id, ni borrador, ni aviso.
+function _alGuardar(c, r, id, dueno) {
+  if (_sesionAjena) return;
+  var yaCerrada = r.error && /acta_finalizada|ya_finalizada|finalizada/i.test(String(r.error.message || ''));
+  if (r.error && !yaCerrada) {
+    var m = String(r.error.message || '');
+    // Un rechazo por RLS es lo que pasa si la sesion cambio entre la
+    // pregunta y el envio: se pregunta de nuevo, y eso bloquea.
+    if (/row-level security|42501|permission denied/i.test(m)) _comprobarSesion();
+    if (_sesionAjena) return;
+    _nubeEstado(/relation|does not exist|schema cache/i.test(m)
+      ? 'El guardado en la cuenta todavía no está habilitado. Su acta sigue a salvo en este equipo.'
+      : /tope_de_actas/.test(m)
+        ? 'Llegó al máximo de 100 actas guardadas. Borre alguna desde su panel.'
+        : 'No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
+    return;
+  }
+  // Un update que no tocó ninguna fila tiene dos lecturas. Si el acta ya
+  // no está -la borraron desde el panel- se vuelve a crear en vez de
+  // perder lo escrito. Pero si se finalizo en otra pestaña u otro
+  // equipo, la base la protege (C6) y crear otra seria duplicar un acta
+  // con folio: se pregunta antes cual de las dos es.
+  // CN-001: "no la veo" tambien es lo que contesta la base cuando la
+  // sesion ya es de otra cuenta. Por eso se pregunta por la fila de este
+  // dueno, y antes de volver a crearla se pregunta otra vez quien tiene
+  // la sesion: una fila invisible por RLS no se convierte en un acta
+  // nueva de otra cuenta.
+  if (id && ((r.data && r.data.length === 0) || yaCerrada)) {
+    var perdida = id;
+    var noSeGuardo = function () {
+      if (!_sesionAjena) _nubeEstado('No pudimos guardar en su cuenta. Su acta sigue a salvo en este equipo.', 'err');
+    };
+    Promise.resolve(c.from('actas_guardadas').select('id,folio').eq('id', perdida).eq('dueno', dueno)).then(function (q) {
+      if (_sesionAjena || perdida !== _actaId) return;
+      if (!q || q.error) { noSeGuardo(); return; }
+      var fila = q.data && q.data[0];
+      if (fila && fila.folio) {
+        // Sin ruido: no es un error, es un acta cerrada.
+        _actaFolio = fila.folio;
+        _nubeEstado('Acta ' + fila.folio + ', ya finalizada: los cambios de este formulario ya no se guardan en su cuenta.', 'ok');
+        return;
+      }
+      if (fila) { noSeGuardo(); return; }
+      return _comprobarSesion().then(function (s) {
+        if (!s.misma || perdida !== _actaId) { noSeGuardo(); return; }
+        _actaId = null;
+        _actaFolio = null;
+        actaSincronizar();
+      });
+    }, noSeGuardo);
+    return;
+  }
+  if (r.data && r.data[0]) { _actaId = r.data[0].id; _recordarIdEnBorrador(); }
+  _nubeEstado('Guardada en su cuenta a las ' +
+    new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }) + '.', 'ok');
 }
 
 function actaCargarGuardada(id) {
@@ -2840,7 +3011,7 @@ function actaCargarGuardada(id) {
       // huella; el folio lo pone la fila. Se recalcula la huella antes de
       // creerle: un cuerpo que no calza no se imprime como verificable.
       _selloDesdeLaCuenta(contenido && contenido.sello, _actaFolio).then(function (s) {
-        if (r.data.id !== _actaId) return;
+        if (r.data.id !== _actaId || _sesionAjena) return;
         _sello = s;
         // El borrador del equipo pasa a ser esta acta, entera: anotarle solo
         // el id ataba a esta fila el contenido de otra que hubiera quedado en
@@ -3059,7 +3230,7 @@ function _subirAntesDeCerrar(c, sello) {
     contenido: snap
   };
   var subir = function () {
-    return Promise.resolve(c.from('actas_guardadas').update(fila).eq('id', _actaId).select('id'));
+    return Promise.resolve(c.from('actas_guardadas').update(fila).eq('id', _actaId).eq('dueno', _uidSesion).select('id'));
   };
   return subir().then(function (r) {
     if (r && r.error && /actas_tamano/.test(String(r.error.message || ''))) {
@@ -3075,8 +3246,21 @@ function _subirAntesDeCerrar(c, sello) {
 //  llave del pago), no en el navegador: un candado de navegador se abre
 //  mirando el codigo fuente.
 // ---------------------------------------------------------------------
+// CN-001: la llave de pago del equipo se quita solo si la sesion sigue
+// siendo de quien abrio la pagina. Si cambio, la que hay ahora puede ser
+// de la otra cuenta, y esa no se toca.
+// Devuelve una promesa: quien llama responde despues de quitarla.
+function _quitarLlaveDelEquipo() {
+  if (_sesionAjena) return Promise.resolve();
+  return _comprobarSesion().then(function (s) {
+    if (s.misma) { try { localStorage.removeItem('acta_pago_llave'); } catch (e) {} }
+  });
+}
+
 function actaFinalizar(alTerminar) {
   if (_actaPagada()) { alTerminar(null); return; }
+  // CN-001: una pestana que quedo de otra sesion no finaliza nada.
+  if (_sesionAjena) { alTerminar('Esta pestaña quedó de otra sesión. Recargue la página.'); return; }
 
   var c = window.Cuenta && Cuenta.cliente();
   if (!c) { alTerminar('Sin conexión con el servicio. Reintente en un momento.'); return; }
@@ -3098,7 +3282,13 @@ function actaFinalizar(alTerminar) {
   var _responder = alTerminar, _respondio = false;
   alTerminar = function (e, motivo) { if (_respondio) return; _respondio = true; _responder(e, motivo); };
 
-  _huellaDe(cuerpo).then(function (huella) {
+  _comprobarSesion().then(function (s) {
+    if (!s.misma) {
+      alTerminar(_sesionAjena ? 'Esta pestaña quedó de otra sesión. Recargue la página.'
+        : 'No pudimos comprobar su sesión. Revise su conexión y reintente.');
+      return;
+    }
+    return _huellaDe(cuerpo).then(function (huella) {
     var resumen = _resumenDelActa();
     return _subirAntesDeCerrar(c, { huella: huella, cuerpo: cuerpo }).then(function () {
       return c.rpc('ac_finalizar', { p_acta: _actaId, p_llave: llave, p_huella: huella, p_resumen: resumen });
@@ -3118,29 +3308,21 @@ function actaFinalizar(alTerminar) {
         }
         // Una orden, un acta (SB-01): esa llave ya emitio otra y no sirve mas.
         if (/pago_ya_usado_en_otra_acta/.test(m)) {
-          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-          alTerminar('SIN_PAGO', 'Ese pago ya se usó para finalizar otra acta: cada acta requiere su propio pago. Active esta asamblea para finalizarla.');
-          return;
+          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO', 'Ese pago ya se usó para finalizar otra acta: cada acta requiere su propio pago. Active esta asamblea para finalizarla.'); });
         }
         // La llave de este equipo la pago otra cuenta. Para esta no sirve,
         // pero sigue siendo de quien pago: se anota su orden y cuenta.js se
         // la devuelve cuando esa cuenta entre en este equipo.
         if (/pago_de_otra_cuenta/.test(m)) {
           _anotarOrdenDeLlave(llave);
-          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-          alTerminar('SIN_PAGO', 'El pago guardado en este equipo es de otra cuenta y no sirve para esta acta. Si pagó con otra cuenta, entre con ella en este equipo y se lo devolveremos; si no, active esta asamblea con su propio pago.');
-          return;
+          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO', 'El pago guardado en este equipo es de otra cuenta y no sirve para esta acta. Si pagó con otra cuenta, entre con ella en este equipo y se lo devolveremos; si no, active esta asamblea con su propio pago.'); });
         }
         if (/pago_vencido/.test(m)) {
-          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-          alTerminar('SIN_PAGO', 'El pago de esta asamblea venció. Para finalizar el acta debe activarla con un pago nuevo.');
-          return;
+          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO', 'El pago de esta asamblea venció. Para finalizar el acta debe activarla con un pago nuevo.'); });
         }
         if (/llave_invalida|llave_vencida|llave_malformada|pago_requerido|pago_ya_usado|llave_de_otro_producto/.test(m)) {
           if (/llave_de_otro_producto/.test(m)) _anotarOrdenDeLlave(llave);
-          try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-          alTerminar('SIN_PAGO');
-          return;
+          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO'); });
         }
         if (/does not exist|schema cache|PGRST202/i.test(m)) {
           alTerminar('El cierre del acta todavía no está habilitado en el servidor.');
@@ -3164,15 +3346,15 @@ function actaFinalizar(alTerminar) {
       // seguiria ofreciendo como "asamblea activada" y pareceria servir
       // para la proxima acta. Si el acta ya estaba finalizada, la llave que
       // hay ahora puede ser la de otra asamblea, y esa no se toca.
-      if (!d.ya_estaba) {
-        try { localStorage.removeItem('acta_pago_llave'); } catch (e) {}
-      }
-      _recordarIdEnBorrador();
-      generateActa();
-      alTerminar(null);
+      return (d.ya_estaba ? Promise.resolve() : _quitarLlaveDelEquipo()).then(function () {
+        _recordarIdEnBorrador();
+        generateActa();
+        alTerminar(null);
+      });
     });
   }, function () {
     alTerminar('Este navegador no permite calcular la huella del acta. Actualícelo o use otro navegador para finalizarla.');
+  });
   }).then(null, function () { alTerminar('No pudimos finalizar el acta. Revise su conexión.'); });
 }
 
@@ -3760,9 +3942,14 @@ function puertaRecuperar(btn) {
             puertaMsg('Ese pago corresponde a una consulta por escrito, no a un acta de asamblea.', true);
             return;
           }
-          try { localStorage.setItem(LLAVE_ACTA, d.llave); } catch (e) {}
-          puertaMsg('Pago encontrado. Abriendo su acta\u2026');
-          setTimeout(function () { location.reload(); }, 900);
+          // CN-001: la llave la entrego el Worker a la cuenta del token. Si
+          // en el camino la sesion cambio, no se deja en el equipo.
+          return _comprobarSesion().then(function (s) {
+            if (!s.misma) { puertaMsg('La sesi\u00f3n cambi\u00f3 mientras busc\u00e1bamos el pago. Recargue la p\u00e1gina.', true); return; }
+            try { localStorage.setItem(LLAVE_ACTA, d.llave); } catch (e) {}
+            puertaMsg('Pago encontrado. Abriendo su acta\u2026');
+            setTimeout(function () { location.reload(); }, 900);
+          });
         });
     }).then(null, function () {
       listo();

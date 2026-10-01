@@ -16,7 +16,7 @@
 
 import {
   extraerTextoPlano, interpretarRespuesta, codigoDesdeDestino, normalizarCorreo,
-  construirRespuestaMime, textoAcuse
+  construirRespuestaMime, textoAcuse, contextoDeRespuesta
 } from './consulta.js';
 
 import { enviarCorreo, textoAvisoVoto, textoCodigoVoto, correoConfigurado } from './correo.js';
@@ -611,34 +611,63 @@ async function registrarRespuesta(message, env) {
   } catch (e) {
     console.log('consulta: no se pudo leer el MIME', paraLog(e && e.message, 200));
   }
-  const autenticado = firma.ok === true;
-  const remitente = autenticado ? firma.desde : normalizarCorreo(message.from);
-  if (!autenticado) console.log('consulta', codigo, 'remitente sin autenticar:', paraLog(firma.motivo, 40));
+  // CN-002 (30-09-2026). La firma dice quien escribio, no a que consulta
+  // contesto: el codigo sale del sobre SMTP. Cuenta como autenticada solo si
+  // algo firmado la ata a esta consulta y trae fecha firmada (consulta.js,
+  // contextoDeRespuesta). Si no, va como no autenticada: nunca pisa una
+  // respuesta y, si es la primera, queda para la Mesa.
+  const contexto = contextoDeRespuesta(firma, codigo, message.to, texto);
+  const autenticado = contexto.ok === true;
+  const remitente = firma.ok === true ? firma.desde : normalizarCorreo(message.from);
+  if (!autenticado) console.log('consulta', codigo, 'respuesta sin autenticar:', paraLog(contexto.motivo, 40));
 
   // Si el texto no se pudo leer o no es concluyente, queda 'ambigua' y la
   // Mesa la resuelve a mano. Nunca se adivina el sentido de un voto.
   const { sentido } = interpretarRespuesta(texto);
 
-  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/cc_registrar_respuesta`, {
+  const parametros = {
+    p_codigo: codigo,
+    p_correo: remitente,
+    p_sentido: sentido,
+    p_texto: texto.slice(0, 4000),
+    // El Message-ID firmado, si lo hay: con el, la base reconoce un mismo
+    // correo entregado dos veces y no lo vuelve a computar.
+    p_message_id: (contexto.mensaje || message.headers.get('message-id') || '').slice(0, 998) || null,
+    p_secreto: env.CORREO_SECRET,
+    p_autenticado: autenticado,
+    // La fecha firmada del correo: una respuesta mas vieja no pisa una
+    // mas nueva, aunque llegue despues.
+    p_fecha: autenticado ? contexto.fecha : null
+  };
+  const registrar = cuerpo => fetch(`${env.SUPABASE_URL}/rest/v1/rpc/cc_registrar_respuesta`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       apikey: env.SUPABASE_ANON,
       authorization: `Bearer ${env.SUPABASE_ANON}`
     },
-    body: JSON.stringify({
-      p_codigo: codigo,
-      p_correo: remitente,
-      p_sentido: sentido,
-      p_texto: texto.slice(0, 4000),
-      p_message_id: (message.headers.get('message-id') || '').slice(0, 998) || null,
-      p_secreto: env.CORREO_SECRET,
-      p_autenticado: autenticado
-    }),
+    body: JSON.stringify(cuerpo),
     signal: AbortSignal.timeout(ESPERA.supabase)
   });
+  let r = await registrar(parametros);
+  let datos = await r.json().catch(() => null);
+  // Mientras la base no tenga el paso 15, la funcion de ocho argumentos no
+  // existe (PostgREST: 404, PGRST202) y nada se registro: se repite con la de
+  // siete. Asi el Worker y la migracion se pueden aplicar en cualquier orden,
+  // y la atadura a la consulta, que vive aqui, rige desde el despliegue.
+  if (r.status === 404 && datos && datos.code === 'PGRST202') {
+    const { p_fecha, ...sinFecha } = parametros;
+    r = await registrar(sinFecha);
+    datos = await r.json().catch(() => null);
+  }
 
-  const datos = await r.json().catch(() => null);
+  // El mismo correo entregado otra vez: ya esta en el expediente, no cambia
+  // nada y no hay nada que revisar ni que acusar (el acuse le llegaria a
+  // quien lo envio la primera vez, por un reenvio que no hizo).
+  if (r.ok && datos && datos.ok !== true && datos.motivo === 'mensaje_repetido') {
+    console.log('consulta', codigo, 'mensaje repetido: sin cambios');
+    return;
+  }
 
   // PostgREST responde 200 aunque la funcion diga ok:false (remitente fuera
   // del padron, plazo vencido, consulta cerrada). Todo eso va a un humano.

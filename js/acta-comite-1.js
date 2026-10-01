@@ -603,27 +603,74 @@ function acGuardarYa(cb) {
   // Sin saber quién abrió la página, o quién tiene ahora la sesión, no hay
   // con qué comparar y se guarda como siempre: sin sesión, la base lo
   // rechaza y va al borrador.
-  acQuienEntro(function (ahora) {
-    if (acUid && ahora && ahora !== acUid) {
-      acGuardando = false;
-      acPendiente = false;
-      acListo = false;   // nada más de esta página va a ninguna cuenta
-      acAviso('Entró otra cuenta en este navegador. Recargamos la página.', true);
-      acAvisarEspera(false, cb);
-      try { window.location.reload(); } catch (e) {}
-      return;
-    }
+  // CN-001 (30-09-2026): tambien si en la otra pestana solo se salio. Antes
+  // eso no se distinguia de un error de red (Cuenta.usuario contesta null en
+  // los dos casos): se intentaba, fallaba, y el borrador de quien salio
+  // volvia a quedar en el equipo aunque al salir hubiera elegido borrarlo.
+  acSesionAhora(function (s) {
+    if (acUid && s.sabe && s.uid !== acUid) { acOtraSesion(s.uid, cb); return; }
     acEnviar(c, fila, cb);
   });
 }
 
+// La sesion ya no es de quien abrio la pagina: nada mas sale de aqui, ni a la
+// cuenta ni al equipo, y la pagina se recarga para quien tenga la sesion.
+function acOtraSesion(uid, cb) {
+  acGuardando = false;
+  acPendiente = false;
+  acListo = false;   // nada más de esta página va a ninguna cuenta
+  acAviso(uid ? 'Entró otra cuenta en este navegador. Recargamos la página.'
+              : 'Se cerró la sesión en este navegador. Recargamos la página.', true);
+  acAvisarEspera(false, cb);
+  try { window.location.reload(); } catch (e) {}
+}
+
+// Quien tiene la sesion ahora: { sabe, uid }. Con el cliente se le pregunta
+// a getSession, que distingue "no hay sesion" de "no se pudo leer". Sin el
+// (o sin respuesta en 4 s), se cae a acQuienEntro: un uid es saber; null,
+// no saber.
+function acSesionAhora(cb) {
+  var c = window.Cuenta && Cuenta.cliente && Cuenta.cliente();
+  if (!c || !c.auth || typeof c.auth.getSession !== 'function') {
+    acQuienEntro(function (uid) { cb({ sabe: !!uid, uid: uid }); });
+    return;
+  }
+  var hecho = false;
+  var una = function (s) { if (hecho) return; hecho = true; clearTimeout(reloj); cb(s); };
+  var reloj = setTimeout(function () { una({ sabe: false, uid: null }); }, 4000);
+  Promise.resolve().then(function () { return c.auth.getSession(); }).then(function (r) {
+    if (!r || r.error) { una({ sabe: false, uid: null }); return; }
+    var ses = r.data && r.data.session;
+    una({ sabe: true, uid: (ses && ses.user && ses.user.id) || null });
+  }, function () { una({ sabe: false, uid: null }); });
+}
+
 function acEnviar(c, fila, cb) {
+  // La fila viaja atada a quien abrio la pagina: si la sesion cambio despues
+  // de la pregunta, la base rechaza el insert (dueno = auth.uid()) y el
+  // update no encuentra la fila.
+  var nueva = acUid ? { dueno: acUid, condominio: fila.condominio, fecha_reunion: fila.fecha_reunion, contenido: fila.contenido } : fila;
   var q = acId
-    ? c.from('actas_comite').update(fila).eq('id', acId).select('id,folio')
-    : c.from('actas_comite').insert(fila).select('id,folio');
+    ? (acUid ? c.from('actas_comite').update(fila).eq('id', acId).eq('dueno', acUid)
+             : c.from('actas_comite').update(fila).eq('id', acId)).select('id,folio')
+    : c.from('actas_comite').insert(nueva).select('id,folio');
 
   q.then(function (r) {
     acGuardando = false;
+
+    // Un rechazo por RLS, o un update que no toco ninguna fila, puede ser que
+    // la sesion cambio en el camino. Se pregunta: si es otra, nada se anuncia
+    // ni se escribe en el equipo. Si es la misma, no se guardo y se dice.
+    var rls = r.error && /row-level security|42501|permission denied/i.test(String(r.error.message || ''));
+    if (rls || (!r.error && acId && !(r.data && r.data[0]))) {
+      acSesionAhora(function (s) {
+        if (acUid && s.sabe && s.uid !== acUid) { acOtraSesion(s.uid, cb); return; }
+        acAviso('No pudimos guardar. Su texto sigue en pantalla.', true);
+        acEscribirBorrador();
+        acAvisarEspera(false, cb);
+      });
+      return;
+    }
 
     if (r.error) {
       // El tope de tamaño de la tabla se avisa por su nombre: «no pudimos

@@ -599,8 +599,10 @@ async function generarDocumento(btn){
       // dominio remitente: el acta dice lo que de verdad se comprobó.
       '<p>La identidad de quienes respondieron se verificó por la casilla de correo desde la cual fue enviada ' +
       'cada respuesta, la que debe corresponder a la registrada para la respectiva unidad, y por la firma ' +
-      'electrónica (DKIM) con que el proveedor de esa casilla autentica sus envíos. Una respuesta sin esa firma ' +
-      'no se contó por sí sola: quedó para calificación de la Mesa. Se consultó a ' +
+      'electrónica (DKIM) con que el proveedor de esa casilla autentica sus envíos, la que además debía vincular ' +
+      'la respuesta a esta consulta y fecharla. Una respuesta sin esa firma no se contó por sí sola: quedó para ' +
+      'calificación de la Mesa; un mismo correo recibido dos veces se contó una vez, y una respuesta anterior ' +
+      'no reemplazó a una posterior. Se consultó a ' +
       '<strong>' + (est.convocados || 0) + '</strong> copropietarios.</p></div>' +
 
       '<div class="sec"><div class="sec-t">4. Respuestas recibidas</div>' +

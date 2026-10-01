@@ -2,6 +2,13 @@
   var VV_URL='https://rujwokagmjbqtrcvosye.supabase.co';
   var VV_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
   var sb=null, asam=null, pollTimer=null, activo=null, temasActuales=[];
+  // CN-001 (30-09-2026): si en otro lado del navegador se cerro la sesion o
+  // entro otra cuenta, acta-1.js bloquea la pestana (window._sesionAjena) y
+  // llama aqui para parar el sondeo de la sala. Desde ese momento esta
+  // pestana no escribe en el equipo: la llave de pago o la sala que haya
+  // ahi pueden ser de la otra cuenta.
+  function ajena(){ return !!window._sesionAjena; }
+  window.actaSalaDetener=function(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } };
   // Un solo cliente por pagina: el de cuenta.js. Si se crea otro aparte, la
   // sesion abierta en uno no viaja en las llamadas del otro.
   function client(){
@@ -94,8 +101,8 @@
     try{ v=localStorage.getItem(LLAVE)||''; }catch(e){ return ''; }
     return (v===LLAVE_DE_DEMO && !enPaginaDemo()) ? '' : v;
   }
-  function guardarLlave(v){ try{ localStorage.setItem(LLAVE,v); }catch(e){} }
-  function borrarLlave(){ try{ localStorage.removeItem(LLAVE); }catch(e){} }
+  function guardarLlave(v){ if(ajena()) return; try{ localStorage.setItem(LLAVE,v); }catch(e){} }
+  function borrarLlave(){ if(ajena()) return; try{ localStorage.removeItem(LLAVE); }catch(e){} }
   // La llave es <payload base64url>.<firma>, con la orden en payload.o. Una
   // llave que aqui no sirve -de otra cuenta, de otro producto- sigue siendo
   // plata de quien pago: antes de borrarla se anota su orden, y cuenta.js
@@ -392,9 +399,10 @@
   // forma de borrarlo a mano: solo lo alcanzaba el barrido de 48 horas.
   var SALA='acta_sala';
   function salaGuardar(){
+    if(ajena()) return;
     try{ localStorage.setItem(SALA, JSON.stringify({codigo:asam.codigo, token:asam.token, tipo:asam.tipo, id:asam.id, t:Date.now()})); }catch(e){}
   }
-  function salaOlvidar(){ try{ localStorage.removeItem(SALA); }catch(e){} }
+  function salaOlvidar(){ if(ajena()) return; try{ localStorage.removeItem(SALA); }catch(e){} }
   function salaGuardada(){
     try{
       var g=JSON.parse(localStorage.getItem(SALA));

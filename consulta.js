@@ -14,6 +14,50 @@ export function codigoDesdeDestino(destino) {
 }
 
 // ---------------------------------------------------------------------
+//  ¿Esta respuesta firmada contesta ESTA consulta? (CN-002, 30-09-2026)
+// ---------------------------------------------------------------------
+// La firma DKIM acredita quien escribio, no a que consulta contesto: el
+// codigo sale del destinatario del sobre SMTP, que elige quien entrega. Con
+// el MIME original de una respuesta genuina se podia reenviar intacta -la
+// firma sigue valiendo- a c-OTRA@ y votar en otra consulta, o volver a
+// entregar una respuesta vieja para pisar una nueva (RFC 6376 §8.6). Por eso
+// una respuesta cuenta como autenticada solo si, ademas de la firma:
+//   * algo FIRMADO la ata a esta consulta: el To o el Cc firmados traen
+//     c-CODIGO@dominio, o el asunto firmado trae el codigo, o el cuerpo
+//     (firmado entero: dkim.js no acepta l=) cita c-CODIGO@dominio;
+//   * trae una fecha firmada (la cabecera Date, o t= de la firma): con ella
+//     la base no deja que una respuesta mas vieja pise una mas nueva.
+// La consulta la manda la administracion desde su propio correo, una sola
+// vez para todos: no hay un desafio distinto por persona que pedir. El
+// desafio es la casilla de la consulta, unica por consulta.
+// Devuelve { ok, motivo, fecha (ISO), mensaje (Message-ID firmado o null) }.
+export function contextoDeRespuesta(firma, codigo, destino, texto) {
+  if (!firma || firma.ok !== true) return { ok: false, motivo: (firma && firma.motivo) || 'sin_firma' };
+  const cod = String(codigo || '').toUpperCase();
+  const dominio = String(destino || '').split('@')[1] || '';
+  if (!cod || !dominio) return { ok: false, motivo: 'sin_contexto' };
+  const casilla = ('c-' + cod + '@' + dominio).toLowerCase();
+  const f = firma.firmadas || {};
+  const valores = n => (Array.isArray(f[n]) ? f[n] : []).map(v => String(v).toLowerCase());
+  const enDestinatarios = valores('to').concat(valores('cc')).some(v => v.includes(casilla));
+  const enAsunto = valores('subject').some(v => new RegExp('(^|[^a-z0-9])' + cod.toLowerCase() + '([^a-z0-9]|$)').test(v));
+  const enCuerpo = String(texto || '').toLowerCase().includes(casilla);
+  if (!enDestinatarios && !enAsunto && !enCuerpo) return { ok: false, motivo: 'sin_contexto' };
+
+  let ms = NaN;
+  const fechas = valores('date');
+  if (fechas.length === 1) ms = Date.parse(f.date[0]);
+  if (!Number.isFinite(ms) && Number.isFinite(firma.t)) ms = firma.t * 1000;
+  // Una fecha sin sentido (antes de 2020) no ordena nada.
+  if (!Number.isFinite(ms) || ms < Date.UTC(2020, 0, 1)) return { ok: false, motivo: 'sin_fecha_firmada' };
+
+  const ids = Array.isArray(f['message-id']) ? f['message-id'] : [];
+  return { ok: true, motivo: null, fecha: new Date(ms).toISOString(),
+           mensaje: ids.length === 1 ? String(ids[0]).slice(0, 998) : null,
+           via: enDestinatarios ? 'destinatario' : enAsunto ? 'asunto' : 'cuerpo' };
+}
+
+// ---------------------------------------------------------------------
 //  Extraccion del texto desde el MIME crudo.
 //  No usa libreria externa: el proyecto no tiene npm ni empaquetado.
 //  Regla de seguridad: ante cualquier problema devuelve '' y el

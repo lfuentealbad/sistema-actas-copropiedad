@@ -216,14 +216,19 @@ async function verificarUna(firma, campos, cuerpo, dominioFrom, opciones) {
   if (bytesAb64(hashCuerpo) !== t.bh.replace(/\s+/g, '')) return 'cuerpo_alterado';
 
   // 2) Las cabeceras firmadas: de abajo hacia arriba cuando el nombre se
-  //    repite (§5.4.2), y una que no existe no aporta nada.
+  //    repite (§5.4.2), y una que no existe no aporta nada. Se anota el
+  //    valor de cada instancia que entro en la firma: es lo unico de las
+  //    cabeceras que el dominio respalda (CN-002: una cabecera To agregada
+  //    encima de la firmada no cuenta).
   const usadas = new Set();
+  const valores = {};
   let datos = '';
   for (const nombre of firmadas) {
     for (let i = campos.length - 1; i >= 0; i--) {
       if (campos[i].nombre === nombre && !usadas.has(i)) {
         usadas.add(i);
         datos += canCab(campos[i].crudo) + '\r\n';
+        (valores[nombre] = valores[nombre] || []).push(valorDe(campos[i].crudo));
         break;
       }
     }
@@ -244,12 +249,22 @@ async function verificarUna(firma, campos, cuerpo, dominioFrom, opciones) {
   try {
     ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', clave, b64aBytes(t.b), aBytes(datos));
   } catch { ok = false; }
-  return ok ? null : 'firma_invalida';
+  if (!ok) return 'firma_invalida';
+  const ts = /^\d{1,12}$/.test(String(t.t || '').replace(/\s+/g, '')) ? Number(t.t.replace(/\s+/g, '')) : null;
+  return { firmadas: valores, t: ts };
+}
+
+// El valor de un campo de cabecera, desplegado y sin espacios en los bordes.
+function valorDe(crudo) {
+  return crudo.slice(crudo.indexOf(':') + 1).replace(/\r\n(?=[ \t])/g, '').trim();
 }
 
 // crudo: los bytes del correo (Uint8Array) o su cadena binaria.
 // opciones.resolverTxt(nombre) -> Promise<string|null>: el TXT de la clave.
-// Devuelve { ok, desde, dominio, motivo }.
+// Devuelve { ok, desde, dominio, motivo }, y si ok, tambien:
+//   firmadas: { nombre: [valores] } de las cabeceras que la firma cubre
+//             (to, cc, subject, date, message-id...), en minusculas;
+//   t:        la marca de tiempo de la firma (segundos), si la trae.
 export async function verificarDkim(crudo, opciones) {
   const o = opciones || {};
   if (typeof o.resolverTxt !== 'function') return { ok: false, motivo: 'sin_resolver' };
@@ -263,8 +278,9 @@ export async function verificarDkim(crudo, opciones) {
   let motivo = 'sin_firma';
   for (const f of firmas) {
     const m = await verificarUna(f, campos, cuerpo, desde, o);
-    if (m === null) {
-      return { ok: true, desde, dominio: etiquetas(f.crudo.slice(f.crudo.indexOf(':') + 1)).d.toLowerCase() };
+    if (m && typeof m === 'object') {
+      return { ok: true, desde, dominio: etiquetas(f.crudo.slice(f.crudo.indexOf(':') + 1)).d.toLowerCase(),
+               firmadas: m.firmadas, t: m.t };
     }
     motivo = m;
   }
