@@ -147,7 +147,6 @@
     padding-left:max(26px,env(safe-area-inset-left));
     padding-right:max(26px,env(safe-area-inset-right));}
   .hero-copy{max-width:648px;padding:158px 0 130px;color:#fff;}
-  .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#A9CDEA;background:rgba(179,190,248,.12);border:1px solid rgba(179,190,248,.26);padding:7px 14px;border-radius:30px;margin-bottom:24px;}
   /* Tipografia de la version B (referente medido: GOV.UK). A 66 px el
      titular ocupaba el ancho de un cartel y competia con la foto; a 54 px
      con mas peso se lee como el encabezado de un documento y deja respirar
@@ -156,12 +155,9 @@
   h1{font-family:var(--serif);font-variation-settings:'opsz' 144,'wght' 510;font-weight:510;font-size:clamp(36px,4.5vw,54px);line-height:1.09;letter-spacing:-.022em;margin:0 0 22px;max-width:19ch;text-wrap:balance;}
   /* El realce del titular va en cálido: es el color de la acción (el botón),
      y sobre la foto destaca más que el azul, que se confunde con el velo. */
-  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;background:linear-gradient(100deg,#FBE3CF,#F2A46B 58%,#E5692A);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  h1 em{font-style:italic;font-variation-settings:'opsz' 144,'wght' 470;color:var(--amber);}
   .hero p.lead{font-size:19px;color:rgba(255,255,255,.9);margin:0 0 34px;max-width:34em;line-height:1.55;}
   .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
-  /* Las tres objeciones que frenan la compra, respondidas bajo los botones. */
-  .hero-probar{margin:14px 0 0;font-size:14.5px;line-height:1.6;color:var(--c-text-2);max-width:52ch}
-  .hero-probar a{color:var(--c-primary);text-decoration:underline;text-underline-offset:2px}
   .doc-probar{margin:12px 0 0;font-size:14.5px;line-height:1.6;color:var(--c-text-2)}
   .doc-probar a{color:var(--c-primary);text-decoration:underline;text-underline-offset:2px}
   .hero-nota{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:26px;font-size:14px;font-weight:500;color:rgba(255,255,255,.74);}
@@ -175,17 +171,14 @@
     .hero-nota i:last-of-type{display:none;}
     .hero-nota b{flex-basis:100%;margin-top:2px;}
   }
-  /* La píldora no cabe en dos líneas: en pantalla angosta basta la ley. */
-  @media(max-width:430px){ .hero-eyebrow .eb-largo{display:none;} }
   
-  .hero-bar{position:relative;z-index:5;margin-top:-56px;margin-bottom:6px;background:var(--surface);border-radius:20px;box-shadow:var(--sh-lg);border:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:2px;padding:14px 16px;align-items:center;}
+  .hero-bar{position:relative;z-index:5;margin-top:-56px;margin-bottom:6px;background:var(--surface);border-radius:20px;box-shadow:var(--sh-lg);border:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:14px 16px;align-items:center;}
   .hb-item{display:flex;align-items:center;gap:13px;padding:8px 18px;}
   .hb-item+.hb-item{border-left:1px solid var(--line);}
   .hb-ic{width:44px;height:44px;border-radius:12px;background:#E6F0F8;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .hb-ic svg{width:21px;height:21px;stroke:var(--teal-d);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
   .hb-item b{display:block;font-size:15.5px;color:var(--ink);line-height:1.2;font-weight:700;}
   .hb-item small{font-size:12.5px;color:var(--tx2);}
-  .hb-cta{white-space:nowrap;margin-left:8px;}
   /* La banda oscura empieza justo despues; sin este aire el borde
      parecia cortar la sombra de la tarjeta. */
   .hero-bar{margin-bottom:58px;}
@@ -193,7 +186,6 @@
     .hero-copy{padding:130px 0 92px;max-width:none;}
     .hero-bar{grid-template-columns:1fr;gap:0;}
     .hb-item{padding:12px 12px;} .hb-item+.hb-item{border-left:none;border-top:1px solid var(--line);}
-    .hb-cta{margin:10px 6px 4px;width:auto;justify-content:center;}
   }
 
   
@@ -362,7 +354,7 @@
   .vista-copy .eyebrow{color:var(--amber-l);}
   .vista-copy .eyebrow::before{background:var(--amber);}
   .vista-copy h2{color:#fff;font-size:clamp(29px,3vw,44px);margin:16px 0 16px;}
-  .vista-copy h2 em{white-space:nowrap;background:linear-gradient(100deg,#FBE3CF,#F2A46B 58%,#E5692A);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .vista-copy h2 em{white-space:nowrap;color:var(--amber);}
   .vista-copy p{font-size:17.5px;color:rgba(255,255,255,.82);line-height:1.62;margin:0 0 28px;max-width:38ch;text-wrap:pretty;}
   .vista-meta{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px;}
   .vista-meta span{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.8);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:30px;padding:8px 16px;white-space:nowrap;}
@@ -540,22 +532,14 @@
   <div class="hero-scrim" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <div class="hero-copy">
-      <span class="hero-eyebrow reveal in">Ley N°&nbsp;21.442<span class="eb-largo"> · Copropiedad Inmobiliaria</span></span>
       <h1 class="reveal in">De la reunión al acta lista para firmar, <em>el mismo día.</em></h1>
-      <p class="lead reveal in d1">Usted dirige la asamblea con tranquilidad. El sistema lleva el quórum, cuenta los votos ponderados por derechos y genera el acta con la estructura prevista en la Ley N°&nbsp;21.442.</p>
+      <p class="lead reveal in d1">Lleva el quórum, cuenta los votos y genera el acta con la estructura de la Ley&nbsp;N°&nbsp;21.442.</p>
       <div class="hero-cta reveal in d2">
         <a class="btn btn-primary" href="/acta">Comenzar mi acta</a>
-        <a class="btn btn-light" href="/acta-demo">Probar el asistente</a>
+        <a class="btn btn-light" href="/acta-demo">Probar sin cuenta</a>
       </div>
-      <p class="hero-probar reveal in d2">Se recorre entero con datos de ejemplo, sin cuenta y sin
-      pagar. ¿Prefiere ver primero el resultado? <a href="/ejemplo-acta">Un acta ya terminada</a>.</p>
       <p class="hero-nota reveal in d3">
-        <span>Sin instalar nada</span>
-        <i aria-hidden="true" data-pago></i>
-        <span data-pago>Se paga solo cuando se usa</span>
-        <i aria-hidden="true" data-pago></i>
         <b class="cifra" data-pago>$14.990&nbsp;por acta</b>
-        <i aria-hidden="true" hidden data-vitrina></i>
         <b hidden data-vitrina>Durante la marcha blanca, sin costo</b>
       </p>
     </div>
@@ -575,7 +559,6 @@
       <span class="hb-ic" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
       <div><b>Computador y teléfono</b><small>sin instalar nada</small></div>
     </div>
-    <a class="btn btn-primary hb-cta" href="/acta">Comenzar →</a>
   </div>
 </div>
 
