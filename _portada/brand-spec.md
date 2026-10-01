@@ -20,7 +20,7 @@ los activos no se buscan afuera: están en el repositorio y se citan por ruta.
 ## Zona prohibida (dura)
 
 La portada **no puede afirmar cifras legales**. El quórum depende del tipo de
-sesión (ordinaria en primera citación, extraordinaria absoluta, reforzada, y la
+sesión (ordinaria, extraordinaria de mayoría absoluta, de mayoría reforzada, y la
 sesión informativa que no exige ninguno). Se describe la **capacidad** del
 sistema, nunca la obligación. Ver `Diseño/BIBLIOTECA-DE-ESTILOS.md`, sección
 «Lo que la portada no puede afirmar».

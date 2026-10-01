@@ -3697,16 +3697,29 @@ function revisarConsistencia() {
 
   // (b) El quorum de constitucion del tipo elegido. Esto no es un descuido
   // de tipeo: es la asamblea constituyendose o no.
+  // Los tres umbrales son los del cuadro del art. 15 de la Ley 21.442, texto
+  // vigente (Ley 21.508, D.O. 10-11-2022), sobre los derechos del condominio.
+  // Esa ley no tiene el esquema de dos citaciones de la Ley 19.537 (la
+  // derogada): ningun texto del sistema puede nombrarlo. Lo vigila
+  // Pruebas/prueba-padron.mjs.
   var tipo = (document.getElementById('tipo-asamblea') || {}).value || '';
-  var cumple = presentes >= 33 * E, etiqueta = '33 % (ordinaria, primera citación)';
-  if (tipo === 'extraordinaria-abs') { cumple = presentes > 50 * E; etiqueta = 'más del 50 %'; }
-  if (tipo === 'extraordinaria-ref') { cumple = presentes >= 66 * E; etiqueta = '66 %'; }
+  var cumple = presentes >= 33 * E;
+  var etiqueta = 'la sesión ordinaria: al menos el 33 % de los derechos del condominio';
+  if (tipo === 'extraordinaria-abs') {
+    cumple = presentes > 50 * E;
+    etiqueta = 'la sesión extraordinaria de mayoría absoluta: más del 50 % de los derechos del condominio';
+  }
+  if (tipo === 'extraordinaria-ref') {
+    cumple = presentes >= 66 * E;
+    etiqueta = 'la sesión extraordinaria de mayoría reforzada: al menos el 66 % de los derechos del condominio';
+  }
   items.push({ ok: cumple, grave: !cumple, texto: (cumple
-    ? 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) alcanzan el mínimo de '
-      + etiqueta + '.'
-    : 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) NO alcanzan el mínimo de '
-      + etiqueta + '. La asamblea no se constituyó: los acuerdos que se adopten son '
-      + 'impugnables ante el Juzgado de Policía Local.') });
+    ? 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) alcanzan el quórum de constitución de '
+      + etiqueta + ' (art. 15 de la Ley N° 21.442).'
+    : 'Los derechos presentes (' + Derechos.texto(presentes) + ' %) NO alcanzan el quórum de constitución de '
+      + etiqueta + ' (art. 15 de la Ley N° 21.442): la asamblea no se constituyó. Los acuerdos '
+      + 'adoptados con infracción de la ley pueden ser declarados nulos por el juzgado de policía '
+      + 'local (art. 44, letra b).') });
 
   // (b bis) Y sobre que se vota, que es una base distinta de la anterior:
   // constituir cuenta a todos los presentes, acordar solo a los habiles.
