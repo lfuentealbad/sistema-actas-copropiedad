@@ -1230,7 +1230,7 @@ function _imprimirActa(btn) {
       if (window.track) window.track('acta_generada', { tipo: (typeof _pvau === 'function' && _pvau('tipo-asamblea')) || '', salida: 'pdf' });
     } catch (e) {
       limpiar();
-      alert('No pudimos abrir el cuadro de impresion. Use «Descargar copia editable» y abra ese archivo.\n\nDetalle tecnico: ' + e.message);
+      alert('No pudimos abrir el cuadro de impresión. Intente de nuevo; si sigue fallando, pruebe con otro navegador.\n\nDetalle técnico: ' + e.message);
     }
   };
 
@@ -1238,27 +1238,6 @@ function _imprimirActa(btn) {
   d.open(); d.write(doc.html); d.close();
 }
 
-// La copia .html sigue disponible, pero ahora dice lo que es: un archivo que se
-// puede volver a abrir y editar, no un PDF.
-function descargarActaHTML() {
-  var doc = _actaDocumento(true);
-  if (!doc) return;
-  try {
-    var blob = new Blob([doc.html], { type: 'text/html;charset=utf-8' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = doc.nombre + '.html';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    if (window.track) window.track('acta_generada', { tipo: (typeof _pvau === 'function' && _pvau('tipo-asamblea')) || '', salida: 'html' });
-    setTimeout(function() { URL.revokeObjectURL(url); }, 3000);
-  } catch (e) {
-    alert('No pudimos generar el archivo. Intente nuevamente.\n\nDetalle tecnico: ' + e.message);
-  }
-}
 function copyActa() {
 const container = document.getElementById('acta-content');
 const text = container ? container.innerText : '';

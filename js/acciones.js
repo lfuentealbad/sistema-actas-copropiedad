@@ -69,7 +69,7 @@
     'cerrarInstrucciones', 'cerrarModal', 'cerrarPago', 'cerrarPunto',
     'cerrarSesion', 'checkPlazo', 'confirmarCodigo', 'confirmarGenerarCobros', 'copiarLink',
     'copiarResumen', 'copiarTexto', 'copyActa', 'crear', 'crearAsamblea', 'darCodigoMesa',
-    'delRow', 'descargarActaHTML', 'descargarPlantilla', 'ejemplo',
+    'delRow', 'descargarPlantilla', 'ejemplo',
     'eliminarCobro', 'eliminarEgreso', 'eliminarIngreso',
     'eliminarMantencion', 'eliminarMovFondo', 'eliminarPuntoConfirm',
     'eliminarUnidad', 'emitir', 'exportarRespaldo', 'exportarResultados',
