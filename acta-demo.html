@@ -893,8 +893,11 @@
   .table-wrap td .derechos    { width: 72px; }
   .table-wrap td .correo-asist{ width: 150px; }
 
-  /* El padron cabe entero: reparto proporcional en vez de barra lateral. */
-  @media (min-width: 1001px) {
+  /* El padron cabe entero: reparto proporcional en vez de barra lateral.
+     Solo desde 1340 px: medido el 01-10-2026, por debajo la tabla queda en
+     menos de ~880 px y los derechos y la unidad se cortaban ("101" se leia
+     "10"). Mas angosto, la tabla se desliza con los anchos fijos de arriba. */
+  @media (min-width: 1340px) {
     .table-wrap { overflow-x: visible; }
     .table-wrap table { min-width: 0; table-layout: fixed; width: 100%; }
     .table-wrap th, .table-wrap td { padding-left: 9px; padding-right: 9px; }
@@ -907,13 +910,13 @@
     .table-wrap td .rut-asist,
     .table-wrap td .derechos,
     .table-wrap td .correo-asist { width: 100%; min-width: 0; box-sizing: border-box; }
-    .table-wrap th:nth-child(1), .table-wrap td:nth-child(1) { width: 7%; }
+    .table-wrap th:nth-child(1), .table-wrap td:nth-child(1) { width: 9%; }
     .table-wrap th:nth-child(2), .table-wrap td:nth-child(2) { width: 17%; }
     .table-wrap th:nth-child(3), .table-wrap td:nth-child(3) { width: 15%; }
     .table-wrap th:nth-child(4), .table-wrap td:nth-child(4) { width: 9%; }
     .table-wrap th:nth-child(5), .table-wrap td:nth-child(5) { width: 9.5%; }
     .table-wrap th:nth-child(6), .table-wrap td:nth-child(6) { width: 9.5%; }
-    .table-wrap th:nth-child(7), .table-wrap td:nth-child(7) { width: 14%; }
+    .table-wrap th:nth-child(7), .table-wrap td:nth-child(7) { width: 12%; }
     .table-wrap th:nth-child(8), .table-wrap td:nth-child(8) { width: 12%; }
     .table-wrap th:nth-child(9), .table-wrap td:nth-child(9) { width: 7%; }
     /* Los encabezados largos ya no fuerzan el ancho de su columna. */
@@ -941,6 +944,18 @@
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #F1F4F2; }
   td input { padding: 5px 8px; font-size: 13px; }
+  /* La regla general de los campos (input[type="text"], 15 px por lado) le
+     gana a la de arriba por especificidad: en la tabla del padron la celda
+     Unidad quedaba con 16 px utiles y "101" se leia "10". */
+  .table-wrap td input { padding-left: 9px; padding-right: 9px; }
+  /* Quien no asiste sigue en el padron, pero no cuenta para los presentes:
+     la fila se ve en gris. Sin opacidad, para que el texto se siga leyendo
+     y los campos se puedan corregir. */
+  #asistentes-tbody tr.fila-ausente td { background-color: #EEF1F4; }
+  /* background-color y no background: la flecha del desplegable es una
+     imagen de fondo, y el atajo la borraba. */
+  #asistentes-tbody tr.fila-ausente input,
+  #asistentes-tbody tr.fila-ausente select { background-color: #F6F7F9; color: var(--c-text-2); }
 
   
 

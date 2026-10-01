@@ -497,7 +497,18 @@ function _avisarArrastrados(arrastrados) {
     + 'de habilidad.';
 }
 
+// Las filas con «Asiste: No» se ven atenuadas. Sus derechos cuentan para la
+// suma del padron (la comunidad carga el padron completo), pero no para los
+// derechos presentes: sin esta marca, cambiar los derechos de un ausente
+// parecia no hacer nada.
+function _marcarAusentes() {
+  document.querySelectorAll('#asistentes-tbody tr').forEach(function (tr) {
+    var s = tr.querySelector('.asiste');
+    tr.classList.toggle('fila-ausente', !!s && s.value === 'no');
+  });
+}
 function calcularQuorum() {
+_marcarAusentes();
 var tipo = document.getElementById('tipo-asamblea').value;
 var totalHabil = 0; 
 var countHabil = 0; 
