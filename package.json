@@ -4,6 +4,6 @@
   "type": "module",
   "description": "Solo fija la version de wrangler con que se despliega el sitio (hallazgo CN-006). El sitio en si no tiene dependencias: sus librerias estan en vendor/. \"type\": \"module\" porque _worker.js, correo.js, consulta.js y dkim.js son modulos ES.",
   "devDependencies": {
-    "wrangler": "4.136.3"
+    "wrangler": "4.145.0"
   }
 }

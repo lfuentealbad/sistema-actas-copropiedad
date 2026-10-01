@@ -268,6 +268,7 @@
       if (!c) return fallar('no autorizado');
       var r = c.respuestas[a.p_destinatario];
       if (!r) return fallar('esa persona no ha respondido');
+      if (r.sentido !== 'ambigua') return fallar('respuesta_ya_resuelta');
       r.sentido = a.p_sentido;
       r.resuelta = true;
       return responder({ ok: true });

@@ -433,7 +433,10 @@ async function crearPago(request, env, url) {
     urlReturn: `${origen}${cfg.vuelve}?pago=${orden}`
   });
 
-  if (!r.ok || !r.datos || !r.datos.url || !r.datos.token || !PASARELA.test(String(r.datos.url))) {
+  // El flowOrder es el numero con que Flow conoce este pago: se guarda con
+  // la orden y el aviso de pago tiene que traer el mismo (confirmarPago).
+  const flowOrder = r.datos && /^\d{1,20}$/.test(String(r.datos.flowOrder ?? '')) ? String(r.datos.flowOrder) : '';
+  if (!r.ok || !r.datos || !r.datos.url || !r.datos.token || !PASARELA.test(String(r.datos.url)) || !flowOrder) {
     // Del error de Flow se registra el codigo y el mensaje, nada mas: el
     // objeto entero puede traer el correo del comprador, y los logs de
     // Cloudflare tienen su propia retencion. Al cliente no se le devuelve:
@@ -449,7 +452,7 @@ async function crearPago(request, env, url) {
     // que la hubo, cuando, y sobre que version del texto. El uid es de quien
     // la creo: solo esa cuenta puede despues recoger la llave.
     JSON.stringify({
-      estado: 'pendiente', monto, correo, producto, uid: s.uid, creada: Date.now(),
+      estado: 'pendiente', monto, correo, producto, uid: s.uid, flowOrder, creada: Date.now(),
       terminos: { version: TERMINOS_VERSION, aceptados: new Date().toISOString() }
     }),
     { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 }
@@ -491,14 +494,24 @@ async function confirmarPago(request, env) {
   const guardado = await env.PAGOS.get(`orden:${d.commerceOrder}`, { type: 'json' });
   if (!guardado) return textoPlano('orden desconocida', 404);
 
-  // status 2 = pagado. Ademas exigimos que el monto calce con lo que cobramos.
-  const pagado = Number(d.status) === 2 && Number(d.amount) === Number(guardado.monto);
+  // status 2 = pagado. Ademas tiene que calzar con lo que se cobro: el monto,
+  // la moneda (la orden se crea en CLP) y el flowOrder que Flow dio al crearla
+  // (punto 7 de la revision del 30-09-2026). Una orden sin flowOrder anotado
+  // -creada antes de este cambio- no calza: sus pagos se revisan a mano.
+  const calza = Number(d.amount) === Number(guardado.monto)
+    && String(d.currency || '').toUpperCase() === 'CLP'
+    && !!guardado.flowOrder && String(d.flowOrder ?? '') === String(guardado.flowOrder);
+  const pagado = Number(d.status) === 2 && calza;
+  if (Number(d.status) === 2 && !calza) {
+    // Sin el correo ni el monto: la orden basta para buscarla en Flow.
+    console.log('flow: pago que no calza con su orden', paraLog(d.commerceOrder, 40));
+  }
 
   if (pagado && guardado.estado !== 'pagado') {
     const llave = await emitirLlave(env, d.commerceOrder, guardado.producto);
     await env.PAGOS.put(
       `orden:${d.commerceOrder}`,
-      JSON.stringify({ ...guardado, estado: 'pagado', llave, flowOrder: d.flowOrder || null, pagada: Date.now() }),
+      JSON.stringify({ ...guardado, estado: 'pagado', llave, pagada: Date.now() }),
       { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 }
     );
   }

@@ -476,6 +476,13 @@
   .header-badge{ font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.88);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:5px 13px;white-space:nowrap; }
   .aviso-datos{ background:#FFFBEB;border-bottom:2px solid #FDE68A;border-left:5px solid #F59E0B;padding:11px 22px;display:flex;align-items:center;gap:12px;font-size:13.5px;color:#78350F;line-height:1.55; }
   .aviso-datos a{ color:#78350F;text-decoration:underline; }
+  .aviso-datos .btn.sm{ margin:0 4px; }
+  .candado{ display:flex; justify-content:center; padding:48px 16px; }
+  .candado[hidden]{ display:none; }
+  .app[hidden], .cinta[hidden]{ display:none !important; }
+  .candado-panel{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg); padding:var(--sp-6); max-width:440px; width:100%; box-shadow:var(--elev-2); }
+  .candado-panel h2{ margin-bottom:var(--sp-2); }
+  .candado-panel input{ width:100%; }
   @media (max-width:700px){
     .header-badge{ display:none; }
     .header-inner{ padding:11px 14px; gap:10px; }
@@ -509,9 +516,29 @@
 
 <aside class="aviso-datos" role="note">
   <span aria-hidden="true">&#128274;</span>
-  <span>Las cuentas quedan en este navegador, no se suben a ninguna parte. Baje un respaldo cada cierto tiempo desde <b>Respaldo y datos</b>. <a href="/privacidad">C&oacute;mo tratamos los datos</a>.</span>
+  <span><span id="avisoDatosTexto">Las cuentas quedan en este navegador, no se suben a ninguna parte. Baje un respaldo cada cierto tiempo desde <b>Respaldo y datos</b>.</span> <a href="/privacidad">C&oacute;mo tratamos los datos</a>.</span>
 </aside>
 
+
+<!-- Candado: con las cuentas protegidas, la pagina abre aqui y no pinta
+     nada hasta que se escribe la contrasena (js/finanzas-cofre.js). -->
+<section class="candado" id="candado" hidden aria-labelledby="candadoTitulo">
+  <div class="candado-panel">
+    <h2 id="candadoTitulo">Las cuentas de este equipo están protegidas</h2>
+    <p class="muted">Escriba la contraseña con que se protegieron. Sin ella no se pueden abrir.</p>
+    <label for="candadoClave">Contraseña</label>
+    <input type="password" id="candadoClave" autocomplete="current-password" />
+    <div id="candadoMsg" class="field-error" role="alert" aria-live="assertive"></div>
+    <div class="btn-row" style="margin-top:12px">
+      <button type="button" class="btn primary" id="candadoAbrir" data-ac="abrirCandado">Abrir</button>
+      <button type="button" class="btn" data-ac="olvideClave">Olvidé la contraseña</button>
+    </div>
+    <div id="candadoOlvido" hidden style="margin-top:16px">
+      <p class="muted" style="font-size:12.5px">No hay forma de recuperarla: la contraseña no se guarda en ninguna parte, tampoco en nuestros servidores. Si tiene un respaldo, puede borrar la copia protegida de este equipo y después importarlo desde <b>Respaldo y datos</b>.</p>
+      <button type="button" class="btn danger" data-ac="borrarCopiaProtegida">Borrar la copia protegida</button>
+    </div>
+  </div>
+</section>
 
 <nav class="cinta" aria-label="Mes y secciones">
   <div class="cinta-in">
@@ -927,6 +954,13 @@
           <div class="btn-row" style="margin-top:8px"><button class="btn" data-ac="importarRespaldo">Importar</button></div>
         </div>
         <div class="card">
+          <h3>Contraseña de este equipo</h3>
+          <div id="cofreEstado">
+            <p class="muted" style="font-size:12.5px">En un equipo que usan otras personas, protéjalas: la copia de este navegador queda cifrada y la página pide la contraseña al abrirse.</p>
+            <div class="btn-row"><button type="button" class="btn" data-ac="abrirProteger">Proteger con contraseña</button></div>
+          </div>
+        </div>
+        <div class="card">
           <h3>Datos de prueba</h3>
           <p class="muted" style="font-size:12.5px">Carga un set de datos demostrativo para explorar el sistema.</p>
           <div class="btn-row"><button class="btn" data-ac="cargarDemo">Cargar demo</button></div>
@@ -1025,6 +1059,25 @@
     </div>
   </div>
 </div>
+
+<!-- ============ PROTEGER CON CONTRASENA (CN-003) ============ -->
+<div class="modal" id="mProteger" role="dialog" aria-modal="true" aria-labelledby="mProtegerTitle"><div class="panel sm">
+  <h2 id="mProtegerTitle">Proteger con contraseña</h2>
+  <p style="font-size:var(--fs-base);color:var(--ink-soft)">La copia de las cuentas en este navegador queda cifrada, y la página pide la contraseña cada vez que se abre. <b>Sin la contraseña nadie puede abrirlas, ni usted ni nosotros.</b></p>
+  <p style="margin-top:12px"><b>1.</b> Baje un respaldo, por si la olvida.</p>
+  <div class="btn-row"><button type="button" class="btn" data-ac="protegerRespaldo">Bajar respaldo</button></div>
+  <div id="protegerRespaldoOk" class="field-help" role="status"></div>
+  <p style="margin-top:12px"><b>2.</b> Elija una contraseña de al menos 10 caracteres.</p>
+  <label for="protegerClave">Contraseña</label>
+  <input type="password" id="protegerClave" autocomplete="new-password" minlength="10" />
+  <label for="protegerClave2" style="margin-top:8px">Repítala</label>
+  <input type="password" id="protegerClave2" autocomplete="new-password" minlength="10" />
+  <div id="protegerMsg" class="field-error" role="alert"></div>
+  <div class="close-row">
+    <button type="button" class="btn" data-ac="cerrarModal" data-args="mProteger">Cancelar</button>
+    <button type="button" class="btn primary" id="protegerOk" data-ac="protegerConClave" disabled>Proteger</button>
+  </div>
+</div></div>
 
 <!-- ============ MODALES ============ -->
 <div class="modal" id="mUnidad" role="dialog" aria-modal="true" aria-labelledby="mUnidadTitle"><div class="panel">
@@ -1281,6 +1334,7 @@
 <script src="/vendor/supabase.min.js"></script>
 <script src="/cuenta.js"></script>
 <script src="/js/acciones.js"></script>
+<script src="/js/finanzas-cofre.js"></script>
 <script src="/js/finanzas-1.js"></script>
 <script src="/js/finanzas-2.js"></script>
 </body>

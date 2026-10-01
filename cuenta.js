@@ -428,9 +428,40 @@
     'Cancelar: dejarlos en este navegador para retomarlos después. ' +
     'Cualquiera que use este equipo podrá verlos.';
 
+  // CN-003: las cuentas del condominio no se borran al salir (son la unica
+  // copia), pero sin contrasena quedan a la vista del que se siente despues.
+  // Se avisa antes de cerrar, y Cancelar deja la sesion como estaba.
+  var FINANZAS = 'actaviva_finanzas_v1';
+  var AVISO_FINANZAS =
+    'En este equipo quedan las cuentas del condominio (Finanzas) sin contraseña: ' +
+    'cualquiera que lo use puede verlas.\n\n' +
+    'Aceptar: cerrar sesión igual.\n' +
+    'Cancelar: seguir con la sesión abierta, para protegerlas desde Finanzas → Respaldo y datos.';
+  function finanzasSinProteger() {
+    var ls = almacen();
+    if (!ls) return false;
+    var e = null;
+    try { e = JSON.parse(ls.getItem(FINANZAS)); } catch (x) { e = null; }
+    if (!e || typeof e !== 'object') return false;
+    var listas = ['unidades', 'cobros', 'egresos', 'ingresos', 'fondo', 'mantenciones'];
+    for (var i = 0; i < listas.length; i++) {
+      if (Array.isArray(e[listas[i]]) && e[listas[i]].length) return true;
+    }
+    return !!(e.config && (e.config.condNombre || e.config.admNombre));
+  }
+
   function salir(cb) {
     var c = cliente();
     var fin = function () { if (cb) cb(); };
+    if (finanzasSinProteger()) {
+      var seguir = true;
+      var t1 = Date.now();
+      try { seguir = global.confirm(AVISO_FINANZAS); } catch (e) { seguir = true; }
+      // Igual que abajo: un dialogo que no se mostro no es un Cancelar, y un
+      // aviso no puede impedir cerrar la sesion.
+      if (!seguir && Date.now() - t1 < 50) seguir = true;
+      if (!seguir) return;
+    }
     // La comparacion con la cuenta necesita la sesion: va antes de cerrarla.
     borradoresPendientes(c, function (pend) {
       var conservar = [];

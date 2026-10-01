@@ -73,6 +73,8 @@ const estadoInicial = {
 let estado = JSON.parse(JSON.stringify(estadoInicial));
 
 function cargar(){
+  // Protegidas con contrasena: las abre el candado (abrirCandado), no esto.
+  if(hayCofre()) return;
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
@@ -88,8 +90,231 @@ function cargar(){
     }
   }catch(e){ console.error(e); }
 }
+// Sin contrasena, como siempre: en claro, y si no cabe lanza. Con
+// contrasena, cifrado (js/finanzas-cofre.js) y devuelve una promesa que dice
+// si se pudo; si no, ya lo aviso. Con el cofre cerrado no escribe nada: ni en
+// claro ni encima de lo cifrado.
 function guardar(){
+  if(hayCofre()){
+    if(!CofreFinanzas.abierto()) return Promise.resolve(false);
+    return CofreFinanzas.guardar(JSON.stringify(estado)).then(()=>true, err=>{
+      toast('No se pudo guardar en este navegador: ' + ((err && err.message) || 'error desconocido'), 'danger');
+      return false;
+    });
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+  // Las primeras cuentas que se escriben cambian el aviso de arriba.
+  pintarCofre();
+}
+
+/* ============ CONTRASENA DE ESTE EQUIPO (CN-003) ============
+ *  Las cuentas no salen del navegador, y en un equipo compartido las ve
+ *  quien abra la pagina. Protegidas, la copia del equipo queda cifrada y la
+ *  pagina abre con un candado. Ver js/finanzas-cofre.js.
+ */
+const BLOQUEO_INACTIVA_MIN = 15;
+let _respaldoAntesDeProteger = false;
+let _relojBloqueo = null;
+
+function hayCofre(){
+  return typeof CofreFinanzas !== 'undefined' && CofreFinanzas.protegido();
+}
+// Hay algo que proteger: una planilla vacia no es dato de nadie.
+function hayDatos(e){
+  e = e || estado;
+  return ['unidades','cobros','egresos','ingresos','fondo','mantenciones'].some(k => (e[k]||[]).length > 0)
+    || !!(e.config && (e.config.condNombre || e.config.admNombre));
+}
+
+function mostrarCandado(){
+  document.querySelectorAll('.app, .cinta').forEach(el => { el.hidden = true; });
+  const c = document.getElementById('candado');
+  c.hidden = false;
+  const inp = document.getElementById('candadoClave');
+  if(inp && !inp._oyente){
+    inp._oyente = true;
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); abrirCandado(); } });
+  }
+  if(inp) inp.focus();
+}
+
+async function abrirCandado(){
+  const inp = document.getElementById('candadoClave');
+  const msg = document.getElementById('candadoMsg');
+  const btn = document.getElementById('candadoAbrir');
+  btn.disabled = true;
+  msg.textContent = 'Abriendo…';
+  let texto;
+  try{
+    texto = await CofreFinanzas.abrir(inp.value);
+  }catch(err){
+    const m = err && err.message;
+    msg.textContent = m === 'contrasena_incorrecta' ? 'La contraseña no es la correcta.'
+      : m === 'copia_danada' ? 'La copia protegida de este equipo está dañada y no se puede abrir. Si tiene un respaldo, use «Olvidé la contraseña».'
+      : m === 'sin_cifrado' ? 'Este navegador no puede descifrar. Ábrala en un navegador actualizado.'
+      : 'No se pudo abrir: ' + (m || 'error desconocido');
+    btn.disabled = false;
+    inp.select();
+    return;
+  }
+  inp.value = '';
+  const r = sanearEstado(JSON.parse(texto));
+  estado = r.estado;
+  // Una copia en claro junto a la cifrada solo queda si se corto la luz entre
+  // escribir la cifrada y borrar la otra: lo que vale ya esta en el cofre.
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  document.getElementById('candado').hidden = true;
+  msg.textContent = '';
+  btn.disabled = false;
+  document.querySelectorAll('.app, .cinta').forEach(el => { el.hidden = false; });
+  arrancar();
+  if(r.descartadas || r.idsNuevos){
+    await guardar();
+    toast('Se corrigieron datos guardados que no tenían un formato válido. Conviene revisar las cuentas.', 'warning');
+  }
+}
+
+function olvideClave(){
+  document.getElementById('candadoOlvido').hidden = false;
+}
+
+// Sin la contrasena no hay forma de abrirla. Lo unico que se puede hacer es
+// borrar la copia protegida y empezar de cero, o cargar un respaldo.
+async function borrarCopiaProtegida(){
+  const ok1 = await confirmar({
+    titulo:'Borrar la copia protegida',
+    mensaje:'Sin la contraseña nadie puede abrirla, ni usted ni nosotros. Si la borra, en este equipo no queda nada de esas cuentas; si tiene un respaldo, después puede importarlo.\nNo se puede deshacer.',
+    okText:'Continuar', variant:'danger'
+  });
+  if(!ok1) return;
+  const ok2 = await confirmar({
+    titulo:'Confirmación final',
+    mensaje:'Si estas cuentas son de otra persona, también se pierden para ella en este equipo. ¿Borrar la copia protegida?',
+    okText:'Sí, borrar', variant:'danger'
+  });
+  if(!ok2) return;
+  CofreFinanzas.olvidar();
+  location.reload();
+}
+
+function abrirProteger(){
+  if(typeof CofreFinanzas === 'undefined' || !CofreFinanzas.disponible()){
+    toast('Este navegador no puede cifrar. Use uno actualizado.', 'danger');
+    return;
+  }
+  _respaldoAntesDeProteger = false;
+  document.getElementById('protegerClave').value = '';
+  document.getElementById('protegerClave2').value = '';
+  document.getElementById('protegerMsg').textContent = '';
+  document.getElementById('protegerRespaldoOk').textContent = '';
+  document.getElementById('protegerOk').disabled = true;
+  abrirModal('mProteger');
+}
+
+// Sin contrasena no hay como volver a abrirlas: antes de protegerlas se baja
+// un respaldo. El boton de proteger no se habilita sin esto.
+function protegerRespaldo(){
+  exportarRespaldo();
+  _respaldoAntesDeProteger = true;
+  document.getElementById('protegerRespaldoOk').textContent = 'Respaldo descargado. Guárdelo donde solo usted lo vea: el archivo no queda protegido.';
+  document.getElementById('protegerOk').disabled = false;
+}
+
+async function protegerConClave(){
+  const msg = document.getElementById('protegerMsg');
+  const c1 = document.getElementById('protegerClave');
+  const c2 = document.getElementById('protegerClave2');
+  if(!_respaldoAntesDeProteger){ msg.textContent = 'Primero baje el respaldo.'; return; }
+  if(c1.value.length < CofreFinanzas.MINIMO){ msg.textContent = `La contraseña debe tener al menos ${CofreFinanzas.MINIMO} caracteres.`; return; }
+  if(c1.value !== c2.value){ msg.textContent = 'Las dos contraseñas no coinciden.'; return; }
+  const btn = document.getElementById('protegerOk');
+  btn.disabled = true;
+  msg.textContent = 'Protegiendo…';
+  try{
+    await CofreFinanzas.proteger(JSON.stringify(estado), c1.value);
+  }catch(err){
+    msg.textContent = 'No se pudo proteger: ' + ((err && err.message) || 'error desconocido') + '. Las cuentas siguen como estaban.';
+    btn.disabled = false;
+    return;
+  }
+  // Recien con la copia cifrada escrita y comprobada se quita la otra.
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  c1.value = ''; c2.value = '';
+  msg.textContent = '';
+  cerrarModal('mProteger');
+  pintarCofre();
+  vigilarBloqueo();
+  toast('Protegidas. Desde ahora, esta página pide la contraseña al abrirse.', 'success');
+}
+
+// Vuelve a dejarlas en claro: primero se escribe la copia en claro y recien
+// despues se borra la cifrada, para que nunca haya cero copias.
+async function quitarClave(){
+  const ok = await confirmar({
+    titulo:'Quitar la contraseña',
+    mensaje:'Las cuentas vuelven a quedar legibles para cualquiera que use este navegador.',
+    okText:'Quitar', variant:'warning'
+  });
+  if(!ok) return;
+  await CofreFinanzas.esperar();
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(estado)); }
+  catch(err){ toast('No se pudo guardar en claro: ' + err.message + '. Siguen protegidas.', 'danger'); return; }
+  CofreFinanzas.olvidar();
+  pintarCofre();
+  toast('Contraseña quitada.', 'success');
+}
+
+async function bloquearFinanzas(){
+  if(typeof CofreFinanzas === 'undefined') return;
+  await CofreFinanzas.esperar();
+  CofreFinanzas.cerrar();
+  estado = JSON.parse(JSON.stringify(estadoInicial));
+  location.reload();
+}
+
+// Con la copia protegida y abierta: se bloquea tras BLOQUEO_INACTIVA_MIN sin
+// uso y cuando se cierra la sesion de la cuenta en otra pestana.
+function vigilarBloqueo(){
+  if(!hayCofre() || !CofreFinanzas.abierto() || window._vigilaBloqueo) return;
+  window._vigilaBloqueo = true;
+  const reiniciar = ()=>{
+    if(_relojBloqueo) clearTimeout(_relojBloqueo);
+    _relojBloqueo = setTimeout(()=>{ if(hayCofre() && CofreFinanzas.abierto()) bloquearFinanzas(); },
+                               BLOQUEO_INACTIVA_MIN * 60000);
+  };
+  ['pointerdown','keydown','wheel','touchstart'].forEach(t => document.addEventListener(t, reiniciar, { passive:true }));
+  reiniciar();
+  window.addEventListener('storage', e=>{
+    if(!hayCofre() || !CofreFinanzas.abierto()) return;
+    if(e.key === null || (/^sb-.*-auth-token$/.test(e.key || '') && e.newValue == null)) bloquearFinanzas();
+  });
+}
+
+// El aviso de arriba y la tarjeta de Respaldo dicen en que estado esta.
+function pintarCofre(){
+  const aviso = document.getElementById('avisoDatosTexto');
+  const tarjeta = document.getElementById('cofreEstado');
+  const puede = typeof CofreFinanzas !== 'undefined' && CofreFinanzas.disponible();
+  const protegidas = hayCofre() && CofreFinanzas.abierto();
+  let a, t;
+  if(protegidas){
+    a = 'Protegidas con contraseña en este equipo. Se bloquean al cerrar la pestaña, tras '
+      + BLOQUEO_INACTIVA_MIN + ' minutos sin uso o al cerrar sesión. '
+      + '<button type="button" class="btn sm" data-ac="bloquearFinanzas">Bloquear ahora</button>';
+    t = '<p class="muted" style="font-size:12.5px">Las cuentas están cifradas en este navegador. Sin la contraseña nadie puede abrirlas, ni usted ni nosotros: guarde el respaldo.</p>'
+      + '<div class="btn-row"><button type="button" class="btn" data-ac="bloquearFinanzas">Bloquear ahora</button>'
+      + '<button type="button" class="btn" data-ac="quitarClave">Quitar la contraseña</button></div>';
+  } else if(hayDatos()){
+    a = '<b>Estas cuentas quedan en este navegador sin contraseña:</b> cualquiera que use este equipo puede verlas. '
+      + (puede ? '<button type="button" class="btn sm" data-ac="abrirProteger">Proteger con contraseña</button> ' : '')
+      + 'Baje un respaldo cada cierto tiempo desde <b>Respaldo y datos</b>.';
+    t = '<p class="muted" style="font-size:12.5px">En un equipo que usan otras personas, protéjalas: la copia de este navegador queda cifrada y la página pide la contraseña al abrirse.</p>'
+      + '<div class="btn-row"><button type="button" class="btn primary" data-ac="abrirProteger"' + (puede ? '' : ' disabled') + '>Proteger con contraseña</button></div>';
+  } else {
+    return; // sin datos queda el aviso de siempre
+  }
+  if(aviso) aviso.innerHTML = a;
+  if(tarjeta) tarjeta.innerHTML = t;
 }
 
 /* ============ UTILIDADES ============ */
@@ -2440,7 +2665,17 @@ async function importarRespaldo(){
     variant:'warning'
   });
   if(!ok) return;
+  const previo = estado;
   estado = r.estado;
+  if(hayCofre()){
+    // Protegidas: el respaldo entra cifrado con la misma contrasena. Si no
+    // se pudo escribir, guardar() ya lo dijo y lo de antes sigue intacto.
+    if(!(await guardar())){ estado = previo; return; }
+    await CofreFinanzas.esperar();
+    toast('Respaldo importado', 'success');
+    location.reload();
+    return;
+  }
   try{ guardar(); }
   catch(err){
     // No cupo: se vuelve a lo que estaba guardado, que sigue intacto.
@@ -2468,6 +2703,7 @@ async function resetearTodo(){
   });
   if(!ok2) return;
   localStorage.removeItem(STORAGE_KEY);
+  if(hayCofre()){ await CofreFinanzas.esperar(); CofreFinanzas.olvidar(); }
   location.reload();
 }
 
@@ -2702,7 +2938,7 @@ async function cargarDemo(){
   // Ajustar contador de folios para que los siguientes pagos sigan correlativos
   estado.contadorFolio = 5500 + 9 * 30 + 18;
 
-  guardar();
+  await guardar();
   toast('Datos demostrativos cargados — Edificio Cordillera de los Andes', 'success');
   setTimeout(()=>location.reload(), 800);
 }
@@ -2730,9 +2966,16 @@ function mostrarMasUnidades(n){
 
 /* ============ INIT ============ */
 document.addEventListener('DOMContentLoaded', function(){
+  // Protegidas con contrasena: no se pinta nada hasta abrir el candado.
+  if(hayCofre()){ mostrarCandado(); return; }
   cargar();
+  arrancar();
+});
+function arrancar(){
   // Los filtros de cada seccion nacen en el mes activo: la cinta manda.
   irAlMes(mesActivo);
   montarOyentesFinos();
   manejarHash();   // sin hash entra al panel
-});
+  pintarCofre();
+  vigilarBloqueo();
+}

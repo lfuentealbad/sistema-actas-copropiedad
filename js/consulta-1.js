@@ -483,6 +483,13 @@ async function resolver(id, sentido, btn){
     await refrescar(false);
     msg('panel-msg','Respuesta resuelta por la Mesa. Queda constancia de que fue una decisión suya, no del sistema.','ok');
   }catch(e){
+    // Desde que la Mesa cargó la tabla, la persona respondió de nuevo o la
+    // resolvieron en otra pestaña: la base no deja pisarlo (paso 16).
+    if(/respuesta_ya_resuelta/.test(e.message||'')){
+      await refrescar(false);
+      msg('panel-msg','Esa respuesta cambió mientras la revisaba: llegó otra de la misma persona o ya se resolvió en otra pestaña. La tabla quedó al día; revísela de nuevo.','err');
+      return;
+    }
     msg('panel-msg','No se pudo resolver. ' + (e.message||''), 'err');
     busy(btn, false);
   }
