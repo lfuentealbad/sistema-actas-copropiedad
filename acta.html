@@ -646,7 +646,9 @@
   }
 
   
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; }
+  /* minmax(0, 1fr): con 1fr a secas una columna crece hasta lo que pide su
+     campo (una fecha, una hora) y la grilla se sale de la tarjeta. */
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   .field.span2 { grid-column: 1 / -1; }
   label {
@@ -1267,7 +1269,7 @@
     .header-badge, .app-header-badge, .header-badge-green { display: none; }
     .main       { padding: 16px 14px 100px; }
     .card       { padding: 22px 18px; }
-    .form-grid  { grid-template-columns: 1fr; }
+    .form-grid  { grid-template-columns: minmax(0, 1fr); }
     .nav-footer { padding: 12px 16px; }
     .step-label { font-size: 11px; white-space: normal; hyphens: auto; }
     .step-num   { width: 28px; height: 28px; font-size: 13px; }
@@ -1347,8 +1349,15 @@
     border-color: var(--c-error);
     color: #ffffff;
   }
-  .form-grid.single { grid-template-columns: 1fr; }
-  .form-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.single { grid-template-columns: minmax(0, 1fr); }
+  .form-grid.triple { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* En el telefono la de tres (fecha, hora y lugar) tambien va en una
+     columna: .form-grid.triple le ganaba por especificidad a la regla de
+     arriba, y a 375 px «Lugar» quedaba con 38 px y fuera de la pantalla
+     (medido el 06-10-2026). */
+  @media (max-width: 640px) {
+    .form-grid.triple { grid-template-columns: minmax(0, 1fr); }
+  }
   .req { color: var(--c-error); }
   .badge-inhabit {
     display: inline-block;
@@ -1985,6 +1994,14 @@
   @media (max-width: 1000px) {
     #acta-content { padding: 24px 20px; }
   }
+  /* En el telefono la tabla de asistentes del acta (siete columnas) no
+     cabe: se desliza dentro de si misma en vez de correr la pagina entera
+     (a 375 px la pagina medía 548). Solo en pantalla: el PDF se arma
+     aparte, en _actaDocumento(), y no lo toca. */
+  @media (max-width: 760px) {
+    #acta-content { padding: 20px 14px; }
+    #acta-content .acta-section table { display: block; max-width: 100%; overflow-x: auto; }
+  }
 
   /* Llena el ancho que deja el rail, con tope para que las lineas de texto
      no se estiren de mas en pantallas muy anchas. El padron es la pieza
@@ -2050,6 +2067,13 @@
     }
     .main { max-width: none; padding: 22px 18px 120px; width: 100%; }
     .card-title { font-size: 22px; }
+  }
+  /* A 320 px «← Anterior» y «Paso 3 de 6» se partian en dos renglones y la
+     barra de abajo crecia. Se aprietan los rellenos; nada se oculta. */
+  @media (max-width: 360px) {
+    .nav-footer { padding: 10px 10px; gap: 8px; }
+    .nav-footer .btn { padding: 11px 14px; white-space: nowrap; }
+    .step-info { font-size: 12.5px; white-space: nowrap; }
   }
 
 </style>

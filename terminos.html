@@ -153,6 +153,10 @@
     .contacto{padding:26px 22px;border-radius:16px;}
     .cl > h2{flex-direction:column;gap:6px;}
   }
+  /* Marca + Entrar + «Comenzar mi acta →» no caben bajo 400 px: a 320 el
+     boton se salia medio pixel y la pagina se corria de lado. Queda
+     «Comenzar →», como en la portada, y los bordes se aprietan. */
+  @media (max-width:400px){ .cta-largo{display:none;} .nav{padding-left:16px;padding-right:16px;gap:8px;} .nav-cta{white-space:nowrap;} }
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto;}
     *{transition:none!important;animation:none!important;}
@@ -169,7 +173,7 @@
       <span><b>acta<i>viva</i><em>.</em></b><small>Actas y votación en vivo</small></span>
     </a>
     <div id="nav-cuenta"></div>
-    <a class="nav-cta" href="/acta">Comenzar mi acta →</a>
+    <a class="nav-cta" href="/acta"><span>Comenzar<span class="cta-largo"> mi acta</span> →</span></a>
   </div>
 </header>
 

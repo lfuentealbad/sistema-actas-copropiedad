@@ -16,48 +16,53 @@
   hdr.addEventListener('focusin',function(){ hdr.classList.remove('recogido'); });
 
   // La fila se desliza de lado: el borde se desvanece donde queda mas por ver.
+  // Sin la fila (otra pagina, una copia vieja del HTML) no se hace nada: un
+  // error aqui cortaria el resto del archivo, y con el las apariciones, que
+  // dejarian la pagina en blanco.
   var secciones=document.getElementById('nav-secciones');
-  var bordes=function(){
-    var fin=secciones.scrollWidth-secciones.clientWidth;
-    secciones.classList.toggle('mas-izq', secciones.scrollLeft>2);
-    secciones.classList.toggle('mas-der', fin>2 && secciones.scrollLeft<fin-2);
-  };
-  bordes();
-  secciones.addEventListener('scroll',bordes,{passive:true});
-  window.addEventListener('resize',bordes,{passive:true});
-
-  // La seccion que se esta leyendo queda marcada en el menu y, en el
-  // telefono, a la vista dentro de la fila. Cuenta la que cruza la mitad de
-  // la pantalla; entre secciones (portada, comite, preguntas) no se marca
-  // ninguna.
-  if('IntersectionObserver' in window){
-    var enlaces={};
-    secciones.querySelectorAll('a').forEach(function(a){ enlaces[a.getAttribute('href').slice(1)]=a; });
-    var marcado;
-    var marcar=function(id){
-      if(id===marcado) return;
-      marcado=id;
-      secciones.querySelectorAll('a[aria-current]').forEach(function(a){ a.removeAttribute('aria-current'); });
-      var a=enlaces[id];
-      if(!a) return;
-      a.setAttribute('aria-current','true');
-      if(secciones.scrollWidth>secciones.clientWidth){
-        secciones.scrollTo({left:a.offsetLeft-(secciones.clientWidth-a.offsetWidth)/2,
-          behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
-      }
+  if(secciones){
+    var bordes=function(){
+      var fin=secciones.scrollWidth-secciones.clientWidth;
+      secciones.classList.toggle('mas-izq', secciones.scrollLeft>2);
+      secciones.classList.toggle('mas-der', fin>2 && secciones.scrollLeft<fin-2);
     };
-    var actual=null;
-    var vista=new IntersectionObserver(function(entries){
-      entries.forEach(function(en){
-        if(en.isIntersecting){ actual=en.target.id; }
-        else if(actual===en.target.id){ actual=null; }
+    bordes();
+    secciones.addEventListener('scroll',bordes,{passive:true});
+    window.addEventListener('resize',bordes,{passive:true});
+
+    // La seccion que se esta leyendo queda marcada en el menu y, en el
+    // telefono, a la vista dentro de la fila. Cuenta la que cruza la mitad de
+    // la pantalla; entre secciones (portada, comite, preguntas) no se marca
+    // ninguna.
+    if('IntersectionObserver' in window){
+      var enlaces={};
+      secciones.querySelectorAll('a').forEach(function(a){ enlaces[a.getAttribute('href').slice(1)]=a; });
+      var marcado;
+      var marcar=function(id){
+        if(id===marcado) return;
+        marcado=id;
+        secciones.querySelectorAll('a[aria-current]').forEach(function(a){ a.removeAttribute('aria-current'); });
+        var a=enlaces[id];
+        if(!a) return;
+        a.setAttribute('aria-current','true');
+        if(secciones.scrollWidth>secciones.clientWidth){
+          secciones.scrollTo({left:a.offsetLeft-(secciones.clientWidth-a.offsetWidth)/2,
+            behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+        }
+      };
+      var actual=null;
+      var vista=new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if(en.isIntersecting){ actual=en.target.id; }
+          else if(actual===en.target.id){ actual=null; }
+        });
+        marcar(actual);
+      },{rootMargin:'-45% 0px -54% 0px'});
+      Object.keys(enlaces).forEach(function(id){
+        var s=document.getElementById(id);
+        if(s) vista.observe(s);
       });
-      marcar(actual);
-    },{rootMargin:'-45% 0px -54% 0px'});
-    Object.keys(enlaces).forEach(function(id){
-      var s=document.getElementById(id);
-      if(s) vista.observe(s);
-    });
+    }
   }
 
   // Las secciones aparecen al entrar en pantalla. Quien pidió menos movimiento

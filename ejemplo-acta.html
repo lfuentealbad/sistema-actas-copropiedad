@@ -14,6 +14,8 @@
 .banda-ejemplo a { color:#8CC3E8; font-weight:bold; text-decoration:none; }
 .banda-ejemplo a:hover { text-decoration:underline; }
 @media print { .banda-ejemplo { display:none !important; } }
+/* En el telefono la tabla de asistentes (siete columnas) no cabe: se desliza dentro de si misma en vez de correr la pagina entera (a 320 px media 513). Solo en pantalla: la impresion queda igual. */
+@media screen and (max-width:640px) { body { padding:16px 12px; } table { display:block; max-width:100%; overflow-x:auto; } .acta-signatures { grid-template-columns:1fr; gap:8px; } .marca-ejemplo { font-size:64px; letter-spacing:8px; } }
 </style>
 </head>
 <body>

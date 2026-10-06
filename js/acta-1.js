@@ -3848,6 +3848,22 @@ function revisarConsistencia() {
       : pendientes + ' punto(s) sometidos a acuerdo siguen sin resultado registrado.' });
   }
 
+  // (f) Cada punto tiene titulo. Uno en blanco salia en el acta como
+  // «Punto N° 2:» sin nombre, con su votacion vacia (06-10-2026).
+  var sinTitulo = [];
+  cards.forEach(function (pc) {
+    var m = (pc.id || '').match(/^punto-(\d+)$/);
+    var t = m && document.getElementById('p' + m[1] + '-titulo');
+    if (t && !String(t.value || '').trim()) {
+      var num = pc.querySelector('.punto-num');
+      sinTitulo.push(num ? num.textContent.trim() : 'Punto N° ' + m[1]);
+    }
+  });
+  if (sinTitulo.length) {
+    items.push({ ok: false, texto: sinTitulo.join(', ') + ': sin título. Así queda en el acta; '
+      + 'si no se trató, quite el punto en el paso 4.' });
+  }
+
   return items;
 }
 
