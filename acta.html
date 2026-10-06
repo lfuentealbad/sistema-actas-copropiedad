@@ -956,6 +956,186 @@
   #asistentes-tbody tr.fila-ausente input,
   #asistentes-tbody tr.fila-ausente select { background-color: #F6F7F9; color: var(--c-text-2); }
 
+  /* En el telefono el padron es una tarjeta por unidad (06-10-2026). La
+     tabla mide 880 px y se veia por una ventana de 300: para marcar «Asiste»
+     habia que deslizar tres pantallas, y el nombre salia cortado.
+     Los campos son los mismos (cada fila sigue siendo un <tr> con sus
+     inputs y selects, que es lo que leen el computo, el guardado y la
+     sala); solo cambia como se disponen. Arriba la unidad, el nombre y los
+     derechos, que se corrigen ahi mismo; despues Asiste y Habil como dos
+     botones Si / No, que mueven el select; y bajo «Editar datos» el RUT, el
+     representante, el correo y quitar la unidad. Los botones y el
+     conmutador los pone _fichasPadron() (acta-1.js). */
+  .ficha-seg, .ficha-editar, .padron-cuenta { display: none; }
+  @media (max-width: 760px) {
+    .padron-cuenta { display: block; margin: 0 0 10px; font-size: 14px; color: var(--c-text-2); }
+    .padron-cuenta:empty { display: none; }
+    .table-wrap { overflow: visible; border: none; border-radius: 0; box-shadow: none; }
+    .table-wrap table { min-width: 0; }
+    .table-wrap thead { display: none; }
+    #asistentes-tbody { display: block; }
+    #asistentes-tbody tr {
+      display: grid;
+      /* Doce columnas: arriba la unidad (3) y el nombre (9), que necesita el
+         ancho para leerse entero; abajo Asiste (5), Habil (4) y los
+         derechos (3), lo que mueve el quorum, en una sola linea. */
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      grid-template-areas:
+        "uni uni uni nom nom nom nom nom nom nom nom nom"
+        "asi asi asi asi asi hab hab hab hab der der der"
+        "rep rep rep rep rep rep rep rep rep rep rep rep"
+        "edi edi edi edi edi edi edi edi edi edi edi edi"
+        "rut rut rut rut rut rut rut rut rut rut rut rut"
+        "cor cor cor cor cor cor cor cor cor cor cor cor"
+        "del del del del del del del del del del del del";
+      column-gap: 8px;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-sm);
+      padding: 10px 12px 4px;
+      margin: 0 0 10px;
+    }
+    /* Cerrada, el representante (si hay) va con la cabecera, sobre «Editar
+       datos»; abierta, va con el resto de lo que se edita. */
+    #asistentes-tbody tr.ficha-abierta {
+      grid-template-areas:
+        "uni uni uni nom nom nom nom nom nom nom nom nom"
+        "asi asi asi asi asi hab hab hab hab der der der"
+        "edi edi edi edi edi edi edi edi edi edi edi edi"
+        "rep rep rep rep rep rep rep rep rep rep rep rep"
+        "rut rut rut rut rut rut rut rut rut rut rut rut"
+        "cor cor cor cor cor cor cor cor cor cor cor cor"
+        "del del del del del del del del del del del del";
+    }
+    #asistentes-tbody td { display: block; padding: 0; border: none; background: transparent; min-width: 0; }
+    #asistentes-tbody tr:hover td { background: transparent; }
+    #asistentes-tbody td:nth-child(1) { grid-area: uni; }
+    #asistentes-tbody td:nth-child(2) { grid-area: nom; }
+    #asistentes-tbody td:nth-child(3) { grid-area: rut; }
+    #asistentes-tbody td:nth-child(4) { grid-area: der; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 3px; }
+    #asistentes-tbody td:nth-child(4)::before { grid-column: 1 / -1; }
+    #asistentes-tbody td:nth-child(5) { grid-area: hab; }
+    #asistentes-tbody td:nth-child(6) { grid-area: asi; }
+    #asistentes-tbody td:nth-child(7) { grid-area: rep; }
+    #asistentes-tbody td:nth-child(8) { grid-area: cor; }
+    /* La celda del boton se disuelve: «Editar datos» va bajo los botones y
+       «Quitar» al final de lo que se abre. */
+    #asistentes-tbody td:nth-child(9) { display: contents; }
+
+    /* La cabecera: se lee como texto y se corrige tocandola. */
+    #asistentes-tbody td .unidad,
+    #asistentes-tbody td .nombre-asist,
+    #asistentes-tbody td .derechos {
+      width: 100%; min-height: 44px; padding: 6px 8px;
+      border-color: transparent; background-color: transparent;
+      font-size: 16px; font-weight: 600; color: var(--c-text);
+    }
+    #asistentes-tbody td .unidad { background-color: var(--c-navy-pale); color: var(--c-primary); text-align: center; }
+    #asistentes-tbody td .derechos {
+      padding: 6px 4px; text-align: right; color: var(--c-primary); -moz-appearance: textfield;
+      border-color: #DCE3EB; background-color: var(--c-surface);
+    }
+    #asistentes-tbody td .derechos::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #asistentes-tbody td:nth-child(4)::after { content: "%"; font-size: 15px; font-weight: 600; color: var(--c-primary); }
+    #asistentes-tbody td input:hover:not(:focus) { border-color: #CDCFC9; }
+    #asistentes-tbody td input:focus { border-color: var(--c-interact); background-color: var(--c-surface); }
+    #asistentes-tbody tr.ficha-abierta td .nombre-asist,
+    #asistentes-tbody tr.ficha-abierta td .derechos { border-color: #CDCFC9; background-color: var(--c-surface); }
+
+    /* Asiste y Habil: dos botones en vez del desplegable. */
+    #asistentes-tbody td select.asiste,
+    #asistentes-tbody td select.habil { display: none; }
+    #asistentes-tbody td:nth-child(4)::before,
+    #asistentes-tbody td:nth-child(5)::before,
+    #asistentes-tbody td:nth-child(6)::before,
+    #asistentes-tbody td:nth-child(3)::before,
+    #asistentes-tbody td:nth-child(7)::before,
+    #asistentes-tbody td:nth-child(8)::before {
+      display: block; margin: 8px 0 4px; white-space: nowrap;
+      font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--c-text-2);
+    }
+    #asistentes-tbody td:nth-child(4)::before { content: "Derechos"; }
+    #asistentes-tbody td:nth-child(6)::before { content: "Asiste"; }
+    #asistentes-tbody td:nth-child(5)::before { content: "Hábil"; }
+    #asistentes-tbody td:nth-child(3)::before { content: "RUT"; }
+    #asistentes-tbody td:nth-child(7)::before { content: "Representante"; }
+    #asistentes-tbody td:nth-child(8)::before { content: "Correo (opcional)"; }
+    .ficha-seg { display: flex; border: 1.5px solid #C9D3DF; border-radius: var(--r-md); overflow: hidden; background: var(--c-surface); }
+    .ficha-seg button {
+      flex: 1; min-height: 44px; border: none; background: transparent; cursor: pointer;
+      font-family: var(--font-body); font-size: 15px; font-weight: 600; color: var(--c-text-2);
+    }
+    .ficha-seg button + button { border-left: 1.5px solid #C9D3DF; }
+    .ficha-seg button[aria-pressed="true"] { background: var(--c-primary); color: #fff; }
+    .ficha-seg-asiste button[data-v="no"][aria-pressed="true"] { background: #5C6168; }
+    .ficha-seg-habil button[data-v="no"][aria-pressed="true"] { background: var(--c-warn-bg); color: #7A4E12; }
+    .ficha-seg button:focus-visible { outline: 3px solid var(--c-interact); outline-offset: -3px; }
+
+    /* Lo que se abre con «Editar datos». El representante se ve igual si
+       tiene nombre (placeholder-shown solo vale con el campo vacio), y el
+       RUT si su digito verificador no calza: un aviso escondido no avisa. */
+    .ficha-editar {
+      display: inline-flex; align-items: center; gap: 8px; grid-area: edi; justify-self: start;
+      min-height: 44px; padding: 0; margin-top: 2px; border: none; background: none; cursor: pointer;
+      font-family: var(--font-body); font-size: 14.5px; font-weight: 600; color: var(--c-interact);
+    }
+    .ficha-editar::after {
+      content: ""; width: 7px; height: 7px; margin-top: -3px;
+      border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg);
+    }
+    .ficha-editar[aria-expanded="true"]::after { transform: rotate(225deg); margin-top: 3px; }
+    #asistentes-tbody tr:not(.ficha-abierta) td:nth-child(3),
+    #asistentes-tbody tr:not(.ficha-abierta) td:nth-child(7),
+    #asistentes-tbody tr:not(.ficha-abierta) td:nth-child(8),
+    #asistentes-tbody tr:not(.ficha-abierta) .btn-del { display: none; }
+    #asistentes-tbody tr:not(.ficha-abierta):has(.representante:not(:placeholder-shown)) td:nth-child(7),
+    #asistentes-tbody tr:not(.ficha-abierta):has(.rut-dudoso) td:nth-child(3) { display: block; }
+    #asistentes-tbody td .rut-asist,
+    #asistentes-tbody td .representante,
+    #asistentes-tbody td .correo-asist { width: 100%; min-height: 44px; font-size: 16px; }
+    #asistentes-tbody .btn-del {
+      grid-area: del; justify-self: start; margin: 6px 0 4px; padding: 0;
+      border: none; background: none; font-size: 0; color: var(--c-error);
+    }
+    #asistentes-tbody .btn-del::after { content: "Quitar esta unidad"; font-size: 14.5px; font-weight: 600; }
+    #asistentes-tbody .btn-del:hover { background: none; color: var(--c-error); text-decoration: underline; }
+
+    /* Quien no asiste: la tarjeta entera en gris, como la fila en el
+       computador. */
+    #asistentes-tbody tr.fila-ausente { background-color: #EEF1F4; box-shadow: none; }
+    #asistentes-tbody tr.fila-ausente td .unidad { background-color: #DDE3EA; color: var(--c-text-2); }
+    #asistentes-tbody tr.fila-ausente td .nombre-asist,
+    #asistentes-tbody tr.fila-ausente td .derechos { background-color: transparent; color: var(--c-text-2); }
+  }
+  /* Bajo 360 px los derechos no caben junto a los dos botones (medido a
+     320: «5,25» se leia «5,2»): bajan a la linea de «Editar datos». */
+  @media (max-width: 360px) {
+    #asistentes-tbody tr {
+      grid-template-areas:
+        "uni uni uni nom nom nom nom nom nom nom nom nom"
+        "asi asi asi asi asi asi hab hab hab hab hab hab"
+        "rep rep rep rep rep rep rep rep rep rep rep rep"
+        "der der der der der edi edi edi edi edi edi edi"
+        "rut rut rut rut rut rut rut rut rut rut rut rut"
+        "cor cor cor cor cor cor cor cor cor cor cor cor"
+        "del del del del del del del del del del del del";
+      column-gap: 6px; padding: 10px 8px 4px;
+    }
+    #asistentes-tbody tr.ficha-abierta {
+      grid-template-areas:
+        "uni uni uni nom nom nom nom nom nom nom nom nom"
+        "asi asi asi asi asi asi hab hab hab hab hab hab"
+        "der der der der der edi edi edi edi edi edi edi"
+        "rep rep rep rep rep rep rep rep rep rep rep rep"
+        "rut rut rut rut rut rut rut rut rut rut rut rut"
+        "cor cor cor cor cor cor cor cor cor cor cor cor"
+        "del del del del del del del del del del del del";
+    }
+    #asistentes-tbody td .nombre-asist { font-size: 15px; }
+    .ficha-editar { justify-self: end; align-self: end; }
+  }
+
   
 
   
@@ -1827,7 +2007,10 @@
   .card { border-color: rgba(16,24,48,.10); border-radius: var(--r-lg); }
 
   @media (max-width: 1000px) {
-    .app-cuerpo { flex-direction: column; }
+    /* stretch y no flex-start: en columna, flex-start dejaba al .main del
+       ancho de su contenido, y entre 761 y 1000 px la tabla del padron
+       (880 px) corria la pagina entera de lado. Medido el 06-10-2026. */
+    .app-cuerpo { flex-direction: column; align-items: stretch; }
     .progress-wrap {
       width: 100%; height: auto; position: static; padding: 0 12px;
       border-right: none; border-bottom: 1px solid rgba(16,24,48,.10);
@@ -2161,6 +2344,7 @@
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><strong>¿Tiene un padrón en Excel?</strong> Use el botón <em>"Importar Excel/CSV"</em> al final de la tabla para cargarlo automáticamente, en vez de tipear cada copropietario.
     </div>
 
+    <p class="padron-cuenta" id="padron-cuenta"></p>
     <div class="table-wrap">
       <table>
         <thead>

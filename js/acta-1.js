@@ -506,6 +506,75 @@ function _marcarAusentes() {
     var s = tr.querySelector('.asiste');
     tr.classList.toggle('fila-ausente', !!s && s.value === 'no');
   });
+  _fichasPadron();
+}
+
+// En el telefono cada fila del padron se ve como una tarjeta (ver el CSS de
+// .ficha-seg en acta.html). Asiste y Habil pasan a dos botones Si / No que
+// mueven el <select> de siempre y avisan con su change: el computo, el
+// guardado y la sala siguen leyendo el select, y no hay un segundo dato que
+// pueda quedar distinto. «Editar datos» abre el RUT, el representante, el
+// correo y quitar la unidad. En el computador nada de esto se ve.
+function _fichaSeg(sel, nombre) {
+  var g = document.createElement('div');
+  g.className = 'ficha-seg ficha-seg-' + nombre;
+  g.setAttribute('role', 'group');
+  g.setAttribute('aria-label', sel.getAttribute('aria-label') || nombre);
+  [['si', 'Sí'], ['no', 'No']].forEach(function (o) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('data-v', o[0]);
+    b.textContent = o[1];
+    b.addEventListener('click', function () {
+      if (sel.value === o[0]) return;
+      sel.value = o[0];
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    g.appendChild(b);
+  });
+  sel.parentNode.insertBefore(g, sel.nextSibling);
+}
+function _fichar(tr) {
+  if (tr.querySelector('.ficha-seg')) return;
+  var habil = tr.querySelector('select.habil');
+  var asiste = tr.querySelector('select.asiste');
+  var quitar = tr.querySelector('.btn-del');
+  if (!habil || !asiste || !quitar) return;
+  _fichaSeg(asiste, 'asiste');
+  _fichaSeg(habil, 'habil');
+  var editar = document.createElement('button');
+  editar.type = 'button';
+  editar.className = 'ficha-editar';
+  editar.textContent = 'Editar datos';
+  editar.setAttribute('aria-expanded', 'false');
+  editar.addEventListener('click', function () {
+    var abierta = tr.classList.toggle('ficha-abierta');
+    editar.setAttribute('aria-expanded', abierta ? 'true' : 'false');
+  });
+  quitar.parentNode.insertBefore(editar, quitar);
+}
+function _fichasPadron() {
+  var filas = document.querySelectorAll('#asistentes-tbody tr');
+  var conDatos = 0, presentes = 0;
+  filas.forEach(function (tr) {
+    _fichar(tr);
+    ['asiste', 'habil'].forEach(function (c) {
+      var s = tr.querySelector('select.' + c);
+      if (!s) return;
+      tr.querySelectorAll('.ficha-seg-' + c + ' button').forEach(function (b) {
+        b.setAttribute('aria-pressed', b.getAttribute('data-v') === s.value ? 'true' : 'false');
+      });
+    });
+    // Una fila recien agregada y vacia no es una unidad.
+    var v = function (sel) { var e = tr.querySelector(sel); return e ? String(e.value).trim() : ''; };
+    if (!v('.unidad') && !v('.nombre-asist') && !v('.rut-asist')) return;
+    conDatos++;
+    if (v('.asiste') !== 'no') presentes++;
+  });
+  var p = document.getElementById('padron-cuenta');
+  if (p) p.textContent = conDatos
+    ? conDatos + (conDatos === 1 ? ' unidad · ' : ' unidades · ') + presentes + (presentes === 1 ? ' asiste' : ' asisten')
+    : '';
 }
 function calcularQuorum() {
 _marcarAusentes();
@@ -1997,6 +2066,14 @@ return texto;
         if (e.target && e.target.classList.contains('nombre-asist')) soloLetras(e);
         if (e.target && e.target.classList.contains('rut-asist')) { formatRUT(e); marcarRut(e.target); }
       }, true);
+      // Las filas nuevas (agregar, importar, el ejemplo, un borrador) reciben
+      // sus botones de tarjeta al entrar; la cuenta de unidades sigue lo que
+      // se escribe.
+      if (typeof MutationObserver === 'function') new MutationObserver(_fichasPadron).observe(tbody, { childList: true });
+      tbody.addEventListener('input', function(e) {
+        if (e.target && /(^|\s)(unidad|nombre-asist|rut-asist)(\s|$)/.test(e.target.className)) _fichasPadron();
+      });
+      _fichasPadron();
     }
   }
 
