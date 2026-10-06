@@ -2160,7 +2160,7 @@ function buildLiquidacionHTML(unidad, periodo){
     </div>
     <div style="font-size:11px;color:#6E7276;margin:-8px 0 14px">
       Las tres cifras son de la cuenta de gasto común y no incluyen el fondo común de reserva,
-      que el art. 39 de la Ley manda mantener por separado. En este período entraron al fondo
+      que se informa aparte porque el art. 39 de la Ley lo destina a gastos extraordinarios, urgentes o imprevistos. En este período entraron al fondo
       <strong>${fmtCLP(aportesFondoMes)}</strong>; su detalle y su saldo están en la página 3.
     </div>
 
@@ -2208,7 +2208,7 @@ function buildLiquidacionHTML(unidad, periodo){
         </tr>
       </tbody>
     </table>
-    <div style="font-size:11px;color:#6E7276;margin-bottom:14px">El fondo está mantenido en cuenta separada e invertible conforme al art. 39 inciso final Ley 21.442. Solo se utiliza para gastos urgentes, extraordinarios o imprevistos, previa autorización del comité.</div>
+    <div style="font-size:11px;color:#6E7276;margin-bottom:14px">Los recursos del fondo se mantienen en una cuenta corriente bancaria o de ahorro, o se invierten en instrumentos financieros previo acuerdo del comité; esa cuenta puede ser la misma del art. 33 (art. 39 inciso final, Ley 21.442). Se usa para gastos extraordinarios, urgentes o imprevistos con autorización del comité, y para gastos ordinarios de mantención o reparación solo con acuerdo de la asamblea por mayoría absoluta de los derechos del condominio (art. 39).</div>
 
     <div class="section-h primary" style="margin-top:18px">Evolución de egresos · últimos 12 meses</div>
     <div style="background:#fff;padding:16px;border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px">
