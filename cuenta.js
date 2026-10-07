@@ -601,6 +601,41 @@
     }, function () { cb('No pudimos crear la cuenta. Revise su conexión.'); });
   }
 
+  // El alta sin clave (07-10-2026): nombre y correo, y un código al correo
+  // para entrar. Quien usa poco la tecnología no tiene que inventar ni
+  // recordar una clave; es lo que la portada ya prometía («escribe su
+  // correo, le llega un código y entra»).
+  //
+  // El alta es lo ÚNICO que pide shouldCreateUser en true. El código para
+  // ENTRAR (pedirCodigo) sigue en false: escribir un correo en «Entrar» no
+  // abre cuentas a nombre de terceros. Este camino exige el nombre, como
+  // crearCuenta, y envía un solo correo al que se escribió, igual que
+  // signUp: no abre más de lo que ya abría.
+  function crearCuentaConCodigo(correo, cb, nombre) {
+    var n = String(nombre || '').trim();
+    if (n.length < 2) { cb('Escriba su nombre.'); return; }
+    if (!correoValido(correo)) { cb('Revise el correo electrónico.'); return; }
+    var c = cliente();
+    if (!c) { cb('Sin conexión con el servicio. Recargue la página.'); return; }
+    c.auth.signInWithOtp({
+      email: correo,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: global.location.origin + '/cuenta',
+        data: { nombre: n.slice(0, 80) }
+      }
+    }).then(function (r) {
+      if (r && r.error) {
+        var m = String(r.error.message || '');
+        cb(/rate|seconds|exceed|often/i.test(m)
+          ? 'Demasiados envíos seguidos. Espere un minuto.'
+          : 'No pudimos crear la cuenta. Intente de nuevo en un momento.');
+        return;
+      }
+      cb(null);
+    }, function () { cb('No pudimos crear la cuenta. Revise su conexión.'); });
+  }
+
   function entrarConClave(correo, clave, cb) {
     if (!correoValido(correo)) { cb('Revise el correo electrónico.'); return; }
     if (!clave) { cb('Escriba su clave.'); return; }
@@ -936,12 +971,15 @@
           '<div class="cta-campo">' + SVG_SOBRE_CH +
             '<input type="email" id="cta-correo" inputmode="email" autocomplete="email" placeholder="nombre@correo.cl">' +
           '</div>' +
-          '<label for="cta-clave" style="margin-top:13px">Clave</label>' +
-          '<div class="cta-campo">' + SVG_LLAVE +
-            '<input type="password" id="cta-clave" autocomplete="current-password" placeholder="Su clave">' +
-            '<button type="button" class="cta-ojo" id="cta-ojo" aria-label="Mostrar la clave">' + SVG_OJO + '</button>' +
+          '<div id="cta-clave-caja">' +
+            '<label for="cta-clave" style="margin-top:13px">Clave</label>' +
+            '<div class="cta-campo">' + SVG_LLAVE +
+              '<input type="password" id="cta-clave" autocomplete="current-password" placeholder="Su clave">' +
+              '<button type="button" class="cta-ojo" id="cta-ojo" aria-label="Mostrar la clave">' + SVG_OJO + '</button>' +
+            '</div>' +
+            '<p class="cta-req" id="cta-req" style="display:none">Al menos ' + CLAVE_MIN + ' caracteres.</p>' +
+            '<p class="cta-req" id="cta-sin-clave">¿No tiene clave? Déjela en blanco: le enviamos un código al correo.</p>' +
           '</div>' +
-          '<p class="cta-req" id="cta-req" style="display:none">Al menos ' + CLAVE_MIN + ' caracteres.</p>' +
           '<button type="button" class="cta-b" id="cta-hacer">Entrar</button>' +
           '<p class="cta-pie" id="cta-olvide-caja"><a href="#" id="cta-olvide">¿Olvidó su clave?</a></p>' +
           '<p class="cta-cambia"><span id="cta-cambia-txt">¿No tiene cuenta?</span> ' +
@@ -967,7 +1005,7 @@
                 '<button type="button" class="cta-prov" id="cta-google" aria-label="Continuar con Google">' + SVG_G + '<span>Google</span></button>' +
               '</div>'
             : '') +
-          '<p class="cta-pie" id="cta-sincl-caja"><a href="#" id="cta-sincl">Prefiero un código por correo</a></p>' +
+          '<p class="cta-pie" id="cta-sincl-caja"><a href="#" id="cta-sincl">Entrar con un código por correo, sin clave</a></p>' +
         '</div>' +
 
         '<p class="cta-pie">Al continuar acepta los <a href="/terminos" target="_blank" rel="noopener">t&eacute;rminos del servicio</a> ' +
@@ -978,6 +1016,7 @@
     var modo = 'entrar';     // entrar | crear
     var pendiente = null;    // correo esperando su codigo
     var tipoCodigo = 'email';  // 'email' al entrar, 'signup' al confirmar
+    var esAlta = false;        // el codigo viene de crear la cuenta sin clave
     var tituloPropio = !!o.titulo;   // lo puso quien abrio el panel
 
     function aviso(t, clase) {
@@ -1000,9 +1039,10 @@
       $('cta-cambia').textContent = entrar ? 'Regístrese' : 'Inicie sesión';
       if ($('cta-o-txt')) $('cta-o-txt').textContent = entrar ? 'o inicie sesión con' : 'o regístrese con';
       $('cta-hacer').textContent = entrar ? 'Entrar' : 'Crear mi cuenta';
-      $('cta-clave').setAttribute('autocomplete', entrar ? 'current-password' : 'new-password');
-      $('cta-clave').setAttribute('placeholder', entrar ? 'Su clave' : 'Invente una clave');
-      $('cta-req').style.display = entrar ? 'none' : 'block';
+      // Desde el 07-10-2026 la cuenta se crea sin clave: nombre, correo y un
+      // código. La clave queda para quien ya tiene una, al entrar.
+      $('cta-clave-caja').style.display = entrar ? '' : 'none';
+      $('cta-req').style.display = 'none';
       $('cta-olvide-caja').style.display = entrar ? 'block' : 'none';
       $('cta-nombre-caja').style.display = entrar ? 'none' : 'block';
       // El codigo por correo solo sirve para entrar (no abre cuentas): en
@@ -1013,7 +1053,7 @@
         $('cta-tit').textContent = entrar ? 'Entre a su cuenta' : 'Cree su cuenta';
         $('cta-subt').textContent = entrar
           ? 'Con su cuenta guarda su avance y vuelve a sus asambleas cuando quiera.'
-          : 'Toma un minuto. Solo necesitamos su nombre, su correo y una clave.';
+          : 'Toma un minuto: su nombre y su correo. Le enviamos un código para entrar, sin claves que recordar.';
       }
       aviso('');
     }
@@ -1040,7 +1080,17 @@
       var correo = $('cta-correo').value.trim().toLowerCase();
       var clave = $('cta-clave').value;
       aviso('');
-      if (modo === 'entrar') {
+      if (modo === 'entrar' && !clave) {
+        // Sin clave no hay error: se le manda el código, que es como entra
+        // quien creó la cuenta sin clave.
+        if (!correoValido(correo)) { aviso('Revise el correo electrónico.'); $('cta-correo').focus(); return; }
+        ocupado(btn, true, 'Enviando…');
+        pedirCodigo(correo, function (err) {
+          ocupado(btn, false);
+          if (err) { aviso(err); return; }
+          irAlCodigo(correo, 'email');
+        });
+      } else if (modo === 'entrar') {
         ocupado(btn, true, 'Entrando…');
         entrarConClave(correo, clave, function (err) {
           ocupado(btn, false);
@@ -1049,18 +1099,11 @@
         });
       } else {
         ocupado(btn, true, 'Creando…');
-        crearCuenta(correo, clave, function (err, faltaConfirmar) {
+        crearCuentaConCodigo(correo, function (err) {
           ocupado(btn, false);
-          if (err === 'CLAVE_FILTRADA') { aviso('Le sugerimos otra: combine letras, números y símbolos.'); $('cta-clave').focus(); return; }
           if (err) { aviso(err); return; }
-          if (faltaConfirmar) {
-            // Supabase manda un codigo, no un enlace: hay que ofrecer donde
-            // escribirlo o el camino se corta aqui.
-            irAlCodigo(correo, 'signup');
-            aviso('Cuenta creada. Ahora confirme su correo con el código que le enviamos.', 'ok');
-            return;
-          }
-          usuario(listo);
+          // El código llega al correo: aquí se escribe y se entra.
+          irAlCodigo(correo, 'alta');
         }, $('cta-nombre').value);
       }
     });
@@ -1082,15 +1125,21 @@
     // para entrar. La diferencia esta en tipoCodigo.
     function irAlCodigo(correo, tipo) {
       pendiente = correo;
-      tipoCodigo = tipo;
+      esAlta = tipo === 'alta';
+      // Una cuenta creada con código se verifica como cualquier código de
+      // entrada (tipo 'email' en Supabase).
+      tipoCodigo = esAlta ? 'email' : tipo;
       $('cta-dest').textContent = correo;
-      $('cta-instr').innerHTML = tipo === 'signup'
+      $('cta-instr').innerHTML = esAlta
+        ? 'Le enviamos un código a <b>' + esc(correo) + '</b>. Búsquelo en su correo y escríbalo aquí para entrar. Si no aparece, revise el spam.'
+        : tipo === 'signup'
         ? 'Su cuenta quedó creada. Para activarla, escriba el código que enviamos a <b>' + esc(correo) + '</b>. Si no aparece, revise el spam.'
         // Condicional a proposito: pedirCodigo responde igual exista o no la
         // cuenta, y este texto no puede desmentirlo.
         : 'Si <b>' + esc(correo) + '</b> tiene una cuenta, le enviamos un código. Búsquelo en su correo y escríbalo aquí. ' +
           'Si no aparece, revise el spam. Si todavía no tiene cuenta, vuelva y regístrese.';
       $('cta-tit').textContent = tipo === 'signup' ? 'Confirme su correo' : 'Escriba su código';
+      if (esAlta) $('cta-tit').textContent = 'Escriba su código';
       $('cta-subt').style.display = 'none';
       $('cta-verificar').textContent = tipo === 'signup' ? 'Confirmar y entrar' : 'Entrar';
       $('cta-form').style.display = 'none';
@@ -1146,7 +1195,12 @@
           ? 'Le enviamos otro código a ' + esc(pendiente) + '.'
           : 'Si ' + esc(pendiente) + ' tiene una cuenta, le enviamos otro código.', 'ok');
       };
-      if (tipoCodigo === 'signup') reenviarConfirmacion(pendiente, listoAviso);
+      if (esAlta) {
+        crearCuentaConCodigo(pendiente, function (err) {
+          if (err) { aviso(err); return; }
+          aviso('Le enviamos otro código a ' + esc(pendiente) + '.', 'ok');
+        }, $('cta-nombre').value);
+      } else if (tipoCodigo === 'signup') reenviarConfirmacion(pendiente, listoAviso);
       else pedirCodigo(pendiente, listoAviso);
     });
 
@@ -1163,7 +1217,9 @@
       if (e.key === 'Enter') { e.preventDefault(); $('cta-correo').focus(); }
     });
     $('cta-correo').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); $('cta-clave').focus(); }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (modo === 'crear') $('cta-hacer').click(); else $('cta-clave').focus();
     });
     $('cta-clave').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); $('cta-hacer').click(); }
@@ -1545,6 +1601,7 @@
     correoValido: correoValido,
     claveValida: claveValida,
     crearCuenta: crearCuenta,
+    crearCuentaConCodigo: crearCuentaConCodigo,
     entrarConClave: entrarConClave,
     recuperarClave: recuperarClave,
     cambiarClave: cambiarClave,

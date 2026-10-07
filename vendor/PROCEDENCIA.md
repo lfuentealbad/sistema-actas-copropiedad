@@ -1,6 +1,6 @@
 # Procedencia de las librerías de `vendor/`
 
-El sitio no tiene `package.json` ni proceso de compilación: estas tres
+El sitio no tiene `package.json` ni proceso de compilación: estas cinco
 librerías son copias servidas desde el propio origen (`script-src 'self'`).
 Eso las deja fuera de `npm audit` y de cualquier aviso automático. Este archivo
 es el registro de qué versión es cada una y cuál es su huella, y
@@ -11,6 +11,8 @@ No se publica: está en `.assetsignore`.
 
 | Archivo | Librería y versión | Origen declarado | Bytes | SHA-256 |
 |---|---|---|---|---|
+| `jspdf.plugin.autotable.min.js` | jsPDF-AutoTable 5.0.8 | npm `jspdf-autotable@5.0.8`, `dist/jspdf.plugin.autotable.min.js` tal cual; integridad sha512 del paquete comprobada contra el registro de npm (`npm pack`) | 32389 | `a65dff2c6a8296b16aff24e69f7683cd7dbaed4a4ec26b507d6840ee27d54649` |
+| `jspdf.umd.min.js` | jsPDF 4.2.1 | npm `jspdf@4.2.1`, `dist/jspdf.umd.min.js` tal cual; integridad sha512 del paquete comprobada contra el registro de npm (`npm pack`) | 420165 | `e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54` |
 | `qrcode-generator.js` | QR Code Generator (Kazuhiko Arase), sin versión declarada en el archivo | npm `qrcode-generator` | 56694 | `18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780` |
 | `supabase.min.js` | @supabase/supabase-js 2.117.2 | npm `@supabase/supabase-js@2.117.2`, `dist/umd/supabase.js` tal cual (ya viene minificado); integridad sha512 del paquete comprobada contra el registro de npm | 217945 | `59d39487c3589843b410322d8a3d562ce022aba1e5ccb16898ef3fb2a0da2ecd` |
 | `xlsx.full.min.js` | SheetJS 0.20.3 | `cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js` (SheetJS dejó de publicar en npm) | 951904 | `cc015130aa8521e7f088f88898eba949ccdcbfb38df0bd129b44b7273c3a6f41` |
@@ -36,6 +38,7 @@ No se publica: está en `.assetsignore`.
   Hasta el 28-09 este registro decía «sin avisos conocidos», y era falso: el
   aviso se publicó el 03-09.
 - **qrcode-generator**: sin avisos conocidos.
+- **jsPDF 4.2.1 y jsPDF-AutoTable 5.0.8** (revisado el 07-10-2026): `npm audit` sin avisos. Arman el PDF del acta en el navegador, con texto de verdad (se puede buscar y copiar), a partir del mismo documento que se imprimía. Las correcciones conocidas de jsPDF (ReDoS en `addImage`, CVE-2025-29907; denegación de servicio, CVE-2025-57810) son de la 3.0.x. Se cargan solo al finalizar el acta, no en cada visita. No usan `eval` ni `new Function`; la única dirección externa del archivo (pdfobject en cdnjs) es de una salida que el sitio no usa, y la CSP la bloquearía.
 
 ## Al actualizar una librería
 
@@ -48,4 +51,5 @@ Las huellas de qrcode-generator y SheetJS son las de los archivos
 que había en el repositorio el 23-09-2026; el 26-09 se comprobó que
 coincidían byte a byte con sus originales publicados. La de supabase.min.js
 es la del archivo oficial del paquete de npm, bajado y comprobado el
-28-09-2026.
+28-09-2026. Las de jsPDF y AutoTable, las de sus paquetes de npm, bajados y
+comprobados el 07-10-2026.

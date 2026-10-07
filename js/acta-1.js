@@ -199,7 +199,12 @@ materias: [
 }
 };
 var d = info[tipo];
-if (!d) { tip.innerHTML = ''; return; }
+if (!d) {
+  tip.innerHTML = '';
+  var sinTemas = document.getElementById('materias-sugeridas');
+  if (sinTemas) { sinTemas.innerHTML = ''; sinTemas.hidden = true; }
+  return;
+}
 var letters = 'abcdefghijklmnopqrstuvwxyz';
 var materiasHTML = '<ul class="materias-list" id="materias-check-list">';
 d.materias.forEach(function(m, i) {
@@ -223,13 +228,24 @@ materiasHTML += '<div class="mat-actions-row">';
 materiasHTML += '<span class="mat-count" id="mat-count-label">0 tema(s) seleccionado(s)</span>';
 materiasHTML += '<button class="btn btn-add-temas" data-ac="agregarTemasATabla">Agregar temas seleccionados a la tabla \u2192</button>';
 materiasHTML += '</div>';
+// Los temas van en el paso 4, donde se arma la tabla (07-10-2026). En el
+// paso 1, junto a los datos del condominio, eran tres pantallas de casillas
+// antes de poder seguir. Aqu\u00ed quedan los qu\u00f3rum y el aviso del notario, que
+// hay que saber antes de citar.
+var destinoTemas = document.getElementById('materias-sugeridas');
+var bloqueTemas = '<b>Materias propias de esta sesi\u00f3n:</b> marque las que se tratar\u00e1n y agr\u00e9guelas a la tabla.' + materiasHTML;
 tip.innerHTML =
 '<strong>' + d.titulo + '</strong><br><br>' +
 '<b>Qu\u00f3rum de constituci\u00f3n:</b> ' + d.qConst + '<br>' +
-'<b>Qu\u00f3rum de acuerdos:</b> ' + d.qAcuerdo + '<br><br>' +
-'<b>Materias propias de esta sesi\u00f3n:</b>' +
-materiasHTML +
+'<b>Qu\u00f3rum de acuerdos:</b> ' + d.qAcuerdo +
+(destinoTemas
+  ? '<br><br>Los temas de esta asamblea se eligen en el <b>paso 4</b>, al armar la tabla.'
+  : '<br><br>' + bloqueTemas) +
 '<div class="aviso-fe" id="aviso-fe-notario" hidden></div>';
+if (destinoTemas) {
+  destinoTemas.innerHTML = '<strong>' + d.titulo + '</strong><br><br>' + bloqueTemas;
+  destinoTemas.hidden = false;
+}
 revisarAvisoNotario();
 }
 // Modificar el reglamento exige notario aunque la sesion sea de mayoria
@@ -368,7 +384,7 @@ cb.checked = false;
 li.classList.remove('checked');
 });
 updateMatCount();
-showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' incorporado' + (n > 1 ? 's' : '') + ' a la Tabla. Complete los pasos 2 y 3 antes de generar el acta.');
+showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' agregado' + (n > 1 ? 's' : '') + ' a la tabla, aquí abajo.');
 }
 function checkPlazo() {
 const fechaCit = document.getElementById('fecha-citacion').value;
@@ -1273,9 +1289,46 @@ function savePDF() {
   });
 }
 
+// Desde el 07-10-2026 el acta se entrega como un archivo PDF que se
+// descarga (js/acta-pdf.js): el cuadro de impresión y su «Guardar como
+// PDF» eran el paso donde más gente se perdía, sobre todo en el teléfono.
+// Si el PDF no se puede armar (sin conexión para traer la librería, un
+// navegador muy viejo), queda el camino de siempre.
 function _imprimirActa(btn) {
   var doc = _actaDocumento(false);
   if (!doc) { if (btn) btn.disabled = false; hideLoading(); return; }
+  if (!window.ActaPDF) { _imprimirActaPorImpresora(btn, doc); return; }
+  showLoading('Preparando el PDF…', 'En unos segundos se descarga el archivo de su acta.');
+  var v = function (id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  var pie = 'Acta N° ' + (v('acta-numero') || '—') + ' · ' + (v('condo-nombre') || '') +
+    (_actaFolio ? ' · Folio ' + _actaFolio : ' · Borrador sin folio');
+  window.ActaPDF.descargar(doc.html, doc.nombre, { titulo: doc.nombre, pie: pie }).then(function (archivo) {
+    if (btn) btn.disabled = false;
+    hideLoading();
+    _avisarPdfListo(archivo, btn, doc);
+    if (window.track) window.track('acta_generada', { tipo: v('tipo-asamblea'), salida: 'pdf-archivo' });
+  }, function () {
+    hideLoading();
+    _imprimirActaPorImpresora(btn, doc);
+  });
+}
+
+// Dónde quedó el archivo, en palabras de cada equipo, y el camino de
+// siempre por si el navegador no lo bajó.
+function _avisarPdfListo(archivo, btn, doc) {
+  var caja = document.getElementById('pdf-listo');
+  if (!caja) return;
+  caja.innerHTML = '<strong>Listo: se descargó «' + escapeHtml(archivo) + '».</strong> ' +
+    'Lo encuentra en la carpeta <strong>Descargas</strong> de su computador; en el teléfono, en <strong>Archivos</strong> o en las descargas del navegador. ' +
+    'Ese archivo es el acta: consérvelo.<br>' +
+    '<button type="button" id="pdf-por-impresora">¿No aparece? Abrir el cuadro de impresión</button>';
+  caja.hidden = false;
+  var b = document.getElementById('pdf-por-impresora');
+  if (b) b.addEventListener('click', function () { _imprimirActaPorImpresora(btn, doc); });
+  try { caja.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+}
+
+function _imprimirActaPorImpresora(btn, doc) {
   showLoading('Preparando el documento…', 'Se abrira el cuadro de impresion. Elija «Guardar como PDF» como destino.');
 
   var previo = document.getElementById('acta-impresora');

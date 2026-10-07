@@ -581,7 +581,12 @@
     b.type = 'button';
     b.id = 'demo-ejemplo';
     b.className = 'header-action';
-    b.textContent = 'Datos de ejemplo';
+    /* En un telefono de 320 px, junto a «Ayuda» y la cuenta, el rotulo
+     * largo empujaba la cabecera fuera de la pantalla: ahi dice «Ejemplo». */
+    b.innerHTML = '<span class="demo-ej-largo">Datos de ejemplo</span><span class="demo-ej-corto">Ejemplo</span>';
+    var s = document.createElement('style');
+    s.textContent = '@media(min-width:401px){.demo-ej-corto{display:none}}@media(max-width:400px){.demo-ej-largo{display:none}}';
+    document.head.appendChild(s);
     b.title = 'Carga un acta de muestra para recorrer la herramienta';
     b.addEventListener('click', function () {
       if (typeof cargarDatosEjemplo === 'function') cargarDatosEjemplo();

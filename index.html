@@ -334,11 +334,6 @@
   .cons-cuerpo{padding:clamp(30px,3.2vw,52px);}
   .cons-cuerpo h2{margin:14px 0 16px;font-size:clamp(27px,2.6vw,37px);}
   .cons-cuerpo p{font-size:17px;color:var(--tx2);line-height:1.65;margin:0 0 12px;}
-  .cons-cuenta{background:var(--cream);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-top:20px;}
-  .cons-fila{display:flex;justify-content:space-between;font-size:14.5px;color:var(--tx2);padding:7px 0;border-bottom:1px solid var(--line-soft);}
-  .cons-fila:last-of-type{border-bottom:none;}
-  .cons-fila b{color:var(--ink);font-variant-numeric:tabular-nums;}
-  .cons-veredicto{margin-top:12px;padding:11px 13px;background:var(--surface);border:1px solid var(--line);border-radius:11px;font-size:13.5px;color:var(--ink);line-height:1.5;}
   .cons-precio{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-top:24px;}
   .cons-precio b{font-family:var(--serif);font-variation-settings:'opsz' 60,'wght' 560;font-weight:560;font-size:30px;color:var(--ink);letter-spacing:-.02em;line-height:1;}
   .cons-precio small{display:block;font-size:13.5px;color:var(--tx3);margin-top:4px;max-width:26ch;}
@@ -632,6 +627,52 @@
   </div>
 </div>
 
+<!-- El camino, primero (07-10-2026): antes, durante y después. Los otros
+     servicios van juntos más abajo, en «Y para el resto del año». -->
+<section class="pad" id="como">
+  <div class="wrap">
+    <div class="head center reveal">
+      <span class="eyebrow">Cómo funciona</span>
+      <h2>Antes, durante y <em>después.</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="st-scene" aria-hidden="true">
+          <div class="num">1</div>
+          <div class="sc-rows">
+            <i class="fl"></i><i class="fi"></i>
+            <i class="fl"></i><i class="fi fi2"></i>
+          </div>
+          <span class="sc-check"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <h3>Prepare la asamblea</h3>
+        <p>Cargue el padrón. El quórum lo calculamos nosotros.</p>
+      </div>
+      <div class="step reveal d1">
+        <div class="st-scene" aria-hidden="true">
+          <div class="num">2</div>
+          <div class="v-phone"><i class="v-scr"></i><b class="v-btn"></b></div>
+          <span class="v-ring"></span>
+          <div class="v-tally"><i class="vt vt1"></i><i class="vt vt2"></i><i class="vt vt3"></i></div>
+        </div>
+        <h3>Voten desde el teléfono</h3>
+        <p>Proyecte el QR. Cada participante habilitado ingresa con su RUT y un código de un solo uso.</p>
+      </div>
+      <div class="step reveal d2">
+        <div class="st-scene" aria-hidden="true">
+          <div class="num">3</div>
+          <div class="a-doc">
+            <i class="al al1"></i><i class="al al2"></i><i class="al al3"></i>
+            <span class="a-seal"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </div>
+        </div>
+        <h3>Descargue el acta</h3>
+        <p>Lista para imprimir y firmar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="pad vista-band" id="vista" aria-labelledby="tit-votacion">
   <div class="wrap">
     <div class="vista-grid">
@@ -705,51 +746,19 @@
   </div>
 </section>
 
-<section class="pad" id="como" style="padding-top:0">
+
+
+
+
+<!-- Lo que no es el acta de la asamblea, junto y después del camino principal. -->
+<section class="pad" style="padding-bottom:28px" id="ademas" aria-labelledby="tit-ademas">
   <div class="wrap">
-    <div class="head center reveal">
-      <span class="eyebrow">Cómo funciona</span>
-      <h2>Tres pasos, una asamblea <em>impecable.</em></h2>
-    </div>
-    <div class="steps">
-      <div class="step reveal">
-        <div class="st-scene" aria-hidden="true">
-          <div class="num">1</div>
-          <div class="sc-rows">
-            <i class="fl"></i><i class="fi"></i>
-            <i class="fl"></i><i class="fi fi2"></i>
-          </div>
-          <span class="sc-check"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        </div>
-        <h3>Prepare la asamblea</h3>
-        <p>Cargue el padrón. El quórum lo calculamos nosotros.</p>
-      </div>
-      <div class="step reveal d1">
-        <div class="st-scene" aria-hidden="true">
-          <div class="num">2</div>
-          <div class="v-phone"><i class="v-scr"></i><b class="v-btn"></b></div>
-          <span class="v-ring"></span>
-          <div class="v-tally"><i class="vt vt1"></i><i class="vt vt2"></i><i class="vt vt3"></i></div>
-        </div>
-        <h3>Voten desde el teléfono</h3>
-        <p>Proyecte el QR. Cada participante habilitado ingresa con su RUT y un código de un solo uso.</p>
-      </div>
-      <div class="step reveal d2">
-        <div class="st-scene" aria-hidden="true">
-          <div class="num">3</div>
-          <div class="a-doc">
-            <i class="al al1"></i><i class="al al2"></i><i class="al al3"></i>
-            <span class="a-seal"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          </div>
-        </div>
-        <h3>Descargue el acta</h3>
-        <p>Lista para imprimir y firmar.</p>
-      </div>
+    <div class="head reveal">
+      <h2 id="tit-ademas">Y para el resto <em>del año.</em></h2>
+      <p>Tres herramientas aparte, por si las necesita: acordar sin reunir a todos, registrar las reuniones del comité y llevar las cuentas del mes.</p>
     </div>
   </div>
 </section>
-
-
 
 <section class="pad" style="padding-top:0" id="consulta" aria-labelledby="tit-consulta">
   <div class="wrap">
@@ -762,14 +771,7 @@
         <h2 id="tit-consulta">Tome acuerdos <em>sin depender de reunir a todos</em> al mismo tiempo</h2>
         <p>La consulta por escrito permite que los copropietarios aprueben o rechacen una propuesta desde el correo registrado en el condominio. Las respuestas se contabilizan según sus derechos en el condominio y el acuerdo se aprueba cuando alcanza el quórum exigido para esa materia.</p>
         <p>Previamente, la propuesta debe presentarse en una sesión informativa, que no requiere quórum mínimo.</p>
-        <div class="cons-cuenta">
-          <div class="eyebrow" style="margin-bottom:12px">Cómo se cuenta</div>
-          <div class="cons-fila"><span>Aprueban</span><b>62,50%</b></div>
-          <div class="cons-fila"><span>Rechazan</span><b>12,50%</b></div>
-          <div class="cons-fila"><span>Sin responder</span><b>25,00%</b></div>
-          <div class="cons-veredicto"><strong>Aprobado.</strong> Se alcanzó el quórum exigido para esta materia.</div>
-        </div>
-        <div class="cons-precio">
+                <div class="cons-precio">
           <div data-pago>
             <b>$7.990</b>
             <small>Servicio aparte: no necesita pagar el acta para usarla.</small>
@@ -792,7 +794,7 @@
         <h2 id="tit-comite" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">¿Y las reuniones <em>del comité?</em></h2>
         <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0;max-width:56ch">Los acuerdos del comité de administración también deben quedar registrados en el Libro de Actas. Ingrese lo tratado durante la reunión y obtenga el registro listo para incorporar al libro. <span data-pago><strong style="color:var(--ink)">Sin costo</strong> — solo necesita su cuenta.</span></p>
       </div>
-      <div style="flex:0 0 auto">
+      <div style="flex:0 1 auto;min-width:0">
         <a class="btn btn-ink" href="/acta-comite">Registrar acuerdos del comité</a>
       </div>
     </div>

@@ -128,6 +128,9 @@
   .guardar-aviso { margin-top: 13px; padding: 11px 14px; border-radius: 10px; background: #FBF3E3;
     border: 1px solid #E7D3A4; font-size: 13.5px; color: #7A5416; line-height: 1.55; }
 
+  .pdf-listo { margin: 14px 0 0; padding: 12px 15px; border-radius: var(--r-md); background: var(--c-ok-bg); color: #14532D; font-size: 14.5px; line-height: 1.55; }
+  .pdf-listo strong { color: #14532D; }
+  .pdf-listo button { margin-top: 8px; padding: 0; border: none; background: none; color: var(--c-interact); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; min-height: 44px; }
   .print-pista {
     font-size: 13.5px;
     color: var(--c-text-2);
@@ -1729,6 +1732,12 @@
     margin-top: 1px;
   }
   .materias-list li .mat-text { flex: 1; }
+  /* En el telefono la lista vive en el paso 4, dentro de la tarjeta: con los
+     rellenos de escritorio el texto justificado quedaba en 119 px a 320. */
+  @media (max-width: 480px) {
+    #materias-sugeridas { padding: 12px 12px 12px 14px; }
+    .materias-list li { gap: 8px; padding: 8px 4px; }
+  }
   .mat-custom-row {
     display: flex;
     align-items: center;
@@ -2097,6 +2106,9 @@
     </div>
     <div class="header-right">
       <span class="header-badge">Ley N° 21.442</span>
+      <!-- Ayuda de una persona, a la vista en cada paso (07-10-2026): para quien
+           usa poco la tecnología da más confianza que cualquier texto. -->
+      <a class="header-action" href="mailto:contacto@actascopropiedad.cl?subject=Ayuda%20con%20mi%20acta" aria-label="Pedir ayuda por correo a actaviva">Ayuda</a>
       <div id="nav-cuenta"></div>
     </div>
   </div>
@@ -2461,6 +2473,9 @@
     <h2 class="card-title">Desarrollo de la Tabla</h2>
     <div class="card-desc">Registre cada punto de la tabla con su presentación, debate y resultado de votación.</div>
 
+    <!-- Las materias que la ley reserva a este tipo de asamblea, para agregarlas
+         a la tabla con un clic. Vivían en el paso 1; las llena updateTipoAsamblea. -->
+    <div class="tip" id="materias-sugeridas" style="margin-bottom:18px" hidden></div>
     <div id="puntos-container"></div>
     <div id="puntos-empty-state" class="empty-state">
       <span class="empty-state-icon" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></span>
@@ -2653,11 +2668,13 @@
     <div class="card-desc">Revise el contenido antes de guardar el PDF o copiar el texto. Si necesita corregir algo, vuelva al paso correspondiente desde la barra superior.</div>
     <div id="acta-content"></div>
     <div id="lista-revision" class="rev-box" hidden></div>
-    <p class="print-pista">Al finalizar, su acta recibe un <strong>folio</strong> y un <strong>código de verificación</strong>, y queda cerrada: desde ahí ya no se puede modificar. Se abrirá el cuadro de impresión: elija <strong>«Guardar como PDF»</strong> como destino. Mientras no la finalice, el documento sale marcado como borrador.</p>
+    <p class="print-pista">Al finalizar, su acta recibe un <strong>folio</strong> y un <strong>código de verificación</strong>, y queda cerrada: desde ahí ya no se puede modificar. Se descarga el <strong>archivo PDF</strong> del acta, listo para imprimir o firmar. Mientras no la finalice, el documento sale marcado como borrador.</p>
     <div class="print-btn">
       <button class="btn btn-gold" data-ac="savePDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Finalizar y guardar como PDF</button>
       <button class="btn btn-secondary" data-ac="copyActa"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar texto</button>
     </div>
+    <!-- Dónde quedó el archivo: lo que más se pregunta después de descargar. -->
+    <div class="pdf-listo" id="pdf-listo" role="status" aria-live="polite" hidden></div>
   </div>
 
   <div class="card guardar-card" id="guardar-card">
@@ -2709,6 +2726,7 @@
 
 
 <script src="/js/derechos.js"></script>
+<script src="/js/acta-pdf.js"></script>
 <script src="/js/acciones.js"></script>
 <script src="/js/acta-1.js"></script>
 
