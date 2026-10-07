@@ -587,9 +587,12 @@ function renderResultados(votos){
   } else {
     const set=(b,pc,val)=>{ $(b).style.width=Math.min(Derechos.aNumero(val),100)+'%'; $(pc).textContent=Derechos.texto(val)+' %'; };
     set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
+    // La cifra que se exige: antes la frase quedaba con el porcentaje en
+    // blanco (06-10-2026).
+    const exigido = tipo==='ext-abs' ? 'más del 50 %' : 'al menos el 66 %';
     pintar($('mesa-base'), ['Han votado ', {tag:'strong', txt:r.n}, ' de '+r.habPresentes+' hábiles · base hábil: ',
-      {tag:'strong', txt:Derechos.texto(r.totalHabil)+' %'}, ' · total condominio: '+Derechos.texto(r.totalCond)+' % · se requiere % de los ',
-      {tag:'strong', txt:'derechos del condominio'}, '.']);
+      {tag:'strong', txt:Derechos.texto(r.totalHabil)+' %'}, ' · total condominio: '+Derechos.texto(r.totalCond)+' % · se requiere ',
+      {tag:'strong', txt:exigido+' de los derechos del condominio'}, ' a favor.']);
   }
   const cn=conclusionTipo(r,cerrada); const cc=$('mesa-concl'); cc.className='concl '+cn.cls; cc.textContent=(cerrada?'':'Tendencia: ')+cn.txt;
   const tb=$('mesa-tbody'); tb.innerHTML='';

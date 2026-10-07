@@ -226,14 +226,21 @@ function separar(linea){
   if(linea.indexOf(';') >= 0) return linea.split(';');
   return linea.split(',');
 }
+// La sexta columna, Hábil, es optativa: vacía vale Sí. Antes no existía y
+// todos entraban como hábiles, así que la aceptación de un moroso sumaba
+// derechos; la ley dice que solo los hábiles concurren con su voto (art.
+// 15). Y la habilidad es del copropietario, no de la unidad: quien tiene
+// varias y debe en una, no vota con ninguna (art. 14 del Reglamento).
 function filasDesdeTexto(texto){
-  return texto.split(/\n+/).map(separar).filter(c => c.length >= 4)
+  const filas = texto.split(/\n+/).map(separar).filter(c => c.length >= 4)
     .map(c => ({
       unidad: (c[0]||'').trim(), nombre: (c[1]||'').trim(), rut: (c[2]||'').trim(),
       correo: (c[3]||'').trim().toLowerCase(),
-      der: parseFloat(String(c[4]||'0').replace(',', '.')) || 0, habil: true
+      der: parseFloat(String(c[4]||'0').replace(',', '.')) || 0,
+      habil: Derechos.bandera(String(c[5]||'').trim()) !== false
     }))
     .filter(f => /^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$/.test(f.correo));
+  return Derechos.habilidadPorCopropietario(filas).filas;
 }
 
 // Aquí el correo no es opcional como en el acta: es el mecanismo de
@@ -242,13 +249,13 @@ function filasDesdeTexto(texto){
 function descargarPlantilla(){
   if(typeof XLSX === 'undefined'){ msg('padron-msg','No se pudo preparar la plantilla. Recargue la página.','err'); return; }
   const filas = [
-    ['Unidad','Nombre del copropietario','RUT','Correo','% Derechos'],
-    ['101','Juan Pérez González','12.345.678-5','juan.perez@correo.cl',1.5],
-    ['202','María López Soto','9.876.543-3','maria.lopez@correo.cl',0.85],
-    ['303','Carlos Ramírez Fuentes','15.234.567-4','carlos.ramirez@correo.cl',2.1]
+    ['Unidad','Nombre del copropietario','RUT','Correo','% Derechos','Hábil'],
+    ['101','Juan Pérez González','12.345.678-5','juan.perez@correo.cl',1.5,'Sí'],
+    ['202','María López Soto','9.876.543-3','maria.lopez@correo.cl',0.85,'Sí'],
+    ['303','Carlos Ramírez Fuentes','15.234.567-4','carlos.ramirez@correo.cl',2.1,'No']
   ];
   const hoja = XLSX.utils.aoa_to_sheet(filas);
-  hoja['!cols'] = [{wch:10},{wch:32},{wch:16},{wch:30},{wch:12}];
+  hoja['!cols'] = [{wch:10},{wch:32},{wch:16},{wch:30},{wch:12},{wch:8}];
 
   const guia = [
     ['Cómo completar esta planilla'],
@@ -272,6 +279,7 @@ function descargarPlantilla(){
     ['RUT', 'RUT del propietario, con o sin puntos y con guion.', 'Sí'],
     ['Correo', 'El correo inscrito en el Registro de Copropietarios. Desde esa casilla debe llegar la respuesta.', 'Sí'],
     ['% Derechos', 'Porcentaje sobre los bienes comunes. Escríbalo como número (1,5), no como texto. La suma de todas las unidades debe dar 100.', 'Sí'],
+    ['Hábil', 'Sí o No. «No» si el copropietario no está al día en sus obligaciones económicas: puede responder, pero su respuesta no se computa (art. 15, Ley N° 21.442). Vacío se entiende Sí. Quien tiene varias unidades y debe en una, no vota con ninguna (art. 14 del Reglamento).', 'No'],
     [''],
     ['Cuando termine'],
     ['Guarde el archivo y súbalo con «Importar desde Excel». El sistema le dirá cuántas unidades cargó,'],
@@ -325,7 +333,9 @@ function revisarPadron(texto){
   const conEncabezado = /correo|derecho|unidad/i.test(lineas[0] || '') && filas.length < lineas.length;
   const descartadas = Math.max(0, lineas.length - filas.length - (conEncabezado ? 1 : 0));
   const suma = filas.reduce((s,f) => s + f.der, 0);
-  return { filas, suma, descartadas, correosRepetidos, rutsRepetidos };
+  const inhabiles = filas.filter(f => f.habil === false).length;
+  const arrastrados = filas.filter(f => f.inhabilPorOtraUnidad).map(f => f.unidad || f.rut);
+  return { filas, suma, descartadas, correosRepetidos, rutsRepetidos, inhabiles, arrastrados };
 }
 
 async function guardarPadron(btn){
@@ -343,6 +353,8 @@ async function guardarPadron(btn){
     if(r.descartadas > 0)      avisos.push(r.descartadas + ' fila(s) sin correo válido quedaron fuera: esas unidades no podrán responder.');
     if(r.correosRepetidos > 0) avisos.push(r.correosRepetidos + ' correo(s) repetido(s): solo se guardó una unidad por casilla.');
     if(r.rutsRepetidos > 0)    avisos.push(r.rutsRepetidos + ' RUT repetido(s): revise que no haya unidades duplicadas.');
+    if(r.inhabiles > 0)        avisos.push(r.inhabiles + ' unidad(es) inhábil(es): pueden responder, pero su respuesta no se computa (art. 15, Ley N° 21.442).'
+                                 + (r.arrastrados.length ? ' De ellas, ' + r.arrastrados.join(', ') + ' por pertenecer a quien no está al día en otra de sus unidades (art. 14 del Reglamento).' : ''));
     const sumaMal = Math.abs(r.suma - 100) > 0.5;
     if(sumaMal)                avisos.push('La suma de derechos es ' + pct(r.suma) + ' y debería ser 100%.');
 

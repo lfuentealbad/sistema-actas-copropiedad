@@ -1160,10 +1160,12 @@ function actualizarPreviewCobros(){
     return;
   }
   let sumGC=0, sumFR=0, sumSeg=0, sumTot=0;
+  const cuotas = repartirPorAlicuota(total);
+  const primas = (incSeguro && estado.config.segPrima>0) ? repartirPorAlicuota(estado.config.segPrima) : null;
   tb.innerHTML = estado.unidades.map(u=>{
-    const cuota = Math.round(total * (u.alicuota||0)/100);
+    const cuota = cuotas[u.id] || 0;
     const fondo = incFondo ? Math.round(cuota * porcFondo) : 0;
-    const seguro = (incSeguro && estado.config.segPrima>0) ? Math.round(estado.config.segPrima * (u.alicuota||0)/100) : 0;
+    const seguro = primas ? (primas[u.id] || 0) : 0;
     const tot = cuota+fondo+seguro;
     sumGC+=cuota; sumFR+=fondo; sumSeg+=seguro; sumTot+=tot;
     return `<tr>
@@ -1178,6 +1180,27 @@ function actualizarPreviewCobros(){
   document.getElementById('previewSumFR').textContent = fmtCLP(sumFR);
   document.getElementById('previewSumSeg').textContent = fmtCLP(sumSeg);
   document.getElementById('previewSumTot').textContent = fmtCLP(sumTot);
+}
+
+// Reparte un monto en pesos entre las unidades segun su alicuota (art. 6).
+// Redondear cada cuota por separado hacia que la suma no diera el total:
+// con 18 unidades se cobraban unos pesos de mas o de menos cada mes. Aqui
+// cada unidad recibe su parte entera y los pesos que sobran van, de uno en
+// uno, a las de mayor fraccion (metodo del mayor resto). La proporcion no
+// cambia y, si las alicuotas suman 100 %, lo cobrado es exactamente el
+// total. Si no suman 100 %, se cobra lo que corresponde a esa suma, como
+// antes (el aviso de arriba lo advierte).
+function repartirPorAlicuota(monto){
+  const partes = estado.unidades.map(u=>{
+    const exacto = monto * (u.alicuota||0) / 100;
+    return { id:u.id, entero:Math.floor(exacto), resto:exacto-Math.floor(exacto) };
+  });
+  const objetivo = Math.round(partes.reduce((s,x)=>s+x.entero+x.resto,0));
+  let faltan = objetivo - partes.reduce((s,x)=>s+x.entero,0);
+  partes.slice().sort((a,b)=>b.resto-a.resto).forEach(x=>{ if(faltan>0 && x.resto>0){ x.entero++; faltan--; } });
+  const porId = Object.create(null);
+  partes.forEach(x=>{ porId[x.id] = x.entero; });
+  return porId;
 }
 
 async function limpiarCobros(){
@@ -1249,10 +1272,12 @@ async function confirmarGenerarCobros(){
   }
 
   const porcFondo = estado.config.porcFondo/100;
+  const cuotas = repartirPorAlicuota(total);
+  const primas = (incSeguro && estado.config.segPrima>0) ? repartirPorAlicuota(estado.config.segPrima) : null;
   let count = 0;
   estado.unidades.forEach(u=>{
     if(!u.alicuota) return;
-    const cuota = Math.round(total * u.alicuota/100);
+    const cuota = cuotas[u.id] || 0;
     if(cuota<=0) return;
     estado.cobros.push({
       id:id(), unidadId:u.id, periodo,
@@ -1269,8 +1294,8 @@ async function confirmarGenerarCobros(){
         });
       }
     }
-    if(incSeguro && estado.config.segPrima>0){
-      const prima = Math.round(estado.config.segPrima * u.alicuota/100);
+    if(primas){
+      const prima = primas[u.id] || 0;
       if(prima>0){
         estado.cobros.push({
           id:id(), unidadId:u.id, periodo,
@@ -2113,7 +2138,7 @@ function buildLiquidacionHTML(unidad, periodo){
       ${c.obs ? escapeHtml(c.obs).split('\n').map(l=>'<div>'+l+'</div>').join('') : '<div style="color:#6E7276">Sin observaciones registradas.</div>'}
       <hr class="soft" style="margin:8px 0">
       <div style="font-size:10.5px;color:#6E7276">
-        Mora: interés de ${fmtPct(c.tasaMora)} mensual sobre saldos morosos, según el reglamento de copropiedad. El art. 7 de la Ley N° 21.442 lo limita al 50% del interés corriente bancario${c.interesCorriente>0?`, que este mes es de ${fmtPct(c.interesCorriente)} (tope: ${fmtPct(c.interesCorriente/2)})`:''}. La suspensión de servicios procede desde tres cuotas adeudadas, continuas o discontinuas (art. 36 Ley), previa autorización del Comité de Administración y avisando por escrito al copropietario o residente con al menos <b>5 días corridos</b> de anticipación (art. 27 Decreto 7/2023). No puede suspenderse más de un servicio a la vez, ni cortarse la electricidad en una unidad donde resida una <b>persona electrodependiente</b>.
+        Mora: interés de ${fmtPct(c.tasaMora)} mensual sobre saldos morosos, según el reglamento de copropiedad. El art. 7 de la Ley N° 21.442 lo limita al 50% del interés corriente bancario${c.interesCorriente>0?`, que este mes es de ${fmtPct(c.interesCorriente)} (tope: ${fmtPct(c.interesCorriente/2)})`:''}. La suspensión del servicio eléctrico, de telecomunicaciones o de calefacción procede desde tres cuotas adeudadas, continuas o discontinuas (arts. 20 N° 9 y 36 Ley), con acuerdo del Comité de Administración y avisando por escrito al copropietario o residente con al menos <b>5 días corridos</b> de anticipación (art. 27 Decreto 7/2023). No puede suspenderse más de un servicio a la vez, ni cortarse la electricidad en una unidad donde resida una <b>persona electrodependiente</b>, ni suspenderse ningún servicio por deudas devengadas durante un <b>estado de catástrofe</b> vigente que afecte al condominio (art. 36 Ley).
       </div>
     </div>
 

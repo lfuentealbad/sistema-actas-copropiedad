@@ -153,8 +153,8 @@ box.style.display = 'block';
 var info = {
 'ordinaria': {
 titulo: 'Asamblea Ordinaria (Art. 15 Ley N° 21.442)',
-qConst: '33% de los derechos del condominio.',
-qAcuerdo: 'Mayoría absoluta de los derechos presentes en la sesión.',
+qConst: 'Al menos el 33 % de los derechos del condominio, contando a todos los que concurren.',
+qAcuerdo: 'Mayoría absoluta de los derechos presentes en la sesión. Solo votan los copropietarios hábiles, así que la base son los derechos hábiles presentes.',
 materias: [
 'Rendición de cuentas por parte del administrador y aprobación del balance presentado.',
 'Designación, reelección o renuncia de los miembros del comité de administración.',
@@ -167,7 +167,7 @@ materias: [
 'extraordinaria-abs': {
 titulo: 'Asamblea Extraordinaria de Mayoría Absoluta (Art. 15 Ley N° 21.442)',
 qConst: 'M\u00e1s del 50 % de los derechos del condominio.',
-qAcuerdo: 'M\u00e1s del 50 % de los derechos del condominio, computado \u00fanicamente sobre copropietarios h\u00e1biles para votar.',
+qAcuerdo: 'M\u00e1s del 50 % de los derechos del condominio a favor. Solo votan los copropietarios h\u00e1biles.',
 materias: [
 'Modificación del reglamento de copropiedad, salvo aquellas materias que requieren mayoría reforzada.',
 'Remoción parcial o total de los miembros del comité de administración.',
@@ -182,7 +182,7 @@ materias: [
 'extraordinaria-ref': {
 titulo: 'Asamblea Extraordinaria de Mayoría Reforzada (Art. 15 Ley N° 21.442)',
 qConst: 'Al menos el 66% de los derechos del condominio.',
-qAcuerdo: 'Al menos el 66% de los derechos del condominio, computado únicamente sobre la base de copropietarios hábiles para votar.',
+qAcuerdo: 'Al menos el 66 % de los derechos del condominio a favor. Solo votan los copropietarios hábiles.',
 materias: [
 'Modificación del reglamento de copropiedad, en las materias que requieren mayoría reforzada.',
 'Delegación de facultades al comité de administración respecto de materias que requieren acuerdo de mayoría absoluta.',
