@@ -1,9 +1,9 @@
 // Worker de actascopropiedad.cl
 //
 //   GET  /cf-geo                    geolocalizacion aproximada por IP
-//   POST /api/pago/crear            crea la orden en Flow y devuelve el checkout (con sesion)
-//   POST /api/pago/confirmar        webhook de Flow (servidor a servidor)
-//   GET  /api/pago/estado?orden=    la aplicacion consulta si ya se pago (con sesion)
+//   POST /api/pago/crear            crea la orden de un mes en Flow y devuelve el checkout (con sesion)
+//   POST /api/pago/confirmar        webhook de Flow (servidor a servidor): registra el mes en Postgres
+//   GET  /api/pago/estado?orden=    la aplicacion consulta si ya se pago y hasta cuando (con sesion)
 //   POST /api/voto/avisos           constancia de voto por correo; la pide la Mesa
 //   POST /api/voto/codigo           codigo de un solo uso al correo del votante
 //   POST /api/clave/filtrada        clave filtrada, por k-anonimato contra HIBP
@@ -34,32 +34,28 @@ const FLOW = {
 const PASARELA = /^https:\/\/(www|sandbox)\.flow\.cl\//;
 
 const PRECIO_POR_DEFECTO = 14990;
-const PRECIO_CONSULTA_POR_DEFECTO = 7990;
 
-// Los dos productos. El acta incluye la sala de votacion en vivo: sin acta,
-// una sala no tiene para que existir. La consulta por escrito se vende sola
-// porque reemplaza a la asamblea y ocurre en otra ocasion.
-const PRODUCTOS = {
-  acta: {
-    variable: 'PRECIO_CLP',
-    porDefecto: PRECIO_POR_DEFECTO,
-    asunto: 'actaviva - acta de asamblea y votacion en vivo',
-    vuelve: '/cuenta'
-  },
-  consulta: {
-    variable: 'PRECIO_CONSULTA_CLP',
-    porDefecto: PRECIO_CONSULTA_POR_DEFECTO,
-    asunto: 'actaviva - consulta por escrito',
-    vuelve: '/cuenta'
-  }
+// Un solo producto desde el 07-10-2026: un mes de servicio para UN
+// condominio, con todas las herramientas (el acta con folio, la votacion en
+// vivo, la consulta por escrito, el acta del comite y las cuentas). El
+// administrador que lleva varios condominios paga un mes por cada uno: el
+// nombre del condominio viaja firmado en la llave y Postgres compara con el
+// los documentos que emite (paso 17, pase_exigir).
+const MES = {
+  variable: 'PRECIO_CLP',
+  porDefecto: PRECIO_POR_DEFECTO,
+  asunto: 'actaviva - un mes de servicio',
+  vuelve: '/cuenta'
 };
+// La llave sirve para registrar el mes durante 60 dias: Flow reintenta el
+// aviso, y la persona puede volver con el numero de orden.
 const VIGENCIA_LLAVE_DIAS = 60;
 
 // Fecha desde la que rigen los terminos publicados en /terminos. Es lo que el
 // navegador declara haber aceptado y lo que queda guardado con cada orden.
 // Si se publican terminos nuevos, cambia aqui, en terminos.html y en el
 // TERMINOS_VERSION de cuenta.js: hay una prueba que no los deja separarse.
-const TERMINOS_VERSION = '2026-09-28';
+const TERMINOS_VERSION = '2026-10-07';
 
 // El sitio tiene un solo nombre. Las URL que se le entregan a Flow salen de
 // aqui y no de la peticion: asi da lo mismo por que nombre se entro y que
@@ -200,22 +196,65 @@ async function flowGet(env, servicio, params) {
   }
 }
 
-const b64url = s => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+// base64url de los BYTES UTF-8 del texto. btoa() a secas toma cada caracter
+// como un byte latin-1: «Ñuñoa» salia en latin-1 y Postgres, que lee UTF-8,
+// rechazaba la llave. Para ASCII da exactamente lo mismo que antes.
+const b64url = s => {
+  let bin = '';
+  for (const b of new TextEncoder().encode(s)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
 
-// La llave que despues valida Postgres para permitir abrir la sala.
+// La llave con que Postgres registra el mes (pase_registrar).
 // Formato: <payload en base64url>.<hmac hex>
-async function emitirLlave(env, orden, producto) {
+//   o  la orden            e  hasta cuando sirve para registrarlo
+//   p  'mes', el producto  s  el entorno de Flow en que se pago (CN-005: la
+//   u  la cuenta              del sandbox no vale en produccion)
+//   t  cuando se pago      c  el condominio para el que se compro
+// La cuenta, el momento y el condominio van firmados: por eso Postgres puede
+// registrarla sin sesion, y tenerla solo sirve para darle el mes a quien pago.
+async function emitirLlave(env, orden, datos) {
   const vence = Math.floor(Date.now() / 1000) + VIGENCIA_LLAVE_DIAS * 86400;
-  // 'p' es el producto pagado. Postgres lo lee para no dejar que una llave de
-  // consulta abra un acta, ni al reves. Sin 'p' se entiende 'acta', que es lo
-  // que valian todas las llaves anteriores a esta separacion.
-  // 's' es el entorno de Flow en que se pago (CN-005, 28-09-2026). En el
-  // sandbox cualquiera paga con las tarjetas de prueba publicadas: Postgres
-  // (vv_validar_pago) rechaza toda llave que no diga "produccion", salvo que
-  // se le pida a proposito para ensayar la pasarela.
-  const payload = b64url(JSON.stringify({ o: orden, e: vence, p: producto || 'acta', s: entornoFlow(env) }));
+  const payload = b64url(JSON.stringify({
+    o: orden, e: vence, p: 'mes', s: entornoFlow(env),
+    u: datos.uid, t: Math.floor(datos.pagada / 1000), c: datos.condominio
+  }));
   const firma = await hmacHex(env.PAGO_SECRET, payload);
   return `${payload}.${firma}`;
+}
+
+// El nombre del condominio tal como se va a guardar: sin espacios de mas ni
+// caracteres de control, de 2 a 100 caracteres y con al menos una letra o
+// un numero (Postgres compara por letras y numeros: sin ninguno no hay con
+// que comparar). '' si no sirve.
+function condominioValido(v) {
+  const s = String(v == null ? '' : v)
+    .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  if (s.length < 2 || s.length > 100) return '';
+  return /[\p{L}\p{N}]/u.test(s) ? s : '';
+}
+
+// Registra el mes en Postgres. Nunca lanza: { ok, estado, datos }. Lo llaman
+// el aviso de Flow y la consulta de la orden; la base devuelve lo mismo si
+// el mes ya estaba (ya_estaba), asi que da igual quien llegue primero.
+async function registrarMes(env, llave) {
+  try {
+    const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/pase_registrar`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        apikey: env.SUPABASE_ANON,
+        authorization: `Bearer ${env.SUPABASE_ANON}`
+      },
+      body: JSON.stringify({ p_llave: llave }),
+      signal: AbortSignal.timeout(ESPERA.supabase)
+    });
+    const datos = await r.json().catch(() => null);
+    return { ok: r.ok && !!datos && !!datos.hasta, estado: r.status, datos };
+  } catch (e) {
+    return { ok: false, estado: 0, datos: null };
+  }
 }
 
 // 12 bytes de getRandomValues: 96 bits, los 24 hexadecimales de siempre.
@@ -408,11 +447,11 @@ async function crearPago(request, env, url) {
   const correo = s.correo;
   if (!correoValido(correo)) return json({ error: 'correo_invalido' }, 400);
 
-  // Que se esta comprando. Cualquier otra cosa se trata como acta. Con
-  // Object.hasOwn: PRODUCTOS['__proto__'] existe como herencia (CN-039).
-  const producto = typeof cuerpo.producto === 'string' && Object.hasOwn(PRODUCTOS, cuerpo.producto)
-    ? cuerpo.producto : 'acta';
-  const cfg = PRODUCTOS[producto];
+  // Para que condominio es el mes. Lo que venga en 'producto' ya no
+  // importa: hay uno solo.
+  const condominio = condominioValido(cuerpo.condominio);
+  if (!condominio) return json({ error: 'condominio_invalido' }, 400);
+  const cfg = MES;
 
   // El monto lo fija el servidor. Lo que mande el cliente se ignora.
   const monto = Number(env[cfg.variable]) > 0
@@ -452,7 +491,7 @@ async function crearPago(request, env, url) {
     // que la hubo, cuando, y sobre que version del texto. El uid es de quien
     // la creo: solo esa cuenta puede despues recoger la llave.
     JSON.stringify({
-      estado: 'pendiente', monto, correo, producto, uid: s.uid, flowOrder, creada: Date.now(),
+      estado: 'pendiente', monto, correo, producto: 'mes', condominio, uid: s.uid, flowOrder, creada: Date.now(),
       terminos: { version: TERMINOS_VERSION, aceptados: new Date().toISOString() }
     }),
     { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 }
@@ -507,17 +546,48 @@ async function confirmarPago(request, env) {
     console.log('flow: pago que no calza con su orden', paraLog(d.commerceOrder, 40));
   }
 
-  if (pagado && guardado.estado !== 'pagado') {
-    const llave = await emitirLlave(env, d.commerceOrder, guardado.producto);
-    await env.PAGOS.put(
-      `orden:${d.commerceOrder}`,
-      JSON.stringify({ ...guardado, estado: 'pagado', llave, pagada: Date.now() }),
-      { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 }
-    );
+  if (!pagado) {
+    // Flow espera 200 aunque el pago no haya prosperado; si no, reintenta.
+    return textoPlano('ok', 200);
   }
 
-  // Flow espera 200 aunque el pago no haya prosperado; si no, reintenta.
+  // Una orden de antes del paso 17 (sin cuenta o sin condominio) no se
+  // puede registrar como mes: se revisa a mano con su numero.
+  if (!guardado.uid || !guardado.condominio) {
+    console.log('flow: orden pagada sin cuenta o sin condominio', paraLog(d.commerceOrder, 40));
+    return textoPlano('ok', 200);
+  }
+
+  let g = guardado;
+  if (g.estado !== 'pagado') {
+    const pagada = Date.now();
+    const llave = await emitirLlave(env, d.commerceOrder, { uid: g.uid, condominio: g.condominio, pagada });
+    g = { ...g, estado: 'pagado', llave, pagada };
+    await env.PAGOS.put(`orden:${d.commerceOrder}`, JSON.stringify(g), { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 });
+  }
+  const reg = await asegurarMes(env, d.commerceOrder, g);
+  // Si la base no contesto, Flow tiene que volver a avisar: con un 200 el
+  // pago quedaria cobrado y el mes sin registrar hasta que la persona
+  // consultara la orden. Un rechazo de la base (4xx) no se arregla
+  // reintentando: queda en el log para revisarlo.
+  if (!reg.ok && (reg.estado === 0 || reg.estado >= 500)) return textoPlano('reintentar', 503);
   return textoPlano('ok', 200);
+}
+
+// El mes de una orden pagada, registrado en Postgres una sola vez. Lo que
+// devolvio la base queda con la orden: las consultas siguientes no vuelven
+// a llamarla.
+async function asegurarMes(env, orden, g) {
+  if (g.mes && g.mes.hasta) return { ok: true, datos: g.mes };
+  const r = await registrarMes(env, g.llave);
+  if (r.ok) {
+    const mes = { condominio: r.datos.condominio, desde: r.datos.desde, hasta: r.datos.hasta };
+    await env.PAGOS.put(`orden:${orden}`, JSON.stringify({ ...g, mes }), { expirationTtl: VIGENCIA_LLAVE_DIAS * 86400 });
+    return { ok: true, datos: mes };
+  }
+  console.log('pase_registrar no registro el mes', paraLog(orden, 40), r.estado,
+    paraLog(r.datos && (r.datos.message || r.datos.code), 120));
+  return r;
 }
 
 async function estadoPago(request, env, url) {
@@ -537,11 +607,15 @@ async function estadoPago(request, env, url) {
   const g = await env.PAGOS.get(`orden:${orden}`, { type: 'json' });
   if (!g || !g.uid || g.uid !== s.uid) return noEncontrada();
 
-  // El producto viaja de vuelta: el navegador guarda la llave en el casillero
-  // que corresponde, y una llave de consulta no queda donde el acta la busca.
-  return json(g.estado === 'pagado'
-    ? { estado: 'pagado', llave: g.llave, producto: g.producto || 'acta' }
-    : { estado: 'pendiente' });
+  if (g.estado !== 'pagado') return json({ estado: 'pendiente' });
+
+  // La llave ya no sale al navegador: el mes vive en la base, atado a la
+  // cuenta. Si el aviso de Flow no alcanzo a registrarlo, se registra aqui;
+  // si la base no contesta, la pagina sigue preguntando ('activando').
+  if (!g.llave || !g.condominio) return json({ estado: 'pendiente' });
+  const reg = await asegurarMes(env, orden, g);
+  if (!reg.ok) return json({ estado: 'activando' });
+  return json({ estado: 'pagado', condominio: reg.datos.condominio, desde: reg.datos.desde, hasta: reg.datos.hasta });
 }
 
 // Respuestas a una consulta por escrito que llegan a c-CODIGO@el-dominio.

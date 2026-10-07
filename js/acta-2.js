@@ -5,7 +5,7 @@
   // CN-001 (30-09-2026): si en otro lado del navegador se cerro la sesion o
   // entro otra cuenta, acta-1.js bloquea la pestana (window._sesionAjena) y
   // llama aqui para parar el sondeo de la sala. Desde ese momento esta
-  // pestana no escribe en el equipo: la llave de pago o la sala que haya
+  // pestana no escribe en el equipo: la sala que haya
   // ahi pueden ser de la otra cuenta.
   function ajena(){ return !!window._sesionAjena; }
   window.actaSalaDetener=function(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } };
@@ -90,231 +90,41 @@
     });
     return out;
   }
-  if(window.Cuenta) window.Cuenta.usuario(function(u){ USUARIO=u; });
-  var LLAVE='acta_pago_llave';
-  // Ver la nota en acta-1.js: la llave de la demostracion no vale fuera de
-  // una pagina de demostracion, aunque haya quedado en localStorage.
-  var LLAVE_DE_DEMO='DEMO-PAGO-SIMULADO';
-  function enPaginaDemo(){ return /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname); }
-  function llaveGuardada(){
-    var v='';
-    try{ v=localStorage.getItem(LLAVE)||''; }catch(e){ return ''; }
-    return (v===LLAVE_DE_DEMO && !enPaginaDemo()) ? '' : v;
+  // La sala se abre con el mes de servicio del condominio de esta acta
+  // (paso 17): lo exige vv_crear en la base. Aqui solo se avisa y se manda
+  // a activarlo. La pagina siempre tiene sesion: la pide el portero de
+  // acta-1.js antes de mostrar el asistente.
+  function pagoMsg(texto){
+    var el=document.getElementById('vv-pago-msg'); if(!el || !texto) return;
+    el.textContent=texto;
   }
-  function guardarLlave(v){ if(ajena()) return; try{ localStorage.setItem(LLAVE,v); }catch(e){} }
-  function borrarLlave(){ if(ajena()) return; try{ localStorage.removeItem(LLAVE); }catch(e){} }
-  // La llave es <payload base64url>.<firma>, con la orden en payload.o. Una
-  // llave que aqui no sirve -de otra cuenta, de otro producto- sigue siendo
-  // plata de quien pago: antes de borrarla se anota su orden, y cuenta.js
-  // se la devuelve a esa cuenta cuando entre en este equipo (recuperarPagos).
-  function anotarOrdenDeLlave(v){
-    var p=String(v||'').split('.'); if(p.length!==2) return;
-    try{
-      var b=p[0].replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b+='=';
-      var o=String((JSON.parse(atob(b))||{}).o||'');
-      if(/^AV-[A-Z0-9]{1,32}$/.test(o) && window.Cuenta && typeof Cuenta.anotarPago==='function') Cuenta.anotarPago(o);
-    }catch(e){}
+  function condominioDelActa(){
+    var c=document.getElementById('condo-nombre');
+    return c ? c.value.trim() : '';
   }
-  function pagoMsg(texto,error){
-    var el=document.getElementById('vv-pago-msg'); if(!el) return;
-    if(!texto){ el.style.display='none'; el.textContent=''; return; }
-    el.style.display='block'; el.textContent=texto;
-    el.style.color = error ? 'var(--c-error)' : 'var(--c-text-2)';
-  }
-  var USUARIO=null;
-  function mostrarPago(on){
+  function mostrarPago(on, texto){
     var p=document.getElementById('vv-pago'), s=document.getElementById('vv-start');
-    if(p) p.style.display=on?'block':'none';
+    // En vitrina el Worker borro el recuadro: se dice igual que paso.
+    if(!p){ if(on) alert(texto || 'Para abrir la sala necesita un mes de servicio activo para este condominio.'); return; }
+    p.style.display=on?'block':'none';
     if(s) s.style.display=on?'none':'block';
-    if(on) pintarPago();
-  }
-  function pintarPago(){
-    var host=document.getElementById('vv-cta-host'), listo=document.getElementById('vv-pago-listo');
-    if(!host||!listo) return;
-    if(USUARIO){
-      host.innerHTML=''; listo.style.display='block';
-      var t=document.getElementById('vv-correo-txt'); if(t) t.textContent=USUARIO.correo;
-      var ah=document.getElementById('vv-acepta-host');
-      if(ah && !ah.innerHTML) ah.innerHTML=Cuenta.terminos.html('vv-acepta');
-      return;
+    if(!on) return;
+    pagoMsg(texto || 'La sala de votación se abre con el mes de servicio del condominio de esta acta.');
+    var a=document.getElementById('vv-activar');
+    if(a && window.Cuenta && Cuenta.pase){
+      var u=Cuenta.pase.urlActivar(condominioDelActa());
+      a.href=u.replace(/(#|$)/, (u.indexOf('?')>=0?'&':'?')+'volver=%2Facta$1');
     }
-    // USUARIO se llena al cargar la pagina. La sesion pudo abrirse despues,
-    // desde la cabecera: se vuelve a preguntar antes de pedir el correo, o
-    // le estariamos pidiendo entrar a alguien que ya entro.
-    if(window.Cuenta && !pidiendoSesion){
-      pidiendoSesion=true;
-      window.Cuenta.usuario(function(u){
-        pidiendoSesion=false;
-        if(otraCuenta(u)){ location.reload(); return; }
-        if(u){ USUARIO=u; pintarPago(); return; }
-        pedirCorreo();
-      });
-      return;
-    }
-    pedirCorreo();
   }
-  var pidiendoSesion=false;
-  // ¿Entro otra cuenta que la que abrio la pagina (window._uidSesion, de
-  // acta-1.js)? Entonces lo que esta en pantalla -el padron, con sus RUT- es
-  // de la anterior, y el autoguardado lo subiria a esta. Se recarga y la
-  // pagina arranca en blanco para esta: acta-1.js no le ofrece el borrador
-  // ajeno (ver _tryRestore).
-  function otraCuenta(u){ return !!(u && window._uidSesion && u.id!==window._uidSesion); }
-  function pedirCorreo(){
-    var listo=document.getElementById('vv-pago-listo');
-    if(listo) listo.style.display='none';
-    // El codigo por correo ya no crea cuentas (AUTH-03): el texto no puede
-    // prometer que con el basta.
-    window.Cuenta.panel('vv-cta-host', {
-      titulo:'Primero, su correo',
-      sub:'Entre, o cree su cuenta en un minuto. Con ella podrá volver a su acta.',
-      alEntrar:function(u){
-        if(otraCuenta(u)){ location.reload(); return; }
-        USUARIO=u; pintarPago();
-      }
-    });
-  }
-  // Salir borra del equipo el borrador y las llaves (cuenta.js), pero en
+  // Salir borra del equipo el borrador y la sala (cuenta.js), pero en
   // pantalla seguiria el acta abierta, con el padron y sus RUT, a la vista
   // de quien entre despues. Se recarga, como en la consulta: la pagina
   // vuelve a su portero y arranca en blanco.
   window.actaCerrarSesion=function(btn){
     btn.disabled=true; btn.textContent='Saliendo…';
-    window.Cuenta.salir(function(){ USUARIO=null; location.reload(); });
+    window.Cuenta.salir(function(){ location.reload(); });
   };
-  window.actaCancelarPago=function(){ pagoMsg(''); mostrarPago(false); };
-  // savePDF vive en el otro modulo y necesita poder pedir el pago.
-  window.actaMostrarPago=mostrarPago;
-  // C1: /api/pago/* exige la sesion de la cuenta. El token sale de
-  // Cuenta.tokenDeAcceso() (cuenta.js); sin el no se llama al Worker.
-  function tokenDeAcceso(){
-    if(!window.Cuenta || typeof Cuenta.tokenDeAcceso!=='function') return Promise.resolve(null);
-    return Promise.resolve().then(function(){ return Cuenta.tokenDeAcceso(); })
-      .then(function(t){ return t||null; }, function(){ return null; });
-  }
-  // La URL de la pasarela la arma el Worker con lo que contesta Flow. Antes
-  // de mandar a alguien a pagar se comprueba que el destino sea Flow: son
-  // dos lineas, y convierten un "confie en mi" en algo que se puede leer.
-  function destinoDePagoValido(u){
-    u=String(u||'');
-    return u.indexOf('https://www.flow.cl/')===0 || u.indexOf('https://sandbox.flow.cl/')===0;
-  }
-  window.actaIrAPagar=async function(btn){
-    var correo=USUARIO&&USUARIO.correo;
-    if(!window.Cuenta.correoValido(correo)){ pintarPago(); return; }
-    if(!Cuenta.terminos.aceptados('vv-acepta')){
-      pagoMsg(Cuenta.terminos.AVISO, true);
-      var _c=document.getElementById('vv-acepta'); if(_c) _c.focus();
-      return;
-    }
-    btn.disabled=true; var _t=btn.textContent; btn.textContent='Conectando…'; pagoMsg('');
-    try{
-      var token=await tokenDeAcceso();
-      // Sin sesion vigente se vuelve a pedir la cuenta: el pago queda atado
-      // a ella, y el comprobante va a su correo, no al que se escriba aqui.
-      if(!token){ USUARIO=null; pintarPago(); return; }
-      var r=await fetch('/api/pago/crear',{method:'POST',headers:{'content-type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({correo:correo,acepta:Cuenta.terminos.VERSION})});
-      var d=null; try{ d=await r.json(); }catch(e){}
-      if(r.status===401){
-        USUARIO=null; pintarPago();
-        pagoMsg('Su sesión venció. Entre de nuevo para continuar con el pago.', true);
-        return;
-      }
-      if(!r.ok||!d||!d.redirigir){
-        pagoMsg(d&&d.error==='pasarela_no_configurada'
-          ? 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.'
-          : 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', true);
-        return;
-      }
-      if(!destinoDePagoValido(d.redirigir)){
-        pagoMsg('No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', true);
-        return;
-      }
-      location.href=d.redirigir;
-    }catch(e){
-      pagoMsg('No pudimos conectar con el medio de pago. Revise su conexión a internet.',true);
-    }finally{ btn.disabled=false; btn.textContent=_t; }
-  };
-  (function retornoDePago(){
-    var m=/[?&]pago=(AV-[A-Z0-9]+)/.exec(location.search);
-    if(!m) return;
-    var orden=m[1], intentos=0;
-    // La orden se quita de la direccion recien con una respuesta definitiva
-    // (pagado, o 404), como en el panel y la consulta: el mensaje de espera
-    // pide recargar, y recargar tiene que volver a intentarlo.
-    var olvidarOrden=function(){ try{ history.replaceState(null,'',location.pathname); }catch(e){} };
-    mostrarPago(true);
-    var _l=document.getElementById('vv-pago-listo'); if(_l) _l.style.display='block';
-    pagoMsg('Confirmando el pago…');
-    var pidioSesion=false;
-    (function revisar(){
-      intentos++;
-      // C1: la llave se entrega solo a la cuenta que pago. Si la sesion no
-      // esta (vuelve de la pasarela en otra pestaña, o vencio), se pide una
-      // vez y se sigue consultando al entrar.
-      tokenDeAcceso().then(function(token){
-        if(!token){
-          if(!pidioSesion && window.Cuenta && Cuenta.exigirSesion){
-            pidioSesion=true; intentos--;
-            pagoMsg('Entre con la cuenta con la que pagó para confirmar el pago.', true);
-            // El portero de acta-1.js ya pide la sesion al cargar, y el cajon
-            // es uno solo. Se espera a ese portero en vez de abrir un segundo
-            // pedido: asi hay un solo lugar que decide quien entro.
-            if(typeof window.actaTrasElPortero==='function'){ window.actaTrasElPortero(revisar); return null; }
-            Cuenta.exigirSesion({ titulo:'Entre con la cuenta con la que pagó',
-              sub:'El pago queda asociado a esa cuenta, y solo ella puede recuperarlo.' }, revisar);
-            return null;
-          }
-          throw new Error('sin_sesion');
-        }
-        return fetch('/api/pago/estado?orden='+encodeURIComponent(orden),{headers:{'Authorization':'Bearer '+token}})
-          .then(function(r){
-            return r.json().catch(function(){ return null; })
-              .then(function(d){ return {estado:r.status, d:d}; });
-          });
-      })
-        .then(function(x){
-          if(x===null) return;
-          var d=x.d;
-          if(d && d.estado==='pagado' && d.llave){
-            olvidarOrden();
-            // Una orden de consulta por escrito no abre la sala ni finaliza
-            // el acta, y guardarla aqui pisaria la llave de la asamblea que
-            // hubiera en el equipo. Mismo criterio que la puerta (acta-1.js).
-            if((d.producto||'acta')!=='acta'){
-              pagoMsg('Ese pago corresponde a una consulta por escrito, no a un acta de asamblea.', true);
-              return;
-            }
-            guardarLlave(d.llave);
-            pagoMsg('Pago confirmado. Ya puede iniciar la sala de votación.');
-            setTimeout(function(){ pagoMsg(''); mostrarPago(false); },2600);
-            return;
-          }
-          // 404: la orden no existe o es de otra cuenta; el Worker no dice
-          // cual, y esperar no la va a hacer aparecer. Antes de quitarla de
-          // la direccion se anota en el equipo: si se pago con otra cuenta,
-          // Cuenta.recuperarPagos la entrega al entrar con ella.
-          if(x.estado===404){
-            if(window.Cuenta && typeof Cuenta.anotarPago==='function') Cuenta.anotarPago(orden);
-            olvidarOrden();
-            pagoMsg('No encontramos ese pago en esta cuenta. Si pagó con otra, entre con ella en este equipo y se lo entregaremos.', true);
-            return;
-          }
-          if(x.estado===401){
-            pagoMsg('Su sesión terminó. Recargue la página y entre con la cuenta con la que pagó.', true);
-            return;
-          }
-          if(intentos<10){ setTimeout(revisar,2000); return; }
-          // Aqui la orden es de esta cuenta (la ajena ya salio por el 404):
-          // solo falta que Flow la confirme.
-          pagoMsg('Todavía no recibimos la confirmación. Si ya pagó, espere un momento y recargue esta página.',true);
-        })
-        .catch(function(){
-          if(intentos<10){ setTimeout(revisar,2000); return; }
-          pagoMsg('No pudimos verificar el pago. Recargue la página en unos minutos.',true);
-        });
-    })();
-  })();
+  window.actaCancelarPago=function(){ mostrarPago(false); };
   // C4: la base guarda una fila por unidad y, si la misma unidad viene dos
   // veces, se queda con la primera y devuelve las otras en "descartadas".
   // La Mesa tiene que saberlo: son derechos que la sala no va a contar.
@@ -334,14 +144,12 @@
     if(asis.length===0){ alert('No hay asistentes presentes con RUT.\n\nEn el Paso 3 agregue el RUT de los copropietarios (o impórtelo desde su Excel) y marque Asiste: Sí.'); return; }
     var tms=temas();
     if(tms.length===0){ alert('No hay puntos que requieran votación. Agregue al menos un punto en el orden del día.'); return; }
-    var llave=llaveGuardada();
-    if(!llave){ pagoMsg(''); mostrarPago(true); return; }
     btn.disabled=true; var _t=btn.textContent; btn.textContent='Creando sala…';
     try{
       var tipo=document.getElementById('tipo-asamblea')?document.getElementById('tipo-asamblea').value:'ordinaria';
       var tipoSala=tipo==='extraordinaria-abs'?'ext-abs':tipo==='extraordinaria-ref'?'ext-ref':'ordinaria';
       var condo=document.getElementById('condo-nombre')?document.getElementById('condo-nombre').value:'';
-      var ins=await c.rpc('vv_crear',{p_titulo:condo,p_llave:llave});
+      var ins=await c.rpc('vv_crear',{p_titulo:condo});
       if(ins.error) throw ins.error;
       var codigo=ins.data.codigo;
       asam={id:ins.data.id, codigo:codigo, token:ins.data.admin_token, tipo:tipoSala};
@@ -366,31 +174,16 @@
       pollTimer=setInterval(function(){ if(activo) refrescar(); }, 6000);
     }catch(e){
       var _m=String((e&&e.message)||e||'');
-      // El tope es de salas por pago (tres), no del pago: la llave sigue
-      // sirviendo para finalizar el acta, asi que no se borra ni se pide
-      // pagar otra vez.
-      if(/demasiadas_salas_con_este_pago/.test(_m)){
-        alert('Con el pago de esta asamblea ya se abrieron 3 salas de votación, que es el máximo por pago, así que no se puede abrir otra.\n\nEl pago sigue sirviendo para finalizar el acta.');
+      // Sin mes, o con el mes de otro condominio: se dice cual es el suyo.
+      if(/pase_requerido|pase_de_otro_condominio/.test(_m) && window.Cuenta && Cuenta.pase){
+        Cuenta.pase.estado(function(est){ mostrarPago(true, Cuenta.pase.mensaje(_m, est, condominioDelActa())); });
         return;
       }
-      if(/pago_de_otra_cuenta|llave_de_otro_producto/.test(_m)){
-        anotarOrdenDeLlave(llave);
-        borrarLlave(); mostrarPago(true);
-        pagoMsg(/pago_de_otra_cuenta/.test(_m)
-          ? 'El pago guardado en este equipo es de otra cuenta. Si pagó con otra cuenta, entre con ella en este equipo y se lo devolveremos; si no, active esta asamblea con su propio pago.'
-          : 'El pago guardado en este equipo no corresponde a un acta de asamblea. Active esta asamblea para abrir la sala.', true);
+      if(/sesion_requerida/.test(_m)){
+        alert('Su sesión terminó. Recargue la página y vuelva a entrar para abrir la sala.');
         return;
       }
-      if(/pago_requerido|llave_invalida|llave_malformada|pago_vencido|pago_ya_utilizado|pago_no_configurado/.test(_m)){
-        borrarLlave(); mostrarPago(true);
-        pagoMsg(/pago_ya_utilizado/.test(_m)
-          ? 'Ese pago ya se usó para abrir otra asamblea. Cada asamblea requiere su propio pago.'
-          : /pago_vencido/.test(_m)
-            ? 'El pago de esta asamblea venció. Debe realizarse uno nuevo.'
-            : 'No pudimos validar el pago de esta asamblea. Inténtelo nuevamente.', true);
-      } else {
-        alert('No se pudo iniciar la sala. Revise su conexión a internet.\n\n'+_m);
-      }
+      alert('No se pudo iniciar la sala. Revise su conexión a internet.\n\n'+_m);
     }
     finally{ btn.disabled=false; btn.textContent=_t; }
   };

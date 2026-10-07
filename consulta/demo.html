@@ -137,17 +137,14 @@
     <div id="nueva-msg" class="aviso hidden"></div>
 
     <div id="c-pago" class="hidden" data-pago style="margin-top:16px">
-      <div id="cta-host"></div>
-      <div id="pago-listo" class="hidden" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:#F7FAFD">
-        <div style="font-weight:700;color:var(--graf);margin-bottom:5px">Active esta asamblea</div>
-        <p class="muted" style="margin:0 0 12px">Un pago por asamblea, que cubre <strong>el acta, esta consulta y la votación en vivo</strong> de la misma reunión. El comprobante llegará a <strong id="p-correo">—</strong>.</p>
-        <div id="c-acepta-host"></div>
+      <div style="border:1px solid var(--border);border-radius:12px;padding:18px;background:#F7FAFD">
+        <div style="font-weight:700;color:var(--graf);margin-bottom:5px">Active su mes para crear la consulta</div>
+        <p class="muted" id="pago-msg" role="status" style="margin:0 0 12px">La consulta se crea con el mes de servicio de su condominio, que incluye todas las herramientas.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-teal btn-sm" data-ac="irAPagar" data-args="@">Ir a pagar</button>
+          <a class="btn btn-teal btn-sm" id="c-activar" href="/cuenta#s-mes">Activar el mes</a>
           <button class="btn btn-ghost btn-sm" data-ac="cerrarPago">Cancelar</button>
-          <button class="btn btn-ghost btn-sm" data-ac="cerrarSesion" data-args="@">No soy yo</button>
+          <button class="btn btn-ghost btn-sm" data-ac="cerrarSesion" data-args="@">Entrar con otra cuenta</button>
         </div>
-        <div id="pago-msg" class="aviso hidden"></div>
       </div>
     </div>
 

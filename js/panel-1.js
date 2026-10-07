@@ -45,75 +45,159 @@
   }
 
   // -------------------------------------------------------------------
-  //  El pago, que ahora es el primer paso
+  //  El mes de servicio (paso 17, 07-10-2026)
   // -------------------------------------------------------------------
-  //  La llave que devuelve la pasarela cubre TODA la asamblea: el acta, la
-  //  sala de votacion y la consulta por escrito. Por eso basta pedirla una
-  //  vez, aqui, y las dos ramas quedan abiertas.
-  //  Dos llaves, porque son dos servicios: la del acta cubre tambien su sala
-  //  de votacion; la de la consulta abre una consulta y nada mas.
-  var LLAVE_PAGO = 'acta_pago_llave';
-  var LLAVE_CONSULTA = 'consulta_pago_llave';
-  // Ver la nota en acta-1.js y sinPagos() mas abajo: la marca que dejaba la
-  // demostracion no es un pago. Sin esto, quien habia visitado /acta-demo o
-  // /consulta/demo veia aqui «Comenzar mi acta» y «Crear consulta» como si
-  // hubiera pagado, y el acta recien le pedia el pago al entrar.
-  function guardado(k){
-    var v = '';
-    try { v = localStorage.getItem(k) || ''; } catch(e){ return ''; }
-    return (v === 'DEMO-PAGO-SIMULADO' &&
-      !/(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname)) ? '' : v;
-  }
-  function llavePago(){ return guardado(LLAVE_PAGO); }
-  function llaveConsulta(){ return guardado(LLAVE_CONSULTA); }
+  //  Un pago, un mes, un condominio, todas las herramientas. El mes vive en
+  //  la base (Cuenta.pase); aqui se muestra, se compra y se corrige el
+  //  nombre mientras no se haya usado.
+  function enVitrina(){ return document.documentElement.classList.contains('vitrina'); }
 
-  function pagoMsg(txt, malo, cual){
-    var m = $(cual === 'consulta' ? 'p-pago-consulta-msg' : 'p-pago-msg');
+  function mesMsg(id, txt, malo){
+    var m = $(id);
     if(!m) return;
-    m.hidden = !txt;
-    m.className = 'msg ' + (malo ? 'err' : 'ok');
+    m.className = 'msg ' + (txt ? (malo ? 'err' : 'ok') : '');
     m.textContent = txt || '';
   }
 
-  function pintarServicios(){
-    var pagado = !!llavePago();
-    var host = $('p-cta-acta');
-    if(host){
-      host.innerHTML = pagado
-        ? '<a class="btn btn-p" href="/acta">Comenzar mi acta</a>'
-        : Cuenta.terminos.html('p-acepta-acta') +
-          '<button type="button" class="btn btn-p" id="p-pagar">Pagar y comenzar</button>';
-      var b = $('p-pagar');
-      if(b) b.addEventListener('click', function(){ irAPagar(this, 'acta', 'p-acepta-acta'); });
-    }
-
-    var nota = $('p-ramas-nota');
-    if(nota) nota.textContent = pagado ? '— va incluida' : '— va incluida en el pago del acta';
-
-    [].slice.call(document.querySelectorAll('.rama-cta')).forEach(function(sp){
-      sp.innerHTML = pagado
-        ? '<a class="btn btn-s" href="' + sp.getAttribute('data-href') + '">' +
-            esc(sp.getAttribute('data-txt')) + '</a>'
-        : '<span class="muted" style="font-size:13px">Se habilita al pagar</span>';
-    });
-
-    // La consulta va por su cuenta.
-    var hostC = $('p-cta-consulta');
-    if(hostC){
-      hostC.innerHTML = llaveConsulta()
-        ? '<a class="btn btn-p" href="/consulta/">Crear consulta</a>'
-        : Cuenta.terminos.html('p-acepta-consulta') +
-          '<button type="button" class="btn btn-p" id="p-pagar-consulta">Pagar y crear consulta</button>';
-      var bc = $('p-pagar-consulta');
-      if(bc) bc.addEventListener('click', function(){ irAPagar(this, 'consulta', 'p-acepta-consulta'); });
-    }
+  // A donde volver despues de pagar: la herramienta que mando a activar el
+  // mes (?volver=/acta). Se guarda en la pestana, porque de Flow se vuelve a
+  // /cuenta?pago= y la direccion ya no lo trae. Solo rutas del sitio.
+  var VOLVER = 'actaviva_volver';
+  function anotarVolver(){
+    var m = /[?&]volver=([^&#]+)/.exec(location.search);
+    if(!m) return;
+    var v = '';
+    try { v = decodeURIComponent(m[1]); } catch(e){ return; }
+    if(!/^\/(acta|consulta\/|acta-comite|finanzas)(\?|#|$)/.test(v)) return;
+    try { sessionStorage.setItem(VOLVER, v); } catch(e){}
+  }
+  function volverA(){
+    try { return sessionStorage.getItem(VOLVER) || ''; } catch(e){ return ''; }
   }
 
-  // La URL de la pasarela la arma el Worker con lo que contesta Flow. Antes
-  // de mandar a la persona a pagar se comprueba que de verdad sea Flow: si
-  // algun dia llegara otra cosa, no se sigue.
-  function esPasarela(u){
-    return typeof u === 'string' && /^https:\/\/(www|sandbox)\.flow\.cl\//.test(u);
+  function pintarMeses(){
+    var host = $('p-meses');
+    if(!host) return;
+    Cuenta.pase.estado(function(e){
+      if(!e){
+        host.innerHTML = '<div class="nota">No pudimos consultar su servicio ahora. Recargue la página en un momento.</div>';
+        return;
+      }
+      var tit = $('p-activar-tit');
+      if(tit) tit.textContent = e.condominios.length ? 'Activar un mes para otro condominio, o renovar' : 'Activar un mes';
+      if(!e.condominios.length){
+        host.innerHTML = vacio('Todavía no ha activado ningún mes',
+          enVitrina() ? 'Cada condominio tiene su mes de servicio, con todas las herramientas.'
+                      : 'Escriba el condominio aquí abajo y active el mes: desde ese momento tiene todas las herramientas para ese condominio.');
+        return;
+      }
+      host.innerHTML = lista(e.condominios.map(filaMes).join(''));
+      enganchar(host);
+    });
+  }
+
+  function filaMes(x){
+    var estado = x.activo
+      ? '<span class="pill ok">activo</span>'
+      : '<span class="pill n">vencido</span>';
+    var linea = x.activo
+      ? 'Vigente hasta el ' + esc(Cuenta.pase.fecha(x.hasta))
+      : 'Venció el ' + esc(Cuenta.pase.fecha(x.ultimo)) + '. Lo emitido sigue en su cuenta; para emitir algo nuevo, active otro mes.';
+    var acc = '';
+    if(!enVitrina()){
+      acc += '<button type="button" class="btn ' + (x.activo ? 'btn-s' : 'btn-p') + ' btn-sm" data-renovar="' + esc(x.condominio) + '">' +
+        (x.activo ? 'Sumar otro mes' : 'Activar otro mes') + '</button>';
+    }
+    if(x.corregir){
+      acc += '<button type="button" class="btn btn-s btn-sm" data-corregir="' + esc(x.corregir) + '" data-nombre="' + esc(x.condominio) + '">Corregir el nombre</button>';
+    }
+    return '<div class="it">' +
+      '<div class="info"><b>' + esc(x.condominio) + estado + '</b><span>' + linea + '</span></div>' +
+      (acc ? '<div class="acc">' + acc + '</div>' : '') +
+    '</div>';
+  }
+
+  function enganchar(host){
+    [].slice.call(host.querySelectorAll('[data-renovar]')).forEach(function(b){
+      b.addEventListener('click', function(){
+        var campo = $('p-mes-condo');
+        if(!campo) return;
+        campo.value = b.getAttribute('data-renovar');
+        var caja = $('p-activar');
+        if(caja && caja.scrollIntoView) caja.scrollIntoView({ block: 'center' });
+        var acepta = $('p-acepta-mes');
+        (acepta || campo).focus();
+        mesMsg('p-mes-pago-msg', b.textContent === 'Sumar otro mes'
+          ? 'El mes nuevo empieza cuando termine el que está vigente: no pierde días por pagar antes.' : '');
+      });
+    });
+    [].slice.call(host.querySelectorAll('[data-corregir]')).forEach(function(b){
+      b.addEventListener('click', function(){ abrirCorreccion(b); });
+    });
+  }
+
+  // Corregir un nombre mal escrito: solo mientras el mes no emitio nada.
+  function abrirCorreccion(b){
+    var fila = b.closest('.it');
+    if(!fila || fila.querySelector('.corrige')) return;
+    var orden = b.getAttribute('data-corregir');
+    var caja = document.createElement('div');
+    caja.className = 'corrige';
+    caja.style.cssText = 'flex-basis:100%;display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+    caja.innerHTML =
+      '<label class="campo" style="flex:1;min-width:200px;margin:0"><span style="display:block;font-size:13px;font-weight:600;margin-bottom:5px">Nombre correcto del condominio</span>' +
+      '<input type="text" maxlength="100" value="' + esc(b.getAttribute('data-nombre')) + '"></label>' +
+      '<button type="button" class="btn btn-p btn-sm">Guardar</button>' +
+      '<button type="button" class="btn btn-s btn-sm">Cancelar</button>' +
+      '<div class="msg" role="status" style="flex-basis:100%"></div>';
+    fila.appendChild(caja);
+    var input = caja.querySelector('input'), bts = caja.querySelectorAll('button'), m = caja.querySelector('.msg');
+    input.focus();
+    bts[1].addEventListener('click', function(){ caja.remove(); });
+    bts[0].addEventListener('click', function(){
+      bts[0].disabled = true; bts[0].textContent = 'Guardando…';
+      Cuenta.pase.corregir(orden, input.value, function(err){
+        bts[0].disabled = false; bts[0].textContent = 'Guardar';
+        if(err){ m.className = 'msg err'; m.textContent = err; return; }
+        pintarMeses();
+        pintarPagos();
+      });
+    });
+  }
+
+  function prepararActivar(){
+    var caja = $('p-activar');
+    if(!caja) return;               // vitrina: el Worker borro la caja
+    var ah = $('p-mes-acepta');
+    if(ah && !ah.innerHTML) ah.innerHTML = Cuenta.terminos.html('p-acepta-mes');
+    var campo = $('p-mes-condo');
+    var m = /[?&]activar=([^&#]+)/.exec(location.search);
+    if(m && campo && !campo.value){
+      try { campo.value = decodeURIComponent(m[1].replace(/\+/g, ' ')).slice(0, 100); } catch(e){}
+    }
+    var b = $('p-mes-pagar');
+    b.addEventListener('click', function(){
+      var nombre = String(campo.value || '').replace(/\s+/g, ' ').trim();
+      if(nombre.length < 2 || !Cuenta.pase.clave(nombre)){
+        mesMsg('p-mes-pago-msg', 'Escriba el nombre del condominio para el que es el mes.', true);
+        campo.focus();
+        return;
+      }
+      if(!Cuenta.terminos.aceptados('p-acepta-mes')){
+        mesMsg('p-mes-pago-msg', Cuenta.terminos.AVISO, true);
+        var c = $('p-acepta-mes'); if(c) c.focus();
+        return;
+      }
+      var t = b.textContent;
+      b.disabled = true; b.textContent = 'Conectando…';
+      mesMsg('p-mes-pago-msg', '');
+      Cuenta.pase.pagar(nombre, function(err){
+        b.disabled = false; b.textContent = t;
+        mesMsg('p-mes-pago-msg', err.texto, !err.demo);
+        if(err.demo){ pintarMeses(); pintarPagos(); }
+        if(err.sesion) pedirSesion();
+      });
+    });
   }
 
   // Sin sesion no hay pago: el Worker ata la orden a la cuenta. Se abre el
@@ -122,100 +206,32 @@
     Cuenta.abrirCajon({ alEntrar: function(){ location.reload(); } });
   }
 
-  function irAPagar(btn, producto, idCasilla){
-    producto = producto || 'acta';
-    if(idCasilla && !Cuenta.terminos.aceptados(idCasilla)){
-      pagoMsg(Cuenta.terminos.AVISO, true, producto);
-      var c = $(idCasilla); if(c) c.focus();
-      return;
-    }
-    btn.disabled = true; var t = btn.textContent; btn.textContent = 'Conectando…';
-    pagoMsg('', false, producto);
-    var correo = ($('p-correo') && $('p-correo').textContent) || '';
-    Cuenta.tokenDeAcceso().then(function(token){
-      if(!token){
-        pagoMsg('Su sesión terminó. Vuelva a entrar para pagar.', true, producto);
-        btn.disabled = false; btn.textContent = t;
-        pedirSesion();
-        return;
-      }
-      return fetch('/api/pago/crear', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + token },
-        body: JSON.stringify({ correo: correo, producto: producto, acepta: Cuenta.terminos.VERSION })
-      }).then(function(r){ return r.json().catch(function(){ return null; }).then(function(d){ return { ok: r.ok, estado: r.status, d: d }; }); })
-        .then(function(x){
-          if(!x.ok || !x.d || !esPasarela(x.d.redirigir)){
-            var sinSesion = x.estado === 401;
-            pagoMsg(sinSesion
-              ? 'Su sesión terminó. Vuelva a entrar para pagar.'
-              : x.d && x.d.error === 'pasarela_no_configurada'
-                ? 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.'
-                : 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', true, producto);
-            btn.disabled = false; btn.textContent = t;
-            if(sinSesion) pedirSesion();
-            return;
-          }
-          location.href = x.d.redirigir;
-        });
-    }).then(null, function(){
-      pagoMsg('No pudimos conectar con el medio de pago. Revise su conexión.', true, producto);
-      btn.disabled = false; btn.textContent = t;
-    });
-  }
-
-  // Vuelta desde la pasarela: /cuenta?pago=AV-XXXX
-  // Corre ya con la sesion abierta: el Worker entrega la llave solo a la
-  // cuenta que pidio la orden. La orden se quita de la direccion recien
-  // cuando hay una respuesta definitiva; antes, recargar -que es lo que el
-  // mensaje de espera recomienda- tiene que volver a intentarlo.
+  // Vuelta desde la pasarela: /cuenta?pago=AV-XXXX. La orden se quita de la
+  // direccion recien con una respuesta definitiva; antes, recargar -que es
+  // lo que pide el mensaje de espera- tiene que volver a intentarlo.
   function retornoDePago(){
     var m = /[?&]pago=(AV-[A-Z0-9]+)/.exec(location.search);
     if(!m) return;
-    var orden = m[1], intentos = 0;
     var olvidarOrden = function(){ try { history.replaceState(null, '', location.pathname); } catch(e){} };
-    pagoMsg('Confirmando el pago…');
-    Cuenta.tokenDeAcceso().then(function(token){
-      if(!token){ pagoMsg('Entre a su cuenta para confirmar el pago.', true); return; }
-      (function revisar(){
-        intentos++;
-        fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), {
-          headers: { 'authorization': 'Bearer ' + token }
-        })
-          .then(function(r){ return r.json().then(function(d){ return { estado: r.status, d: d }; }); })
-          .then(function(x){
-            var d = x.d;
-            if(d && d.estado === 'pagado' && d.llave){
-              olvidarOrden();
-              // La llave se guarda en el casillero del servicio que se pago.
-              var esConsulta = d.producto === 'consulta';
-              try { localStorage.setItem(esConsulta ? LLAVE_CONSULTA : LLAVE_PAGO, d.llave); } catch(e){}
-              pagoMsg(esConsulta
-                ? 'Pago confirmado. Ya puede crear su consulta.'
-                : 'Pago confirmado. Ya puede comenzar su acta.', false, esConsulta ? 'consulta' : 'acta');
-              pintarServicios();
-              return;
-            }
-            // 404: la orden no existe o es de otra cuenta. El Worker no dice
-            // cual de las dos, y esperar no la va a hacer aparecer.
-            // Se anota el numero en el equipo antes de quitarlo de la
-            // direccion: si se pago con otra cuenta, al entrar con ella
-            // Cuenta.recuperarPagos lo entrega.
-            if(x.estado === 404){
-              if(typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(orden);
-              olvidarOrden();
-              pagoMsg('No encontramos ese pago en esta cuenta. Si pagó con otra, entre con ella en este equipo y se lo entregaremos.', true);
-              return;
-            }
-            if(x.estado === 401){ pagoMsg('Su sesión terminó. Vuelva a entrar para confirmar el pago.', true); pedirSesion(); return; }
-            if(intentos < 10){ setTimeout(revisar, 2000); return; }
-            pagoMsg('Todavía no recibimos la confirmación. Si ya pagó, recargue esta página en un momento.', true);
-          })
-          .catch(function(){
-            if(intentos < 10){ setTimeout(revisar, 2000); return; }
-            pagoMsg('No pudimos verificar el pago.', true);
-          });
-      })();
+    var sec = $('s-mes'); if(sec && sec.scrollIntoView) sec.scrollIntoView();
+    mesMsg('p-mes-msg', 'Confirmando el pago…');
+    Cuenta.pase.confirmar(m[1], function(r){
+      if(r.listo){
+        olvidarOrden();
+        var host = $('p-mes-msg');
+        var v = volverA();
+        try { sessionStorage.removeItem(VOLVER); } catch(e){}
+        host.className = 'msg ok';
+        host.innerHTML = 'Listo: su mes para <b>' + esc(r.condominio || 'su condominio') + '</b> está activo hasta el ' +
+          esc(Cuenta.pase.fecha(r.hasta)) + '.' +
+          (v ? ' <a class="btn btn-p btn-sm" style="margin-left:8px" href="' + esc(v) + '">Volver a lo que estaba haciendo</a>' : '');
+        pintarMeses();
+        pintarPagos();
+        return;
+      }
+      if(r.definitivo) olvidarOrden();
+      mesMsg('p-mes-msg', r.texto, true);
+      if(r.sesion) pedirSesion();
     });
   }
 
@@ -324,11 +340,10 @@
     }
 
     marcarRail();
-    pintarServicios();
+    anotarVolver();
+    pintarMeses();
+    prepararActivar();
     retornoDePago();
-    // Si al cerrar sesion quedo un pago sin usar, vuelve a su casillero y los
-    // servicios se pintan de nuevo. Sin nada anotado no hace nada.
-    Cuenta.recuperarPagos(function(n){ if(n) pintarServicios(); });
     pintarActas();
     pintarComite();
     pintarSala();
@@ -472,7 +487,7 @@
   }
 
   // ---- actas del comité ----
-  // El servicio es gratis y no tiene RPC de listado: la tabla se consulta
+  // No tiene RPC de listado: la tabla se consulta
   // directo, con RLS de por medio (cada quien ve solo lo suyo). La app en
   // /acta-comite retoma sola la más reciente SIN cerrar; por eso el botón de
   // un borrador dice «Continuar» sin llevar id. Un acta cerrada no se puede
@@ -493,7 +508,7 @@
         var l = r.data || [];
         if(!l.length){
           host.innerHTML = vacio('El comité aún no tiene actas',
-            'Es gratis: escriba la de su próxima reunión y quedará numerada al cerrarla.',
+            'Escriba la de su próxima reunión y quedará numerada al cerrarla.',
             { href:'/acta-comite', txt:'Registrar los primeros acuerdos' });
           return;
         }
@@ -539,7 +554,10 @@
   function pintarSala(){
     var host = $('p-sala');
     var s = leer('acta_sala');
-    if(!(s && s.t && (Date.now() - s.t) < 48*60*60*1000)){ host.innerHTML = ''; return; }
+    if(!(s && s.t && (Date.now() - s.t) < 48*60*60*1000)){
+      host.innerHTML = vacio('No hay una sala abierta', 'Se abre desde el paso 5 del acta, con la asamblea reunida.');
+      return;
+    }
     var restan = Math.max(0, Math.round((48*60*60*1000 - (Date.now() - s.t)) / 3600000));
     host.innerHTML = lista(
       '<div class="it">' +
@@ -577,39 +595,25 @@
     }, function(e){ host.innerHTML = fallo(e, 'consultas'); });
   }
 
-  // ---- asambleas pagadas ----
+  // ---- pagos: un mes por fila ----
   function pintarPagos(){
     var host = $('p-pagos');
     var c = Cuenta.cliente();
     if(!c){ host.innerHTML = noDisponible('pagos'); return; }
-    c.rpc('vv_mis_pagos').then(function(r){
-      if(r.error){ host.innerHTML = fallo(r.error, 'asambleas'); return; }
+    c.rpc('pase_mis_meses').then(function(r){
+      if(r.error){ host.innerHTML = fallo(r.error, 'pagos'); return; }
       var l = r.data || [];
-      if(!l.length){ host.innerHTML = sinPagos(); return; }
+      if(!l.length){
+        host.innerHTML = vacio('Todavía no hay pagos',
+          'Cada pago queda aquí, con su número de orden y el mes que cubre. El comprobante de Flow le llega por correo.');
+        return;
+      }
       host.innerHTML = lista(l.map(function(x){
         return '<div class="it"><div class="info">' +
-          '<b>' + esc(x.titulo || 'Asamblea') +
-          (x.activa ? '<span class="pill ok">sala abierta</span>' : '<span class="pill n">finalizada</span>') + '</b>' +
-          '<span>Activada el ' + esc(fecha(x.creado)) + '</span></div></div>';
+          '<b>' + esc(x.condominio || 'Condominio') + '<span class="pill n">' + esc(x.orden) + '</span></b>' +
+          '<span>Pagado el ' + esc(fecha(x.pagado_en)) + ' · cubre del ' + esc(fecha(x.desde)) + ' al ' + esc(fecha(x.hasta)) + '</span>' +
+          '</div></div>';
       }).join(''));
-    }, function(e){ host.innerHTML = fallo(e, 'asambleas'); });
-  }
-
-  function sinPagos(){
-    // Ver la nota en acta-1.js. Sin esto, quien solo visito /acta-demo veia
-    // aqui "Una asamblea activada - disponible", que no es cierto.
-    var llave = '';
-    try { llave = localStorage.getItem('acta_pago_llave') || ''; } catch(e){}
-    if(llave === 'DEMO-PAGO-SIMULADO' &&
-       !/(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname)) llave = '';
-    if(llave){
-      return lista('<div class="it"><div class="info">' +
-        '<b>Una asamblea activada<span class="pill ok">disponible</span></b>' +
-        '<span>Guardada en este equipo. Se usa al abrir la sala de votación.</span></div>' +
-        '<div class="acc"><a class="btn btn-p btn-sm" href="/acta">Ir al acta</a></div></div>');
-    }
-    return vacio('Todavía no ha activado ninguna asamblea',
-      'Armar el acta está incluido. Solo se paga la votación en vivo, y se paga por asamblea.',
-      { href:'/acta', txt:'Comenzar mi acta' });
+    }, function(e){ host.innerHTML = fallo(e, 'pagos'); });
   }
 })();

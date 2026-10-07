@@ -1855,6 +1855,11 @@
   html.acta-abierta .app-cuerpo { display: flex; }
   html.acta-abierta .nav-footer { display: flex; }
   html.acta-abierta #puerta-pago { display: none; }
+  /* Mientras la base dice si la cuenta tiene su mes (acta-1.js, _comprobarMes)
+     se ve solo el aviso de espera: ni el asistente ni el cobro a medio pintar. */
+  #puerta-comprobando { display: none; }
+  html.puerta-comprobando #puerta-comprobando { display: block; }
+  html.puerta-comprobando .puerta-caja > :not(#puerta-comprobando) { display: none; }
 
   #puerta-pago{max-width:680px;margin:0 auto;padding:48px 22px 90px}
   .puerta-caja{background:#fff;border:1px solid rgba(16,24,48,.10);border-radius:16px;padding:34px 36px;box-shadow:0 8px 32px rgba(20,24,30,.08)}
@@ -1876,6 +1881,10 @@
   .puerta-msg.err{color:var(--c-error)}
   .puerta-msg.ok{color:#1A6B3F}
   .puerta-nota{font-size:13px;line-height:1.6;color:var(--c-text-3);text-align:justify;hyphens:auto;margin:22px 0 0}
+  #puerta-comprobando{font-size:15px;color:var(--c-text-2);margin:0}
+  .btn-link{background:none;border:0;padding:0;font:inherit;color:var(--c-interact);text-decoration:underline;cursor:pointer}
+  .aviso-mes{margin-top:10px;font-size:13.5px;line-height:1.55;color:#7A5416;background:#FFF7E6;border:1px solid #F0D9A8;border-radius:8px;padding:10px 12px;text-align:justify;hyphens:auto}
+  .aviso-mes button{margin-top:8px}
   @media(max-width:640px){.puerta-caja{padding:26px 20px}.puerta-tit{font-size:24px}}
 
 
@@ -2116,36 +2125,38 @@
 
 <div id="puerta-pago" data-pago>
   <div class="puerta-caja">
+    <p id="puerta-comprobando" role="status">Comprobando el mes de servicio de su cuenta…</p>
     <span class="puerta-ceja">Acta de asamblea</span>
-    <h1 class="puerta-tit">El pago va antes de la asamblea</h1>
+    <h1 class="puerta-tit">Active su mes antes de la asamblea</h1>
     <p class="puerta-txt">Así llega a la reunión con la herramienta lista: nadie tiene que detener la
     asamblea para sacar la tarjeta, ni esperar a que se confirme un pago con la sala llena.</p>
 
     <ul class="puerta-lista">
       <li>El asistente de seis pasos, con el quórum y las mayorías calculadas.</li>
-      <li>La votación en vivo desde el teléfono, incluida en el mismo pago.</li>
+      <li>La votación en vivo desde el teléfono.</li>
       <li>El documento con folio, listo para revisar y firmar.</li>
+      <li>Durante ese mes, para el mismo condominio, también las demás asambleas, la consulta por escrito, el acta del comité y las cuentas.</li>
     </ul>
 
-    <p class="puerta-precio"><b>$14.990</b> por asamblea · sin mensualidad</p>
+    <p class="puerta-precio"><b>$14.990</b> por un mes, para un condominio · no se renueva solo</p>
     <div class="puerta-acciones">
-      <a class="btn btn-primary puerta-btn" href="/cuenta#s-servicios">Ir a pagar y comenzar</a>
+      <a class="btn btn-primary puerta-btn" id="puerta-activar" href="/cuenta?volver=%2Facta#s-mes">Activar mi mes</a>
       <a class="btn btn-secondary puerta-btn" href="/acta-demo">Probarlo antes, con datos de ejemplo</a>
     </div>
     <p class="puerta-probar">La demostración recorre los seis pasos completos —incluida la votación
     desde el teléfono y el documento final— sin cuenta, sin pagar y sin guardar nada.</p>
-
-    <p class="puerta-pie">¿Ya pagó en otro equipo o navegador? Escriba el <strong>número de orden</strong>
-    del comprobante que le llegó por correo y recupere el acceso aquí.</p>
-    <div class="puerta-rescate">
-      <input type="text" id="puerta-orden" placeholder="AV-XXXXXXXX" aria-label="Número de orden del pago" autocomplete="off">
-      <button type="button" class="btn btn-secondary" data-ac="puertaRecuperar" data-args="@">Recuperar acceso</button>
-    </div>
     <div id="puerta-msg" class="puerta-msg" hidden role="status"></div>
 
-    <p class="puerta-nota">Si ya tenía un borrador a medias, sigue guardado: aparece apenas entre.
-    ¿Solo necesita dejar por escrito una <strong>reunión del comité</strong>?
-    <a href="/acta-comite">Esa es gratis</a>.</p>
+    <p class="puerta-pie">El mes queda en la cuenta con la que se pagó y sirve desde cualquier equipo.
+    ¿Pagó y su mes no aparece? Escriba el <strong>número de orden</strong> del comprobante que le llegó
+    por correo.</p>
+    <div class="puerta-rescate">
+      <input type="text" id="puerta-orden" placeholder="AV-XXXXXXXX" aria-label="Número de orden del pago" autocomplete="off">
+      <button type="button" class="btn btn-secondary" data-ac="puertaRecuperar" data-args="@">Buscar mi pago</button>
+    </div>
+
+    <p class="puerta-nota">Si ya tenía un borrador a medias, sigue guardado: aparece apenas active su mes.
+    ¿Pagó con otra cuenta? <button type="button" class="btn-link" data-ac="puertaOtraCuenta" data-args="@">Entre con esa cuenta</button>.</p>
   </div>
 </div>
 
@@ -2233,6 +2244,9 @@
       <div class="field">
         <label for="condo-nombre">Nombre del Condominio <span class="req" aria-hidden="true">*</span><span class="sr-only"> (campo obligatorio)</span></label>
         <input type="text" id="condo-nombre" placeholder="Ej: Condominio Las Araucarias" />
+        <!-- El mes es de un condominio: si el nombre no calza con el de su mes,
+             se dice aqui y no recien al finalizar (acta-1.js, _avisoCondominio). -->
+        <div class="aviso-mes" id="aviso-mes-condo" role="status" hidden></div>
       </div>
     </div>
 
@@ -2546,16 +2560,13 @@
       <button type="button" class="btn-add-row" style="background:var(--c-interact);color:#fff;border-color:var(--c-interact)" data-ac="actaIniciarSala" data-args="@">Iniciar sala de votación en vivo</button>
     </div>
     <div id="vv-pago" data-pago style="display:none;margin-top:12px">
-      <div id="vv-cta-host"></div>
-      <div id="vv-pago-listo" style="display:none;border:1px solid var(--c-border);border-radius:12px;padding:16px 18px;background:var(--c-bg)">
-        <div style="font-weight:700;color:var(--c-primary);font-size:15px;margin-bottom:5px">Active esta asamblea</div>
-        <div style="font-size:13.5px;color:var(--c-text-2);line-height:1.55;margin-bottom:13px">Un pago por asamblea habilita la sala de votación en vivo de esta reunión. El comprobante llegará a <strong id="vv-correo-txt">—</strong>.</div>
-        <div id="vv-acepta-host"></div>
-        <div id="vv-pago-msg" style="display:none;font-size:13px;margin-top:9px;line-height:1.5"></div>
-        <div style="display:flex;gap:10px;margin-top:13px;flex-wrap:wrap">
-          <button type="button" class="btn-add-row" style="background:#F2803D;color:#fff;border-color:#E5692A" data-ac="actaIrAPagar" data-args="@">Ir a pagar</button>
+      <div style="border:1px solid var(--c-border);border-radius:12px;padding:16px 18px;background:var(--c-bg)">
+        <div style="font-weight:700;color:var(--c-primary);font-size:15px;margin-bottom:5px">Active su mes para abrir la sala</div>
+        <div id="vv-pago-msg" role="status" style="font-size:13.5px;color:var(--c-text-2);line-height:1.55;margin-bottom:13px;text-align:justify;hyphens:auto">La sala de votación se abre con el mes de servicio del condominio de esta acta.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn-add-row" id="vv-activar" style="background:#F2803D;color:#fff;border-color:#E5692A;text-decoration:none;display:inline-flex;align-items:center" href="/cuenta#s-mes">Activar el mes</a>
           <button type="button" class="btn-add-row" data-ac="actaCancelarPago">Cancelar</button>
-          <button type="button" class="btn-add-row" data-ac="actaCerrarSesion" data-args="@">No soy yo</button>
+          <button type="button" class="btn-add-row" data-ac="actaCerrarSesion" data-args="@">Entrar con otra cuenta</button>
         </div>
       </div>
     </div>

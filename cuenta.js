@@ -88,8 +88,8 @@
   }
 
   // El token de la sesion vigente, para las llamadas al Worker que cobran
-  // (/api/pago/*): el Worker ata cada orden a la cuenta que la pidio y no
-  // entrega la llave a nadie mas. null si no hay sesion; la pagina que lo
+  // (/api/pago/*): el Worker ata cada orden a la cuenta que la pidio y solo
+  // a ella le dice si ya se pago. null si no hay sesion; la pagina que lo
   // pide se encarga de hacer entrar a la persona.
   function tokenDeAcceso() {
     var c = cliente();
@@ -107,10 +107,12 @@
   // -------------------------------------------------------------------
   // signOut() borra solo el token de Supabase. Lo demas lo dejaron las
   // paginas, y en la conserjeria el computador es de todos: el que se sienta
-  // despues no tiene por que encontrar el padron de otro condominio, la
-  // clave de la Mesa de una sala o una llave de pago que todavia sirve.
+  // despues no tiene por que encontrar el padron de otro condominio ni la
+  // clave de la Mesa de una sala. Las llaves de pago y la lista de ordenes
+  // por recuperar ya no se escriben (desde el paso 17 el mes vive en la
+  // base), pero un equipo que las tenga de antes las suelta al salir.
   var DEL_EQUIPO = ['acta_pago_llave', 'consulta_pago_llave', 'acta_pago_llave_real',
-                    'acta_sala', 'cc_mesa'];
+                    'pagos_por_recuperar', 'actaviva_pase', 'acta_sala', 'cc_mesa'];
   var PREFIJOS_DEL_EQUIPO = ['sala-mesa-', 'sala-voto-'];
   // Los borradores van aparte porque pueden ser lo unico que existe de un
   // trabajo: ver borradoresPendientes().
@@ -124,159 +126,187 @@
     try { return global.localStorage || null; } catch (e) { return null; }
   }
 
-  // Una llave de pago sin usar es plata de la persona. Borrarla sin mas la
-  // obliga a pagar de nuevo; dejarla, que otro la use en este equipo. Se
-  // guarda el numero de la orden, que desde que el Worker ata el pago a la
-  // cuenta no sirve sin la sesion de quien pago, y al volver a entrar la
-  // llave se pide otra vez con su token (recuperarPagos).
-  var POR_RECUPERAR = 'pagos_por_recuperar';
+  // -------------------------------------------------------------------
+  //  El mes de servicio (paso 17, 07-10-2026)
+  // -------------------------------------------------------------------
+  //  Un pago es un mes para UN condominio, con todas las herramientas. Vive
+  //  en la base, atado a la cuenta: no hay nada que guardar en el equipo ni
+  //  que recuperar en otro. Esto solo pregunta y avisa; quien decide si un
+  //  documento sale es Postgres (pase_exigir), con la misma regla.
 
-  // La llave es <payload en base64url>.<hmac>, con {o: orden, e: vence, p:
-  // producto} (emitirLlave en _worker.js). Solo se lee: la firma la valida
-  // Postgres, no el navegador.
-  function b64urlJson(txt) {
-    var b = String(txt || '').replace(/-/g, '+').replace(/_/g, '/');
-    while (b.length % 4) b += '=';
-    return JSON.parse(global.atob(b));
+  // La clave de un condominio: la misma que pase_clave() en la base
+  // (Seguridad/pase-mensual-2026-10-07.sql); prueba-seg-cuenta.mjs compara las dos.
+  var TILDES = { 'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
+                 'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i', 'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'õ': 'o',
+                 'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u', 'ñ': 'n', 'ç': 'c' };
+  var GENERICAS = /^((condominio|comunidad|edificio|conjunto|habitacional|residencial|villa) )+/;
+  function claveCondominio(v) {
+    var s = String(v == null ? '' : v).toLowerCase()
+      .replace(/[áàäâãéèëêíìïîóòöôõúùüûñç]/g, function (c) { return TILDES[c]; })
+      .replace(/[^a-z0-9]+/g, ' ').trim().replace(GENERICAS, '');
+    return s || null;
   }
-  function ordenDeLlave(llave) {
-    var partes = String(llave || '').split('.');
-    if (partes.length !== 2) return null;
-    try {
-      var d = b64urlJson(partes[0]);
-      if (!d || !/^AV-[A-Z0-9]{1,32}$/.test(String(d.o || ''))) return null;
-      return { o: String(d.o), e: Number(d.e) || 0, p: d.p === 'consulta' ? 'consulta' : 'acta' };
-    } catch (e) { return null; }
-  }
-  function leerPorRecuperar() {
+
+  // Lo que dijo la base la ultima vez, para no mostrar la puerta del pago un
+  // instante a quien tiene el mes al dia. Es una pista: la pagina vuelve a
+  // preguntar siempre, y la que manda es la base.
+  var PASE_EN_EQUIPO = 'actaviva_pase';
+  function paseEnEquipo() {
     var ls = almacen();
     try {
-      var l = ls && JSON.parse(ls.getItem(POR_RECUPERAR));
-      // Lo que se lee del equipo se revisa: solo ordenes con su forma.
-      return Array.isArray(l) ? l.filter(function (x) {
-        return x && /^AV-[A-Z0-9]{1,32}$/.test(String(x.o || ''));
+      var d = ls && JSON.parse(ls.getItem(PASE_EN_EQUIPO));
+      return !!(d && Date.parse(d.hasta) > Date.now());
+    } catch (e) { return false; }
+  }
+
+  // cb(estado) o cb(null) si no se pudo preguntar (sin sesion, sin red).
+  //   estado.activo        hay al menos un mes vigente
+  //   estado.condominios   [{condominio, clave, activo, hasta, ultimo, corregir}]
+  //   estado.vigentes      los activos
+  function estadoPase(cb) {
+    var c = cliente();
+    if (!c || typeof c.rpc !== 'function') { cb(null); return; }
+    Promise.resolve().then(function () { return c.rpc('pase_estado'); }).then(function (r) {
+      if (!r || r.error || !r.data) { cb(null); return; }
+      var lista = Array.isArray(r.data.condominios) ? r.data.condominios.filter(function (x) {
+        return x && typeof x.condominio === 'string';
       }) : [];
-    } catch (e) { return []; }
-  }
-  function escribirPorRecuperar(l) {
-    var ls = almacen();
-    if (!ls) return;
-    // Una orden vencida ya no tiene llave que devolver.
-    var ahora = Date.now() / 1000;
-    var vigentes = l.filter(function (x) { return x && x.o && Number(x.e) > ahora; });
-    try {
-      if (vigentes.length) ls.setItem(POR_RECUPERAR, JSON.stringify(vigentes));
-      else ls.removeItem(POR_RECUPERAR);
-    } catch (e) {}
+      var vigentes = lista.filter(function (x) { return x.activo === true; });
+      var ls = almacen();
+      try {
+        var hasta = vigentes.map(function (x) { return String(x.hasta || ''); }).sort().pop();
+        if (ls && hasta) ls.setItem(PASE_EN_EQUIPO, JSON.stringify({ hasta: hasta }));
+        else if (ls) ls.removeItem(PASE_EN_EQUIPO);
+      } catch (e) {}
+      cb({ activo: r.data.activo === true && vigentes.length > 0, condominios: lista, vigentes: vigentes });
+    }, function () { cb(null); });
   }
 
-  // La vuelta desde la pasarela con una orden que el Worker no reconoce en
-  // esta cuenta: o se pago con otra cuenta en este mismo equipo, o el
-  // registro de la orden todavia no se ve desde aqui. En los dos casos el
-  // numero de la direccion es lo unico que queda de ese pago; se anota para
-  // que recuperarPagos lo pida con la cuenta que entre despues. Plazo corto:
-  // mientras siga anotada, cada pagina con portero pregunta por ella.
-  var ANOTADA_SIN_VER = 7 * 86400;
-  function anotarPago(orden) {
-    var o = String(orden || '');
-    if (!/^AV-[A-Z0-9]{1,32}$/.test(o)) return;
-    var l = leerPorRecuperar();
-    if (l.some(function (x) { return x.o === o; })) return;
-    l.push({ o: o, e: Math.floor(Date.now() / 1000) + ANOTADA_SIN_VER, p: 'acta' });
-    escribirPorRecuperar(l);
+  // El mes vigente que cubre a ese condominio, o null.
+  function paseDe(estado, condominio) {
+    var k = claveCondominio(condominio);
+    if (!estado || !k) return null;
+    for (var i = 0; i < estado.vigentes.length; i++) {
+      if (estado.vigentes[i].clave === k) return estado.vigentes[i];
+    }
+    return null;
   }
 
-  // Devuelve a su casillero las llaves de las ordenes anotadas al salir.
-  // cb(n) con cuantas volvieron. Sin nada anotado responde en el acto, para
-  // no demorar la carga de ninguna pagina.
-  //
-  // /api/pago/estado va con el limite estricto del Worker: 20 consultas por
-  // minuto por IP, y en una conserjeria esa IP es la de todo el edificio.
-  // Preguntar por todas las ordenes a la vez gastaba el cupo de un golpe, y
-  // la vuelta de un pago recien hecho se quedaba sin respuesta. Por eso se
-  // pregunta una tras otra, a lo mas POR_VISITA por carga de pagina, y ante
-  // un 429 se para: las que quedan van en la proxima visita. Las que se
-  // preguntaron sin exito pasan al final de la fila; si no, una orden de
-  // otra cuenta, que sigue anotada hasta vencer, se llevaria siempre los
-  // primeros turnos y taparia a las de atras.
-  var POR_VISITA = 5;
-  var cupoVisita = POR_VISITA;
-  // Mismo criterio que llaveDelActa() en acta-1.js y llaveGuardada() en
-  // consulta-1.js: 'DEMO-PAGO-SIMULADO' solo cuenta en una pagina -demo.
-  function casilleroOcupado(v) {
-    if (!v) return false;
-    if (v !== 'DEMO-PAGO-SIMULADO') return true;
-    return /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(String((global.location || {}).pathname || ''));
+  function fechaPase(v) {
+    var d = new Date(v);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) +
+      ', ' + d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
   }
-  // Si otra parte de la pagina pide lo mismo mientras se pregunta, espera
-  // esa vuelta en vez de preguntar de nuevo por las mismas ordenes.
-  var esperanRecuperar = null;
 
-  function recuperarPagos(cb) {
-    if (esperanRecuperar) { if (cb) esperanRecuperar.push(cb); return; }
-    var lista = leerPorRecuperar();
-    if (!lista.length || cupoVisita <= 0) { if (cb) cb(0); return; }
-    esperanRecuperar = cb ? [cb] : [];
-    var hecho = false, vueltas = 0, devueltas = [], preguntadas = [];
-    var terminar = function () {
-      if (hecho) return;
-      hecho = true;
-      clearTimeout(reloj);
-      // Se relee el equipo: mientras se preguntaba, la pagina pudo anotar
-      // otra orden (anotarPago) y escribir la lista del comienzo la borraba.
-      var quedan = leerPorRecuperar().filter(function (x) { return devueltas.indexOf(x.o) < 0; });
-      var yaPreguntada = function (x) { return preguntadas.indexOf(x.o) >= 0; };
-      escribirPorRecuperar(quedan.filter(function (x) { return !yaPreguntada(x); })
-        .concat(quedan.filter(yaPreguntada)));
-      var esperan = esperanRecuperar;
-      esperanRecuperar = null;
-      // Un error en quien espera no puede dejar sin respuesta al siguiente
-      // (el portero de la pagina quedaria cerrado); se relanza aparte para
-      // que igual se vea en la consola.
-      esperan.forEach(function (f) {
-        try { f(vueltas); } catch (e) { setTimeout(function () { throw e; }, 0); }
-      });
-    };
-    // La red no puede dejar la pagina esperando: pasado el plazo se sigue, y
-    // lo que no volvio queda anotado para la proxima.
-    var reloj = setTimeout(terminar, 6000);
+  // Lo que se le dice a la persona cuando la base no deja emitir. Sin el
+  // precio: en vitrina no se muestra, y este texto sale en cualquier pagina.
+  function mensajePase(codigo, estado, condominio) {
+    var nombres = ((estado && estado.vigentes) || []).map(function (x) { return '«' + x.condominio + '»'; });
+    if (/pase_de_otro_condominio/.test(String(codigo || '')) && nombres.length) {
+      return 'Su mes activo es para ' + nombres.join(' y ') + (condominio ? ', y este documento es de «' + condominio + '»' : '') +
+        '. Cada condominio necesita su propio mes. Revise que el nombre del condominio esté bien escrito o active un mes para este.';
+    }
+    return 'Para emitir este documento necesita un mes activo para ' + (condominio ? '«' + condominio + '»' : 'este condominio') +
+      '. Se activa desde su cuenta y vale para todas las herramientas de ese condominio durante un mes.';
+  }
+
+  // Donde se activa un mes, con el condominio ya escrito si se sabe. Desde
+  // una pagina de demostracion se va al panel de demostracion: salir de la
+  // demo para "pagar" llevaria a la cuenta de verdad.
+  function urlActivar(condominio) {
+    var c = String(condominio || '').trim();
+    var demo = /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(String((global.location || {}).pathname || ''));
+    return (demo ? '/cuenta-demo' : '/cuenta') + (c ? '?activar=' + encodeURIComponent(c.slice(0, 100)) : '') + '#s-mes';
+  }
+
+  // La URL de la pasarela la arma el Worker con lo que contesta Flow. Antes
+  // de mandar a alguien a pagar se comprueba que de verdad sea Flow.
+  function esPasarela(u) {
+    return typeof u === 'string' && /^https:\/\/(www|sandbox)\.flow\.cl\//.test(u);
+  }
+
+  // Inicia el pago de un mes para un condominio. cb(error) solo si no se
+  // pudo: si sale bien, la pagina se va a Flow. error.sesion = true cuando
+  // hay que volver a entrar.
+  function pagarMes(condominio, cb) {
     tokenDeAcceso().then(function (token) {
-      if (!token) { terminar(); return; }
-      var turno = lista.slice(0, cupoVisita), i = 0;
-      var siguiente = function () {
-        if (hecho || i >= turno.length) { terminar(); return; }
-        var x = turno[i++];
-        cupoVisita--;
-        fetch('/api/pago/estado?orden=' + encodeURIComponent(x.o), {
-          headers: { authorization: 'Bearer ' + token }
-        }).then(function (r) {
-          // Pasado el limite, seguir solo suma rechazos y alarga la espera.
-          // Y el cupo de esta pagina se da por gastado: otra llamada en la
-          // misma carga (el panel pregunta despues del portero) volveria a
-          // chocar con el limite y le quitaria turnos a la vuelta de Flow.
-          if (r.status === 429) { cupoVisita = 0; terminar(); return; }
-          preguntadas.push(x.o);
-          return r.json().catch(function () { return null; }).then(function (d) {
-            // Lo que llega despues del plazo ya no se usa: la lista se
-            // escribio sin esta respuesta y la orden sigue anotada.
-            if (hecho) return;
-            if (d && d.estado === 'pagado' && d.llave) {
-              var casillero = d.producto === 'consulta' ? 'consulta_pago_llave' : 'acta_pago_llave';
-              var ls = almacen();
-              // Si el casillero ya tiene otra llave, esta espera su turno.
-              // La marca que dejaba la demostracion no es una llave: fuera
-              // de una pagina -demo los lectores la descartan, y tomarla por
-              // ocupado dejaba el pago de verdad esperando hasta vencer.
-              if (ls && !casilleroOcupado(ls.getItem(casillero))) {
-                try { ls.setItem(casillero, d.llave); devueltas.push(x.o); vueltas++; } catch (e) {}
-              }
+      if (!token) { cb({ sesion: true, texto: 'Su sesión terminó. Vuelva a entrar para pagar.' }); return; }
+      return fetch('/api/pago/crear', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify({ condominio: condominio, acepta: TERMINOS_VERSION })
+      }).then(function (r) {
+        return r.json().catch(function () { return null; }).then(function (d) {
+          if (r.ok && d && esPasarela(d.redirigir)) { global.location.href = d.redirigir; return; }
+          var e = d && d.error;
+          cb(r.status === 401 ? { sesion: true, texto: 'Su sesión terminó. Vuelva a entrar para pagar.' }
+            : e === 'condominio_invalido' ? { texto: 'Escriba el nombre del condominio (entre 2 y 100 caracteres).' }
+            // La demostracion no cobra: js/demo-aviso.js activa el mes y lo dice.
+            : e === 'demostracion' && d && typeof d.mensaje === 'string' ? { demo: true, texto: d.mensaje }
+            : e === 'pasarela_no_configurada' || e === 'pasarela_en_pruebas'
+              ? { texto: 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.' }
+              : { texto: 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.' });
+        });
+      });
+    }).then(null, function () { cb({ texto: 'No pudimos conectar con el medio de pago. Revise su conexión.' }); });
+  }
+
+  // La vuelta de Flow: pregunta por la orden hasta que el mes quede
+  // registrado. cb({ listo: true, condominio, hasta }) o cb({ texto, definitivo }).
+  // /api/pago/estado va con el limite estricto del Worker (20 por minuto por
+  // IP, y en una conserjeria esa IP es la de todo el edificio): cada 3 s, a
+  // lo mas 15 veces.
+  function confirmarPago(orden, cb) {
+    var intentos = 0;
+    tokenDeAcceso().then(function (token) {
+      if (!token) { cb({ sesion: true, texto: 'Entre con la cuenta con la que pagó para confirmar el pago.' }); return; }
+      (function revisar() {
+        intentos++;
+        fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), { headers: { authorization: 'Bearer ' + token } })
+          .then(function (r) {
+            return r.json().catch(function () { return null; }).then(function (d) { return { estado: r.status, d: d }; });
+          })
+          .then(function (x) {
+            var d = x.d;
+            if (d && d.estado === 'pagado' && d.hasta) {
+              try { var ls = almacen(); if (ls) ls.setItem(PASE_EN_EQUIPO, JSON.stringify({ hasta: d.hasta })); } catch (e) {}
+              cb({ listo: true, condominio: d.condominio, hasta: d.hasta });
+              return;
             }
-            siguiente();
+            // 404: la orden no existe o es de otra cuenta. El Worker no dice
+            // cual de las dos, y esperar no la va a hacer aparecer.
+            if (x.estado === 404) {
+              cb({ definitivo: true, texto: 'No encontramos ese pago en esta cuenta. Si pagó con otra cuenta, entre con ella: el mes queda en la cuenta que pagó.' });
+              return;
+            }
+            if (x.estado === 401) { cb({ sesion: true, texto: 'Su sesión terminó. Vuelva a entrar para confirmar el pago.' }); return; }
+            if (intentos < 15) { setTimeout(revisar, 3000); return; }
+            cb({ texto: 'Todavía no recibimos la confirmación del pago. Si ya pagó, recargue esta página en un momento.' });
+          })
+          .then(null, function () {
+            if (intentos < 15) { setTimeout(revisar, 3000); return; }
+            cb({ texto: 'No pudimos verificar el pago. Recargue esta página en unos minutos.' });
           });
-        }).then(null, function () { terminar(); });
-      };
-      siguiente();
-    }).then(null, terminar);
+      })();
+    }, function () { cb({ texto: 'No pudimos verificar el pago.' }); });
+  }
+
+  // Corrige el condominio de un mes que todavia no se usa. cb(error|null, datos).
+  function corregirPase(orden, condominio, cb) {
+    var c = cliente();
+    if (!c) { cb('Sin conexión con el servicio.'); return; }
+    Promise.resolve().then(function () {
+      return c.rpc('pase_corregir', { p_orden: orden, p_condominio: condominio });
+    }).then(function (r) {
+      if (r && !r.error) { cb(null, r.data); return; }
+      var m = String((r && r.error && r.error.message) || '');
+      cb(/mes_ya_usado/.test(m) ? 'Este mes ya emitió documentos de ese condominio y no se puede cambiar.'
+        : /condominio_con_mes_vigente/.test(m) ? 'Ese condominio ya tiene un mes activo en su cuenta.'
+        : /condominio_invalido/.test(m) ? 'Escriba el nombre del condominio (entre 2 y 100 caracteres).'
+        : /mes_no_vigente/.test(m) ? 'Este mes ya no está vigente.'
+        : 'No pudimos corregirlo. Inténtelo nuevamente.');
+    }, function () { cb('No pudimos corregirlo. Revise su conexión.'); });
   }
 
   // Lo mismo que _actaEnBlanco() de acta-1.js: los campos vienen todos,
@@ -386,15 +416,6 @@
   function borrarDelEquipo(conservar) {
     var ls = almacen();
     if (!ls) return;
-    // Antes de soltar las llaves se anota de que orden eran.
-    var pend = leerPorRecuperar();
-    ['acta_pago_llave', 'consulta_pago_llave', 'acta_pago_llave_real'].forEach(function (k) {
-      var d = null;
-      try { d = ordenDeLlave(ls.getItem(k)); } catch (e) {}
-      if (d && !pend.some(function (x) { return x.o === d.o; })) pend.push(d);
-    });
-    escribirPorRecuperar(pend);
-
     var quitar = DEL_EQUIPO.slice();
     [BORRADOR_ACTA, BORRADOR_COMITE].forEach(function (k) {
       if ((conservar || []).indexOf(k) < 0) quitar.push(k);
@@ -673,6 +694,13 @@
   // ('Secure password change'), que exige un codigo enviado al correo.
   var VENTANA_CORREO = 10 * 60;   // segundos desde que probo el correo
 
+  // El payload de un JWT es base64url. Solo se lee: la firma la valida
+  // Supabase, no el navegador.
+  function b64urlJson(txt) {
+    var b = String(txt || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    return JSON.parse(global.atob(b));
+  }
   function correoRecienProbado(token) {
     var partes = String(token || '').split('.');
     if (partes.length !== 3) return false;
@@ -1486,7 +1514,7 @@
         if (!esperan.length) { location.reload(); return; }
         // Un error en uno no deja sin llamar a los que siguen (el portero
         // de la pagina quedaria cerrado); se relanza aparte para que igual
-        // se vea en la consola, como en recuperarPagos.
+        // se vea en la consola.
         esperan.forEach(function (f) {
           try { f(u); } catch (e) { setTimeout(function () { throw e; }, 0); }
         });
@@ -1527,16 +1555,13 @@
   }
 
   // Portero: deja pasar si hay sesion; si no, abre el cajon sin salida.
-  // Antes de dejar pasar se devuelven las llaves de pago que quedaron
-  // anotadas al cerrar sesion: la pagina que viene detras las lee apenas
-  // arranca. Sin nada anotado, recuperarPagos contesta en el acto.
   // Si el cajon ya esta abierto (otro pedido de sesion en la misma pagina),
   // este alEntrar espera en su fila y se llama cuando la persona entra,
   // despues de los que llegaron antes (ver abrirCajon).
   function exigirSesion(opciones, alEntrar) {
     var o = opciones || {};
     usuario(function (u) {
-      if (u) { recuperarPagos(function () { if (alEntrar) alEntrar(u); }); return; }
+      if (u) { if (alEntrar) alEntrar(u); return; }
       abrirCajon({
         titulo: o.titulo || 'Entre para continuar',
         // El codigo por correo ya no abre cuentas (AUTH-03): el texto no
@@ -1544,7 +1569,7 @@
         sub: o.sub || 'Necesita una cuenta para usar esta herramienta. Entre, o cree la suya en un minuto.',
         bloqueante: true,
         alEntrar: function (u2) {
-          recuperarPagos(function () { if (alEntrar) alEntrar(u2); else location.reload(); });
+          if (alEntrar) alEntrar(u2); else location.reload();
         }
       });
     });
@@ -1557,7 +1582,7 @@
    *  texto. Si los terminos cambian de fecha, cambia aqui y en _worker.js
    *  -hay una prueba que no deja que se desincronicen-.
    */
-  var TERMINOS_VERSION = '2026-09-28';
+  var TERMINOS_VERSION = '2026-10-07';
 
   function terminosHtml(id) {
     return '<label for="' + id + '" style="display:flex;gap:9px;align-items:flex-start;' +
@@ -1587,8 +1612,19 @@
     cliente: cliente,
     usuario: usuario,
     tokenDeAcceso: tokenDeAcceso,
-    recuperarPagos: recuperarPagos,
-    anotarPago: anotarPago,
+    // El mes de servicio (paso 17).
+    pase: {
+      estado: estadoPase,
+      enEquipo: paseEnEquipo,
+      de: paseDe,
+      clave: claveCondominio,
+      fecha: fechaPase,
+      mensaje: mensajePase,
+      urlActivar: urlActivar,
+      pagar: pagarMes,
+      confirmar: confirmarPago,
+      corregir: corregirPase
+    },
     salir: salir,
     panel: panel,
     montarNav: montarNav,

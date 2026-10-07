@@ -99,43 +99,12 @@ function initMesa(){ const last=localStorage.getItem('sala-mesa-last'); if(last)
 function persistMesa(){ if(!asamblea) return; localStorage.setItem('sala-mesa-last',asamblea.codigo); localStorage.setItem(LS(asamblea.codigo),JSON.stringify({id:asamblea.id,codigo:asamblea.codigo,condo:asamblea.condo,tipo:asamblea.tipo,token:asamblea.token,puntos,puntoActivo})); }
 
 // Esta pantalla es la de los votantes. El rol Mesa solo se alcanza con
-// ?rol=mesa y existe para continuar una asamblea ya creada; crear una nueva
-// se hace desde /acta, que es donde está el acta y el pago.
-async function crearAsamblea(btn){
-  // Ver la nota en acta-1.js: la llave que deja la demostracion no sirve
-  // para abrir una sala de verdad.
-  let llave='';
-  try{ llave=localStorage.getItem('acta_pago_llave')||''; }catch(e){}
-  if(llave==='DEMO-PAGO-SIMULADO' &&
-     !/(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname)) llave='';
-  if(!llave){
-    alert('Las asambleas se crean desde el sistema de actas.\n\nAbra actascopropiedad.cl/acta, complete los datos y desde ahí inicie la sala de votación. Esta pantalla sirve para continuar una asamblea ya creada.');
-    return;
-  }
-  setBusy(btn,true,'Creando…');
-  try{
-    const condo=$('m-condo').value.trim(), tipo=$('m-tipo').value;
-    const { data, error }=await sb.rpc('vv_crear',{p_titulo:condo,p_llave:llave});
-    if(error) throw error;
-    asamblea={id:data.id,codigo:data.codigo,condo,tipo,token:data.admin_token}; padron=[]; puntos=[]; puntoActivo=null; votacionAbierta=false; padronDirty=false; correoDesconocido=false;
-    padronEjemplo();
-    await abrirPanelMesa({votacion_abierta:false});
-    await autoGuardarPadron();
-    persistMesa();
-  }catch(e){
-    const m=String((e&&e.message)||e||'');
-    // El tope es de salas por pago (tres) y lo pone la base. No es un
-    // problema de conexion ni del pago: decirlo asi evita que la Mesa lo
-    // reintente sin fin o crea que perdio el pago.
-    if(/demasiadas_salas_con_este_pago/.test(m)){
-      alert('Con el pago de esta asamblea ya se abrieron 3 salas de votación, que es el máximo por pago, así que no se puede abrir otra.\n\nSi necesita retomar una sala anterior, use «Continuar asamblea» en este mismo equipo.');
-      return;
-    }
-    alert(/pago_|llave_/.test(m)
-      ? 'No pudimos validar el pago de esta asamblea. Créela desde actascopropiedad.cl/acta.'
-      : 'No se pudo crear la asamblea. Revisa tu conexión a internet e inténtalo nuevamente.');
-  }
-  finally{ setBusy(btn,false); }
+// ?rol=mesa y existe para continuar una asamblea ya creada. Crear una nueva
+// se hace desde /acta: desde el paso 17 la sala se abre con la sesion de la
+// cuenta y el mes de servicio de su condominio (vv_crear), y eso vive en el
+// asistente del acta, no aqui.
+function crearAsamblea(){
+  alert('Las asambleas se crean desde el sistema de actas.\n\nAbra actascopropiedad.cl/acta, complete los datos y desde ahí inicie la sala de votación. Esta pantalla sirve para continuar una asamblea ya creada.');
 }
 
 async function reanudar(btn){

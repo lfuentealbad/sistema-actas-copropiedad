@@ -2,13 +2,13 @@
  *  actaviva · Acta de reunion del comite de administracion
  *
  *  Un documento por reunion: se escribe, se cierra -y ahi recibe su
- *  numero- y se descarga. Es GRATIS: la herramienta que se le regala a
- *  los comites para que el sistema los encuentre adentro cuando llegue
- *  la asamblea anual, que si se cobra.
+ *  numero- y se descarga. Desde el 07-10-2026 va incluida en el mes de
+ *  servicio del condominio (paso 17): Postgres numera el acta solo si la
+ *  cuenta tiene un mes vigente para el condominio del acta (pase_exigir).
+ *  Escribirla no lo pide; cerrarla, si.
  *
- *  Por eso aqui no hay llave, ni pasarela, ni producto: el folio no es
- *  comprobante de pago, es el numero del documento y la marca de que
- *  quedo cerrado. Lo escribe Postgres y nadie mas.
+ *  El folio es el numero del documento y la marca de que quedo cerrado.
+ *  Lo escribe Postgres y nadie mas.
  *
  *  Tres cosas que conviene tener presentes al leer esto:
  *
@@ -844,6 +844,7 @@ function acCargar(alTerminar) {
 
   acQuienEntro(function (uid) {
     acUid = uid;
+    acRevisarMes();
 
     if (pedida !== null && !AC_ID.test(pedida)) {
       acMensaje('msg-acta', AC_NO_ESTA, 'msg-warn');
@@ -972,11 +973,50 @@ function acTraerAnterior() {
 
 
 /* ─────────────────────────────────────────────────────────────────────
+ *  El mes de servicio
+ *
+ *  Se avisa de entrada si la cuenta no tiene un mes vigente: quien escribe
+ *  el acta durante la reunion se entera antes, no al cerrarla. El aviso no
+ *  es el candado: el candado es ac_comite_finalizar en la base.
+ * ───────────────────────────────────────────────────────────────────── */
+
+function acAvisoMes(texto) {
+  var el = $ac('ac-mes');
+  if (!el) return;
+  if (!texto) { el.hidden = true; el.textContent = ''; return; }
+  el.textContent = '';
+  var p = document.createElement('div');
+  p.textContent = texto;
+  el.appendChild(p);
+  // En vitrina no se ofrece pagar: el Worker borra lo comercial y aqui no
+  // hay a donde mandar.
+  if (!document.documentElement.classList.contains('vitrina') && window.Cuenta && Cuenta.pase) {
+    var c = $ac('condominio');
+    var u = Cuenta.pase.urlActivar((c && c.value.trim()) || '');
+    var a = document.createElement('a');
+    a.className = 'btn btn-p btn-sm';
+    a.style.marginTop = '10px';
+    a.href = u.replace(/(#|$)/, (u.indexOf('?') >= 0 ? '&' : '?') + 'volver=%2Facta-comite$1');
+    a.textContent = 'Activar el mes';
+    el.appendChild(a);
+  }
+  el.hidden = false;
+}
+
+function acRevisarMes() {
+  if (!window.Cuenta || !Cuenta.pase) return;
+  Cuenta.pase.estado(function (e) {
+    if (!e) return;
+    acAvisoMes(e.activo ? '' : Cuenta.pase.mensaje('pase_requerido', e, ''));
+  });
+}
+
+
+/* ─────────────────────────────────────────────────────────────────────
  *  Cerrar el acta
  *
- *  Gratis: no hay pago, llave ni pasarela. Cerrar hace dos cosas -darle
- *  numero al documento y dejarlo fijo- y las dos las hace Postgres, que
- *  es el unico que puede escribir el folio.
+ *  Cerrar hace dos cosas -darle numero al documento y dejarlo fijo- y las
+ *  dos las hace Postgres, que es el unico que puede escribir el folio.
  * ───────────────────────────────────────────────────────────────────── */
 
 function acFinalizar() {
@@ -990,8 +1030,8 @@ function acFinalizar() {
 
   if (acFolio) { acDescargar(); return; }
 
-  // Cerrar es irreversible, así que se pregunta. No es un cobro: es que
-  // después ya no se puede corregir.
+  // Cerrar es irreversible, así que se pregunta: después ya no se puede
+  // corregir.
   acAbrirModal('mod-cerrar');
 }
 
@@ -1017,6 +1057,16 @@ function acCerrarActa() {
 
       if (r.error) {
         var m = String(r.error.message || '');
+        // Sin mes, o con el de otro condominio: se dice cual es el suyo.
+        if (/pase_requerido|pase_de_otro_condominio/.test(m) && window.Cuenta && Cuenta.pase) {
+          var condo = ($ac('condominio') || {}).value || '';
+          Cuenta.pase.estado(function (e) {
+            var texto = Cuenta.pase.mensaje(m, e, condo.trim());
+            acMensaje('msg-cerrar', texto, 'msg-warn');
+            acAvisoMes(texto);
+          });
+          return;
+        }
         acMensaje('msg-cerrar',
           /acta_incompleta/.test(m)
             ? 'Faltan el condominio o la fecha de la reunión.'

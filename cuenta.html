@@ -224,11 +224,12 @@
       <aside class="rail">
         <h2>Panel</h2>
         <nav id="rail-nav">
-          <a href="#s-servicios" class="act"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Servicios</a>
+          <a href="#s-mes" class="act"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg>Mi servicio</a>
+          <a href="#s-servicios"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Servicios</a>
           <a href="#s-actas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>Mis actas</a>
           <a href="#s-comite"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4a3 3 0 0 1 6 0"/><path d="M9 11h6M9 15h4"/></svg>Comité</a>
           <a href="#s-consultas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Consultas</a>
-          <a href="#s-asambleas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9"/></svg>Asambleas</a>
+          <a href="#s-asambleas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9"/></svg>Salas</a>
           <a href="#s-finanzas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>Cuentas</a>
           <a href="#s-cuenta"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5.5 21a7 7 0 0 1 13 0"/></svg>Mi cuenta</a>
         </nav>
@@ -237,25 +238,46 @@
 
       <div>
 
+        <!-- ============ el mes de servicio (paso 17, 07-10-2026) ============ -->
+        <section class="seccion" id="s-mes">
+          <h2>Mi servicio</h2>
+          <p class="sub" data-pago>Un pago de <strong>$14.990</strong> activa un mes completo para <strong>un condominio</strong>, con todas las herramientas: el acta de asamblea con folio, la votación en vivo, la consulta por escrito, el acta del comité y las cuentas del condominio. No se renueva solo: al terminar el mes, usted decide si activa otro. Si administra varios condominios, cada uno lleva su propio mes.</p>
+          <p class="sub" hidden data-vitrina>Cada condominio tiene su mes de servicio, con todas las herramientas.</p>
+          <div id="p-meses"><div class="lista"><div class="cargando">Consultando…</div></div></div>
+          <div id="p-mes-msg" class="msg" role="status" aria-live="polite"></div>
+
+          <div class="caja" id="p-activar" data-pago style="margin-top:16px">
+            <h3 style="font-size:17px;margin:0 0 6px" id="p-activar-tit">Activar un mes</h3>
+            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:auto">Escriba el condominio tal como aparecerá en sus actas. El mes queda atado a ese nombre: los documentos de otro condominio necesitan su propio mes. Si se equivoca al escribirlo, lo puede corregir mientras no haya emitido nada.</p>
+            <div class="campo">
+              <label for="p-mes-condo">Condominio</label>
+              <input type="text" id="p-mes-condo" maxlength="100" autocomplete="organization" placeholder="Ej: Condominio Las Araucarias">
+            </div>
+            <div id="p-mes-acepta"></div>
+            <button type="button" class="btn btn-p" id="p-mes-pagar">Pagar $14.990 y activar el mes</button>
+            <div id="p-mes-pago-msg" class="msg" role="status" aria-live="polite"></div>
+          </div>
+
+          <h3 style="font-size:16px;margin:26px 0 10px">Pagos</h3>
+          <div id="p-pagos"><div class="lista"><div class="cargando">Consultando…</div></div></div>
+        </section>
+
         <!-- ============ servicios ============ -->
         <section class="seccion" id="s-servicios">
-          <h2>Qué puede hacer</h2>
-          <p class="sub" data-pago>Dos servicios y dos herramientas gratis. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar sin reunir a todos a votar. El acta del comité y las cuentas del condominio no se cobran: son el trabajo de todos los meses, y un comité sin administrador no debería tener que pagar por cumplir la ley.</p>
-          <p class="sub" hidden data-vitrina>Cuatro herramientas. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar sin reunir a todos a votar; el acta del comité deja por escrito sus acuerdos; y las cuentas del condominio reparten el gasto común del mes.</p>
+          <h2>Qué incluye</h2>
+          <p class="sub">Todo esto, para el condominio de su mes. El acta es para la asamblea que se reúne; la consulta por escrito, para acordar sin reunir a todos a votar; el acta del comité deja por escrito sus acuerdos; y las cuentas del condominio reparten el gasto común del mes.</p>
           <article class="sv sv-principal">
             <span class="ic"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>
             <h3>Acta de asamblea</h3>
             <p>Es lo que la Ley N° 21.442 exige levantar, y es lo que usted se lleva. Un asistente de seis pasos la arma mientras dirige la reunión: calcula el quórum sobre los derechos, aplica la mayoría que corresponde a cada punto y entrega el documento con folio, listo para firmar.</p>
             <div class="pie">
-              <span class="precio" data-pago><b>$14.990</b> por asamblea</span>
-              <span class="precio" hidden data-vitrina><b>Sin costo</b> durante la marcha blanca</span>
-              <span id="p-cta-acta"><a class="btn btn-p" href="/acta"><span data-pago>Pagar y comenzar</span><span hidden data-vitrina>Comenzar mi acta</span></a></span>
+              <span class="precio">Todas las asambleas del mes</span>
+              <span><a class="btn btn-p" href="/acta">Comenzar mi acta</a></span>
             </div>
-            <div id="p-pago-msg" class="msg" hidden></div>
           </article>
 
           <div class="ramas">
-            <p class="ramas-tit">Para recoger los votos de esa asamblea <span id="p-ramas-nota">— va incluida</span></p>
+            <p class="ramas-tit">Para recoger los votos de esa asamblea</p>
             <div class="servicios">
 
               <article class="sv">
@@ -263,8 +285,8 @@
                 <h3>Votación en vivo</h3>
                 <p>Con la gente reunida. Los copropietarios votan desde su teléfono con su RUT y un código de un solo uso, el tablero suma los derechos en el momento y los votos entran solos al acta. Quien dejó su correo recibe la constancia de cómo votó.</p>
                 <div class="pie">
-                  <span class="precio" data-pago>Incluida</span>
-                  <span class="rama-cta" data-href="/acta#votacion" data-txt="Abrir sala"></span>
+                  <span class="precio">Se abre desde el paso 5 del acta</span>
+                  <span><a class="btn btn-s" href="/acta#votacion">Abrir sala</a></span>
                 </div>
               </article>
 
@@ -276,11 +298,9 @@
             <h3>Consulta por escrito</h3>
             <p>Para acordar algo <strong>sin reunir a todos a votar</strong>, como permite el artículo 15 de la Ley N° 21.442. Ojo: la ley igual exige exponer la propuesta en una <strong>sesión informativa previa</strong> —esa sí se convoca, aunque no necesita quórum para constituirse— y fijar un plazo para responder. Es para cuando se cortó una cañería, hay que aprobar un gasto y no se puede esperar. Cada copropietario responde por correo desde su casilla del Registro y el sistema arma el expediente con el cómputo ponderado por derechos. Sirve para cualquier materia; cuando recae en las señaladas en la letra a) del N° 2 o en el N° 3 del artículo 15, el acuerdo deberá además reducirse a escritura pública.</p>
             <div class="pie">
-              <span class="precio" data-pago><b>$7.990</b> por consulta</span>
-              <span class="precio" hidden data-vitrina><b>Sin costo</b> durante la marcha blanca</span>
-              <span id="p-cta-consulta"><a class="btn btn-p" href="/consulta/"><span data-pago>Pagar y crear consulta</span><span hidden data-vitrina>Crear una consulta</span></a></span>
+              <span class="precio">La que abra dentro del mes corre su plazo completo</span>
+              <span><a class="btn btn-p" href="/consulta/">Crear una consulta</a></span>
             </div>
-            <div id="p-pago-consulta-msg" class="msg" hidden></div>
           </article>
 
           <article class="sv sv-principal" style="margin-top:26px">
@@ -288,7 +308,7 @@
             <h3>Acta de reunión del comité</h3>
             <p>El comité de administración también sesiona y acuerda cosas, y el artículo 17 de la Ley N° 21.442 manda dejarlas en un libro de actas. Escriba el acta mientras la reunión ocurre —quién asistió, qué se acordó, quién quedó a cargo— y llévese el documento numerado, listo para imprimir y firmar.</p>
             <div class="pie">
-              <span class="precio" data-pago><b>Gratis</b> para los comités</span>
+              <span class="precio">Todas las reuniones del mes</span>
               <span><a class="btn btn-p" href="/acta-comite">Registrar acuerdos</a></span>
             </div>
           </article>
@@ -298,7 +318,7 @@
             <h3>Cuentas del condominio</h3>
             <p>Un condominio sin administrador igual tiene que rendir cuenta cada mes y cobrar bien. Anote los gastos, y el reparto entre las unidades lo hace la alícuota de cada una, que es la regla del artículo 6 salvo que el reglamento de copropiedad disponga otra forma. Sale la liquidación del artículo 31 —con el detalle de ingresos, egresos y saldo de caja que la ley exige mostrar— y el fondo común de reserva del artículo 39 queda llevado aparte, sin mezclarse con la caja.</p>
             <div class="pie">
-              <span class="precio" data-pago><b>Gratis</b> para los comités</span>
+              <span class="precio">Gasto común, fondo de reserva y liquidación</span>
               <span><a class="btn btn-p" href="/finanzas">Llevar las cuentas</a></span>
             </div>
           </article>
@@ -335,12 +355,11 @@
           <div id="p-consultas"><div class="lista"><div class="cargando">Consultando…</div></div></div>
         </section>
 
-        <!-- ============ asambleas ============ -->
+        <!-- ============ salas ============ -->
         <section class="seccion" id="s-asambleas">
-          <h2>Asambleas y salas</h2>
-          <p class="sub">Cada pago habilita una asamblea. Las salas se borran solas a las 48 horas, por minimización de datos.</p>
-          <div id="p-sala" style="margin-bottom:14px"></div>
-          <div id="p-pagos"><div class="lista"><div class="cargando">Consultando…</div></div></div>
+          <h2>Salas de votación</h2>
+          <p class="sub">La sala abierta en este equipo. Las salas se borran solas a las 48 horas, por minimización de datos.</p>
+          <div id="p-sala"><div class="vacio"><b>No hay una sala abierta</b>Se abre desde el paso 5 del acta, con la asamblea reunida.</div></div>
         </section>
 
         <!-- ============ cuenta ============ -->

@@ -144,6 +144,126 @@
   }
 
   // -------------------------------------------------------------------
+  //  1b) El mes de servicio de la demostración (paso 17, 07-10-2026)
+  // -------------------------------------------------------------------
+  //  Los tres simuladores (acta, sala, consulta) preguntan aquí, con la
+  //  misma regla que la base (pase_exigir en Seguridad/pase-mensual-
+  //  2026-10-07.sql): un mes por condominio, comparado por su clave. La
+  //  demostración trae uno activo para el condominio de los datos de
+  //  ejemplo, salvo en el panel, que es donde se muestra cómo se activa.
+  //  Nada de esto es un cobro: en la demostración no se paga.
+  var MESES = 'demo_meses';
+  var CONDO_EJEMPLO = 'Condominio Las Araucarias';
+  var TILDES = { 'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
+                 'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i', 'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'õ': 'o',
+                 'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u', 'ñ': 'n', 'ç': 'c' };
+  function clave(v) {
+    var s = String(v == null ? '' : v).toLowerCase()
+      .replace(/[áàäâãéèëêíìïîóòöôõúùüûñç]/g, function (c) { return TILDES[c]; })
+      .replace(/[^a-z0-9]+/g, ' ').trim()
+      .replace(/^((condominio|comunidad|edificio|conjunto|habitacional|residencial|villa) )+/, '');
+    return s || null;
+  }
+  function leerMeses() {
+    try {
+      var l = JSON.parse(global.localStorage.getItem(MESES));
+      return Array.isArray(l) ? l.filter(function (x) {
+        return x && typeof x.orden === 'string' && typeof x.condominio === 'string' && x.clave;
+      }) : null;
+    } catch (e) { return null; }
+  }
+  function guardarMeses(l) { try { global.localStorage.setItem(MESES, JSON.stringify(l)); } catch (e) {} }
+  function vigente(x, ahora) { return Date.parse(x.desde) <= ahora && Date.parse(x.hasta) > ahora; }
+  function sumarMes(d) { var n = new Date(d.getTime()); n.setMonth(n.getMonth() + 1); return n; }
+  function registrarMes(l, condominio) {
+    var nombre = String(condominio || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    var k = clave(nombre);
+    if (!k || nombre.length < 2) return null;
+    var ahora = new Date();
+    var desde = ahora;
+    l.forEach(function (x) { if (x.clave === k && Date.parse(x.hasta) > desde.getTime()) desde = new Date(x.hasta); });
+    var m = { orden: 'DEMO-MES-' + String(l.length + 1).padStart(4, '0'), condominio: nombre, clave: k,
+              pagado_en: ahora.toISOString(), desde: desde.toISOString(), hasta: sumarMes(desde).toISOString(), usado_en: null };
+    l.push(m);
+    return m;
+  }
+  function meses() {
+    var l = leerMeses() || [];
+    var ahora = Date.now();
+    // El panel de demostracion empieza sin mes, salvo en vitrina: ahi no se
+    // muestra como se paga, asi que entra con el mes de ejemplo puesto.
+    var vitrina = !!(global.document && global.document.documentElement &&
+      global.document.documentElement.classList.contains('vitrina'));
+    var panel = /(^|\/)cuenta-demo/.test(global.location.pathname);
+    // El condominio de los datos de ejemplo siempre tiene su mes: quien probo
+    // activar otro en el panel no se queda sin poder cerrar el acta de ejemplo.
+    var kEj = clave(CONDO_EJEMPLO);
+    if ((!panel || vitrina) && !l.some(function (x) { return x.clave === kEj && vigente(x, ahora); })) {
+      registrarMes(l, CONDO_EJEMPLO);
+      guardarMeses(l);
+    }
+    return l;
+  }
+  // null si puede, o el error que daria la base. Anota el primer uso.
+  function exigirMes(condominio) {
+    var l = meses(), ahora = Date.now(), k = clave(condominio);
+    var suyos = l.filter(function (x) { return x.clave === k && vigente(x, ahora); });
+    if (k && suyos.length) {
+      suyos.forEach(function (x) { if (!x.usado_en) x.usado_en = new Date().toISOString(); });
+      guardarMeses(l);
+      return null;
+    }
+    return l.some(function (x) { return vigente(x, ahora); }) ? 'pase_de_otro_condominio' : 'pase_requerido';
+  }
+  function hastaDe(l, k, ahora) {
+    if (!l.some(function (x) { return x.clave === k && vigente(x, ahora); })) return null;
+    return l.filter(function (x) { return x.clave === k; }).map(function (x) { return x.hasta; }).sort().pop();
+  }
+  function ok(data) { return Promise.resolve({ data: data, error: null }); }
+  function mal(msg) { return Promise.resolve({ data: null, error: { message: msg } }); }
+  var MES_FN = {
+    pase_estado: function () {
+      var l = meses(), ahora = Date.now(), claves = [];
+      l.forEach(function (x) { if (claves.indexOf(x.clave) < 0) claves.push(x.clave); });
+      var lista = claves.map(function (k) {
+        var de = l.filter(function (x) { return x.clave === k; });
+        var ultimo = de.map(function (x) { return x.hasta; }).sort().pop();
+        var h = hastaDe(l, k, ahora);
+        var usado = de.some(function (x) { return x.usado_en; });
+        var corr = usado ? null : de.filter(function (x) { return vigente(x, ahora); })[0];
+        return { condominio: de.slice().sort(function (a, b) { return String(b.desde).localeCompare(String(a.desde)); })[0].condominio,
+                 clave: k, activo: !!h, hasta: h, ultimo: ultimo, corregir: corr ? corr.orden : null };
+      }).sort(function (a, b) { return (b.activo - a.activo) || String(b.ultimo).localeCompare(String(a.ultimo)); });
+      return ok({ activo: l.some(function (x) { return vigente(x, ahora); }), condominios: lista });
+    },
+    pase_mis_meses: function () {
+      return ok(meses().slice().sort(function (a, b) { return String(b.desde).localeCompare(String(a.desde)); })
+        .map(function (x) { return { orden: x.orden, condominio: x.condominio, pagado_en: x.pagado_en, desde: x.desde, hasta: x.hasta }; }));
+    },
+    pase_corregir: function (a) {
+      var l = meses(), ahora = Date.now();
+      var m = l.filter(function (x) { return x.orden === a.p_orden; })[0];
+      var nombre = String(a.p_condominio || '').replace(/\s+/g, ' ').trim();
+      var k = clave(nombre);
+      if (!k || nombre.length < 2 || nombre.length > 100) return mal('condominio_invalido');
+      if (!m) return mal('mes_no_encontrado');
+      if (m.usado_en || l.some(function (x) { return x.clave === m.clave && x !== m && x.usado_en; })) return mal('mes_ya_usado');
+      if (!vigente(m, ahora)) return mal('mes_no_vigente');
+      if (k !== m.clave && hastaDe(l, k, ahora)) return mal('condominio_con_mes_vigente');
+      m.condominio = nombre; m.clave = k;
+      guardarMeses(l);
+      return ok({ condominio: nombre, hasta: m.hasta });
+    }
+  };
+  global.DEMO_MES = {
+    fn: MES_FN,
+    exigir: exigirMes,
+    activar: function (condominio) { var l = meses(); var m = registrarMes(l, condominio); guardarMeses(l); return m; },
+    meses: function () { return JSON.parse(JSON.stringify(meses())); },
+    reiniciar: function () { guardarMeses([]); }
+  };
+
+  // -------------------------------------------------------------------
   //  2) El cobro se contesta aquí
   // -------------------------------------------------------------------
   //  La franja dice "nada sale de este navegador", y el botón de pagar del
@@ -155,9 +275,9 @@
   //  cabecera, o con un token que no es el de la sesión vigente, 401
   //  sesion_requerida. Así una página que se olvide de mandarla falla
   //  también aquí, que es donde se prueba. Con la sesión en orden, crear
-  //  responde que no hay pasarela -en la demostración no se cobra: para
-  //  seguir como pagado está DEMOA.pagar()- y el estado de una orden, que
-  //  no existe, sin decir si es de otra cuenta.
+  //  no cobra: activa el mes en la demostración (DEMO_MES) y lo dice; y el
+  //  estado de una orden, que no existe, responde sin decir si es de otra
+  //  cuenta.
   function tokenDe(entrada, opciones) {
     var h = (opciones && opciones.headers) ||
             (entrada && typeof entrada === 'object' && entrada.headers) || null;
@@ -193,6 +313,8 @@
       }, function () { res(null); });
     });
   }
+
+  function exigirNombre(v) { var s = String(v || '').trim(); return s.length >= 2 && s.length <= 100 && !!clave(s); }
 
   function respuesta(estado, cuerpo) {
     var texto = JSON.stringify(cuerpo);
@@ -258,11 +380,12 @@
           return respuesta(401, { error: 'sesion_requerida' });
         }
         if (ruta === '/api/pago/crear' && metodo === 'POST') {
-          if (global.console) {
-            console.info('Demostración: aquí no se cobra. Para seguir como si hubiera pagado, ' +
-                         'DEMOA.pagar() o DEMOC.pagar() y recargue.');
-          }
-          return respuesta(503, { error: 'pasarela_no_configurada' });
+          var cuerpo = {};
+          try { cuerpo = JSON.parse(String((opciones && opciones.body) || '{}')); } catch (e) { cuerpo = {}; }
+          var m = exigirNombre(cuerpo.condominio) ? global.DEMO_MES.activar(cuerpo.condominio) : null;
+          if (!m) return respuesta(400, { error: 'condominio_invalido' });
+          return respuesta(409, { error: 'demostracion',
+            mensaje: 'En la demostración no se cobra: el mes para «' + m.condominio + '» quedó activo.' });
         }
         if (ruta === '/api/pago/estado' && metodo === 'GET') {
           return respuesta(404, { error: 'orden_no_encontrada' });

@@ -69,10 +69,8 @@
   var LLAVE = 'demo_consulta_estado';
   var base = null;
 
-  // 'pagos': las llaves que ya abrieron su consulta. En Postgres es la fila
-  // de vv_pagos_usados que cc_crear escribe (ver cc_crear).
   function vacia() {
-    return { consultas: {}, pagos: {} };   // codigo -> { ...campos, destinatarios[], respuestas{} }
+    return { consultas: {} };   // codigo -> { ...campos, destinatarios[], respuestas{} }
   }
 
   function guardar() {
@@ -83,16 +81,9 @@
       var g = JSON.parse(localStorage.getItem(LLAVE));
       base = (g && g.consultas) ? g : vacia();
     } catch (e) { base = vacia(); }
-    // Lo guardado antes del 22-09-2026 no traia 'pagos'.
-    if (!base.pagos || typeof base.pagos !== 'object' || Array.isArray(base.pagos)) base.pagos = {};
-  }
-  // La llave del pago viene de afuera: se lee con hasOwnProperty, como los
-  // diccionarios de js/demo-sala.js (SAST-12).
-  function usada(llave) {
-    return Object.prototype.hasOwnProperty.call(base.pagos, llave) && base.pagos[llave] === true;
-  }
-  function marcarUsada(llave) {
-    Object.defineProperty(base.pagos, llave, { value: true, enumerable: true, writable: true, configurable: true });
+    // Las llaves usadas se fueron con el paso 17: la consulta se crea con
+    // el mes del condominio (js/demo-aviso.js, DEMO_MES).
+    if (base.pagos) delete base.pagos;
   }
   recuperar();
   global.addEventListener('storage', function (e) {
@@ -143,8 +134,8 @@
 
   // --- Las funciones, con las mismas firmas que en Postgres -------------
   var FN = {
-    // En el mismo orden que Postgres: el plazo, el tipo y recien despues el
-    // pago.
+    // En el mismo orden que Postgres: la sesion, el plazo, el tipo y recien
+    // despues el mes.
     cc_crear: function (a) {
       recuperar();
       var fin = new Date(a.p_plazo_fin);
@@ -154,20 +145,11 @@
       if (['ordinaria', 'ext-abs', 'ext-ref'].indexOf(a.p_tipo) < 0) {
         return fallar('tipo invalido');
       }
-      // El candado del pago vive en Postgres y aquí no se puede reproducir:
-      // esta demostración lo da por pagado. En producción, sin una llave
-      // válida y sin usar, cc_crear responde 'pago_requerido'.
-      if (!a.p_llave) return fallar('pago_requerido');
-      // Lo que sí se reproduce: a diferencia del acta, el pago de la
-      // consulta NO se comparte. Una llave abre una consulta, y la segunda
-      // vez Postgres responde 'pago_ya_utilizado' (consulta-1.js entonces
-      // borra la llave y pide otro pago). Antes la demostracion dejaba abrir
-      // consultas sin fin con un solo pago, y decia que eso era la regla.
-      // 'llave_de_otro_producto' no se simula: aqui la llave del acta y la
-      // de la consulta son la misma marca.
-      var orden = String(a.p_llave);
-      if (usada(orden)) return fallar('pago_ya_utilizado');
-      marcarUsada(orden);
+      // El candado del mes vive en Postgres (cc_crear -> pase_exigir): la
+      // consulta se crea si la cuenta tiene un mes vigente para su
+      // condominio. Aqui contesta js/demo-aviso.js con la misma regla.
+      var sinMes = global.DEMO_MES ? global.DEMO_MES.exigir(a.p_condominio) : 'pase_requerido';
+      if (sinMes) return fallar(sinMes);
       var cod = codigoNuevo();
       base.consultas[cod] = {
         id: 'demo-' + cod,
@@ -323,7 +305,7 @@
     createClient: function () {
       return {
         rpc: function (nombre, args) {
-          var f = FN[nombre];
+          var f = FN[nombre] || (global.DEMO_MES && global.DEMO_MES.fn[nombre]);
           if (!f) return fallar('funcion_no_simulada: ' + nombre);
           return f(args || {});
         },
@@ -393,19 +375,6 @@
     });
   }
 
-  // Simular la vuelta de la pasarela es un pago NUEVO. La llave es siempre
-  // la misma marca, asi que lo que se renueva es que no se haya usado: sin
-  // esto, despues de la primera consulta la demostracion quedaba sin pago
-  // posible.
-  var LLAVE_PAGO = 'consulta_pago_llave';
-  var MARCA = 'DEMO-PAGO-SIMULADO';
-  function pagoNuevo() {
-    recuperar();
-    if (Object.prototype.hasOwnProperty.call(base.pagos, MARCA)) delete base.pagos[MARCA];
-    guardar();
-    try { localStorage.setItem(LLAVE_PAGO, MARCA); } catch (e) {}
-  }
-
   // Atajos para conducir la demostración desde la consola.
   global.DEMOC = {
     _fn: FN,                    // lo usa el simulador del acta para delegar
@@ -432,38 +401,18 @@
     },
     reiniciar: function () {
       base = vacia(); guardar();
-      try {
-        localStorage.removeItem('cc_mesa');
-        localStorage.removeItem(LLAVE_PAGO);
-      } catch (e) {}
+      try { localStorage.removeItem('cc_mesa'); } catch (e) {}
     },
-    // Hace las veces de una vuelta desde la pasarela con el pago confirmado.
-    pagar: function () {
-      pagoNuevo();
-      return 'pagado. Recargue el panel.';
+    // Hace las veces de un pago confirmado: un mes para ese condominio.
+    pagar: function (condominio) {
+      var m = global.DEMO_MES && global.DEMO_MES.activar(condominio || 'Condominio Las Araucarias');
+      return m ? 'mes activo para ' + m.condominio + '. Recargue la página.' : 'escriba el condominio';
     }
   };
 
-  // El candado del pago está en Postgres, no aquí.
-  //
-  // La consulta por escrito es un servicio aparte, con su propia llave: la del
-  // acta no sirve. En el panel se empieza sin pagar, porque ahí el pago es el
-  // primer paso y es lo que se prueba; entrando directo a la consulta se da
-  // por pagada, porque en el producto no se llega hasta aquí sin pagar.
-  //
-  // Esta escritura cae en demo_consulta_pago_llave: js/demo-aviso.js aparta
-  // el almacenamiento de las páginas -demo. Antes caía en la casilla de
-  // verdad, y /consulta/ la tomaba por una llave pagada.
-  //
-  // Si la casilla ya tiene la llave, es el mismo pago de antes: recargar no
-  // regala otra consulta. Queda vacía cuando consulta-1.js la borra tras un
-  // 'pago_ya_utilizado', y entonces entrar de nuevo es un pago nuevo.
-  try {
-    if (!/\/cuenta/.test(global.location.pathname) &&
-        !localStorage.getItem(LLAVE_PAGO)) {
-      pagoNuevo();
-    }
-  } catch (e) {}
+  // El candado del mes está en Postgres, no aquí. En la demostración lo
+  // lleva js/demo-aviso.js (DEMO_MES): fuera del panel, la demostración
+  // trae un mes activo para el condominio de los datos de ejemplo.
 
   console.info('Simulador de consulta escrita activo. Use DEMOC.* para conducirla.');
 

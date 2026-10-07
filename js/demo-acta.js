@@ -10,9 +10,11 @@
  *  con folio — sin pasarela de pago, que hoy está cerrada a propósito.
  *
  *  Lo único que aquí se finge es el cobro. En producción el folio lo pone
- *  Postgres y solo si la llave del pago es válida y no se ha usado:
- *  'pagada', 'folio' y 'orden' no están entre las columnas que el navegador
- *  tiene permiso de escribir, así que solo las mueve ac_finalizar.
+ *  Postgres y solo si la cuenta tiene un mes vigente para el condominio del
+ *  acta (paso 17): 'pagada', 'folio' y 'orden' no están entre las columnas
+ *  que el navegador tiene permiso de escribir, así que solo las mueve
+ *  ac_finalizar. El mes de la demostración lo lleva js/demo-aviso.js
+ *  (DEMO_MES), con la misma regla.
  *
  *  El folio que entrega este simulador es DEMO-000001, DEMO-000002... y el
  *  código de verificación, siempre DEMO-0000-0000. Hasta septiembre de 2026
@@ -21,9 +23,9 @@
  *  Ahora ni el folio ni el código tienen la forma de uno verdadero, y
  *  /verificar los reconoce como de demostración.
  *
- *  Del pago se reproduce lo que la base decide con él: una orden entrega
- *  un acta ('pago_ya_usado_en_otra_acta') y hasta tres salas (el tope vive
- *  en js/demo-sala.js). Lo que no se reproduce es la purga de C5: en
+ *  Del mes se reproduce lo que la base decide con él: sin mes,
+ *  'pase_requerido'; con el mes de otro condominio, 'pase_de_otro_condominio'.
+ *  Lo que no se reproduce es la purga de C5: en
  *  producción un cron reemplaza el contenido de un acta emitida por
  *  {"purgado": true} a los 180 días. Aquí no corre ningún cron, y ninguna
  *  respuesta del simulador trae ese contenido.
@@ -112,17 +114,6 @@
     return fallar('permission denied for ' + objeto);
   }
 
-  // Diccionarios cuya clave viene de afuera (la llave del pago): se leen con
-  // hasOwnProperty y se escriben como propiedad propia, igual que en
-  // js/demo-sala.js (SAST-12).
-  function propio(o, k) {
-    return (o && Object.prototype.hasOwnProperty.call(o, k)) ? o[k] : undefined;
-  }
-  function poner(o, k, v) {
-    Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true });
-    return v;
-  }
-
   // El codigo de verificacion de toda acta de demostracion. Uno real son
   // doce caracteres hexadecimales; este tiene letras que no lo son.
   var CODIGO_DEMO = 'DEMO-0000-0000';
@@ -130,14 +121,10 @@
   var LLAVE = 'demo_actas_guardadas';
   var actas = [];
   var correlativo = 1;
-  // Lo que ya entrego cada llave: { folio, acta }. Es lo que en Postgres
-  // anota vv_pagos_usados.folio -una orden, un acta (SB-01)- y se conserva
-  // aunque el acta se borre despues.
-  var pagos = {};
 
   function guardar() {
     try {
-      localStorage.setItem(LLAVE, JSON.stringify({ actas: actas, correlativo: correlativo, pagos: pagos }));
+      localStorage.setItem(LLAVE, JSON.stringify({ actas: actas, correlativo: correlativo }));
     } catch (e) {}
   }
   // Quien uso la demostracion antes de septiembre de 2026 tiene guardadas
@@ -156,8 +143,6 @@
       if (g && Array.isArray(g.actas)) {
         actas = g.actas.map(sinFolioReal);
         correlativo = g.correlativo || 1;
-        // Lo guardado antes del 22-09-2026 no traia 'pagos'.
-        pagos = (g.pagos && typeof g.pagos === 'object' && !Array.isArray(g.pagos)) ? g.pagos : {};
       }
     } catch (e) {}
   }
@@ -189,8 +174,8 @@
   //   select(campos).eq('id', id).single()
   // No pretende ser PostgREST; pretende que acta-1.js corra sin tocarlo.
   function tabla(nombre) {
-    // El acta del comité es gratis y el panel solo la lista: a la demo le
-    // basta una tabla vacía, que muestra el estado inicial con su botón.
+    // El panel solo lista las actas del comité: a la demo le basta una
+    // tabla vacía, que muestra el estado inicial con su botón.
     // Los métodos de filtro y orden aceptan y devuelven el mismo objeto,
     // como el cliente real: sin .order() aquí, el panel quedaba esperando
     // una promesa que nunca resolvía.
@@ -334,12 +319,12 @@
 
   // --- Las funciones del acta ------------------------------------------
   var FN = {
-    // Aquí se cobra. En producción esta función valida la firma de la llave
-    // del pago, la marca como usada, deja la huella y el resumen en
-    // actas_emitidas y recién entonces emite el folio. Misma firma que en
-    // Postgres: (p_acta, p_llave, p_huella, p_resumen), y las comprobaciones
-    // en el mismo orden que alla: el acta, si ya estaba, la huella, el
-    // resumen y recien despues el pago.
+    // Aquí se cobra. En producción esta función exige un mes vigente para
+    // el condominio del resumen (pase_exigir), deja la huella y el resumen
+    // en actas_emitidas y recién entonces emite el folio. Misma firma que en
+    // Postgres: (p_acta, p_huella, p_resumen), y las comprobaciones en el
+    // mismo orden que allá: el acta, si ya estaba, la huella, el resumen y
+    // recién después el mes.
     ac_finalizar: function (a) {
       // ac_finalizar se concede solo a authenticated.
       if (!SESION) return sinPermiso('function ac_finalizar');
@@ -356,18 +341,8 @@
       var huella = String(a.p_huella || '').trim().toLowerCase();
       if (!/^[0-9a-f]{64}$/.test(huella)) return fallar('huella_invalida');
       if (!resumenValido(a.p_resumen)) return fallar('resumen_invalido');
-      if (!a.p_llave) return fallar('pago_requerido');
-
-      // Una orden, un acta (SB-01). Esta acta no tiene folio -si lo
-      // tuviera habria salido arriba con ya_estaba-, asi que un folio
-      // anotado en el pago es de OTRA acta, exista aun o se haya borrado.
-      // En el asistente, acta-1.js borra la llave al finalizar; esto es lo
-      // que contesta la base si la llave vuelve igual (otra pestana, un
-      // equipo que la tenia guardada). 'pago_de_otra_cuenta' no se simula:
-      // la demostracion tiene una sola cuenta.
-      var orden = String(a.p_llave);
-      var uso = propio(pagos, orden);
-      if (uso && uso.folio) return fallar('pago_ya_usado_en_otra_acta');
+      var sinMes = global.DEMO_MES ? global.DEMO_MES.exigir(a.p_resumen.condominio) : 'pase_requerido';
+      if (sinMes) return fallar(sinMes);
 
       // DEMO- y seis digitos: nada que pueda pasar por un folio AV- real.
       var folio = 'DEMO-' + String(correlativo++).padStart(6, '0');
@@ -376,10 +351,6 @@
       acta.codigo = CODIGO_DEMO;
       acta.huella = huella;
       acta.finalizada_en = new Date().toISOString();
-      poner(pagos, orden, { folio: folio, acta: acta.id });
-      // El pago del acta cubre el acta y hasta tres salas (ver vv_crear en
-      // js/demo-sala.js); la consulta por escrito se paga aparte. La llave
-      // no se borra aqui: en Postgres la orden queda anotada con este folio.
       return responder({ folio: folio, codigo: CODIGO_DEMO, ya_estaba: false });
     },
 
@@ -400,29 +371,6 @@
       recuperar();
       actas = actas.filter(function (x) { return x.id !== a.p_acta; });
       return responder({ ok: true });
-    },
-
-    // El historial de pagos del panel. Cada acta finalizada dejó su rastro;
-    // 'activa' dice si la sala de esa asamblea todavía existe, y pasa a false
-    // cuando el barrido de 48 horas la borra.
-    vv_mis_pagos: function () {
-      if (!SESION) return sinPermiso('function vv_mis_pagos');
-      recuperar();
-      // La sala se crea con el nombre del condominio, que es el mismo titulo
-      // que lleva el acta: por ahi se sabe cual sigue abierta.
-      var abiertas = {};
-      ((global.DEMO && global.DEMO.salas && global.DEMO.salas()) || []).forEach(function (cod) {
-        var s = global.DEMO.estado(cod);
-        if (s && s.titulo) abiertas[s.titulo] = true;
-      });
-      return responder(actas.filter(function (a) { return a.pagada; })
-        .map(function (a) {
-          return {
-            titulo: a.titulo || 'Asamblea sin nombre',
-            creado: a.finalizada_en || a.actualizada,
-            activa: !!abiertas[a.titulo]
-          };
-        }));
     }
   };
 
@@ -462,7 +410,8 @@
     createClient: function () {
       return {
         rpc: function (nombre, args) {
-          var f = FN[nombre] || salaFN[nombre] || consultaFN[nombre];
+          var f = FN[nombre] || salaFN[nombre] || consultaFN[nombre] ||
+                  (global.DEMO_MES && global.DEMO_MES.fn[nombre]);
           if (!f) return fallar('funcion_no_simulada: ' + nombre);
           return f(args || {});
         },
@@ -501,68 +450,24 @@
     }
   };
 
-  // OJO: localStorage pertenece al ORIGEN, no a la pagina. /acta-demo y
-  // /acta viven las dos en actascopropiedad.cl. Hasta septiembre de 2026
-  // esta llave se escribia en la misma casilla que usa el producto, y para
-  // no pisarle la activacion a quien ya habia pagado se guardaba la suya
-  // aparte y se reponia en 'pagehide'. Eso tenia dos defectos: si la
-  // pestana se cerraba de golpe no se reponia, y como 'pagehide' tambien
-  // salta al recargar, DEMOA.pagar() seguido de recargar -lo que el panel
-  // pide hacer- borraba el pago simulado antes de que se viera.
-  //
-  // Ahora js/demo-aviso.js aparta el almacenamiento de las paginas -demo:
-  // esta escritura cae en demo_acta_pago_llave y la casilla real no se
-  // toca. Los lectores del producto siguen descartando esta marca fuera de
-  // una pagina -demo, por si quedara alguna de antes.
-  var LLAVE_PAGO = 'acta_pago_llave';
-  var MARCA = 'DEMO-PAGO-SIMULADO';
-
-  // La llave de la demostracion es siempre la misma marca, asi que "otro
-  // pago" no se nota en la llave: se nota en lo que ya se uso. Un pago
-  // nuevo vuelve a traer su acta y sus tres salas.
-  function pagoNuevo() {
-    recuperar();
-    if (propio(pagos, MARCA) !== undefined) delete pagos[MARCA];
-    guardar();
-    if (global.DEMO && typeof global.DEMO._pagoNuevo === 'function') global.DEMO._pagoNuevo(MARCA);
-  }
-
-  // Dar por pagado es simular una vuelta de la pasarela. Si la casilla ya
-  // tiene la marca, es el MISMO pago de antes y conserva lo que ya entrego,
-  // como la orden en Postgres: recargar la pagina no regala otra acta ni
-  // otras tres salas. Si la casilla esta vacia -acta-1.js la vacia al
-  // finalizar-, es un pago nuevo. 'nuevo' lo fuerza: DEMOA.pagar().
-  function darPorPagado(nuevo) {
-    var puesta = null;
-    try { puesta = localStorage.getItem(LLAVE_PAGO); } catch (e) {}
-    if (!nuevo && puesta === MARCA) return;
-    pagoNuevo();
-    try { localStorage.setItem(LLAVE_PAGO, MARCA); } catch (e) {}
-  }
-
   global.DEMOA = {
     sesion: function () { return SESION; },
     actas: function () { recuperar(); return JSON.parse(JSON.stringify(actas)); },
-    // Lo que ya entrego el pago simulado: { folio, acta } o null.
-    pago: function () { recuperar(); var u = propio(pagos, MARCA); return u ? JSON.parse(JSON.stringify(u)) : null; },
-    // Hace las veces de una vuelta desde la pasarela con el pago confirmado.
-    pagar: function () { darPorPagado(true); return 'pagado. Recargue el panel.'; },
+    // Hace las veces de un pago confirmado: un mes para ese condominio.
+    pagar: function (condominio) {
+      var m = global.DEMO_MES && global.DEMO_MES.activar(condominio || 'Condominio Las Araucarias');
+      return m ? 'mes activo para ' + m.condominio + ' hasta ' + m.hasta + '. Recargue el panel.' : 'escriba el condominio';
+    },
     reiniciar: function () {
-      actas = []; correlativo = 1; pagos = {}; guardar();
-      if (global.DEMO && typeof global.DEMO._pagoNuevo === 'function') global.DEMO._pagoNuevo(MARCA);
-      try { localStorage.removeItem(LLAVE_PAGO); } catch (e) {}
+      actas = []; correlativo = 1; guardar();
+      if (global.DEMO_MES) global.DEMO_MES.reiniciar();
     }
   };
 
-  // El candado del pago está en Postgres, no aquí.
-  //
-  // En el panel se empieza SIN pagar, porque el pago es justamente lo que ahí
-  // se prueba: el botón dirá que la pasarela no está habilitada, que es la
-  // verdad hoy. Para seguir adelante, DEMOA.pagar() y recargar.
-  //
-  // En el acta, en cambio, se entra ya pagada: en el producto no se llega al
-  // asistente sin haber pasado por el pago.
-  if (enVitrina || !/\/cuenta/.test(global.location.pathname)) darPorPagado();
+  // El candado del mes está en Postgres, no aquí. En la demostración, el
+  // mes lo lleva js/demo-aviso.js: el acta entra con uno activo para el
+  // condominio de los datos de ejemplo, y el panel empieza sin ninguno,
+  // porque activarlo es justamente lo que ahí se muestra.
 
   console.info('Simulador del acta activo. Use DEMOA.* para inspeccionarlo.');
 

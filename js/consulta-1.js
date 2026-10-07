@@ -26,151 +26,35 @@ function recuperar(){ try{ return JSON.parse(localStorage.getItem(LS)); }catch(e
 
 function casillaDe(codigo){ return 'c-' + codigo + '@' + location.hostname.replace(/^www\./,''); }
 
-// El pago se comparte con el acta: una llave abre una asamblea O una
-// consulta, y la base de datos impide reutilizarla.
-// La consulta es un servicio aparte: su pago no es el del acta.
-const LLAVE = 'consulta_pago_llave';
-// Ver la nota en acta-1.js: /consulta/demo escribe esta llave para abrirse
-// sola, y localStorage es del origen entero. Al volver a /consulta/ quedaba
-// puesta y la consulta se ofrecia como pagada; el servidor la rechazaba
-// recien al crear. Fuera de una pagina de demostracion no vale.
-const LLAVE_DE_DEMO = 'DEMO-PAGO-SIMULADO';
-const enPaginaDemo = () => /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname);
-const llaveGuardada = () => {
-  let v = '';
-  try{ v = localStorage.getItem(LLAVE)||''; }catch(e){ return ''; }
-  return (v === LLAVE_DE_DEMO && !enPaginaDemo()) ? '' : v;
-};
-const borrarLlave = () => { try{ localStorage.removeItem(LLAVE); }catch(e){} };
+// La consulta se crea con el mes de servicio de su condominio (paso 17):
+// lo exige cc_crear en la base. Aqui solo se avisa y se manda a activarlo.
+let PASE = null;
 
-let USUARIO = null;
-
-// Muestra la entrada a la cuenta o, si ya entró, el botón de pago.
-function pintarPago(){
-  // En modo vitrina el Worker borró el recuadro del pago. Sin él no hay nada
-  // que pintar, y sobre todo: no hay que reventar. Se dice qué pasa, porque
-  // callar deja el botón muerto y al que mira pensando que se rompió.
+// Muestra el aviso del mes. En vitrina el Worker borro el recuadro: no hay
+// nada que pintar, y sobre todo no hay que reventar.
+function mostrarPago(texto){
   if(!$('c-pago')){
-    msg('nueva-msg', 'Crear la consulta requiere activar la asamblea, y eso no está ' +
+    msg('nueva-msg', 'Crear la consulta requiere un mes de servicio activo, y eso no está ' +
         'habilitado en esta presentación. La consulta completa se puede recorrer ' +
         'en /consulta/demo.', 'warn');
     return;
   }
   $('c-pago').classList.remove('hidden');
-  if(USUARIO){
-    $('cta-host').innerHTML = '';
-    $('pago-listo').classList.remove('hidden');
-    $('p-correo').textContent = USUARIO.correo;
-    const ah = $('c-acepta-host');
-    if(ah && !ah.innerHTML) ah.innerHTML = Cuenta.terminos.html('c-acepta');
-  } else {
-    $('pago-listo').classList.add('hidden');
-    Cuenta.panel('cta-host', {
-      titulo: 'Primero, su cuenta',
-      sub: 'Entre, o cree su cuenta en un minuto. Con ella podrá volver a esta consulta.',
-      alEntrar: u => { USUARIO = u; pintarPago(); }
-    });
+  if(texto && $('pago-msg')) $('pago-msg').textContent = texto;
+  const a = $('c-activar');
+  if(a){
+    const u = Cuenta.pase.urlActivar($('f-condo').value.trim());
+    a.href = u.replace(/(#|$)/, (u.indexOf('?') >= 0 ? '&' : '?') + 'volver=%2Fconsulta%2F$1');
   }
 }
 
-// Salir borra del equipo lo que la consulta dejo (cc_mesa, la llave), pero
-// en pantalla seguiria el panel de la consulta abierta, con su padron y sus
+// Salir borra del equipo lo que la consulta dejo (cc_mesa), pero en
+// pantalla seguiria el panel de la consulta abierta, con su padron y sus
 // respuestas, a la vista de quien entre despues. Se recarga: la pagina vuelve
 // a su portero y arranca en blanco.
 function cerrarSesion(btn){
   busy(btn, true, 'Saliendo…');
-  Cuenta.salir(() => { USUARIO = null; location.reload(); });
-}
-
-// Solo se navega a Flow, con https y su propio dominio: 'www.flow.cl.otro'
-// o 'www.flow.cl@otro' no pasan porque despues de '.cl' tiene que venir '/'.
-const esPasarela = u => typeof u === 'string' && /^https:\/\/(www|sandbox)\.flow\.cl\//.test(u);
-
-async function irAPagar(btn){
-  const correo = USUARIO && USUARIO.correo;
-  if(!Cuenta.correoValido(correo)){ pintarPago(); return; }
-  if(!Cuenta.terminos.aceptados('c-acepta')){
-    msg('pago-msg', Cuenta.terminos.AVISO, 'err');
-    const c = $('c-acepta'); if(c) c.focus();
-    return;
-  }
-  busy(btn, true, 'Conectando…'); msg('pago-msg','');
-  try{
-    // El Worker ata la orden a la cuenta: sin sesion no se cobra. Si se
-    // vencio, se vuelve a pedir la entrada en el mismo recuadro.
-    const token = await Cuenta.tokenDeAcceso();
-    if(!token){
-      USUARIO = null; pintarPago();
-      msg('pago-msg','Su sesión terminó. Vuelva a entrar para pagar.','err');
-      return;
-    }
-    const r = await fetch('/api/pago/crear', {method:'POST', headers:{'content-type':'application/json', 'authorization':'Bearer ' + token}, body: JSON.stringify({correo, producto:'consulta', acepta: Cuenta.terminos.VERSION})});
-    const d = await r.json().catch(() => null);
-    if(r.status === 401){
-      USUARIO = null; pintarPago();
-      msg('pago-msg','Su sesión terminó. Vuelva a entrar para pagar.','err');
-      return;
-    }
-    // La URL la arma el Worker con lo que contesta Flow. Se comprueba que
-    // sea Flow antes de mandar a la persona: si llegara otra cosa, no se sigue.
-    if(!r.ok || !d || !esPasarela(d.redirigir)){
-      msg('pago-msg', d && d.error === 'pasarela_no_configurada'
-        ? 'El pago en línea todavía no está habilitado. Escríbanos a contacto@actascopropiedad.cl.'
-        : 'No pudimos iniciar el pago. Inténtelo nuevamente en unos minutos.', 'err');
-      return;
-    }
-    location.href = d.redirigir;
-  }catch(e){ msg('pago-msg','No pudimos conectar con el medio de pago.','err'); }
-  finally{ busy(btn, false); }
-}
-
-// Vuelta desde la pasarela: /consulta/?pago=AV-XXXX. Se llama ya con la
-// sesion abierta (desde inicio()), porque el Worker entrega la llave solo a
-// la cuenta que pidio la orden. La orden se quita de la direccion recien con
-// una respuesta definitiva: el mensaje de espera recomienda recargar, y
-// recargar tiene que volver a intentarlo.
-function retornoDePago(){
-  const m = /[?&]pago=(AV-[A-Z0-9]+)/.exec(location.search);
-  if(!m) return;
-  const orden = m[1]; let intentos = 0;
-  const olvidarOrden = () => { try{ history.replaceState(null,'',location.pathname); }catch(e){} };
-  if(!$('c-pago')){ olvidarOrden(); return; }   // vitrina: no hay recuadro que mostrar
-  $('c-pago').classList.remove('hidden');
-  $('pago-listo').classList.remove('hidden');
-  msg('pago-msg','Confirmando el pago…','warn');
-  Cuenta.tokenDeAcceso().then(token => {
-    if(!token){ msg('pago-msg','Entre a su cuenta para confirmar el pago.','err'); return; }
-    (function revisar(){
-      intentos++;
-      fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), { headers: { 'authorization': 'Bearer ' + token } })
-        .then(r => r.json().then(d => ({ estado: r.status, d })))
-        .then(({ estado, d }) => {
-          if(d && d.estado === 'pagado' && d.llave){
-            olvidarOrden();
-            try{ localStorage.setItem(LLAVE, d.llave); }catch(e){}
-            msg('pago-msg','Pago confirmado. Ya puede crear la consulta.','ok');
-            setTimeout(() => { if($('c-pago')) $('c-pago').classList.add('hidden'); }, 2600);
-            return;
-          }
-          // 404: la orden no existe o es de otra cuenta. El Worker no dice
-          // cual, y esperar no la va a hacer aparecer.
-          // Antes de quitarla de la direccion se anota en el equipo: si se
-          // pago con otra cuenta, Cuenta.recuperarPagos la entrega al entrar
-          // con ella.
-          if(estado === 404){
-            if(typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(orden);
-            olvidarOrden();
-            msg('pago-msg','No encontramos ese pago en esta cuenta. Si pagó con otra, entre con ella en este equipo y se lo entregaremos.','err');
-            return;
-          }
-          if(estado === 401){ msg('pago-msg','Su sesión terminó. Recargue la página y vuelva a entrar.','err'); return; }
-          if(intentos < 10){ setTimeout(revisar, 2000); return; }
-          msg('pago-msg','Todavía no recibimos la confirmación. Si ya pagó, recargue esta página en un momento.','err');
-        })
-        .catch(() => { if(intentos < 10) setTimeout(revisar, 2000);
-                       else msg('pago-msg','No pudimos verificar el pago.','err'); });
-    })();
-  });
+  Cuenta.salir(() => { location.reload(); });
 }
 
 async function crear(btn){
@@ -183,8 +67,7 @@ async function crear(btn){
   const infoF = $('f-if').value;
   if(!infoF){ msg('nueva-msg','Registre la fecha de la sesión informativa: la ley la exige antes de consultar.','err'); return; }
 
-  const llave = llaveGuardada();
-  if(!llave){ msg('nueva-msg',''); pintarPago(); return; }
+  if(condo.length < 2){ msg('nueva-msg','Escriba el nombre del condominio: el mes de servicio es de un condominio.','err'); return; }
 
   busy(btn, true, 'Creando…'); msg('nueva-msg','');
   try{
@@ -194,8 +77,7 @@ async function crear(btn){
       p_info_fecha: new Date(infoF).toISOString(),
       p_info_modalidad: $('f-im').value,
       p_info_asistentes: parseInt($('f-ia').value, 10) || 0,
-      p_info_observacion: $('f-io').value.trim(),
-      p_llave: llave
+      p_info_observacion: $('f-io').value.trim()
     });
     if(error) throw error;
     C = { codigo: data.codigo, token: data.admin_token, materia: materia, condo: condo };
@@ -204,14 +86,12 @@ async function crear(btn){
     $('c-padron').classList.remove('hidden');
   }catch(e){
     const m = String((e && e.message) || e || '');
-    if(/pago_requerido|llave_invalida|llave_malformada|pago_vencido|pago_ya_utilizado|pago_no_configurado/.test(m)){
-      borrarLlave();
-      if($('c-pago')) $('c-pago').classList.remove('hidden');
-      msg('pago-msg', /pago_ya_utilizado/.test(m)
-        ? 'Ese pago ya se usó. Cada consulta o asamblea requiere el suyo.'
-        : /pago_vencido/.test(m) ? 'El pago venció. Debe realizarse uno nuevo.'
-        : 'No pudimos validar el pago. Inténtelo nuevamente.', 'err');
+    // Sin mes, o con el mes de otro condominio: se dice cual es el suyo.
+    if(/pase_requerido|pase_de_otro_condominio/.test(m)){
       msg('nueva-msg','');
+      Cuenta.pase.estado(est => { if(est) PASE = est; mostrarPago(Cuenta.pase.mensaje(m, est || PASE, condo)); });
+    } else if(/sesion_requerida/.test(m)){
+      msg('nueva-msg', 'Su sesión terminó. Recargue la página y vuelva a entrar.', 'err');
     } else {
       msg('nueva-msg', 'No se pudo crear la consulta. ' + m, 'err');
     }
@@ -707,7 +587,6 @@ async function listarMisConsultas(){
     msg('nueva-msg', /no autorizado/.test(String(e.message||''))
       ? 'Entre a su cuenta para recuperar sus consultas.'
       : 'No pudimos consultar sus consultas. ' + (e.message||''), 'err');
-    if(/no autorizado/.test(String(e.message||''))) pintarPago();
   }
 }
 
@@ -724,15 +603,19 @@ $('lnk-reanudar').addEventListener('click', function(ev){
     titulo: 'Entre para su consulta',
     sub: 'Con su cuenta puede volver a la consulta, ver las respuestas y descargar el expediente.'
   }, function(u){
-    USUARIO = u;
-    // La vuelta desde la pasarela espera a la sesion: sin su token el Worker
-    // no entrega la llave.
-    retornoDePago();
-    // Esto corre en cada carga. Sin la guarda, en vitrina reventaba aqui y la
-    // pagina entera quedaba sin arrancar: ni panel, ni consulta recuperada.
-    if($('c-pago') && !$('c-pago').classList.contains('hidden')) pintarPago();
     const g = recuperar();
     if(g && g.codigo){ C = g; abrirPanel(); }
+    // El mes se mira de entrada: quien no lo tiene se entera antes de
+    // llenar el formulario, no al final. Con un solo mes vigente, el
+    // condominio se escribe solo. En vitrina no hay recuadro que mostrar.
+    if(!$('c-pago')) return;
+    Cuenta.pase.estado(est => {
+      if(!est) return;
+      PASE = est;
+      const campo = $('f-condo');
+      if(est.vigentes.length === 1 && campo && !campo.value.trim()) campo.value = est.vigentes[0].condominio;
+      if(!est.activo) mostrarPago(Cuenta.pase.mensaje('pase_requerido', est, ''));
+    });
   });
 })();
 

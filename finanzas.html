@@ -483,6 +483,10 @@
   .candado-panel{ background:var(--paper); border:1px solid var(--line); border-radius:var(--r-lg); padding:var(--sp-6); max-width:440px; width:100%; box-shadow:var(--elev-2); }
   .candado-panel h2{ margin-bottom:var(--sp-2); }
   .candado-panel input{ width:100%; }
+  /* El mes de servicio (paso 17): sin mes vigente, la herramienta no se
+     muestra. Los datos siguen en este navegador; no se borra nada. */
+  html.fin-sin-mes .cinta, html.fin-sin-mes .app{ display:none; }
+  .candado-panel p{ text-align:justify; hyphens:auto; }
   @media (max-width:700px){
     .header-badge{ display:none; }
     .header-inner{ padding:11px 14px; gap:10px; }
@@ -536,6 +540,20 @@
     <div id="candadoOlvido" hidden style="margin-top:16px">
       <p class="muted" style="font-size:12.5px">No hay forma de recuperarla: la contraseña no se guarda en ninguna parte, tampoco en nuestros servidores. Si tiene un respaldo, puede borrar la copia protegida de este equipo y después importarlo desde <b>Respaldo y datos</b>.</p>
       <button type="button" class="btn danger" data-ac="borrarCopiaProtegida">Borrar la copia protegida</button>
+    </div>
+  </div>
+</section>
+
+<!-- El mes de servicio: las cuentas van incluidas en el mes del condominio.
+     Lo muestra js/finanzas-2.js si la cuenta no tiene uno vigente. -->
+<section class="candado" id="fin-mes" hidden data-pago aria-labelledby="finMesTitulo">
+  <div class="candado-panel">
+    <h2 id="finMesTitulo">Las cuentas van incluidas en su mes de servicio</h2>
+    <p class="muted" id="finMesTexto">Para llevar las cuentas del condominio necesita un mes de servicio activo.</p>
+    <p class="muted" style="font-size:12.5px">Lo que ya anotó sigue guardado en este navegador: al activar el mes lo encuentra tal como lo dejó.</p>
+    <div class="btn-row" style="margin-top:12px">
+      <a class="btn primary" id="finMesActivar" href="/cuenta?volver=%2Ffinanzas#s-mes">Activar el mes</a>
+      <button type="button" class="btn" id="finMesEntrar" hidden>Entrar a mi cuenta</button>
     </div>
   </div>
 </section>

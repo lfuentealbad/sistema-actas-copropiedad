@@ -11,7 +11,7 @@
  *  entrar sin pasar antes por el acta.
  *
  *  Sirve para ver la sala funcionando sin crear una asamblea de verdad,
- *  que hoy exige un pago validado en Postgres.
+ *  que exige un mes de servicio vigente para su condominio (paso 17).
  *
  *  Sigue los contratos de la base: cada RUT atado a un telefono (C3:
  *  vv_liberar, "vinculado" en vv_reanudar) y, desde el 28-09-2026, solo
@@ -19,7 +19,7 @@
  *  vv_verificar_codigo, y el correo de /api/voto/codigo, que aqui se
  *  muestra en pantalla en vez de enviarse),
  *  el padron canonico (C4: una unidad una vez, "descartadas" siempre) y
- *  el tope de tres salas por pago. Si la demostracion no se comportara
+ *  el mes del condominio (js/demo-aviso.js, DEMO_MES). Si la demostracion no se comportara
  *  como la base, ensenaria una sala que no existe. Lo vigila
  *  Pruebas/prueba-seg-sala.mjs.
  *
@@ -133,10 +133,8 @@
 
   // Se guarda entre recargas, para que la Mesa y el votante que están en dos
   // pestañas distintas vean lo mismo.
-  // 'pagos' lleva cuantas salas abrio cada llave: es el contador que en
-  // Postgres vive en vv_pagos_usados.salas (ver vv_crear).
   var LLAVE = 'demo_sala_estado';
-  var base = { salas: {}, ultima: CODIGO, pagos: {} };
+  var base = { salas: {}, ultima: CODIGO };
 
   function guardar() {
     try { localStorage.setItem(LLAVE, JSON.stringify(base)); } catch (e) {}
@@ -146,9 +144,9 @@
       var g = JSON.parse(localStorage.getItem(LLAVE));
       if (g && g.salas) base = g;
     } catch (e) {}
-    if (!base.salas) base = { salas: {}, ultima: CODIGO, pagos: {} };
-    // Lo guardado antes del 22-09-2026 no traia el contador.
-    if (!base.pagos || typeof base.pagos !== 'object' || Array.isArray(base.pagos)) base.pagos = {};
+    if (!base.salas) base = { salas: {}, ultima: CODIGO };
+    // El contador de salas por pago se fue con el paso 17.
+    if (base.pagos) delete base.pagos;
     if (!base.salas[CODIGO]) {
       base.salas[CODIGO] = salaNueva(CODIGO, TOKEN, 'Condominio Las Araucarias',
                                      JSON.parse(JSON.stringify(PADRON_DEMO)));
@@ -414,33 +412,18 @@
       });
     },
 
-    // El candado del pago vive en Postgres y aquí no se puede reproducir:
-    // esta demostración da la asamblea por pagada. En producción, sin una
-    // llave válida y sin usar, vv_crear responde 'pago_requerido'.
-    //
-    // Lo que sí se reproduce es el tope (paso 12 de la base): una orden
-    // abre a lo sumo tres salas -para repetir una sesion que se corto o
-    // seguirla otro dia- y cerrar una no devuelve el cupo. Sin el tope, la
-    // demostracion ensenaba salas sin fin con un solo pago. Aqui la orden
-    // es la llave misma; la de la demostracion es siempre la misma marca,
-    // y su cupo vuelve a cero cuando se simula un pago nuevo (DEMOA.pagar()
-    // o entrar al acta sin pago puesto: ver _pagoNuevo mas abajo).
-    // 'pago_de_otra_cuenta' no se simula: la demostracion tiene una sola
-    // cuenta.
+    // El candado del mes vive en Postgres (vv_crear -> pase_exigir): la
+    // sala se abre si la cuenta tiene un mes vigente para el condominio, que
+    // es el titulo de la sala. Aqui contesta js/demo-aviso.js (DEMO_MES),
+    // con la misma regla. No hay tope de salas: desde el paso 17 el mes
+    // abre las que se necesiten.
     vv_crear: function (a) {
-      if (!a.p_llave) return fallar('pago_requerido');
+      var sinMes = global.DEMO_MES ? global.DEMO_MES.exigir(a.p_titulo) : 'pase_requerido';
+      if (sinMes) return fallar(sinMes);
       recuperar();
-      var orden = String(a.p_llave);
-      var abiertas = Number(propio(base.pagos, orden)) || 0;
-      if (abiertas >= 3) return fallar('demasiadas_salas_con_este_pago');
       var cod = codigoNuevo();
       base.salas[cod] = salaNueva(cod, 'token-' + cod, a.p_titulo || '', []);
       base.ultima = cod;
-      poner(base.pagos, orden, abiertas + 1);
-      // El pago del acta cubre el acta y sus salas; la consulta por escrito
-      // es un servicio aparte, con su propio pago. La llave no se borra: en
-      // Postgres la orden se reusa mientras sea la misma cuenta
-      // ('pago_de_otra_cuenta' si no) y no pase del tope.
       return responder({ id: 'demo-' + cod, codigo: cod, admin_token: 'token-' + cod });
     },
 
@@ -545,16 +528,6 @@
   // Sin código, actúan sobre la última asamblea creada.
   global.DEMO = {
     _fn: FN,                    // lo usa el simulador del acta para delegar
-    // Un pago nuevo trae su cupo de tres salas. Lo llama el simulador del
-    // acta cuando simula la vuelta de la pasarela; la llave es la misma
-    // marca de siempre, asi que lo que se reinicia es su contador.
-    _pagoNuevo: function (llave) {
-      recuperar();
-      if (propio(base.pagos, String(llave)) !== undefined) delete base.pagos[String(llave)];
-      guardar();
-    },
-    // Cuantas salas lleva abiertas una llave, para mirarlo desde la consola.
-    salasDelPago: function (llave) { recuperar(); return Number(propio(base.pagos, String(llave))) || 0; },
     codigo: CODIGO,
     token: TOKEN,
     padron: function (cod) { var s = cod ? laSala(cod) : actual(); return s ? s.padron : []; },
@@ -589,7 +562,7 @@
       return s ? JSON.parse(JSON.stringify(s)) : null;
     },
     reiniciar: function () {
-      base = { salas: {}, ultima: CODIGO, pagos: {} };
+      base = { salas: {}, ultima: CODIGO };
       recuperar(); guardar();
     }
   };

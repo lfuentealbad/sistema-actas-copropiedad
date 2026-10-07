@@ -1266,20 +1266,23 @@ function savePDF() {
       if (btn) btn.disabled = false;
       hideLoading();
       if (err === 'SIN_PAGO') {
-        // Por que se vuelve a pedir el pago, cuando la base lo dijo: sin
-        // esto, quien ya pago veia aparecer el cobro sin explicacion.
-        if (motivo && !enVitrina()) alert(motivo);
+        // Por que se pide el mes, cuando la base lo dijo: sin esto, quien
+        // ya pago veia aparecer el cobro sin explicacion.
         // En vitrina no hay nada que cobrar a la vista, asi que tampoco se
-        // saca el cartel del pago. Se dice lo que hay: el documento sale,
-        // pero sin folio -ese lo emite Postgres y no se va a inventar aqui-.
+        // ofrece el pago. Se dice lo que hay: el documento sale, pero sin
+        // folio -ese lo emite Postgres y no se va a inventar aqui-.
         if (enVitrina()) {
           alert('El acta se descarga como borrador. El folio se emite al cerrarla, ' +
                 'y esa parte no está habilitada en esta presentación.');
           _imprimirActa(btn);
           return;
         }
-        if (window.actaMostrarPago) window.actaMostrarPago(true);
-        else alert('Necesita activar esta asamblea antes de finalizar el acta.');
+        // Se dice por que (lo dijo la base) y se pregunta antes de salir de
+        // la pagina: el acta queda guardada en la cuenta y se retoma al volver.
+        if (confirm((motivo || 'Para finalizar el acta necesita un mes de servicio activo para este condominio.') +
+                    '\n\n¿Ir a su cuenta para activarlo ahora? Su acta queda guardada.')) {
+          location.href = _urlActivarMes();
+        }
         return;
       }
       alert(err);
@@ -2663,8 +2666,8 @@ function _tryRestore() {
     _borradorResuelto = true;
     if (_actaFolio) {
       _nubeEstado('Acta ' + _actaFolio + ', ya finalizada. Los cambios en el formulario ya no modifican el documento emitido.', 'ok');
-      // La llave se borro al finalizar (SB-01): sin esto, quien recarga
-      // para bajar otra vez su acta quedaba frente a la puerta de pago.
+      // Un acta con folio se abre aunque el mes haya vencido: quien recarga
+      // para bajarla otra vez no esta usando el servicio de nuevo.
       abrirAsistente();
     } else if (_actaId) {
       _nubeEstado('Retomando el acta guardada en su cuenta.', 'ok');
@@ -2896,13 +2899,7 @@ window.addEventListener('load', function() {
   // Nada de esto ocurre sin sesion: exigirSesion abre el cajon sin salida y
   // solo llama de vuelta cuando la persona entro.
   if (window.Cuenta && Cuenta.exigirSesion) {
-    // De vuelta de la pasarela, lo que importa es entrar con la cuenta que
-    // pago: solo a ella le entrega el Worker la llave (C1).
-    var vuelveDePagar = /[?&]pago=AV-[A-Z0-9]+/.test(String(location.search || ''));
-    Cuenta.exigirSesion(vuelveDePagar ? {
-      titulo: 'Entre con la cuenta con la que pagó',
-      sub: 'El pago queda asociado a esa cuenta, y solo ella puede recuperarlo.'
-    } : {
+    Cuenta.exigirSesion({
       titulo: 'Entre para armar su acta',
       sub: 'Con su cuenta guardamos su avance, le enviamos el comprobante y puede volver a sus asambleas.'
     }, function (u) {
@@ -2910,6 +2907,7 @@ window.addEventListener('load', function() {
       _uidSesion = (u && u.id) || null;
       _porteroPaso = true;
       _vigilarSesion();
+      _comprobarMes();
       var esperan = _esperanPortero;
       _esperanPortero = [];
       esperan.forEach(function (fn) {
@@ -3362,20 +3360,10 @@ function _subirAntesDeCerrar(c, sello) {
 
 // ---------------------------------------------------------------------
 //  Finalizar el acta
-//  Aqui se cobra. La comprobacion vive en Postgres (ac_finalizar valida la
-//  llave del pago), no en el navegador: un candado de navegador se abre
-//  mirando el codigo fuente.
+//  Aqui se cobra. La comprobacion vive en Postgres (ac_finalizar exige un
+//  mes vigente para el condominio del acta), no en el navegador: un candado
+//  de navegador se abre mirando el codigo fuente.
 // ---------------------------------------------------------------------
-// CN-001: la llave de pago del equipo se quita solo si la sesion sigue
-// siendo de quien abrio la pagina. Si cambio, la que hay ahora puede ser
-// de la otra cuenta, y esa no se toca.
-// Devuelve una promesa: quien llama responde despues de quitarla.
-function _quitarLlaveDelEquipo() {
-  if (_sesionAjena) return Promise.resolve();
-  return _comprobarSesion().then(function (s) {
-    if (s.misma) { try { localStorage.removeItem('acta_pago_llave'); } catch (e) {} }
-  });
-}
 
 function actaFinalizar(alTerminar) {
   if (_actaPagada()) { alTerminar(null); return; }
@@ -3385,9 +3373,6 @@ function actaFinalizar(alTerminar) {
   var c = window.Cuenta && Cuenta.cliente();
   if (!c) { alTerminar('Sin conexión con el servicio. Reintente en un momento.'); return; }
   if (!_actaId) { alTerminar('Todavía estamos guardando su acta. Espere unos segundos y reintente.'); return; }
-
-  var llave = llaveDelActa();
-  if (!llave) { alTerminar('SIN_PAGO'); return; }
 
   // El cuerpo se fija y se sella ANTES de conocer el folio: la huella no
   // puede depender de lo que la base conteste. Ver "EL CUERPO CANONICO".
@@ -3411,38 +3396,30 @@ function actaFinalizar(alTerminar) {
     return _huellaDe(cuerpo).then(function (huella) {
     var resumen = _resumenDelActa();
     return _subirAntesDeCerrar(c, { huella: huella, cuerpo: cuerpo }).then(function () {
-      return c.rpc('ac_finalizar', { p_acta: _actaId, p_llave: llave, p_huella: huella, p_resumen: resumen });
+      return c.rpc('ac_finalizar', { p_acta: _actaId, p_huella: huella, p_resumen: resumen });
     }).then(function (r) {
       if (r.error) {
         var m = String(r.error.message || '');
         // Los errores del contrato C2 que no son de conexion se explican:
-        // "Reintente en unos minutos" no arregla ninguno. Los dos primeros
-        // saltan antes de tocar el pago, y eso tambien se dice.
+        // "Reintente en unos minutos" no arregla ninguno.
         if (/huella_invalida/.test(m)) {
-          alTerminar('El servidor no aceptó la huella del documento, así que el acta no se finalizó y su pago sigue disponible. Recargue la página y vuelva a finalizar; si se repite, pruebe con otro navegador.');
+          alTerminar('El servidor no aceptó la huella del documento, así que el acta no se finalizó. Recargue la página y vuelva a finalizar; si se repite, pruebe con otro navegador.');
           return;
         }
         if (/resumen_invalido/.test(m)) {
-          alTerminar('El servidor no aceptó el resumen del acta que se publica para verificarla, así que el acta no se finalizó y su pago sigue disponible. Acorte los títulos de los puntos más largos y vuelva a finalizar.');
+          alTerminar('El servidor no aceptó el resumen del acta que se publica para verificarla, así que el acta no se finalizó. Acorte los títulos de los puntos más largos y vuelva a finalizar.');
           return;
         }
-        // Una orden, un acta (SB-01): esa llave ya emitio otra y no sirve mas.
-        if (/pago_ya_usado_en_otra_acta/.test(m)) {
-          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO', 'Ese pago ya se usó para finalizar otra acta: cada acta requiere su propio pago. Active esta asamblea para finalizarla.'); });
-        }
-        // La llave de este equipo la pago otra cuenta. Para esta no sirve,
-        // pero sigue siendo de quien pago: se anota su orden y cuenta.js se
-        // la devuelve cuando esa cuenta entre en este equipo.
-        if (/pago_de_otra_cuenta/.test(m)) {
-          _anotarOrdenDeLlave(llave);
-          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO', 'El pago guardado en este equipo es de otra cuenta y no sirve para esta acta. Si pagó con otra cuenta, entre con ella en este equipo y se lo devolveremos; si no, active esta asamblea con su propio pago.'); });
-        }
-        if (/pago_vencido/.test(m)) {
-          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO', 'El pago de esta asamblea venció. Para finalizar el acta debe activarla con un pago nuevo.'); });
-        }
-        if (/llave_invalida|llave_vencida|llave_malformada|pago_requerido|pago_ya_usado|llave_de_otro_producto/.test(m)) {
-          if (/llave_de_otro_producto/.test(m)) _anotarOrdenDeLlave(llave);
-          return _quitarLlaveDelEquipo().then(function () { alTerminar('SIN_PAGO'); });
+        // Sin mes, o con el mes de otro condominio: se dice cual es el suyo
+        // y se ofrece activarlo (SIN_PAGO abre el aviso del cobro).
+        if (/pase_requerido|pase_de_otro_condominio/.test(m)) {
+          var condo = (document.getElementById('condo-nombre') || {}).value || '';
+          var decir = function (e) {
+            if (e) _pase = e;
+            alTerminar('SIN_PAGO', Cuenta.pase.mensaje(m, e || _pase, condo.trim()));
+          };
+          if (window.Cuenta && Cuenta.pase) Cuenta.pase.estado(decir); else alTerminar('SIN_PAGO');
+          return;
         }
         if (/does not exist|schema cache|PGRST202/i.test(m)) {
           alTerminar('El cierre del acta todavía no está habilitado en el servidor.');
@@ -3462,15 +3439,9 @@ function actaFinalizar(alTerminar) {
       _sello = (folio && String(d.codigo || '').toUpperCase() === codigo)
         ? { folio: folio, codigo: codigo, huella: huella, cuerpo: cuerpo }
         : null;
-      // SB-01: la llave ya cumplio. Si quedara en el equipo, el panel la
-      // seguiria ofreciendo como "asamblea activada" y pareceria servir
-      // para la proxima acta. Si el acta ya estaba finalizada, la llave que
-      // hay ahora puede ser la de otra asamblea, y esa no se toca.
-      return (d.ya_estaba ? Promise.resolve() : _quitarLlaveDelEquipo()).then(function () {
-        _recordarIdEnBorrador();
-        generateActa();
-        alTerminar(null);
-      });
+      _recordarIdEnBorrador();
+      generateActa();
+      alTerminar(null);
     });
   }, function () {
     alTerminar('Este navegador no permite calcular la huella del acta. Actualícelo o use otro navegador para finalizarla.');
@@ -3969,51 +3940,17 @@ firmInicial();
 
 
 /* =====================================================================
- *  Puerta de pago
+ *  Puerta del mes de servicio (paso 17, 07-10-2026)
  *
- *  El acta se paga antes de la asamblea. Si el cobro aparece recien al
+ *  El mes se activa antes de la asamblea. Si el cobro aparece recien al
  *  finalizar, la reunion se detiene mientras alguien saca la tarjeta y
  *  espera la confirmacion, con la sala llena esperando.
  *
- *  Esto NO es el candado: el candado vive en Postgres, que valida la
- *  firma de la llave antes de abrir la sala o de entregar el folio.
- *  Esto es el orden correcto de las cosas, y un aviso honesto.
+ *  Esto NO es el candado: el candado vive en Postgres (pase_exigir), que
+ *  mira el mes de la cuenta y el condominio del acta antes de entregar el
+ *  folio o abrir la sala. Esto es el orden correcto de las cosas, y un
+ *  aviso honesto.
  * ===================================================================== */
-
-var LLAVE_ACTA = 'acta_pago_llave';
-// La demostracion escribe esta llave para abrirse sola, y localStorage es
-// del origen entero: al salir de /acta-demo quedaba puesta y el producto
-// se comportaba como pagado. Fuera de una pagina de demostracion no vale.
-var LLAVE_DE_DEMO = 'DEMO-PAGO-SIMULADO';
-function enPaginaDemo() {
-return /(^|\/)([\w-]+-)?demo(\.html)?\/?$/.test(location.pathname);
-}
-function llaveDelActa() {
-var v = '';
-try { v = localStorage.getItem(LLAVE_ACTA) || ''; } catch (e) { return ''; }
-if (v === LLAVE_DE_DEMO && !enPaginaDemo()) return '';
-return v;
-}
-
-function hayPagoDelActa() {
-  return !!llaveDelActa();
-}
-
-// La llave es <payload base64url>.<firma>, con la orden en payload.o
-// (emitirLlave en _worker.js). Aqui solo se lee la orden -la firma la
-// valida Postgres- para anotarla antes de borrar una llave que en esta
-// cuenta no sirve: cuenta.js se la devuelve a quien pago cuando entre en
-// este equipo (Cuenta.anotarPago y recuperarPagos).
-function _anotarOrdenDeLlave(llave) {
-  var p = String(llave || '').split('.');
-  if (p.length !== 2) return;
-  try {
-    var b = p[0].replace(/-/g, '+').replace(/_/g, '/');
-    while (b.length % 4) b += '=';
-    var o = String((JSON.parse(atob(b)) || {}).o || '');
-    if (/^AV-[A-Z0-9]{1,32}$/.test(o) && window.Cuenta && typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(o);
-  } catch (e) { /* una llave ilegible no tiene orden que anotar */ }
-}
 
 function puertaMsg(texto, malo) {
   var el = document.getElementById('puerta-msg');
@@ -4023,9 +3960,104 @@ function puertaMsg(texto, malo) {
   el.textContent = texto || '';
 }
 
+// Lo ultimo que dijo la base del mes de esta cuenta (Cuenta.pase.estado).
+var _pase = null;
+
+// Donde se activa el mes, con el condominio de esta acta ya escrito.
+function _urlActivarMes() {
+  var c = document.getElementById('condo-nombre');
+  var nombre = (c && c.value.trim()) || '';
+  if (!nombre && _pase && _pase.condominios.length) nombre = _pase.condominios[0].condominio;
+  var u = (window.Cuenta && Cuenta.pase) ? Cuenta.pase.urlActivar(nombre) : '/cuenta#s-mes';
+  // Vuelta a esta pagina despues de pagar (panel-1.js, anotarVolver).
+  return u.replace(/(#|$)/, (u.indexOf('?') >= 0 ? '&' : '?') + 'volver=%2Facta$1');
+}
+
+function _pintarPuerta(e) {
+  var a = document.getElementById('puerta-activar');
+  if (a) a.href = _urlActivarMes();
+  var vencidos = (e && e.condominios || []).filter(function (x) { return !x.activo; });
+  if (vencidos.length && window.Cuenta && Cuenta.pase) {
+    puertaMsg('Su mes para «' + vencidos[0].condominio + '» venció el ' + Cuenta.pase.fecha(vencidos[0].ultimo) +
+      '. Lo que emitió sigue en su cuenta; para seguir, active otro mes.', false);
+  }
+}
+
+// Pregunta a la base y abre o cierra. Corre cuando el portero dejo pasar:
+// sin sesion no hay mes que preguntar.
+function _comprobarMes() {
+  var raiz = document.documentElement;
+  if (enVitrina() || !window.Cuenta || !Cuenta.pase) return;
+  Cuenta.pase.estado(function (e) {
+    raiz.classList.remove('puerta-comprobando');
+    if (e) _pase = e;
+    // En la demostracion la puerta no se cierra: solo se pinta el aviso
+    // del condominio, con el mes simulado (js/demo-aviso.js).
+    if (window.DEMOA) { _avisoCondominio(); return; }
+    if (e && e.activo) { abrirAsistente(); _avisoCondominio(); return; }
+    if (!e) {
+      // No se pudo preguntar. Si el equipo decia que habia mes, sigue
+      // abierto: al finalizar decide la base. Si no, se dice que paso.
+      if (!raiz.classList.contains('acta-abierta')) {
+        puertaMsg('No pudimos comprobar su mes de servicio. Revise su conexión y recargue la página.', true);
+      }
+      return;
+    }
+    // Sin mes vigente. Un acta que ya tiene folio sigue abierta: bajarla
+    // otra vez no es usar el servicio (ver _tryRestore).
+    if (_actaFolio) return;
+    raiz.classList.remove('acta-abierta');
+    if (_tituloPagina === null) _tituloPagina = document.title;
+    document.title = 'Active su mes antes de la asamblea \u00b7 actaviva';
+    _pintarPuerta(e);
+  });
+}
+
+// El aviso bajo el nombre del condominio (paso 1): el mes es de UN
+// condominio, y la base compara con este nombre al finalizar.
+function _avisoCondominio() {
+  var caja = document.getElementById('aviso-mes-condo');
+  var campo = document.getElementById('condo-nombre');
+  if (!caja || !campo || !_pase || !_pase.activo || !window.Cuenta || !Cuenta.pase) { if (caja) caja.hidden = true; return; }
+  var nombre = campo.value.trim();
+  var nombres = _pase.vigentes.map(function (x) { return x.condominio; });
+  if (_actaFolio || (nombre && Cuenta.pase.de(_pase, nombre))) { caja.hidden = true; caja.textContent = ''; return; }
+  caja.textContent = '';
+  var p = document.createElement('div');
+  if (!nombre) {
+    p.textContent = 'Su mes de servicio es para ' + nombres.map(function (n) { return '«' + n + '»'; }).join(' y ') + '.';
+  } else {
+    p.textContent = 'Su mes de servicio es para ' + nombres.map(function (n) { return '«' + n + '»'; }).join(' y ') +
+      ', y esta acta dice «' + nombre + '». El folio se entrega solo para el condominio del mes: revise el nombre, ' +
+      'o active un mes para este condominio desde su cuenta.';
+  }
+  caja.appendChild(p);
+  if (nombres.length === 1) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-secondary';
+    b.textContent = 'Usar «' + nombres[0] + '»';
+    b.addEventListener('click', function () {
+      campo.value = nombres[0];
+      campo.dispatchEvent(new Event('input', { bubbles: true }));
+      campo.dispatchEvent(new Event('change', { bubbles: true }));
+      _avisoCondominio();
+    });
+    caja.appendChild(b);
+  }
+  caja.hidden = false;
+}
+(function () {
+  var campo = document.getElementById('condo-nombre');
+  if (campo) campo.addEventListener('input', function () { if (_pase) _avisoCondominio(); });
+})();
+
+// ¿Pago y el mes no aparece? (el aviso de Flow no alcanzo a registrarlo y
+// la persona no volvio a /cuenta). Con el numero de orden el Worker lo
+// registra ahora; solo para la cuenta que pago.
 function puertaRecuperar(btn) {
   var campo = document.getElementById('puerta-orden');
-  if (!campo) return;
+  if (!campo || !window.Cuenta || !Cuenta.pase) return;
   var orden = String(campo.value || '').trim().toUpperCase();
   if (!/^AV-[A-Z0-9]{1,32}$/.test(orden)) {
     puertaMsg('Revise el n\u00famero: empieza con AV- y viene en el comprobante del pago.', true);
@@ -4033,79 +4065,26 @@ function puertaRecuperar(btn) {
     return;
   }
   var _t = btn.textContent;
-  var listo = function () { btn.disabled = false; btn.textContent = _t; };
-  // C1: el numero de orden ya no basta. El comprobante se reenvia -al
-  // tesorero, al contador- y con el numero cualquiera se quedaba con la
-  // llave. El Worker entrega la llave solo a la cuenta que pago, y lo sabe
-  // por el token de la sesion. Sin sesion no se llama: se pide entrar.
-  var consultar = function (puedePedirSesion) {
-    btn.disabled = true;
-    btn.textContent = 'Buscando\u2026';
-    puertaMsg('');
-    _tokenDeAcceso().then(function (token) {
-      if (!token) {
-        listo();
-        puertaMsg('Para recuperar el pago, entre con la cuenta con la que pag\u00f3.', true);
-        if (puedePedirSesion && window.Cuenta && Cuenta.exigirSesion) {
-          Cuenta.exigirSesion({
-            titulo: 'Entre con la cuenta con la que pag\u00f3',
-            sub: 'El pago queda asociado a esa cuenta, y solo ella puede recuperarlo.'
-          }, function (u) {
-            // Si entro otra cuenta que la que abrio la pagina, lo que esta
-            // en pantalla es de la anterior: se recarga, como en acta-2.js.
-            if (u && _uidSesion && u.id !== _uidSesion) { location.reload(); return; }
-            consultar(false);
-          });
-        }
-        return;
-      }
-      return fetch('/api/pago/estado?orden=' + encodeURIComponent(orden), {
-        headers: { 'Authorization': 'Bearer ' + token }
-      })
-        .then(function (r) {
-          return r.json().catch(function () { return null; })
-            .then(function (d) { return { status: r.status, d: d }; });
-        })
-        .then(function (x) {
-          listo();
-          var d = x.d;
-          if (x.status === 401) {
-            puertaMsg('Su sesi\u00f3n venci\u00f3. Entre de nuevo con la cuenta con la que pag\u00f3 y vuelva a intentarlo.', true);
-            return;
-          }
-          // 404 dice lo mismo si la orden no existe o si es de otra cuenta:
-          // la pagina tampoco lo distingue. El numero se anota en el equipo,
-          // como en el panel: si se pago con otra cuenta, al entrar con ella
-          // en este equipo Cuenta.recuperarPagos le entrega la llave. Aqui
-          // no hay ?pago= que quitar: el numero lo escribio la persona.
-          if (x.status === 404) {
-            if (window.Cuenta && typeof Cuenta.anotarPago === 'function') Cuenta.anotarPago(orden);
-            puertaMsg('No encontramos un pago con ese número en esta cuenta. Revise el número; si pagó con otra cuenta, entre con ella en este equipo y se lo entregaremos.', true);
-            return;
-          }
-          if (!d || d.estado !== 'pagado' || !d.llave) {
-            puertaMsg('No encontramos un pago confirmado con ese n\u00famero en esta cuenta. Si acaba de pagarlo, espere un momento y vuelva a intentar; si pag\u00f3 con otra cuenta, entre con ella.', true);
-            return;
-          }
-          if ((d.producto || 'acta') !== 'acta') {
-            puertaMsg('Ese pago corresponde a una consulta por escrito, no a un acta de asamblea.', true);
-            return;
-          }
-          // CN-001: la llave la entrego el Worker a la cuenta del token. Si
-          // en el camino la sesion cambio, no se deja en el equipo.
-          return _comprobarSesion().then(function (s) {
-            if (!s.misma) { puertaMsg('La sesi\u00f3n cambi\u00f3 mientras busc\u00e1bamos el pago. Recargue la p\u00e1gina.', true); return; }
-            try { localStorage.setItem(LLAVE_ACTA, d.llave); } catch (e) {}
-            puertaMsg('Pago encontrado. Abriendo su acta\u2026');
-            setTimeout(function () { location.reload(); }, 900);
-          });
-        });
-    }).then(null, function () {
-      listo();
-      puertaMsg('No pudimos consultar el pago. Revise su conexi\u00f3n e int\u00e9ntelo otra vez.', true);
-    });
-  };
-  consultar(true);
+  btn.disabled = true;
+  btn.textContent = 'Buscando\u2026';
+  puertaMsg('');
+  Cuenta.pase.confirmar(orden, function (r) {
+    btn.disabled = false;
+    btn.textContent = _t;
+    if (r.listo) {
+      puertaMsg('Pago encontrado: su mes para «' + (r.condominio || '') + '» está activo. Abriendo su acta\u2026');
+      setTimeout(function () { location.reload(); }, 900);
+      return;
+    }
+    puertaMsg(r.texto, true);
+  });
+}
+
+// Pago con otra cuenta: el mes es de esa cuenta. Salir y entrar con ella.
+function puertaOtraCuenta(btn) {
+  if (!window.Cuenta) return;
+  btn.disabled = true;
+  Cuenta.salir(function () { location.reload(); });
 }
 
 // El token de la sesion vigente (contrato C1: Cuenta.tokenDeAcceso, en
@@ -4119,11 +4098,11 @@ function _tokenDeAcceso() {
 }
 
 // Quien vuelve por un acta que la base ya finalizo -para bajarla otra vez-
-// no esta usando el servicio de nuevo: el folio acredita el pago. Tras
-// finalizar, la llave se borra del equipo (SB-01), asi que sin esto el
-// dueno quedaba frente a la puerta de pago con su acta ya pagada adentro.
+// no esta usando el servicio de nuevo: el folio acredita el pago, aunque el
+// mes ya haya vencido.
 var _tituloPagina = null;
 function abrirAsistente() {
+  document.documentElement.classList.remove('puerta-comprobando');
   document.documentElement.classList.add('acta-abierta');
   if (_tituloPagina) document.title = _tituloPagina;
 }
@@ -4131,8 +4110,8 @@ function abrirAsistente() {
 // El modo vitrina lo pone el Worker: cuando VITRINA=1 agrega la clase al
 // <html> y borra del HTML todo lo comercial, la puerta incluida. Aqui solo
 // se lee. Ojo con lo que esto NO significa: la puerta es de escaparate, no
-// de caja. Quien pone el folio es Postgres, y sigue exigiendo la llave del
-// pago aunque el asistente este a la vista.
+// de caja. Quien pone el folio es Postgres, y sigue exigiendo el mes
+// aunque el asistente este a la vista.
 function enVitrina() {
   return document.documentElement.classList.contains('vitrina');
 }
@@ -4141,14 +4120,19 @@ function revisarPuertaDePago() {
   var raiz = document.documentElement;
   raiz.classList.remove('acta-abierta');
 
-  // La demostracion vive en localhost y trae su propio simulador de pagos:
-  // ahi la puerta estorba, porque el pago es justamente lo que muestra.
-  if (window.DEMOA || enVitrina() || hayPagoDelActa()) {
+  // La demostracion trae su propio simulador: ahi la puerta estorba.
+  if (window.DEMOA || enVitrina()) {
     raiz.classList.add('acta-abierta');
     return;
   }
   _tituloPagina = document.title;
-  document.title = 'Pague su acta antes de la asamblea \u00b7 actaviva';
+  // Pista del equipo: quien tiene su mes al dia no ve la puerta ni un
+  // instante. La base lo confirma apenas se sabe quien entro (_comprobarMes).
+  if (window.Cuenta && Cuenta.pase && Cuenta.pase.enEquipo()) {
+    raiz.classList.add('acta-abierta');
+    return;
+  }
+  raiz.classList.add('puerta-comprobando');
 }
 
 // Se llama aqui mismo, no en DOMContentLoaded: este archivo se evalua al

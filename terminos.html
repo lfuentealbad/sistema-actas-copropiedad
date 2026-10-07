@@ -185,7 +185,7 @@
     <p class="lede">El contrato entre usted y nosotros. Cada cláusula viene con una línea en castellano corriente que dice lo mismo, para que no tenga que descifrarla.</p>
     <div class="meta">
       <span class="sello"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>Ley N° 19.496</span>
-      <span>Versión 4 · vigente desde el 28 de septiembre de 2026</span>
+      <span>Versión 5 · vigente desde el 7 de octubre de 2026</span>
       <a href="/privacidad">Ver la declaración de privacidad</a>
     </div>
   </div>
@@ -193,10 +193,9 @@
   <div class="resumen">
     <h2>Lo esencial, en cuatro líneas</h2>
     <ul>
-      <li data-pago><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>$14.990 por asamblea</strong>, impuestos incluidos, con la votación en vivo incluida. La <strong>consulta por escrito</strong> es un servicio aparte: <strong>$7.990</strong>.</span></li>
-      <li hidden data-vitrina><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Durante la marcha blanca el servicio no tiene costo.</strong> El cobro en línea está deshabilitado.</span></li>
-      <li data-pago><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Se paga solo cuando se usa: <strong>no hay suscripción ni cobro automático</strong>, y no queda ningún medio de pago guardado.</span></li>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Puede retractarse dentro de 10 días</strong> si todavía no ha usado la sala de votación.</span></li>
+      <li data-pago><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>$14.990 por un mes, para un condominio</strong>, impuestos incluidos, con todas las herramientas: actas de asamblea, votación en vivo, consulta por escrito, actas del comité y cuentas del condominio.</span></li>
+      <li data-pago><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>No se renueva solo</strong>: no hay suscripción ni cobro automático, y no queda ningún medio de pago guardado.</span></li>
+      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Puede retractarse dentro de 10 días</strong> si todavía no ha emitido nada con su mes.</span></li>
       <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Su acta se guarda en su cuenta</strong> y la borra cuando quiera. Solo usted puede verla.</span></li>
     </ul>
   </div>
@@ -284,45 +283,36 @@
           <p>Como toda la información del servicio, se aloja en servidores fuera de Chile. Está explicado en la <a href="/privacidad#p7">declaración de privacidad</a>.</p>
         </section>
 
-        <section class="cl" id="t4">
+        <!-- En vitrina el Worker quita la clausula entera: sin precio no hay nada
+             que decir del pago, y una seccion vacia se leeria como un olvido. -->
+        <section class="cl" id="t4" data-pago>
           <h2>Precio y forma de pago</h2>
-          <p class="simple" hidden data-vitrina><b>En simple</b>Durante la marcha blanca el servicio se presta sin costo: el cobro en línea está deshabilitado y nadie puede ser cobrado. Las condiciones comerciales se publicarán en esta misma sección antes de que empiece a regir un precio.</p>
-          <p class="simple" data-pago><b>En simple</b>$14.990 el acta de asamblea, con la votación en vivo incluida. $7.990 la consulta por escrito, que va aparte. Impuestos incluidos, sin suscripción ni cobros automáticos.</p>
+          <p class="simple" data-pago><b>En simple</b>$14.990 por un mes de servicio para un condominio, con todas las herramientas, todas las veces que las necesite durante ese mes. Impuestos incluidos, sin suscripción ni cobros automáticos.</p>
           <div class="precio" data-pago>
             <b>$14.990</b>
-            <span>el acta de asamblea · impuestos incluidos · votación en vivo incluida</span>
+            <span>un mes de servicio, para un condominio · impuestos incluidos · todo incluido</span>
           </div>
-          <div class="precio" data-pago>
-            <b>$7.990</b>
-            <span>la consulta por escrito · impuestos incluidos · servicio aparte</span>
-          </div>
-          <div class="precio" data-pago>
-            <b>Gratis</b>
-            <span>el acta de reunión del comité · sin costo ni límite de tiempo</span>
-          </div>
-          <div class="precio" data-pago>
-            <b>Gratis por ahora</b>
-            <span>las cuentas del condominio · herramienta nueva, todavía sin cobro</span>
-          </div>
-          <p data-pago>Hay dos herramientas que no se cobran. El <strong>acta de reunión del comité</strong> es gratuita y seguirá siéndolo. Las <strong>cuentas del condominio</strong> están recién estrenadas y por ahora tampoco se cobran: si algún día pasan a tener precio, se lo avisaremos con al menos <strong>30 días de anticipación</strong> y podrá seguir bajando sus datos aunque decida no pagar, porque esos datos nunca estuvieron en nuestros servidores — viven en su navegador.</p>
-          <p data-pago>El pago del acta <strong>habilita una asamblea completa</strong>: finalizarla con folio y abrir su sala de votación en vivo. La <strong>consulta por escrito</strong> se contrata aparte, porque reemplaza a la asamblea en vez de ser una forma de votar dentro de ella. En ninguno de los dos casos hay suscripción: no se renueva solo y no queda ningún medio de pago guardado para cobrar de nuevo.</p>
-          <p data-pago>El cobro lo procesa una <strong>pasarela de pagos externa</strong>. Los datos de su tarjeta los recibe esa pasarela; no pasan por nuestros servidores ni los almacenamos.</p>
-          <p data-pago>El comprobante llega al correo de su cuenta. Si no le llega dentro de las 24 horas siguientes, escríbanos y lo reemitimos.</p>
-          <p data-pago>Podemos cambiar el precio en cualquier momento, pero <strong>el cambio nunca afecta a una asamblea ya pagada</strong>. El precio que rige es el que se muestra al momento de pagar.</p>
+          <p data-pago>El mes incluye <strong>todas las herramientas</strong> para ese condominio: finalizar con folio las actas de asamblea, abrir la sala de votación en vivo, crear consultas por escrito, cerrar y numerar las actas del comité y llevar las cuentas del condominio. No hay un tope de asambleas, salas ni consultas dentro del mes, más allá del tope de 100 actas por cuenta.</p>
+          <p data-pago>El mes dura <strong>un mes calendario desde el pago</strong>: si paga el 7 de octubre a las 10:00, vale hasta el 7 de noviembre a las 10:00. Si paga otro mes para el mismo condominio mientras el anterior sigue vigente, el nuevo empieza cuando termina el anterior: no pierde días por pagar antes.</p>
+          <p data-pago>El mes es para <strong>el condominio que usted indica al pagar</strong>, y los documentos de otro condominio necesitan su propio mes. Si administra varios condominios, cada uno lleva el suyo. Si se equivocó al escribir el nombre, puede corregirlo desde su panel mientras no haya emitido ningún documento con ese mes.</p>
+          <p data-pago>Al terminar el mes, <strong>lo que ya emitió sigue en su cuenta</strong>: puede abrir y descargar sus actas, y una consulta o una sala abiertas dentro del mes terminan normalmente. Lo que se detiene es emitir algo nuevo —un folio, una sala, una consulta, un acta del comité— y llevar las cuentas, hasta que active otro mes. Sus borradores no se pierden, y las cuentas del condominio tampoco: viven en su navegador, no en nuestros servidores, y vuelven a estar a la vista apenas active otro mes. No hay suscripción: no se renueva solo y no queda ningún medio de pago guardado para cobrar de nuevo.</p>
+          <p>El cobro lo procesa una <strong>pasarela de pagos externa</strong>. Los datos de su tarjeta los recibe esa pasarela; no pasan por nuestros servidores ni los almacenamos.</p>
+          <p>El comprobante llega al correo de su cuenta. Si no le llega dentro de las 24 horas siguientes, escríbanos y lo reemitimos.</p>
+          <p data-pago>Podemos cambiar el precio en cualquier momento, pero <strong>el cambio nunca afecta a un mes ya pagado</strong>. El precio que rige es el que se muestra al momento de pagar.</p>
         </section>
 
         <section class="cl" id="t5">
           <h2>Derecho a retracto</h2>
-          <p class="simple"><b>En simple</b>Tiene 10 días para arrepentirse, mientras no haya usado la sala.</p>
+          <p class="simple"><b>En simple</b>Tiene 10 días para arrepentirse, mientras no haya emitido nada con su mes.</p>
           <p>Conforme al artículo 3° bis de la Ley N° 19.496, por tratarse de una contratación por medios electrónicos, usted puede <strong>poner término al contrato dentro de los 10 días corridos</strong> siguientes al pago, siempre que <strong>el servicio no se haya prestado todavía</strong>.</p>
-          <p>En la práctica: si pagó y aún <strong>no ha finalizado su acta</strong>, no ha abierto la sala de votación ni ha enviado la consulta a los copropietarios, escríbanos a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a> y le devolvemos el total, sin preguntas y sin costo.</p>
-          <p>Una vez finalizada el acta, abierta la sala o despachada la consulta, el servicio se entiende prestado y el retracto ya no procede. Esto no afecta sus demás derechos: si el servicio falla o no funciona como se ofrece, <strong>sigue teniendo derecho a la devolución</strong>, según la cláusula siguiente.</p>
+          <p>En la práctica: si pagó y aún <strong>no ha emitido nada con ese mes</strong> —no ha finalizado un acta, no ha abierto una sala de votación, no ha creado una consulta ni cerrado un acta del comité—, escríbanos a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a> y le devolvemos el total, sin preguntas y sin costo.</p>
+          <p>Desde que emite el primer documento con ese mes, el servicio se entiende prestado y el retracto ya no procede. Esto no afecta sus demás derechos: si el servicio falla o no funciona como se ofrece, <strong>sigue teniendo derecho a la devolución</strong>, según la cláusula siguiente.</p>
         </section>
 
         <section class="cl" id="t6">
           <h2>Si algo falla</h2>
           <p class="simple"><b>En simple</b>Si no funcionó por culpa nuestra, le devolvemos la plata.</p>
-          <p>Si por un problema atribuible a nosotros la sala de votación o la consulta por escrito <strong>no pudo usarse en la asamblea para la que la contrató</strong>, le devolvemos íntegramente lo pagado. Basta con que nos escriba dentro de los 30 días siguientes.</p>
+          <p>Si por un problema atribuible a nosotros la sala de votación, la consulta por escrito o el acta <strong>no pudieron usarse en la asamblea o la consulta para la que activó el mes</strong>, le devolvemos íntegramente lo pagado por ese mes. Basta con que nos escriba dentro de los 30 días siguientes.</p>
           <p>Esto es adicional a los derechos que la Ley N° 19.496 le reconoce como consumidor, que no se ven afectados por estos términos.</p>
         </section>
 
