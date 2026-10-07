@@ -154,7 +154,7 @@ var info = {
 'ordinaria': {
 titulo: 'Asamblea Ordinaria (Art. 15 Ley N° 21.442)',
 qConst: 'Al menos el 33 % de los derechos del condominio, contando a todos los que concurren.',
-qAcuerdo: 'Mayoría absoluta de los derechos presentes en la sesión. Solo votan los copropietarios hábiles, así que la base son los derechos hábiles presentes.',
+qAcuerdo: 'Mayoría absoluta de los asistentes, contada en derechos y solo entre los hábiles, que son los únicos que votan: más de la mitad de los derechos hábiles presentes.',
 materias: [
 'Rendición de cuentas por parte del administrador y aprobación del balance presentado.',
 'Designación, reelección o renuncia de los miembros del comité de administración.',
@@ -654,7 +654,7 @@ var pctA = document.getElementById('quorum-acuerdos-pct');
 var txtA = document.getElementById('quorum-acuerdos-text');
 var subtO = boxAcuerdos.querySelector('div:last-of-type');
 if (subtO) {
-subtO.textContent = 'Mayor\u00eda absoluta de los derechos presentes \u00b7 Art. 15 Ley 21.442';
+subtO.textContent = 'Mayor\u00eda absoluta de los asistentes h\u00e1biles, en derechos \u00b7 Art. 15 Ley 21.442';
 }
 if (countHabil === 0 || totalHabil === 0) {
 txtA.textContent = 'Ingrese copropietarios h\u00e1biles para calcular';
