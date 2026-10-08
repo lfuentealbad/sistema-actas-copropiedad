@@ -175,8 +175,10 @@
   
   .hero{position:relative;overflow:hidden;background:var(--ink);border-radius:0 0 34px 34px;}
   /* El encuadre deja a la derecha la pantalla proyectada: es la demostración
-     del producto, así que el velo la descubre en vez de taparla. */
-  .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 42%;}
+     del producto, así que el velo la descubre en vez de taparla.
+     El recorte va arriba: centrado (42 %), el menú flotante tapaba el borde
+     superior de la pantalla y el quórum. Arriba solo queda el cielo raso. */
+  .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 0;}
   .hero-scrim{position:absolute;inset:0;background:
     linear-gradient(94deg,rgba(11,19,40,.96) 0%,rgba(11,19,40,.90) 34%,rgba(11,19,40,.62) 62%,rgba(11,19,40,.34) 100%),
     linear-gradient(0deg,rgba(11,19,40,.62),transparent 48%);}
