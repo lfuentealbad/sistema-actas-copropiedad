@@ -2,49 +2,49 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://actascopropiedad.cl/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://actascopropiedad.cl/acta</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-<url>
+  <url>
     <loc>https://actascopropiedad.cl/acta-comite</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://actascopropiedad.cl/finanzas</loc>
-    <lastmod>2026-09-04</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://actascopropiedad.cl/consulta/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://actascopropiedad.cl/verificar</loc>
-    <lastmod>2026-09-22</lastmod>
+    <lastmod>2026-10-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://actascopropiedad.cl/privacidad</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://actascopropiedad.cl/terminos</loc>
-    <lastmod>2026-08-18</lastmod>
+    <lastmod>2026-10-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

@@ -1582,7 +1582,7 @@
    *  texto. Si los terminos cambian de fecha, cambia aqui y en _worker.js
    *  -hay una prueba que no deja que se desincronicen-.
    */
-  var TERMINOS_VERSION = '2026-10-07';
+  var TERMINOS_VERSION = '2026-10-11';
 
   function terminosHtml(id) {
     return '<label for="' + id + '" style="display:flex;gap:9px;align-items:flex-start;' +

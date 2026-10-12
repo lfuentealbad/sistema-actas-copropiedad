@@ -6,12 +6,12 @@
 # responder() en _worker.js.
 #
 # La CSP, directiva por directiva, lo que no es evidente:
-#   Scripts      solo del propio origen. Estaba autorizado tambien el
-#                beacon de Cloudflare Web Analytics, pero ninguna pagina lo
-#                carga (comprobado el 22-09-2026 con grep sobre todo el
-#                sitio): era un permiso para ejecutar JavaScript de un
-#                tercero que no se usaba. Salio de la lista de scripts y de
-#                la de conexiones.
+#   Scripts      del propio origen y, desde el 06-10-2026, el contador de
+#                visitas de Cloudflare (Web Analytics): Cloudflare lo inyecta
+#                en cada pagina, es agregado y sin cookies, y la privacidad
+#                lo declara. Sus datos van a /cdn-cgi/rum del mismo sitio,
+#                asi que connect-src no suma terceros (comprobado el
+#                11-10-2026: POST /cdn-cgi/rum -> 204).
 #   Estilos      los estilos en linea se siguen admitiendo, a sabiendas.
 #                Quitarlos rompe la maqueta (bloques <style> y anchos
 #                calculados en style=) y lo que habilitan -reestilizar o
