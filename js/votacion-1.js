@@ -1,6 +1,8 @@
 const SUPABASE_URL  = 'https://rujwokagmjbqtrcvosye.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1andva2FnbWpicXRyY3Zvc3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDgzNzIsImV4cCI6MjA5NzUyNDM3Mn0.E_p3VdfHrMIHy-yq0Uxoz4wEP_pxqVqE64TBWoyVGV0';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// Quien vota no tiene cuenta: la sala no lee sesiones de la URL (auditoria
+// 12-10-2026, el mismo enlace con #access_token que cuenta.js ya rechaza).
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth: { flowType: 'pkce', detectSessionInUrl: false } });
 
 
 const $ = id => document.getElementById(id);

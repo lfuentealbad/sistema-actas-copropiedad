@@ -40,8 +40,14 @@
   }
 
   var sb = null;
+  // PKCE (auditoria 12-10-2026): con el flujo implicito por defecto,
+  // supabase-js adoptaba cualquier #access_token de la URL y reemplazaba la
+  // sesion abierta. Un enlace con la sesion de otra cuenta dejaba al
+  // administrador trabajando, sin saberlo, dentro de esa cuenta. Con PKCE la
+  // libreria solo acepta un ?code= emitido para un inicio de sesion que
+  // empezo en este mismo navegador, y rechaza el #access_token.
   function cliente() {
-    if (!sb && global.supabase) sb = global.supabase.createClient(URL_SB, ANON_SB);
+    if (!sb && global.supabase) sb = global.supabase.createClient(URL_SB, ANON_SB, { auth: { flowType: 'pkce' } });
     return sb;
   }
 

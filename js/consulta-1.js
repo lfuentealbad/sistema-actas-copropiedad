@@ -64,6 +64,9 @@ async function crear(btn){
   if(materia.length < 10){ msg('nueva-msg','Describa qué se somete a acuerdo.','err'); return; }
   if(!plazo){ msg('nueva-msg','Fije la fecha y hora en que vence el plazo.','err'); return; }
   if(new Date(plazo) <= new Date()){ msg('nueva-msg','El plazo debe terminar en el futuro.','err'); return; }
+  // El mismo tope que cc_crear (paso 18): sin el, una fecha lejana dejaba la
+  // consulta fuera del borrado a los 180 dias que promete la privacidad.
+  if(new Date(plazo) - new Date() > 365 * 864e5){ msg('nueva-msg','El plazo no puede pasar de un año desde hoy.','err'); return; }
   const infoF = $('f-if').value;
   if(!infoF){ msg('nueva-msg','Registre la fecha de la sesión informativa: la ley la exige antes de consultar.','err'); return; }
 
@@ -92,6 +95,10 @@ async function crear(btn){
       Cuenta.pase.estado(est => { if(est) PASE = est; mostrarPago(Cuenta.pase.mensaje(m, est || PASE, condo)); });
     } else if(/sesion_requerida/.test(m)){
       msg('nueva-msg', 'Su sesión terminó. Recargue la página y vuelva a entrar.', 'err');
+    } else if(/plazo_demasiado_largo/.test(m)){
+      msg('nueva-msg', 'El plazo no puede pasar de un año desde hoy.', 'err');
+    } else if(/texto_demasiado_largo/.test(m)){
+      msg('nueva-msg', 'Algún texto es demasiado largo. Acorte la materia o las observaciones.', 'err');
     } else {
       msg('nueva-msg', 'No se pudo crear la consulta. ' + m, 'err');
     }
