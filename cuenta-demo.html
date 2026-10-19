@@ -252,9 +252,13 @@
           <div class="caja" id="p-revisar" hidden style="margin:0 0 18px">
             <h3 style="font-size:17px;margin:0 0 6px">Solicitudes de prueba</h3>
             <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:auto">Al aprobar, la cuenta recibe un mes completo para el condominio que indicó. Al rechazar, la persona puede enviar otra solicitud.</p>
-            <div id="p-rev-lista"><div class="lista"><div class="cargando">Consultando…</div></div></div>
+            <!-- Paso 21: listar y resolver piden el segundo factor (aal2). -->
+            <div id="p-rev-factor" hidden></div>
+            <div id="p-rev-cuerpo" hidden>
+              <div id="p-rev-lista"><div class="lista"><div class="cargando">Consultando…</div></div></div>
+              <div id="p-rev-hechas"></div>
+            </div>
             <div id="p-rev-msg" class="msg" role="status" aria-live="polite"></div>
-            <div id="p-rev-hechas"></div>
           </div>
           <p class="sub" data-pago>Un pago de <strong>$14.990</strong> activa un mes completo para <strong>un condominio</strong>, con todas las herramientas: el acta de asamblea con folio, la votación en vivo, la consulta por escrito, el acta del comité y las cuentas del condominio. No se renueva solo: al terminar el mes, usted decide si activa otro. Si administra varios condominios, cada uno lleva su propio mes.</p>
           <p class="sub" hidden data-vitrina>Cada condominio tiene su mes de servicio, con todas las herramientas.</p>

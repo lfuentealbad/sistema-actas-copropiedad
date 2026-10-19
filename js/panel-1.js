@@ -182,10 +182,84 @@
     if(!caja || window.DEMO_MES) return;
     var c = Cuenta.cliente();
     if(!c) return;
-    c.rpc('es_revisor').then(function(r){
-      if(!r || r.error || r.data !== true) return;
+    c.rpc('revisor_estado').then(function(r){
+      var e = r && !r.error ? r.data : null;
+      if(e !== 'ok' && e !== 'falta_codigo' && e !== 'sin_factor'){ caja.hidden = true; return; }
       caja.hidden = false;
-      cargarRevision();
+      $('p-rev-cuerpo').hidden = e !== 'ok';
+      $('p-rev-factor').hidden = e === 'ok';
+      if(e === 'ok') cargarRevision(); else pintarFactor(e);
+    });
+  }
+
+  // Segundo factor (paso 21, 19-10-2026): una app de codigos (TOTP de
+  // Supabase Auth). La base exige aal2 para listar y resolver; aqui solo se
+  // guia a la persona para llegar a esa sesion.
+  var CAMPO_CODIGO = '<div class="campo"><label for="p-rev-codigo">Código de 6 cifras de la app</label>' +
+    '<input type="text" id="p-rev-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"></div>';
+
+  function pintarFactor(e){
+    var f = $('p-rev-factor');
+    if(e === 'falta_codigo'){
+      f.innerHTML = '<p style="margin:0 0 12px;font-size:14.5px;line-height:1.6;text-align:justify">Para ver y resolver las solicitudes, escriba el código que muestra su app de autenticación.</p>' +
+        CAMPO_CODIGO + '<button type="button" class="btn btn-p" id="p-rev-verificar">Verificar</button>';
+      $('p-rev-verificar').addEventListener('click', function(){
+        var c = Cuenta.cliente();
+        c.auth.mfa.listFactors().then(function(r){
+          var fac = r && !r.error && r.data && r.data.totp && r.data.totp[0];
+          if(!fac) return pintarRevision();
+          verificarCodigo(fac.id);
+        });
+      });
+      return;
+    }
+    f.innerHTML = '<p style="margin:0 0 12px;font-size:14.5px;line-height:1.6;text-align:justify">Para revisar solicitudes, active la verificación en dos pasos. Necesita una app de autenticación en su teléfono, como Google Authenticator o Microsoft Authenticator. Desde entonces, además de su clave, la sección le pedirá el código que muestra la app.</p>' +
+      '<button type="button" class="btn btn-p" id="p-rev-activar">Activar la verificación en dos pasos</button>';
+    $('p-rev-activar').addEventListener('click', activarFactor);
+  }
+
+  function activarFactor(){
+    var c = Cuenta.cliente(), b = $('p-rev-activar');
+    b.disabled = true; b.textContent = 'Preparando…';
+    mesMsg('p-rev-msg', '');
+    // Un intento anterior que no se termino deja un factor sin verificar.
+    c.auth.mfa.listFactors().then(function(r){
+      var viejos = ((r && r.data && r.data.all) || []).filter(function(x){ return x.status === 'unverified'; });
+      return Promise.all(viejos.map(function(x){ return c.auth.mfa.unenroll({ factorId: x.id }); }));
+    }).then(function(){
+      return c.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'actaviva ' + Date.now() });
+    }).then(function(r){
+      if(!r || r.error || !r.data || !r.data.totp){
+        b.disabled = false; b.textContent = 'Activar la verificación en dos pasos';
+        mesMsg('p-rev-msg', 'No se pudo activar. Recargue la página e intente de nuevo.', true);
+        return;
+      }
+      var svg = String(r.data.totp.qr_code || '').replace(/^data:image\/svg\+xml;utf-8,/, '');
+      $('p-rev-factor').innerHTML =
+        '<p style="margin:0 0 12px;font-size:14.5px;line-height:1.6;text-align:justify">1. Abra la app de autenticación y escanee este código. Si no puede escanearlo, escriba en la app la clave que aparece debajo.</p>' +
+        '<img id="p-rev-qr" alt="Código QR para la app de autenticación" width="180" height="180" style="display:block;background:#fff;border-radius:8px;margin:0 0 8px">' +
+        '<p style="margin:0 0 14px;font-size:13px;color:var(--tx2);word-break:break-all">Clave: <code>' + esc(r.data.totp.secret) + '</code></p>' +
+        '<p style="margin:0 0 12px;font-size:14.5px;line-height:1.6;text-align:justify">2. Escriba el código de 6 cifras que muestra la app.</p>' +
+        CAMPO_CODIGO + '<button type="button" class="btn btn-p" id="p-rev-verificar">Confirmar</button>';
+      $('p-rev-qr').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      var id = r.data.id;
+      $('p-rev-verificar').addEventListener('click', function(){ verificarCodigo(id); });
+    });
+  }
+
+  function verificarCodigo(factorId){
+    var codigo = ($('p-rev-codigo').value || '').replace(/\s/g, '');
+    if(!/^[0-9]{6}$/.test(codigo)) return mesMsg('p-rev-msg', 'Escriba las 6 cifras del código.', true);
+    var b = $('p-rev-verificar');
+    b.disabled = true;
+    mesMsg('p-rev-msg', '');
+    Cuenta.cliente().auth.mfa.challengeAndVerify({ factorId: factorId, code: codigo }).then(function(r){
+      b.disabled = false;
+      if(r && r.error){
+        mesMsg('p-rev-msg', 'El código no coincide. Escriba el que muestra la app ahora; si sigue fallando, revise que la hora del teléfono esté al día.', true);
+        return;
+      }
+      pintarRevision();
     });
   }
 
@@ -234,6 +308,7 @@
     Cuenta.cliente().rpc('resolver_prueba', { p_id: b.getAttribute('data-sol'), p_aprobar: aprobar }).then(function(r){
       if(r.error){
         var m = String(r.error.message || '');
+        if(/segundo_factor/.test(m)) return pintarRevision();
         mesMsg('p-rev-msg', /ya_resuelta/.test(m) ? 'Esa solicitud ya estaba resuelta.' : 'No se pudo guardar. Intente de nuevo.', true);
       } else {
         mesMsg('p-rev-msg', aprobar
