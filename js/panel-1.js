@@ -171,6 +171,79 @@
     });
   }
 
+  // -------------------------------------------------------------------
+  //  Revision de solicitudes (paso 20, 19-10-2026). La base decide quien
+  //  revisa (public.revisores_prueba); aqui solo se pinta.
+  // -------------------------------------------------------------------
+  var ROLES_PRUEBA = { administrador: 'Administrador', comite: 'Comité', copropietario: 'Copropietario', otro: 'Otro' };
+
+  function pintarRevision(){
+    var caja = $('p-revisar');
+    if(!caja || window.DEMO_MES) return;
+    var c = Cuenta.cliente();
+    if(!c) return;
+    c.rpc('es_revisor').then(function(r){
+      if(!r || r.error || r.data !== true) return;
+      caja.hidden = false;
+      cargarRevision();
+    });
+  }
+
+  function cargarRevision(){
+    Cuenta.cliente().rpc('solicitudes_para_revisar').then(function(r){
+      if(!r || r.error || !r.data){
+        $('p-rev-lista').innerHTML = '<div class="nota">No pudimos cargar las solicitudes. Recargue la página.</div>';
+        return;
+      }
+      var pend = r.data.pendientes || [], hechas = r.data.resueltas || [];
+      $('p-rev-lista').innerHTML = pend.length ? lista(pend.map(filaSolicitud).join('')) :
+        '<div class="vacio"><b>No hay solicitudes pendientes</b>Cuando alguien pida una prueba, aparecerá aquí.</div>';
+      $('p-rev-hechas').innerHTML = hechas.length ?
+        '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:14px;color:var(--tx2)">Resueltas (' + hechas.length + ')</summary>' +
+        lista(hechas.map(function(x){
+          return '<div class="it"><div class="info"><b>' + esc(x.condominio) +
+            (x.estado === 'aprobada' ? '<span class="pill ok">APROBADA</span>' : '<span class="pill n">RECHAZADA</span>') +
+            '</b><span>' + esc(x.nombre) + ' · ' + esc(x.correo) + ' · ' + esc(fecha(x.resuelta_en)) + '</span></div></div>';
+        }).join('')) + '</details>' : '';
+      var botones = $('p-rev-lista').querySelectorAll('button[data-sol]');
+      for(var i = 0; i < botones.length; i++) botones[i].addEventListener('click', resolverSolicitud);
+    });
+  }
+
+  function filaSolicitud(x){
+    var tel = String(x.telefono || '').replace(/[^0-9+]/g, '');
+    var wsp = tel.replace(/^\+/, '');
+    return '<div class="it"><div class="info"><b>' + esc(x.condominio) + ' <span style="font-weight:400;color:var(--tx2)">· ' + esc(x.comuna) + '</span></b>' +
+      '<span>' + esc(x.nombre) + ' · ' + esc(ROLES_PRUEBA[x.rol] || x.rol) + ' · ' + esc(x.unidades) + ' unidades<br>' +
+      '<a href="mailto:' + esc(x.correo) + '">' + esc(x.correo) + '</a> · <a href="tel:' + esc(tel) + '">' + esc(x.telefono) + '</a>' +
+      (wsp.length >= 8 ? ' · <a href="https://wa.me/' + esc(wsp) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') +
+      '<br>Pedida el ' + esc(fechaCorta(x.creada_en)) + '</span></div>' +
+      '<div class="acc"><button type="button" class="btn btn-p btn-sm" data-sol="' + esc(x.id) + '" data-aprobar="1">Aprobar</button>' +
+      '<button type="button" class="btn btn-s btn-sm" data-sol="' + esc(x.id) + '" data-aprobar="0">Rechazar</button></div></div>';
+  }
+
+  function resolverSolicitud(ev){
+    var b = ev.currentTarget, aprobar = b.getAttribute('data-aprobar') === '1';
+    var fila = b.closest('.it'), condo = fila ? fila.querySelector('b').firstChild.textContent.trim() : '';
+    if(!window.confirm(aprobar
+      ? '¿Aprobar la prueba para ' + condo + '? La cuenta recibe un mes completo desde hoy.'
+      : '¿Rechazar la solicitud de ' + condo + '?')) return;
+    var todos = fila.querySelectorAll('button');
+    for(var i = 0; i < todos.length; i++) todos[i].disabled = true;
+    mesMsg('p-rev-msg', '');
+    Cuenta.cliente().rpc('resolver_prueba', { p_id: b.getAttribute('data-sol'), p_aprobar: aprobar }).then(function(r){
+      if(r.error){
+        var m = String(r.error.message || '');
+        mesMsg('p-rev-msg', /ya_resuelta/.test(m) ? 'Esa solicitud ya estaba resuelta.' : 'No se pudo guardar. Intente de nuevo.', true);
+      } else {
+        mesMsg('p-rev-msg', aprobar
+          ? 'Aprobada: ' + condo + ' tiene su mes hasta el ' + fecha(r.data && r.data.hasta) + '. Escríbale para acompañarlo.'
+          : 'Rechazada: ' + condo + '.');
+      }
+      cargarRevision();
+    });
+  }
+
   function filaMes(x){
     var estado = x.activo
       ? '<span class="pill ok">activo</span>'
@@ -417,6 +490,7 @@
     marcarRail();
     anotarVolver();
     pintarMeses();
+    pintarRevision();
     pintarPrueba();
     prepararActivar();
     retornoDePago();

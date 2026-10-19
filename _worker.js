@@ -444,10 +444,9 @@ async function avisoPrueba(request, env) {
     'Rol: ' + limpio(d.rol),
     'Unidades: ' + limpio(d.unidades),
     '',
-    'Para aprobarla (un mes completo para ese condominio), en el editor SQL de Supabase:',
-    "select public.aprobar_prueba('" + d.id + "');",
-    'Para rechazarla:',
-    "select public.rechazar_prueba('" + d.id + "');"
+    // Paso 20: se aprueba o rechaza desde el panel de la cuenta revisora.
+    'Para aprobarla o rechazarla, entre a su panel:',
+    ORIGEN + '/cuenta#s-mes'
   ].join('\n');
   const envio = await enviarCorreo(env, { para: env.CORREO_FALLBACK, asunto: 'actaviva: solicitud de prueba', texto });
   if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
