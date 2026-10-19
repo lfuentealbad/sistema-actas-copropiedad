@@ -538,9 +538,25 @@
     return typeof c === 'string' && c.length >= CLAVE_MIN;
   }
 
+  // Supabase manda un solo correo por minuto a la misma direccion (codigo,
+  // enlace de clave o confirmacion, todos cuentan juntos) y contesta "you can
+  // only request this after N seconds". Antes se decia "demasiados intentos
+  // seguidos": quien pedia la clave despues de un codigo creia que lo habian
+  // bloqueado por equivocarse dos veces (18-10-2026).
+  function esperaDeCorreo(e) {
+    var m = String((e && e.message) || '');
+    var n = /after (\d+) seconds?/i.exec(m);
+    if (!n && !(e && e.code === 'over_email_send_rate_limit')) return null;
+    var s = n ? Number(n[1]) : 60;
+    return 'Ya le enviamos un correo a esa dirección hace poco. Por seguridad, ' +
+      'espere ' + s + (s === 1 ? ' segundo' : ' segundos') + ' antes de pedir otro.';
+  }
+
   // Traduce los errores de Supabase a algo que una persona entienda.
   function motivo(e, porDefecto) {
     var m = String((e && e.message) || '').toLowerCase();
+    var espera = esperaDeCorreo(e);
+    if (espera) return espera;
     // No se afirma que la cuenta existe. Hoy Supabase no manda este error
     // porque exige confirmar el correo; el dia que alguien active la
     // confirmacion automatica en el panel, un "ya tiene cuenta" convertiria
@@ -654,9 +670,10 @@
     }).then(function (r) {
       if (r && r.error) {
         var m = String(r.error.message || '');
-        cb(/rate|seconds|exceed|often/i.test(m)
+        cb(esperaDeCorreo(r.error) || (/rate|exceed|often/i.test(m)
           ? 'Demasiados envíos seguidos. Espere un minuto.'
-          : 'No pudimos crear la cuenta. Intente de nuevo en un momento.');
+          : null) ||
+          'No pudimos crear la cuenta. Intente de nuevo en un momento.');
         return;
       }
       cb(null);
@@ -790,9 +807,10 @@
         if (/signups? not allowed|otp_disabled|user not found/i.test(m + ' ' + (r.error.code || ''))) {
           cb(null); return;
         }
-        cb(/rate|seconds|exceed|often/i.test(m)
+        cb(esperaDeCorreo(r.error) || (/rate|exceed|often/i.test(m)
           ? 'Demasiados envíos seguidos. Espere un minuto.'
-          : 'No pudimos enviar el código a ese correo.');
+          : null) ||
+          'No pudimos enviar el código a ese correo.');
       } else cb(null);
     }, function () { cb('No pudimos enviar el código. Revise su conexión.'); });
   }
