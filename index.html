@@ -207,6 +207,22 @@
     padding-left:max(26px,env(safe-area-inset-left));
     padding-right:max(26px,env(safe-area-inset-right));}
   .hero-copy{max-width:648px;padding:158px 0 130px;color:#fff;}
+  /* La imagen del producto junto al titular: el acta que sale y el voto
+     desde el telefono. Derecha en pantalla ancha; debajo en el telefono. */
+  .hero-visual{position:relative;}
+  .hero-cta [hidden]{display:none;}
+  .hv-doc{display:block;width:100%;height:auto;aspect-ratio:760/640;object-fit:cover;object-position:top;border-radius:8px;background:#fff;box-shadow:0 34px 70px -22px rgba(0,0,0,.65);}
+  .hero-visual .hv-phone{position:absolute;left:-64px;bottom:-34px;width:172px;transform:none;animation:none;}
+  @media(min-width:1141px){
+    .hero-inner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);gap:56px;align-items:center;}
+    .hero-copy{max-width:600px;}
+  }
+  @media(max-width:1140px){
+    .hero .hero-copy{padding-bottom:30px;}
+    .hero-visual{max-width:420px;margin:0 0 0 auto;padding:0 0 104px 64px;}
+    .hero-visual .hv-phone{left:0;bottom:62px;width:150px;}
+    .hero-visual .ph-head span{display:none;}
+  }
   /* La cabecera de dos filas baja el titular. */
   @media(min-width:821px) and (max-width:1140px){ .hero-copy{padding-top:190px;} }
   /* Tipografia de la version B (referente medido: GOV.UK). A 66 px el
@@ -600,15 +616,33 @@
   <div class="hero-scrim" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <div class="hero-copy">
-      <h1 class="reveal in">De la reunión al acta lista para firmar, <em>el mismo día.</em></h1>
-      <p class="lead reveal in d1">Lleva el quórum, cuenta los votos y genera el acta con la estructura de la Ley&nbsp;N°&nbsp;21.442.</p>
+      <!-- Concreto antes que bonito (pedido del dueno, 18-10-2026): quien
+           llega desliza sin leer; el titular dice que es y la imagen de al
+           lado lo muestra, el acta que sale y el voto desde el telefono. -->
+      <h1 class="reveal in">Actas de asamblea y votación por celular <em>para condominios.</em></h1>
+      <p class="lead reveal in d1">Los copropietarios votan desde su teléfono, el sistema calcula el quórum y el acta queda lista para firmar, con la estructura de la Ley&nbsp;N°&nbsp;21.442.</p>
       <div class="hero-cta reveal in d2">
-        <a class="btn btn-primary" href="/acta">Comenzar mi acta</a>
-        <a class="btn btn-light" href="/acta-demo">Probar sin cuenta</a>
+        <a class="btn btn-primary" href="/acta" data-pago>Comenzar mi acta</a>
+        <a class="btn btn-primary" href="/cuenta#s-mes" hidden data-vitrina>Solicitar una prueba</a>
       </div>
       <p class="hero-nota reveal in d3">
         <b class="cifra" data-pago>$14.990 al mes por condominio, todo incluido</b>
+        <span hidden data-vitrina>Acceso por solicitud: cree su cuenta y pida la prueba desde <a href="/cuenta#s-mes" style="color:#fff">su panel</a>.</span>
       </p>
+    </div>
+    <div class="hero-visual reveal in d2" aria-hidden="true">
+      <img class="hv-doc" src="/fotos/acta-ejemplo.png" alt="" width="760" height="1035" fetchpriority="high">
+      <div class="vista-phone hv-phone">
+        <div class="ph-screen">
+          <div class="ph-head"><b>Sala de Votación</b><span>EN CURSO</span></div>
+          <div class="ph-q">Punto 2 · Reparación de techumbres</div>
+          <div class="ph-btn af">✓ A FAVOR</div>
+          <div class="ph-btn ec">✕ EN CONTRA</div>
+          <div class="ph-btn ab">○ ABSTENCIÓN</div>
+          <div class="ph-foot">Quórum 66,7%</div>
+          <div class="ph-toast">✓ Voto registrado</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -736,8 +770,6 @@
           <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Espacio para las firmas que exige la ley</li>
         </ul>
         <a class="btn btn-primary" href="/acta" style="margin-top:26px">Comenzar mi acta</a>
-        <p class="doc-probar"><a href="/acta-demo">Recorrer el asistente con datos de ejemplo</a>,
-        sin cuenta y sin pagar.</p>
       </div>
       <div class="doc-hoja reveal d1">
         <a href="/ejemplo-acta" aria-label="Ver el acta de ejemplo completa">
@@ -832,7 +864,6 @@
       <details class="reveal"><summary>¿Sirve para asambleas telemáticas o mixtas?</summary><div>Sí. Puede utilizarse en asambleas presenciales, telemáticas o mixtas. En estas últimas deben cumplirse además las condiciones previstas en el reglamento de copropiedad y las exigencias de identificación del Reglamento de la Ley.</div></details>
       <details class="reveal"><summary>¿El acta está diseñada conforme a la Ley N°&nbsp;21.442?</summary><div>Sí. El sistema aplica los quórums y mayorías según la materia seleccionada y genera el documento a partir de los antecedentes ingresados, listo para revisar y firmar.</div></details>
       <details class="reveal"><summary>¿Se puede acordar algo sin reunir a todos a votar?</summary><div>Sí. El artículo 15 de la Ley N°&nbsp;21.442 permite la <strong>consulta por escrito</strong>: se expone la propuesta en una sesión informativa previa, se envía la consulta a los correos del Registro de Copropietarios y se fija un plazo para responder. Queda aprobada cuando las respuestas a favor suman el porcentaje de derechos que la ley exige para esa materia. Cuando la consulta verse sobre las materias señaladas en la letra a) del N° 2 o en el N° 3 del artículo 15, el acuerdo deberá además reducirse a escritura pública.</div></details>
-      <details class="reveal"><summary>¿Sirve si el condominio no tiene administrador?</summary><div>Para eso están las <a href="/finanzas">cuentas del condominio</a>. Un comité que administra por su cuenta igual debe repartir el gasto común, llevar el fondo de reserva y rendir cuenta cada mes: la herramienta anota los egresos, reparte por alícuota y emite la liquidación con lo que exige el artículo 31. Va incluida en el mes de servicio. Los datos quedan en el navegador donde los escribe —no viajan a nuestros servidores— así que conviene bajar un respaldo cada cierto tiempo desde la propia herramienta.</div></details>
       <details class="reveal" data-pago><summary>¿Cuánto cuesta?</summary><div>
         <table class="precios">
           <tr><td>Un mes de servicio, para un condominio <span>todas las herramientas, todas las veces que las necesite durante el mes</span></td><td><b>$14.990</b></td></tr>

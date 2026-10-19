@@ -169,7 +169,7 @@
 
   .campo{margin-bottom:13px;}
   .campo label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin-bottom:5px;}
-  .campo input{width:100%;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDD5DF;border-radius:11px;min-height:44px;background:#fff;}
+  .campo input,.campo select{width:100%;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDD5DF;border-radius:11px;min-height:44px;background:#fff;}
   .campo input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(11,107,181,.16);}
   .msg{display:none;margin-top:10px;font-size:14px;line-height:1.5;}
   .msg.err{display:block;color:var(--err);} .msg.ok{display:block;color:var(--ok);}
@@ -250,6 +250,26 @@
           <p class="sub" hidden data-vitrina>Cada condominio tiene su mes de servicio, con todas las herramientas.</p>
           <div id="p-meses"><div class="lista"><div class="cargando">Consultando…</div></div></div>
           <div id="p-mes-msg" class="msg" role="status" aria-live="polite"></div>
+
+          <!-- Prueba por solicitud (paso 19, 18-10-2026): mientras el sitio
+               esta en vitrina, el acceso se da a quien lo pide. -->
+          <div class="caja" id="p-prueba" hidden data-vitrina style="margin-top:16px">
+            <h3 style="font-size:17px;margin:0 0 6px">Solicitar una prueba</h3>
+            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:auto">Por ahora actaviva funciona con acceso por solicitud. Cuéntenos quién es y para qué condominio lo usaría: revisamos la solicitud y, si la aprobamos, su cuenta recibe un mes completo para ese condominio, con todas las herramientas. Le escribiremos para acompañarlo.</p>
+            <div id="p-prueba-estado"></div>
+            <div id="p-prueba-form">
+              <div class="campo"><label for="p-pr-nombre">Nombre</label><input type="text" id="p-pr-nombre" maxlength="120" autocomplete="name"></div>
+              <div class="campo"><label for="p-pr-tel">Teléfono</label><input type="tel" id="p-pr-tel" maxlength="25" autocomplete="tel" placeholder="+56 9 1234 5678"></div>
+              <div class="campo"><label for="p-pr-condo">Condominio</label><input type="text" id="p-pr-condo" maxlength="100" autocomplete="organization" placeholder="Ej: Condominio Las Araucarias"></div>
+              <div class="campo"><label for="p-pr-comuna">Comuna</label><input type="text" id="p-pr-comuna" maxlength="60"></div>
+              <div class="campo"><label for="p-pr-rol">Usted es</label>
+                <select id="p-pr-rol"><option value="administrador">Administrador</option><option value="comite">Integrante del comité</option><option value="copropietario">Copropietario</option><option value="otro">Otro</option></select></div>
+              <div class="campo"><label for="p-pr-unidades">Número de unidades del condominio</label><input type="number" id="p-pr-unidades" min="1" max="20000" inputmode="numeric"></div>
+              <button type="button" class="btn btn-p" id="p-pr-enviar">Enviar solicitud</button>
+              <p style="margin:10px 0 0;font-size:13px;color:var(--tx2);line-height:1.55;text-align:justify">Usamos estos datos solo para revisar su solicitud, activar la prueba y acompañarlo durante ella. Vea la <a href="/privacidad">declaración de privacidad</a>.</p>
+            </div>
+            <div id="p-prueba-msg" class="msg" role="status" aria-live="polite"></div>
+          </div>
 
           <div class="caja" id="p-activar" data-pago style="margin-top:16px">
             <h3 style="font-size:17px;margin:0 0 6px" id="p-activar-tit">Activar un mes</h3>

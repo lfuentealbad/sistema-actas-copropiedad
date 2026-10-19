@@ -96,6 +96,81 @@
     });
   }
 
+  // -------------------------------------------------------------------
+  //  Prueba por solicitud (paso 19, 18-10-2026). Solo en vitrina: mientras
+  //  el sitio no vende, el acceso se da a quien lo pide y el dueno aprueba.
+  // -------------------------------------------------------------------
+  var MOTIVOS_PRUEBA = {
+    nombre_invalido: 'Escriba su nombre.',
+    telefono_invalido: 'Revise el teléfono: solo números, espacios y +.',
+    condominio_invalido: 'Escriba el nombre del condominio.',
+    comuna_invalida: 'Escriba la comuna.',
+    rol_invalido: 'Elija quién es usted.',
+    unidades_invalidas: 'Indique el número de unidades del condominio.',
+    solicitud_pendiente: 'Ya tiene una solicitud en revisión.',
+    demasiados_intentos: 'Demasiados envíos. Intente de nuevo mañana.',
+    sesion_requerida: 'Su sesión terminó. Recargue la página y vuelva a entrar.'
+  };
+
+  function pintarPrueba(){
+    var caja = $('p-prueba');
+    if(!caja || !enVitrina()) return;
+    var est = $('p-prueba-estado'), form = $('p-prueba-form');
+    if(window.DEMO_MES){
+      est.innerHTML = '<div class="nota">En la demostración no se envían solicitudes.</div>';
+      form.hidden = true;
+      return;
+    }
+    var c = Cuenta.cliente();
+    if(!c) return;
+    c.rpc('mi_solicitud_prueba').then(function(r){
+      var s = (r && !r.error && r.data) || {};
+      if(s.estado === 'pendiente'){
+        est.innerHTML = '<div class="nota">Recibimos su solicitud para <b>' + esc(s.condominio) + '</b> el ' +
+          esc(Cuenta.pase.fecha(s.creada_en)) + '. La revisaremos y le escribiremos.</div>';
+        form.hidden = true;
+      } else if(s.estado === 'aprobada'){
+        est.innerHTML = '<div class="nota">Su prueba para <b>' + esc(s.condominio) + '</b> fue aprobada: el mes aparece más arriba.</div>';
+        form.hidden = true;
+      } else if(s.estado === 'rechazada'){
+        est.innerHTML = '<div class="nota">No pudimos aprobar su solicitud anterior. Puede enviar otra.</div>';
+      }
+    });
+    var btn = $('p-pr-enviar');
+    if(btn && !btn._enganchado){ btn._enganchado = true; btn.addEventListener('click', enviarPrueba); }
+  }
+
+  function enviarPrueba(){
+    var v = function(id){ return ($(id).value || '').trim(); };
+    var datos = {
+      p_nombre: v('p-pr-nombre'), p_telefono: v('p-pr-tel'), p_condominio: v('p-pr-condo'),
+      p_comuna: v('p-pr-comuna'), p_rol: $('p-pr-rol').value, p_unidades: parseInt(v('p-pr-unidades'), 10)
+    };
+    if(datos.p_nombre.length < 2) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.nombre_invalido, true);
+    if(!/^[0-9+() -]{6,25}$/.test(datos.p_telefono)) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.telefono_invalido, true);
+    if(datos.p_condominio.length < 2) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.condominio_invalido, true);
+    if(datos.p_comuna.length < 2) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.comuna_invalida, true);
+    if(!(datos.p_unidades >= 1 && datos.p_unidades <= 20000)) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.unidades_invalidas, true);
+    var btn = $('p-pr-enviar');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    mesMsg('p-prueba-msg', '');
+    Cuenta.cliente().rpc('solicitar_prueba', datos).then(function(r){
+      btn.disabled = false; btn.textContent = 'Enviar solicitud';
+      if(r.error){
+        var m = String(r.error.message || '');
+        var k = Object.keys(MOTIVOS_PRUEBA).filter(function(x){ return m.indexOf(x) >= 0; })[0];
+        mesMsg('p-prueba-msg', k ? MOTIVOS_PRUEBA[k] : 'No se pudo enviar la solicitud. Intente de nuevo.', true);
+        return;
+      }
+      mesMsg('p-prueba-msg', 'Solicitud enviada. Le escribiremos pronto.');
+      // Aviso al dueno por correo. Si falla, la solicitud igual quedo guardada.
+      Cuenta.tokenDeAcceso().then(function(t){
+        if(t) fetch('/api/prueba/aviso', { method: 'POST', headers: { authorization: 'Bearer ' + t } }).catch(function(){});
+      });
+      pintarPrueba();
+    });
+  }
+
   function filaMes(x){
     var estado = x.activo
       ? '<span class="pill ok">activo</span>'
@@ -342,6 +417,7 @@
     marcarRail();
     anotarVolver();
     pintarMeses();
+    pintarPrueba();
     prepararActivar();
     retornoDePago();
     pintarActas();

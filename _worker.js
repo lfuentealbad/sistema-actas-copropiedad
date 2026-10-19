@@ -19,7 +19,7 @@ import {
   construirRespuestaMime, textoAcuse, contextoDeRespuesta
 } from './consulta.js';
 
-import { enviarCorreo, textoAvisoVoto, textoCodigoVoto, correoConfigurado } from './correo.js';
+import { enviarCorreo, textoAvisoVoto, textoCodigoVoto, correoConfigurado, sinEnlaces } from './correo.js';
 
 import { verificarDkim, txtPorDoh } from './dkim.js';
 
@@ -347,7 +347,8 @@ function limiteDe(ruta) {
   if (ruta === '/api/pago/confirmar') return 'LIMITE_GENERAL';
   // /api/voto/codigo manda un correo por llamada: va en el estricto, como el
   // pago y la clave filtrada.
-  if (ruta.startsWith('/api/pago/') || ruta === '/api/clave/filtrada' || ruta === '/api/voto/codigo') {
+  if (ruta.startsWith('/api/pago/') || ruta === '/api/clave/filtrada' || ruta === '/api/voto/codigo' ||
+      ruta === '/api/prueba/aviso') {
     return 'LIMITE_ESTRICTO';
   }
   if (ruta === '/cf-geo' || ruta.startsWith('/api/')) return 'LIMITE_GENERAL';
@@ -400,6 +401,58 @@ async function sesionDe(request, env) {
   const u = await r.json().catch(() => null);
   if (!u || !UUID.test(String(u.id || ''))) return { estado: 'sin_sesion' };
   return { estado: 'ok', uid: String(u.id).toLowerCase(), correo: String(u.email || '').trim().toLowerCase() };
+}
+
+// ---------------------------------------------------------------------
+//  Prueba por solicitud (paso 19, 18-10-2026)
+// ---------------------------------------------------------------------
+// El panel guarda la solicitud con la RPC solicitar_prueba y despues llama
+// aqui. El Worker la lee con la sesion de la propia persona (no confia en
+// nada que venga en el cuerpo) y le escribe al dueno a CORREO_FALLBACK, una
+// sola vez por solicitud (marca en KV). Si el correo no esta configurado,
+// la solicitud igual queda en la base: el dueno la ve con
+//   select * from public.solicitudes_prueba where estado = 'pendiente';
+async function avisoPrueba(request, env) {
+  const s = await sesionDe(request, env);
+  if (s.estado !== 'ok') return sinSesion(s);
+  const token = /^Bearer\s+(\S+)$/.exec((request.headers.get('authorization') || '').trim())[1];
+  let d;
+  try {
+    const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/mi_solicitud_prueba`, {
+      method: 'POST',
+      headers: { apikey: env.SUPABASE_ANON, authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: '{}',
+      signal: AbortSignal.timeout(ESPERA.supabase)
+    });
+    if (!r.ok) return json({ ok: false }, 502);
+    d = await r.json();
+  } catch (e) {
+    return json({ ok: false }, 502);
+  }
+  if (!d || d.estado !== 'pendiente' || !UUID.test(String(d.id || ''))) return json({ ok: true, enviado: false });
+  const marca = 'aviso-prueba:' + d.id;
+  if (env.PAGOS && await env.PAGOS.get(marca)) return json({ ok: true, enviado: false });
+  const limpio = v => sinEnlaces(String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ')).slice(0, 200);
+  const texto = [
+    'Llegó una solicitud de prueba a actaviva.',
+    '',
+    'Nombre: ' + limpio(d.nombre),
+    'Correo: ' + limpio(d.correo),
+    'Teléfono: ' + limpio(d.telefono),
+    'Condominio: ' + limpio(d.condominio),
+    'Comuna: ' + limpio(d.comuna),
+    'Rol: ' + limpio(d.rol),
+    'Unidades: ' + limpio(d.unidades),
+    '',
+    'Para aprobarla (un mes completo para ese condominio), en el editor SQL de Supabase:',
+    "select public.aprobar_prueba('" + d.id + "');",
+    'Para rechazarla:',
+    "select public.rechazar_prueba('" + d.id + "');"
+  ].join('\n');
+  const envio = await enviarCorreo(env, { para: env.CORREO_FALLBACK, asunto: 'actaviva: solicitud de prueba', texto });
+  if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
+  if (!envio.ok) console.log('prueba', 'aviso no enviado', paraLog(envio.motivo || '', 60));
+  return json({ ok: true, enviado: !!envio.ok });
 }
 
 function sinSesion(s) {
@@ -1212,6 +1265,11 @@ async function atender(request, env) {
   if (url.pathname === '/api/clave/filtrada') {
     if (request.method !== 'POST') return json({ error: 'metodo_no_permitido' }, 405, { allow: 'POST' });
     return claveFiltrada(request);
+  }
+
+  if (url.pathname === '/api/prueba/aviso') {
+    if (request.method !== 'POST') return json({ error: 'metodo_no_permitido' }, 405, { allow: 'POST' });
+    return avisoPrueba(request, env);
   }
 
   if (url.pathname === '/api/pago/estado') {
