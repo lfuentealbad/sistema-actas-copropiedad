@@ -75,6 +75,65 @@
     try { return sessionStorage.getItem(VOLVER) || ''; } catch(e){ return ''; }
   }
 
+  // -------------------------------------------------------------------
+  //  Candado del panel (20-10-2026). Pedido del dueno: mientras la cuenta
+  //  no tenga una prueba aprobada, solo ve «Mi servicio», donde la pide.
+  //  «Mi cuenta» queda abierta: ahi se cambia la clave y se ejercen los
+  //  derechos sobre los datos (ver, corregir, borrar, cerrar la cuenta).
+  //  Esto ordena el panel; no es el candado de las herramientas, que vive
+  //  en Postgres (pase_exigir) y sigue igual.
+  //  Se abre si la cuenta tiene o tuvo un mes (sus actas siguen siendo
+  //  suyas aunque el mes venza) o si es la cuenta revisora.
+  // -------------------------------------------------------------------
+  var SECCIONES_BLOQ = ['s-servicios', 's-actas', 's-comite', 's-consultas', 's-asambleas', 's-finanzas'];
+  var SVG_CANDADO = '<svg class="candado" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+  function candado(){
+    if(!enVitrina() || window.DEMO_MES) return;
+    var pie = $('p-pie-saludo'), pieAntes = pie ? pie.innerHTML : '';
+    var abierto = false;
+    function cerrar(){
+      SECCIONES_BLOQ.forEach(function(id){ var s = $(id); if(s) s.hidden = true; });
+      [].slice.call(document.querySelectorAll('#rail-nav a')).forEach(function(a){
+        var id = a.getAttribute('href').slice(1);
+        if(SECCIONES_BLOQ.indexOf(id) < 0 || a.classList.contains('bloq')) return;
+        a.classList.add('bloq');
+        a.setAttribute('aria-disabled', 'true');
+        a.setAttribute('title', 'Se habilita cuando aprobemos su prueba');
+        a.insertAdjacentHTML('beforeend', SVG_CANDADO);
+        a.addEventListener('click', avisarBloq);
+      });
+      $('p-bloq').hidden = false;
+      if(pie) pie.textContent = 'Para empezar, solicite su prueba. Cuando la aprobemos, se habilitan todas las secciones.';
+    }
+    function abrir(){
+      if(abierto) return;
+      abierto = true;
+      SECCIONES_BLOQ.forEach(function(id){ var s = $(id); if(s) s.hidden = false; });
+      [].slice.call(document.querySelectorAll('#rail-nav a.bloq')).forEach(function(a){
+        a.classList.remove('bloq');
+        a.removeAttribute('aria-disabled');
+        a.removeAttribute('title');
+        var c = a.querySelector('.candado'); if(c) c.remove();
+        a.removeEventListener('click', avisarBloq);
+      });
+      $('p-bloq').hidden = true;
+      if(pie) pie.innerHTML = pieAntes;
+    }
+    cerrar();
+    Cuenta.pase.estado(function(e){ if(e && e.condominios && e.condominios.length) abrir(); });
+    var c = Cuenta.cliente();
+    if(c) c.rpc('revisor_estado').then(function(r){ if(r && !r.error && r.data && r.data !== 'no') abrir(); });
+  }
+
+  function avisarBloq(ev){
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    var n = $('p-bloq');
+    if(n && n.scrollIntoView) n.scrollIntoView({ block: 'center' });
+    if(n){ n.classList.remove('destello'); void n.offsetWidth; n.classList.add('destello'); }
+  }
+
   function pintarMeses(){
     var host = $('p-meses');
     if(!host) return;
@@ -86,9 +145,9 @@
       var tit = $('p-activar-tit');
       if(tit) tit.textContent = e.condominios.length ? 'Activar un mes para otro condominio, o renovar' : 'Activar un mes';
       if(!e.condominios.length){
-        host.innerHTML = vacio('Todavía no ha activado ningún mes',
-          enVitrina() ? 'Cada condominio tiene su mes de servicio, con todas las herramientas.'
-                      : 'Escriba el condominio aquí abajo y active el mes: desde ese momento tiene todas las herramientas para ese condominio.');
+        host.innerHTML = enVitrina()
+          ? vacio('Todavía no tiene un mes de servicio', 'Cuando aprobemos su solicitud de prueba, el mes aparecerá aquí, con el condominio y la fecha en que termina.')
+          : vacio('Todavía no ha activado ningún mes', 'Escriba el condominio aquí abajo y active el mes: desde ese momento tiene todas las herramientas para ese condominio.');
         return;
       }
       host.innerHTML = lista(e.condominios.map(filaMes).join(''));
@@ -127,10 +186,10 @@
       var s = (r && !r.error && r.data) || {};
       if(s.estado === 'pendiente'){
         est.innerHTML = '<div class="nota">Recibimos su solicitud para <b>' + esc(s.condominio) + '</b> el ' +
-          esc(Cuenta.pase.fecha(s.creada_en)) + '. La revisaremos y le escribiremos.</div>';
+          esc(Cuenta.pase.fecha(s.creada_en)) + '. La revisaremos y lo contactaremos.</div>';
         form.hidden = true;
       } else if(s.estado === 'aprobada'){
-        est.innerHTML = '<div class="nota">Su prueba para <b>' + esc(s.condominio) + '</b> fue aprobada: el mes aparece más arriba.</div>';
+        est.innerHTML = '<div class="nota">Su prueba para <b>' + esc(s.condominio) + '</b> fue aprobada: el mes aparece más arriba y ya puede usar todas las secciones del panel.</div>';
         form.hidden = true;
       } else if(s.estado === 'rechazada'){
         est.innerHTML = '<div class="nota">No pudimos aprobar su solicitud anterior. Puede enviar otra.</div>';
@@ -162,7 +221,7 @@
         mesMsg('p-prueba-msg', k ? MOTIVOS_PRUEBA[k] : 'No se pudo enviar la solicitud. Intente de nuevo.', true);
         return;
       }
-      mesMsg('p-prueba-msg', 'Solicitud enviada. Le escribiremos pronto.');
+      mesMsg('p-prueba-msg', 'Solicitud enviada. La revisaremos y lo contactaremos.');
       // Aviso al dueno por correo. Si falla, la solicitud igual quedo guardada.
       Cuenta.tokenDeAcceso().then(function(t){
         if(t) fetch('/api/prueba/aviso', { method: 'POST', headers: { authorization: 'Bearer ' + t } }).catch(function(){});
@@ -563,6 +622,7 @@
     }
 
     marcarRail();
+    candado();
     anotarVolver();
     pintarMeses();
     pintarRevision();
@@ -823,6 +883,8 @@
   // ---- pagos: un mes por fila ----
   function pintarPagos(){
     var host = $('p-pagos');
+    // En vitrina la lista de pagos no existe: el Worker la borra (data-pago).
+    if(!host) return;
     var c = Cuenta.cliente();
     if(!c){ host.innerHTML = noDisponible('pagos'); return; }
     c.rpc('pase_mis_meses').then(function(r){
