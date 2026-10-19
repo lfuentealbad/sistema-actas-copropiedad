@@ -21,6 +21,8 @@
 <link rel="manifest" href="/site.webmanifest">
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
+  /* Pedido del dueño (28-08 y 20-10-2026): los textos de la interfaz van justificados. */
+  p,li,dd{text-align:justify;hyphens:auto;}
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
   :root{
@@ -62,7 +64,7 @@
   .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-d);margin-bottom:16px;}
   .eyebrow::before{content:"";width:22px;height:1.5px;background:var(--teal);opacity:.6;}
   h1{font-family:var(--serif);font-variation-settings:'opsz' 120,'wght' 560;font-weight:560;font-size:clamp(32px,6vw,46px);line-height:1.08;letter-spacing:-.02em;color:var(--ink);margin:0 0 14px;}
-  .lede{font-size:19px;color:var(--tx2);max-width:60ch;margin:0;}
+  .lede{font-size:19px;color:var(--tx2);margin:0;}
   .meta{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13.5px;color:var(--tx2);}
   .meta .sello{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600;color:var(--ink);}
   .meta .sello svg{width:15px;height:15px;color:var(--teal-d);}

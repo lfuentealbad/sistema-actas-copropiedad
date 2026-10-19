@@ -208,13 +208,20 @@
   // Lo que se le dice a la persona cuando la base no deja emitir. Sin el
   // precio: en vitrina no se muestra, y este texto sale en cualquier pagina.
   function mensajePase(codigo, estado, condominio) {
+    // En vitrina no se vende: el mes se consigue pidiendo una prueba desde
+    // el panel (paso 19). Decir "actívelo" mandaba a buscar un pago que no
+    // está a la vista (20-10-2026).
+    var vitrina = !!(global.document && global.document.documentElement.classList.contains('vitrina'));
     var nombres = ((estado && estado.vigentes) || []).map(function (x) { return '«' + x.condominio + '»'; });
     if (/pase_de_otro_condominio/.test(String(codigo || '')) && nombres.length) {
       return 'Su mes activo es para ' + nombres.join(' y ') + (condominio ? ', y este documento es de «' + condominio + '»' : '') +
-        '. Cada condominio necesita su propio mes. Revise que el nombre del condominio esté bien escrito o active un mes para este.';
+        '. Cada condominio necesita su propio mes. Revise que el nombre del condominio esté bien escrito' +
+        (vitrina ? ' o solicite una prueba para este desde su panel.' : ' o active un mes para este.');
     }
     return 'Para emitir este documento necesita un mes activo para ' + (condominio ? '«' + condominio + '»' : 'este condominio') +
-      '. Se activa desde su cuenta y vale para todas las herramientas de ese condominio durante un mes.';
+      (vitrina
+        ? '. Puede solicitar una prueba desde su panel, en «Mi servicio»: si la aprobamos, recibe un mes completo para ese condominio.'
+        : '. Se activa desde su cuenta y vale para todas las herramientas de ese condominio durante un mes.');
   }
 
   // Donde se activa un mes, con el condominio ya escrito si se sabe. Desde

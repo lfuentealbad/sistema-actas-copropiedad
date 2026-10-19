@@ -1270,10 +1270,12 @@ function savePDF() {
         // ya pago veia aparecer el cobro sin explicacion.
         // En vitrina no hay nada que cobrar a la vista, asi que tampoco se
         // ofrece el pago. Se dice lo que hay: el documento sale, pero sin
-        // folio -ese lo emite Postgres y no se va a inventar aqui-.
+        // folio -ese lo emite Postgres y no se va a inventar aqui-. Desde
+        // el paso 19 el mes se consigue pidiendo una prueba (20-10-2026).
         if (enVitrina()) {
-          alert('El acta se descarga como borrador. El folio se emite al cerrarla, ' +
-                'y esa parte no está habilitada en esta presentación.');
+          alert('El acta se descarga como borrador, sin folio. El folio se emite con un mes de servicio ' +
+                'para este condominio: puede solicitar una prueba desde su panel, en «Mi servicio». ' +
+                'Su acta queda guardada en su cuenta.');
           _imprimirActa(btn);
           return;
         }

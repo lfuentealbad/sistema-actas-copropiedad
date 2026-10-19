@@ -30,6 +30,8 @@
 <link rel="preload" href="/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
 <link href="/fonts/source-sans-3.css" rel="stylesheet">
 <style>
+  /* Pedido del dueño (28-08 y 20-10-2026): los textos de la interfaz van justificados. */
+  p,li,dd{text-align:justify;hyphens:auto;}
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
 
@@ -409,7 +411,7 @@
   .cta .eyebrow{color:var(--amber-l);justify-content:center;margin-bottom:8px;}
   .cta .eyebrow::before{background:var(--amber);}
   .cta h2{color:#fff;}
-  .cta p{font-size:18.5px;color:rgba(255,255,255,.8);margin:0 auto 30px;max-width:34em;text-wrap:pretty;}
+  .cta p{font-size:18.5px;color:rgba(255,255,255,.8);margin:0 auto 30px;max-width:34em;text-wrap:pretty;text-align:center;}
 
   
   .window{max-width:1000px;margin:0 auto;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh-lg);background:#fff;}
@@ -433,7 +435,7 @@
   .vista-copy .eyebrow::before{background:var(--amber);}
   .vista-copy h2{color:#fff;font-size:clamp(29px,3vw,44px);margin:16px 0 16px;}
   .vista-copy h2 em{white-space:nowrap;color:var(--amber);}
-  .vista-copy p{font-size:17.5px;color:rgba(255,255,255,.82);line-height:1.62;margin:0 0 28px;max-width:38ch;text-wrap:pretty;}
+  .vista-copy p{font-size:17.5px;color:rgba(255,255,255,.82);line-height:1.62;margin:0 0 28px;}
   .vista-meta{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px;}
   .vista-meta span{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.8);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:30px;padding:8px 16px;white-space:nowrap;}
   /* La mas larga mide 366 px: en un telefono angosto parte en dos lineas en
@@ -826,7 +828,7 @@
       <div style="flex:1 1 380px;min-width:min(280px,100%)">
         <span class="eyebrow">Incluida en su mes</span>
         <h2 id="tit-comite" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">¿Y las reuniones <em>del comité?</em></h2>
-        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0;max-width:56ch">Los acuerdos del comité de administración también deben quedar registrados en el Libro de Actas. Ingrese lo tratado durante la reunión y obtenga el registro numerado, listo para incorporar al libro.</p>
+        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0">Los acuerdos del comité de administración también deben quedar registrados en el Libro de Actas. Ingrese lo tratado durante la reunión y obtenga el registro numerado, listo para incorporar al libro.</p>
       </div>
       <div style="flex:0 1 auto;min-width:0">
         <a class="btn btn-ink" href="/acta-comite">Registrar acuerdos del comité</a>
@@ -841,7 +843,7 @@
       <div style="flex:1 1 380px;min-width:min(280px,100%)">
         <span class="eyebrow">Nuevo · incluida en su mes</span>
         <h2 id="tit-cuentas" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">Y las cuentas <em>del mes.</em></h2>
-        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0 0 14px;max-width:56ch">La asamblea es una vez al año; el gasto común es todos los meses. Anote lo que se gastó y el reparto entre las unidades lo hace la alícuota de cada una —la regla del artículo 6, salvo que el reglamento disponga otra—. Sale la <strong style="color:var(--ink)">liquidación del artículo 31</strong>, con la proporción de cada copropietario, sus intereses y multas, y el detalle de ingresos, egresos y saldo de caja que la ley exige mostrar. El fondo común de reserva del artículo 39 se lleva aparte, sin mezclarse con la caja.</p>
+        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0 0 14px">La asamblea es una vez al año; el gasto común es todos los meses. Anote lo que se gastó y el reparto entre las unidades lo hace la alícuota de cada una —la regla del artículo 6, salvo que el reglamento disponga otra—. Sale la <strong style="color:var(--ink)">liquidación del artículo 31</strong>, con la proporción de cada copropietario, sus intereses y multas, y el detalle de ingresos, egresos y saldo de caja que la ley exige mostrar. El fondo común de reserva del artículo 39 se lleva aparte, sin mezclarse con la caja.</p>
         <p style="font-size:14.5px;color:var(--tx3);line-height:1.6;margin:0;max-width:56ch">Los datos quedan en su navegador: no se suben a ninguna parte y el respaldo lo baja usted.</p>
       </div>
       <div style="flex:0 0 auto">

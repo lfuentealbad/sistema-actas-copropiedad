@@ -19,6 +19,8 @@
 <script src="/js/demo-acta.js"></script>
 <script src="/cuenta.js"></script>
 <style>
+  /* Pedido del dueño (28-08 y 20-10-2026): los textos de la interfaz van justificados. */
+  p,li,dd{text-align:justify;hyphens:auto;}
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
   :root{
@@ -90,7 +92,7 @@
   /* ---------- secciones ---------- */
   .seccion{scroll-margin-top:86px;margin-bottom:44px;}
   .seccion > h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:22px;letter-spacing:-.015em;color:var(--ink);margin-bottom:4px;}
-  .seccion > .sub{margin:0 0 18px;font-size:15.5px;color:var(--tx2);line-height:1.55;max-width:78ch;text-align:justify;hyphens:auto;}
+  .seccion > .sub{margin:0 0 18px;font-size:15.5px;color:var(--tx2);line-height:1.55;text-align:justify;hyphens:auto;}
 
   /* ---------- tarjetas de servicio ---------- */
   .servicios{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:16px;}
@@ -111,7 +113,7 @@
   .sv-principal .ic{width:48px;height:48px;background:var(--ink);}
   .sv-principal .ic svg{width:24px;height:24px;color:#fff;}
   .sv-principal h3{font-size:21px;}
-  .sv-principal p{font-size:15.5px;max-width:62ch;}
+  .sv-principal p{font-size:15.5px;}
   .sv-principal .precio b{font-size:19px;}
   .sv-principal .val.inc{background:var(--ink);color:#fff;}
 
@@ -180,7 +182,7 @@
   /* ---------- entrada ---------- */
   .puerta{max-width:520px;margin:0 auto;text-align:center;padding:70px 0 40px;}
   .puerta h1{font-family:var(--serif);font-variation-settings:'opsz' 100,'wght' 560;font-weight:560;font-size:clamp(28px,5vw,38px);line-height:1.12;color:var(--ink);margin-bottom:12px;}
-  .puerta p{font-size:17px;color:var(--tx2);margin:0 0 26px;}
+  .puerta p{font-size:17px;color:var(--tx2);margin:0 0 26px;text-align:center;}
   .puerta .vent{display:grid;gap:12px;text-align:left;margin:30px 0 0;}
   .puerta .vent div{display:flex;gap:11px;align-items:flex-start;font-size:15.5px;color:var(--tx2);}
   .puerta .vent svg{width:18px;height:18px;flex-shrink:0;margin-top:3px;color:var(--teal);}
