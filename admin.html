@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="same-origin">
+<title>Administración · actaviva</title>
+<meta name="theme-color" content="#1E3A6E">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link href="/fonts/source-sans-3.css" rel="stylesheet">
+<script src="/vendor/supabase.min.js"></script>
+<script src="/cuenta.js"></script>
+<!-- Panel de administración (paso 22, 19-10-2026). La página no decide
+     nada: admin_resumen y admin_cuentas exigen en la base ser revisor y
+     una sesión con el segundo factor (aal2). Solo datos de las cuentas y
+     conteos de uso; el contenido de actas, votos y respuestas no llega. -->
+<style>
+  @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
+  :root{
+    --ink:#1E3A6E; --ink-2:#152A52; --teal:#0B6BB5; --teal-pale:#E6F0F8; --orange:#E5692A;
+    --cream:#F3F7FB; --surface:#FFFFFF; --line:rgba(20,24,30,.09); --line-soft:rgba(20,24,30,.055);
+    --tx:#1A3160; --tx2:#4B5C74; --tx3:#647188;
+    --ok:#1A6B3F; --ok-bg:#E1F2E8; --warn:#9A6B1F; --warn-bg:#FBF3E3; --warn-line:#E7D3A4; --err:#B23A2E;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Source Sans 3',system-ui,-apple-system,sans-serif;
+    --sh-sm:0 1px 3px rgba(20,24,30,.05),0 6px 18px -8px rgba(20,24,30,.10);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;font-family:var(--sans);background:var(--cream);color:var(--tx);line-height:1.55;font-size:15px;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  a{color:var(--teal);text-decoration:none;} a:hover{text-decoration:underline;}
+  :focus-visible{outline:3px solid var(--teal);outline-offset:3px;border-radius:6px;}
+  h1,h2,h3{margin:0;}
+  header.site{position:sticky;top:0;z-index:100;background:rgba(243,247,251,.92);backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line-soft);}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 26px;max-width:1240px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);}
+  .brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 560;font-weight:560;font-size:23px;line-height:1;letter-spacing:-.035em;}
+  .brand b i{font-style:normal;color:var(--teal);} .brand b em{font-style:normal;color:var(--orange);}
+  .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 26px 60px;}
+  @media (max-width:560px){ .wrap{padding:0 16px 48px;} .nav{padding:12px 16px;} .brand small{display:none;} }
+  .hola{padding:36px 0 22px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .hola h1{font-family:var(--serif);font-variation-settings:'opsz' 100,'wght' 560;font-weight:560;font-size:clamp(26px,4.5vw,34px);line-height:1.08;letter-spacing:-.022em;color:var(--ink);}
+  .hola p{margin:6px 0 0;color:var(--tx2);}
+  .seccion{margin-bottom:38px;}
+  .seccion > h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:20px;letter-spacing:-.015em;color:var(--ink);margin-bottom:12px;}
+  .caja{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:var(--sh-sm);max-width:560px;}
+  .caja p{margin:0 0 12px;text-align:justify;hyphens:auto;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-size:14.5px;font-weight:600;border-radius:11px;padding:10px 17px;min-height:44px;cursor:pointer;border:1.5px solid transparent;text-decoration:none;white-space:nowrap;}
+  .btn:hover{text-decoration:none;} .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-p{background:var(--ink);color:#fff;} .btn-p:hover{background:var(--ink-2);}
+  .btn-s{background:transparent;color:var(--ink);border-color:rgba(30,58,110,.26);} .btn-s:hover{background:rgba(11,107,181,.07);}
+  .campo{margin-bottom:13px;}
+  .campo label{display:block;font-size:13px;font-weight:600;color:#3B4248;margin-bottom:5px;}
+  .campo input{width:100%;font-family:inherit;font-size:15px;padding:11px 13px;border:1.5px solid #CDD5DF;border-radius:11px;min-height:44px;background:#fff;}
+  .campo input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(11,107,181,.16);}
+  .msg{display:none;margin-top:10px;font-size:14px;} .msg.err{display:block;color:var(--err);} .msg.ok{display:block;color:var(--ok);}
+
+  /* ---------- cifras ---------- */
+  .cifras{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+  .cifra{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--sh-sm);}
+  .cifra .et{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);}
+  .cifra .n{font-family:var(--serif);font-variation-settings:'opsz' 96,'wght' 560;font-size:34px;line-height:1.05;color:var(--ink);margin:6px 0 4px;font-variant-numeric:tabular-nums;}
+  .cifra .d{font-size:13.5px;color:var(--tx2);}
+  .cifra.alerta{border-color:var(--warn-line);background:var(--warn-bg);}
+  .cifra.alerta .n{color:var(--warn);}
+  .cifra a{font-size:13.5px;font-weight:600;}
+
+  /* ---------- tablas ---------- */
+  .tabla-caja{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-sm);overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:#FAFBFD;}
+  td{padding:11px 14px;border-top:1px solid var(--line-soft);vertical-align:top;}
+  tr:first-child td{border-top:none;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td .sec{display:block;color:var(--tx3);font-size:13px;}
+  .et-ok{color:var(--ok);font-weight:600;} .et-esp{color:var(--warn);font-weight:600;} .et-n{color:var(--tx3);}
+  .filtro{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+  .filtro .campo{margin:0;flex:1;min-width:220px;max-width:380px;}
+  .filtro span{color:var(--tx2);font-size:14px;padding-bottom:12px;}
+  .vacio{padding:18px;color:var(--tx2);}
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="nav">
+    <a class="brand" href="/">
+      <span><b>acta<i>viva</i><em>.</em></b><small>Administración</small></span>
+    </a>
+    <a class="btn btn-s" href="/cuenta">Volver a mi panel</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hola">
+    <div>
+      <h1>Administración del servicio</h1>
+      <p id="a-hora">Consultando…</p>
+    </div>
+    <button type="button" class="btn btn-s" id="a-recargar" hidden>Actualizar</button>
+  </div>
+
+  <!-- Mientras no haya sesión verificada, solo se ve esto. -->
+  <div id="a-acceso" class="caja" hidden></div>
+
+  <div id="a-datos" hidden>
+    <section class="seccion">
+      <h2>Resumen</h2>
+      <div class="cifras" id="a-cifras"></div>
+    </section>
+
+    <section class="seccion">
+      <h2>Últimas 8 semanas</h2>
+      <div class="tabla-caja"><table>
+        <thead><tr><th>Semana del</th><th class="num">Cuentas nuevas</th><th class="num">Solicitudes de prueba</th><th class="num">Actas emitidas</th></tr></thead>
+        <tbody id="a-semanas"></tbody>
+      </table></div>
+    </section>
+
+    <section class="seccion">
+      <h2>Cuentas</h2>
+      <div class="filtro">
+        <div class="campo"><label for="a-buscar">Buscar por correo, nombre o condominio</label><input type="search" id="a-buscar" autocomplete="off"></div>
+        <span id="a-cuenta-n"></span>
+      </div>
+      <div class="tabla-caja"><table>
+        <thead><tr><th>Cuenta</th><th>Alta</th><th>Último ingreso</th><th>Meses vigentes</th><th class="num">Actas</th><th>Prueba</th></tr></thead>
+        <tbody id="a-cuentas"></tbody>
+      </table></div>
+    </section>
+  </div>
+</main>
+
+<script src="/js/admin-1.js"></script>
+</body>
+</html>

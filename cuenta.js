@@ -1523,6 +1523,8 @@
     panel('cta-cajon-host', {
       titulo: o.titulo,
       sub: o.sub,
+      // 'entrar' o 'crear'; sin modo, el panel decide por el equipo.
+      modo: o.modo,
       alEntrar: function (u) {
         // La persona cerro el cajon antes de que terminara de entrar: lo que
         // esperaba se descarto con el. La sesion igual quedo abierta, y la
