@@ -533,9 +533,9 @@
       provider: 'google',
       options: { redirectTo: destino || global.location.href }
     }).then(function (r) {
-      if (r && r.error) cb('No pudimos abrir el inicio con Google. Use el código por correo.');
+      if (r && r.error) cb('No pudimos abrir el inicio con Google. Entre con su correo y su clave.');
     }, function () {
-      cb('No pudimos abrir el inicio con Google. Use el código por correo.');
+      cb('No pudimos abrir el inicio con Google. Entre con su correo y su clave.');
     });
   }
 
@@ -722,6 +722,11 @@
   // Es una puerta de la interfaz: quien tenga la sesion y la consola puede
   // llamar updateUser igual. La que no se salta es la del panel de Supabase
   // ('Secure password change'), que exige un codigo enviado al correo.
+  // 20-10-2026: tambien quien acaba de escribir el codigo de su app (totp).
+  // Con la verificacion en dos pasos, Supabase pide aal2 para cambiar la
+  // clave, y comprobar la actual con signInWithPassword abre una sesion
+  // nueva en aal1: se volvia a pedir el codigo en un ciclo. El codigo de la
+  // app prueba mas que la clave actual.
   var VENTANA_CORREO = 10 * 60;   // segundos desde que probo el correo
 
   // El payload de un JWT es base64url. Solo se lee: la firma la valida
@@ -738,7 +743,7 @@
       var amr = b64urlJson(partes[1]).amr;
       var ahora = Date.now() / 1000;
       return Array.isArray(amr) && amr.some(function (m) {
-        return m && /^(recovery|otp|magiclink|email|email\/signup|invite)$/.test(String(m.method)) &&
+        return m && /^(recovery|otp|magiclink|email|email\/signup|invite|totp)$/.test(String(m.method)) &&
                ahora - Number(m.timestamp) < VENTANA_CORREO;
       });
     } catch (e) { return false; }
@@ -772,6 +777,11 @@
     if (!c) { cb('Sin conexión con el servicio.'); return; }
     var cambiar = function () {
       c.auth.updateUser({ password: clave }).then(function (r) {
+        // Con la verificacion en dos pasos activa, Supabase exige una sesion
+        // verificada con la app (aal2) para cambiar la clave (20-10-2026).
+        if (r && r.error && (r.error.code === 'insufficient_aal' || /aal2/i.test(String(r.error.message || '')))) {
+          cb('FALTA_SEGUNDO_FACTOR'); return;
+        }
         if (r && r.error) { cb(motivo(r.error, 'No pudimos cambiar la clave.')); return; }
         cb(null);
       }, function () { cb('No pudimos cambiar la clave.'); });
@@ -794,6 +804,22 @@
         cambiar();
       });
     }).then(null, function () { cb('No pudimos comprobar su clave actual.'); });
+  }
+
+  // cb(err): verifica el codigo de la app de autenticacion y deja la sesion
+  // en aal2. Lo usa el cambio de clave cuando la cuenta tiene el factor.
+  function verificarSegundoFactor(codigo, cb) {
+    var cod = String(codigo || '').replace(/\s/g, '');
+    if (!/^[0-9]{6}$/.test(cod)) { cb('Escriba las 6 cifras del código de su app.'); return; }
+    var c = cliente();
+    if (!c) { cb('Sin conexión con el servicio.'); return; }
+    c.auth.mfa.listFactors().then(function (r) {
+      var fac = r && !r.error && r.data && r.data.totp && r.data.totp[0];
+      if (!fac) { cb('No encontramos la verificación en dos pasos de su cuenta.'); return; }
+      return c.auth.mfa.challengeAndVerify({ factorId: fac.id, code: cod }).then(function (v) {
+        cb(v && v.error ? 'El código no coincide. Escriba el que muestra la app ahora.' : null);
+      });
+    }).then(null, function () { cb('No pudimos verificar el código.'); });
   }
 
   function pedirCodigo(correo, cb) {
@@ -1037,7 +1063,6 @@
               '<button type="button" class="cta-ojo" id="cta-ojo" aria-label="Mostrar la clave">' + SVG_OJO + '</button>' +
             '</div>' +
             '<p class="cta-req" id="cta-req" style="display:none">Al menos ' + CLAVE_MIN + ' caracteres.</p>' +
-            '<p class="cta-req" id="cta-sin-clave">¿No tiene clave? Déjela en blanco: le enviamos un código al correo.</p>' +
           '</div>' +
           '<button type="button" class="cta-b" id="cta-hacer">Entrar</button>' +
           '<p class="cta-pie" id="cta-olvide-caja"><a href="#" id="cta-olvide">¿Olvidó su clave?</a></p>' +
@@ -1064,7 +1089,6 @@
                 '<button type="button" class="cta-prov" id="cta-google" aria-label="Continuar con Google">' + SVG_G + '<span>Google</span></button>' +
               '</div>'
             : '') +
-          '<p class="cta-pie" id="cta-sincl-caja"><a href="#" id="cta-sincl">Entrar con un código por correo, sin clave</a></p>' +
         '</div>' +
 
         '<p class="cta-pie">Al continuar acepta los <a href="/terminos" target="_blank" rel="noopener">t&eacute;rminos del servicio</a> ' +
@@ -1098,21 +1122,22 @@
       $('cta-cambia').textContent = entrar ? 'Regístrese' : 'Inicie sesión';
       if ($('cta-o-txt')) $('cta-o-txt').textContent = entrar ? 'o inicie sesión con' : 'o regístrese con';
       $('cta-hacer').textContent = entrar ? 'Entrar' : 'Crear mi cuenta';
-      // Desde el 07-10-2026 la cuenta se crea sin clave: nombre, correo y un
-      // código. La clave queda para quien ya tiene una, al entrar.
-      $('cta-clave-caja').style.display = entrar ? '' : 'none';
-      $('cta-req').style.display = 'none';
+      // 20-10-2026: pedido del dueno, la cuenta se crea con clave y se entra
+      // siempre con ella (antes, desde el 07-10-2026, se creaba sin clave y
+      // se entraba con un codigo). El codigo queda solo para confirmar el
+      // correo al crear la cuenta.
+      $('cta-clave-caja').style.display = '';
+      $('cta-req').style.display = entrar ? 'none' : 'block';
+      $('cta-clave').setAttribute('autocomplete', entrar ? 'current-password' : 'new-password');
+      $('cta-clave').setAttribute('placeholder', entrar ? 'Su clave' : 'Invente una clave');
       $('cta-olvide-caja').style.display = entrar ? 'block' : 'none';
       $('cta-nombre-caja').style.display = entrar ? 'none' : 'block';
-      // El codigo por correo solo sirve para entrar (no abre cuentas): en
-      // «Crear cuenta» seria un camino que no lleva a ninguna parte.
-      $('cta-sincl-caja').style.display = entrar ? '' : 'none';
       $('cta-lbl-correo').style.marginTop = entrar ? '' : '13px';
       if (!tituloPropio) {
         $('cta-tit').textContent = entrar ? 'Entre a su cuenta' : 'Cree su cuenta';
         $('cta-subt').textContent = entrar
           ? 'Con su cuenta guarda su avance y vuelve a sus asambleas cuando quiera.'
-          : 'Toma un minuto: su nombre y su correo. Le enviamos un código para entrar, sin claves que recordar.';
+          : 'Toma un minuto: su nombre, su correo y una clave. Le enviamos un código para confirmar su correo.';
       }
       aviso('');
     }
@@ -1140,15 +1165,8 @@
       var clave = $('cta-clave').value;
       aviso('');
       if (modo === 'entrar' && !clave) {
-        // Sin clave no hay error: se le manda el código, que es como entra
-        // quien creó la cuenta sin clave.
-        if (!correoValido(correo)) { aviso('Revise el correo electrónico.'); $('cta-correo').focus(); return; }
-        ocupado(btn, true, 'Enviando…');
-        pedirCodigo(correo, function (err) {
-          ocupado(btn, false);
-          if (err) { aviso(err); return; }
-          irAlCodigo(correo, 'email');
-        });
+        aviso('Escriba su clave. Si no la recuerda, use «¿Olvidó su clave?».');
+        $('cta-clave').focus();
       } else if (modo === 'entrar') {
         ocupado(btn, true, 'Entrando…');
         entrarConClave(correo, clave, function (err) {
@@ -1158,11 +1176,17 @@
         });
       } else {
         ocupado(btn, true, 'Creando…');
-        crearCuentaConCodigo(correo, function (err) {
+        crearCuenta(correo, clave, function (err, falta) {
           ocupado(btn, false);
+          if (err === 'CLAVE_FILTRADA') {
+            aviso('Esa clave aparece en filtraciones conocidas. Elija otra: combine letras, números y símbolos.');
+            $('cta-clave').focus();
+            return;
+          }
           if (err) { aviso(err); return; }
-          // El código llega al correo: aquí se escribe y se entra.
-          irAlCodigo(correo, 'alta');
+          // Con la confirmacion del correo activa no hay sesion todavia: el
+          // codigo llega al correo y se escribe aqui.
+          if (falta) irAlCodigo(correo, 'signup'); else usuario(listo);
         }, $('cta-nombre').value);
       }
     });
@@ -1206,21 +1230,6 @@
       $('cta-codigo-paso').style.display = 'block';
       setTimeout(function () { try { $('cta-codigo').focus(); } catch (e) {} }, 60);
     }
-
-    // ---- alternativa: codigo por correo
-    $('cta-sincl').addEventListener('click', function () {
-      var btn = this;
-      var correo = $('cta-correo').value.trim().toLowerCase();
-      aviso('');
-      if (!correoValido(correo)) { aviso('Escriba su correo arriba y vuelva a apretar.'); $('cta-correo').focus(); return; }
-      ocupado(btn, true, 'Enviando…');
-      pedirCodigo(correo, function (err) {
-        ocupado(btn, false);
-        if (err) { aviso(err); return; }
-        irAlCodigo(correo, 'email');
-        aviso('');
-      });
-    });
 
     $('cta-verificar').addEventListener('click', function () {
       var btn = this;
@@ -1278,7 +1287,7 @@
     $('cta-correo').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      if (modo === 'crear') $('cta-hacer').click(); else $('cta-clave').focus();
+      $('cta-clave').focus();
     });
     $('cta-clave').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); $('cta-hacer').click(); }
@@ -1674,6 +1683,7 @@
     entrarConClave: entrarConClave,
     recuperarClave: recuperarClave,
     cambiarClave: cambiarClave,
+    verificarSegundoFactor: verificarSegundoFactor,
     pideClaveActual: pideClaveActual,
     guardarNombre: guardarNombre,
     reenviarConfirmacion: reenviarConfirmacion

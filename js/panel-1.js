@@ -588,13 +588,35 @@
     var cajaActual = $('p-clave-actual-caja');
     Cuenta.pideClaveActual(function(pide){ if(cajaActual) cajaActual.hidden = !pide; });
 
+    var pideCodigoApp = false;   // se pidio el codigo de la app para cambiar la clave
     $('p-guardar-clave').addEventListener('click', function(){
       var b = this, m = $('p-clave-msg'), clave = $('p-clave').value;
       var actual = $('p-clave-actual') ? $('p-clave-actual').value : '';
+      var cajaCod = $('p-clave-codigo-caja');
       m.className = 'msg'; m.textContent = '';
       b.disabled = true; b.textContent = 'Guardando…';
+      // Si ya se pidio el codigo de la app, primero se verifica (aal2) y
+      // despues se cambia la clave.
+      if(pideCodigoApp){
+        Cuenta.verificarSegundoFactor($('p-clave-codigo').value, function(e2){
+          if(e2){ b.disabled = false; b.textContent = 'Guardar la clave'; m.className = 'msg err'; m.textContent = e2; return; }
+          pideCodigoApp = false; if(cajaCod) cajaCod.hidden = true; $('p-clave-codigo').value = '';
+          cambiar();
+        });
+        return;
+      }
+      cambiar();
+      function cambiar(){
       Cuenta.cambiarClave(clave, function(err){
         b.disabled = false; b.textContent = 'Guardar la clave';
+        if(err === 'FALTA_SEGUNDO_FACTOR'){
+          pideCodigoApp = true;
+          if(cajaCod) cajaCod.hidden = false;
+          m.className = 'msg err';
+          m.textContent = 'Su cuenta tiene verificación en dos pasos: escriba el código de su app y presione de nuevo «Guardar la clave».';
+          if($('p-clave-codigo')) $('p-clave-codigo').focus();
+          return;
+        }
         if(err === 'FALTA_CLAVE_ACTUAL'){
           // Pudo vencer el plazo desde que se pinto el panel: el campo
           // aparece recien ahora.
@@ -614,6 +636,7 @@
           Cuenta.pideClaveActual(function(pide){ if(cajaActual) cajaActual.hidden = !pide; });
         }
       }, actual);
+      }
     });
 
     // Vuelta desde el enlace para recuperar la clave (/cuenta?recuperar=1):

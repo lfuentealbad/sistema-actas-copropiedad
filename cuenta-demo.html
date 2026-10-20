@@ -446,15 +446,20 @@
 
           <div class="caja">
             <h3 style="font-size:16.5px;font-weight:700;color:var(--ink);margin-bottom:4px">Cambiar mi clave</h3>
-            <p style="margin:0 0 15px;font-size:14.5px;color:var(--tx2)">Al menos 8 caracteres. Para cambiarla le pedimos la actual, salvo que acabe de entrar con el enlace para recuperarla o con un código por correo.</p>
+            <p style="margin:0 0 15px;font-size:14.5px;color:var(--tx2)">Al menos 8 caracteres. Para cambiarla le pedimos la actual, salvo que acabe de entrar con el enlace para recuperarla. Si tiene activada la verificación en dos pasos, le pedimos también el código de su app.</p>
             <div class="campo" id="p-clave-actual-caja">
               <label for="p-clave-actual">Clave actual</label>
               <input type="password" id="p-clave-actual" autocomplete="current-password" placeholder="La que usa hoy para entrar">
-              <p style="margin:7px 0 0;font-size:13px;color:var(--tx2)">¿No la recuerda, o nunca tuvo una? Cierre sesión y entre con «¿Olvidó su clave?» o con un código por correo: durante los 10 minutos siguientes puede ponerse una sin escribir la actual.</p>
+              <p style="margin:7px 0 0;font-size:13px;color:var(--tx2)">¿No la recuerda? Cierre sesión y use «¿Olvidó su clave?»: durante los 10 minutos siguientes puede ponerse una sin escribir la actual.</p>
             </div>
             <div class="campo">
               <label for="p-clave">Clave nueva</label>
               <input type="password" id="p-clave" autocomplete="new-password" placeholder="Invente una clave">
+            </div>
+            <!-- Con la verificacion en dos pasos, Supabase pide aal2 para cambiar la clave (20-10-2026). -->
+            <div class="campo" id="p-clave-codigo-caja" hidden>
+              <label for="p-clave-codigo">Código de su app de autenticación</label>
+              <input type="text" id="p-clave-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="6 cifras">
             </div>
             <button type="button" class="btn btn-p" id="p-guardar-clave">Guardar la clave</button>
             <div class="msg" id="p-clave-msg"></div>
