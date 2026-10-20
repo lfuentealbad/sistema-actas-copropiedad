@@ -73,7 +73,7 @@
     'eliminarCobro', 'eliminarEgreso', 'eliminarIngreso',
     'eliminarMantencion', 'eliminarMovFondo', 'eliminarPuntoConfirm',
     'eliminarUnidad', 'emitir', 'exportarRespaldo', 'exportarResultados',
-    'firmCambioAlternativa', 'firmCargoCambio', 'generarCobrosMes',
+    'firmCargoCambio', 'generarCobrosMes',
     'generarDocumento', 'generarTodasLiquidaciones', 'goStep', 'guardarCobro',
     'guardarConfig', 'guardarEgreso', 'guardarIngreso', 'guardarMantencion',
     'guardarMovFondo', 'guardarPadron', 'guardarUnidad', 'identificar',

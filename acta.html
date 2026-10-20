@@ -2392,7 +2392,7 @@
 <div class="section" id="step-3">
   <div class="card">
     <h2 class="card-title">Registro de Asistencia</h2>
-    <div class="card-desc">Ingrese solo a los copropietarios que efectivamente asistieron marcando <strong>Asiste: Sí</strong>. Si carga el padrón completo del condominio, marque como <strong>No</strong> a quienes no se presentaron. El quórum de constitución se calcula sobre los presentes (hábiles e inhábiles). Solo los copropietarios hábiles y presentes pueden votar.</div>
+    <div class="card-desc">Cargue el padrón completo del condominio y marque <strong>Asiste: Sí</strong> a quienes están presentes. Solo votan los copropietarios hábiles.</div>
     <div class="tip" style="margin-bottom:18px">
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><strong>¿Tiene un padrón en Excel?</strong> Use el botón <em>"Importar Excel/CSV"</em> al final de la tabla para cargarlo automáticamente, en vez de tipear cada copropietario.
     </div>
@@ -2530,16 +2530,11 @@
       .vv-estado{font-size: 13px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;margin-left:8px;flex-shrink:0}
       .vv-estado.cerrado{background:#EDEDE8;color:#5C6168}
       .vv-estado.abierto{background:#E1F2E8;color:#1A6B3F}
-      .firm-alt{border:1px solid var(--c-line, #D8DCE3);border-radius:10px;padding:14px 16px;margin-bottom:16px}
-      .firm-alt legend{font-weight:600;padding:0 6px}
-      .firm-alt-op{display:block;margin:6px 2px;cursor:pointer}
-      .firm-alt-op input{margin-right:8px}
       .firm-row{display:grid;grid-template-columns:2fr 1.2fr 1.6fr auto;gap:12px 18px;align-items:end;margin-bottom:12px}
       @media(max-width:760px){.firm-row{grid-template-columns:1fr 1fr;}.firm-row .firm-cargo-wrap{grid-column:1 / -1}}
       .firm-row .btn-del-firm{border:1px solid #D8DCE3;background:#fff;border-radius:8px;min-width:44px;min-height:44px;cursor:pointer;color:#8B3A30;font-size:16px}
       .firm-row .btn-del-firm:hover{background:#F6E6E3}
       .btn-add-firm{display:inline-flex;align-items:center;gap:8px;margin-top:2px}
-      .firm-cargo-fijo{font-size:14px;color:#4B5C74;padding:11px 2px}
       .rev-box{border:1px solid #E7D3A4;background:#FDFAF2;border-radius:12px;padding:16px 18px;margin:18px 0}
       .rev-box.rev-todo-ok{border-color:#A9D9BE;background:#F3FAF5}
       .rev-box h3{margin:0 0 4px;font-size:15px}
@@ -2617,15 +2612,10 @@
 <div class="section" id="step-5">
   <div class="card">
     <h2 class="card-title">Firmantes del Acta</h2>
-    <div class="card-desc">El acta debe firmarse, en forma presencial o electrónica, a más tardar dentro de los <strong>30 días</strong> siguientes a la adopción de los acuerdos (art. 15, Ley N° 21.442).</div>
+    <div class="card-desc">Firman todos los miembros del comité de administración o los copropietarios que designe la asamblea, en forma presencial o electrónica, a más tardar dentro de los <strong>30 días</strong> siguientes a la adopción de los acuerdos (art. 15, Ley N° 21.442). Elija el cargo de cada firmante en su menú.</div>
 
     <div id="firmantes-container">
 
-      <fieldset class="firm-alt">
-        <legend>¿Quiénes firmarán el acta? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre quiénes firman">?<span class="help-tip-content">El artículo 15 de la Ley N° 21.442 exige que el acta la firmen <strong>todos los miembros del comité de administración</strong> o, en su lugar, <strong>los copropietarios que la asamblea designe</strong>. Elija la alternativa que acordó su asamblea y agregue a todas las personas que correspondan.</span></span></legend>
-        <label class="firm-alt-op"><input type="radio" name="firm-alt" value="comite" checked data-ac="firmCambioAlternativa" data-args="@"> Todos los miembros del comité de administración</label>
-        <label class="firm-alt-op"><input type="radio" name="firm-alt" value="designados" data-ac="firmCambioAlternativa" data-args="@"> Copropietarios designados por la asamblea</label>
-      </fieldset>
 
       <div id="firmantes-lista"></div>
 

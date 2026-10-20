@@ -1119,13 +1119,6 @@ if (container) container.innerHTML = cuerpo + pie;
 // ---------------------------------------------------------------------
 var _PIE_ABRE = '<p style="font-size:11px;color:#333;text-align:center;margin-top:24px;border-top:1px solid #ddd;padding-top:12px;line-height:1.55">';
 var _PIE_TITULO = '<strong style="display:block;font-size:11.5px;color:#8B0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">';
-// La sala se borra al cerrarla, y si nadie la cierra la barre la tarea de
-// las 48 horas. "Servidor cifrado" y "al terminar la asamblea" decian mas
-// de lo que se puede acreditar.
-var _PIE_VOTACION = 'Si se utilizó la votación en vivo, el padrón y los votos se borran del servidor al cerrar la sala o, a más tardar, 48 horas después. ';
-// El plazo de la tarea diaria de conservacion (vv_config) para el
-// contenido de un acta finalizada.
-var _PIE_CONSERVACION = 'La cuenta que la elaboró conserva una copia en el servidor hasta 180 días después de finalizada y puede borrarla antes. ';
 
 function _pieDelActa() {
   if (!(typeof _actaPagada === 'function' && _actaPagada())) {
@@ -1133,9 +1126,7 @@ function _pieDelActa() {
       'BORRADOR — ACTA NO FINALIZADA, SIN FOLIO' +
       '</strong>' +
       '<span style="font-style:italic;color:#555">' +
-      'Este documento es un <strong>borrador</strong>: todavía no ha sido finalizado, no tiene folio y no debe presentarse como acta de la asamblea. Para finalizarlo, vuelva al Paso 6 y presione <strong>Finalizar y guardar como PDF</strong>. ' +
-      _PIE_VOTACION +
-      'Conserve el archivo original para sus respaldos.' +
+      'Este documento es un <strong>borrador</strong>: todavía no ha sido finalizado, no tiene folio y no debe presentarse como acta de la asamblea. Para finalizarlo, vuelva al Paso 6 y presione <strong>Finalizar y guardar como PDF</strong>.' +
       '</span></p>';
   }
   var s = _selloVigente();
@@ -1148,8 +1139,7 @@ function _pieDelActa() {
       'ACTA № ' + escapeHtml(_actaFolio || '') + ' — COPIA REGENERADA' +
       '</strong>' +
       '<span style="font-style:italic;color:#555">' +
-      'Esta copia se volvió a generar con los datos guardados y no lleva código de verificación. El documento verificable es el archivo que se descargó al finalizar el acta. ' +
-      _PIE_CONSERVACION + _PIE_VOTACION +
+      'Esta copia se volvió a generar con los datos guardados y no lleva código de verificación. El documento verificable es el archivo que se descargó al finalizar el acta.' +
       '</span></p>';
   }
   var demo = /^DEMO-/.test(_actaFolio || '');
@@ -1161,14 +1151,11 @@ function _pieDelActa() {
     (demo
       ? '<span style="display:block;color:#8B0000;font-weight:bold;margin-bottom:6px">Documento de demostración: el folio y el código son simulados y no corresponden a ninguna acta emitida.</span>'
       : '') +
-    '<span style="display:block;font-size:8.5px;color:#666;word-break:break-all;margin-bottom:6px">Huella SHA-256 del contenido: ' + escapeHtml(s.huella) + '</span>' +
-    '<span style="font-style:italic;color:#555">' +
-    'Al finalizar el acta quedaron registrados su folio, su código, la huella de su contenido y un resumen sin datos de personas. ' +
-    'La página de verificación confirma que el folio y el código corresponden a un acta emitida y muestra ese resumen para compararlo con este documento; no certifica la validez legal de la asamblea ni la exactitud de lo que el acta declara. ' +
-    _PIE_CONSERVACION + 'El registro de verificación se mantiene aunque esa copia se borre. ' +
-    _PIE_VOTACION +
-    'Conserve el archivo original.' +
-    '</span></p>';
+    // 20-10-2026: el dueno pidio quitar el parrafo largo que seguia aqui
+    // (que se registro, que no certifica, cuanto se conserva): daba
+    // demasiado espacio a cuestionamientos. Eso lo explica la privacidad.
+    '<span style="display:block;font-size:8.5px;color:#666;word-break:break-all">Huella SHA-256 del contenido: ' + escapeHtml(s.huella) + '</span>' +
+    '</p>';
 }
 function _actaDocumento(conAviso) {
 generateActa();
@@ -3574,25 +3561,24 @@ function firmCargoCambio(sel) {
   if (typeof autoSave === 'function') autoSave();
 }
 
+// 20-10-2026: ya no se pregunta la alternativa del art. 15 aparte (pedido
+// del dueno: lo resuelve el menu de cargo). Se deduce de los cargos: si
+// todos los firmantes con nombre son copropietarios designados, firman los
+// designados; si no, el comite.
+var CARGO_DESIGNADO = 'Copropietario/a designado/a por la Asamblea';
 function firmAlternativa() {
-  var el = document.querySelector('input[name="firm-alt"]:checked');
-  return el ? el.value : 'comite';
+  var conNombre = firmLeer().filter(function (fr) { return fr.nombre; });
+  return conNombre.length && conNombre.every(function (fr) { return fr.cargo === CARGO_DESIGNADO; })
+    ? 'designados' : 'comite';
 }
 
 function firmLeer() {
-  var alt = firmAlternativa();
   var out = [];
   document.querySelectorAll('#firmantes-lista .firm-row').forEach(function (row) {
     var g = function (sel) { var e = row.querySelector(sel); return e ? String(e.value || '').trim() : ''; };
     var cargo = g('.firm-cargo');
     if (cargo === OTRO_CARGO) cargo = g('.firm-cargo-otro');
-    out.push({
-      nombre: g('.firm-nombre'),
-      rut: g('.firm-rut'),
-      cargo: alt === 'designados'
-        ? 'Copropietario/a designado/a por la Asamblea'
-        : (cargo || CARGOS_FIRMA[1])
-    });
+    out.push({ nombre: g('.firm-nombre'), rut: g('.firm-rut'), cargo: cargo || CARGOS_FIRMA[1] });
   });
   return out;
 }
@@ -3606,7 +3592,6 @@ function addFirmante(datos) {
   if (!lista) return;
   datos = datos || {};
   var n = ++_firmSeq;
-  var alt = firmAlternativa();
   var row = document.createElement('div');
   row.className = 'firm-row';
 
@@ -3622,9 +3607,7 @@ function addFirmante(datos) {
 
   var dCargo = document.createElement('div');
   dCargo.className = 'field firm-cargo-wrap';
-  if (alt === 'designados') {
-    dCargo.innerHTML = '<label>Calidad</label><div class="firm-cargo-fijo">Copropietario/a designado/a por la Asamblea</div>';
-  } else {
+  {
     var esperado = datos.cargo || (document.querySelectorAll('#firmantes-lista .firm-row').length === 0
       ? CARGOS_FIRMA[0] : CARGOS_FIRMA[1]);
     var conocido = CARGOS_FIRMA.indexOf(esperado) >= 0;
@@ -3664,23 +3647,6 @@ function addFirmante(datos) {
   return row;
 }
 
-function firmCambioAlternativa() {
-  // Se reconstruyen las filas conservando nombres, RUT y el cargo que ya
-  // estaba elegido: lo que cambia entre alternativas es la calidad en que
-  // se firma, no las personas.
-  var lista = document.getElementById('firmantes-lista');
-  if (!lista) return;
-  var actuales = [];
-  lista.querySelectorAll('.firm-row').forEach(function (row) {
-    var g = function (sel) { var e = row.querySelector(sel); return e ? String(e.value || '').trim() : ''; };
-    actuales.push({ nombre: g('.firm-nombre'), rut: g('.firm-rut'), cargo: g('.firm-cargo') || undefined });
-  });
-  lista.innerHTML = '';
-  if (actuales.length === 0) actuales = [{}, {}];
-  actuales.forEach(function (fr) { addFirmante(fr); });
-  if (typeof autoSave === 'function') autoSave();
-}
-
 function firmRestaurar(snap) {
   var lista = document.getElementById('firmantes-lista');
   if (!lista) return;
@@ -3696,10 +3662,6 @@ function firmRestaurar(snap) {
     fs = { alternativa: 'comite', lista: migrada };
   }
   if (!fs) { firmInicial(); return; }
-
-  var alt = fs.alternativa === 'designados' ? 'designados' : 'comite';
-  var radio = document.querySelector('input[name="firm-alt"][value="' + alt + '"]');
-  if (radio) radio.checked = true;
 
   lista.innerHTML = '';
   var items = (fs.lista && fs.lista.length) ? fs.lista : [{}, {}];
@@ -3857,7 +3819,7 @@ function revisarConsistencia() {
   if (firmantes.length === 0) {
     items.push({ ok: false, texto: 'No hay firmantes con nombre. La ley exige que firmen todos los miembros del comité o los copropietarios designados por la asamblea.' });
   } else if (alt === 'comite' && firmantes.length < 2) {
-    items.push({ ok: false, texto: 'Hay un solo firmante y la alternativa elegida es "todos los miembros del comité": revise si falta alguien.' });
+    items.push({ ok: false, texto: 'Hay un solo firmante del comité de administración y la ley pide que firmen todos sus miembros: revise si falta alguien.' });
   } else {
     items.push({ ok: true, texto: firmantes.length + ' firmante(s) registrado(s), en calidad de ' + (alt === 'designados' ? 'copropietarios designados por la asamblea.' : 'miembros del comité de administración.') });
   }

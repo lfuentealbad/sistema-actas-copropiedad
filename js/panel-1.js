@@ -373,21 +373,15 @@
         mesMsg('p-rev-msg', /ya_resuelta/.test(m) ? 'Esa solicitud ya estaba resuelta.' : 'No se pudo guardar. Intente de nuevo.', true);
       } else {
         mesMsg('p-rev-msg', aprobar
-          ? 'Aprobada: ' + condo + ' tiene su mes hasta el ' + fecha(r.data && r.data.hasta) + '. Le estamos avisando por correo.'
+          ? 'Aprobada: ' + condo + ' tiene su mes hasta el ' + fecha(r.data && r.data.hasta) + '.'
           : 'Rechazada: ' + condo + '.');
-        // Aviso a la persona (20-10-2026). El Worker vuelve a leer la
-        // solicitud con esta sesion: solo escribe si la base la da por aprobada.
+        // Aviso por correo a la persona (20-10-2026). El Worker vuelve a leer
+        // la solicitud con esta sesion: solo escribe si la base la da por
+        // aprobada. Va en silencio: el dueno pidio no mostrar el resultado.
         if(aprobar){
           var id = b.getAttribute('data-sol');
           Cuenta.tokenDeAcceso().then(function(t){
-            if(!t) return;
-            fetch('/api/prueba/aprobada', { method: 'POST', headers: { authorization: 'Bearer ' + t, 'content-type': 'application/json' }, body: JSON.stringify({ id: id }) })
-              .then(function(x){ return x.json(); })
-              .then(function(j){
-                mesMsg('p-rev-msg', 'Aprobada: ' + condo + ' tiene su mes hasta el ' + fecha(r.data && r.data.hasta) + '. ' +
-                  (j && j.enviado ? 'Le avisamos por correo.' : 'No pudimos avisarle por correo: escríbale usted.'));
-              })
-              .catch(function(){ mesMsg('p-rev-msg', 'Aprobada: ' + condo + '. No pudimos avisarle por correo: escríbale usted.'); });
+            if(t) fetch('/api/prueba/aprobada', { method: 'POST', headers: { authorization: 'Bearer ' + t, 'content-type': 'application/json' }, body: JSON.stringify({ id: id }) }).catch(function(){});
           });
         }
       }
