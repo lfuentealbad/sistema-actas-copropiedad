@@ -195,6 +195,16 @@
   @media(min-width:1640px){
     .hero{max-width:1600px;margin:14px auto 0;border-radius:34px;}
   }
+  /* 20-10-2026: desde que el acta y el telefono van en el hero, la pantalla
+     proyectada de la foto quedaba debajo y se veian dos interfaces
+     encimadas. Con la imagen del producto a la vista, la foto pasa a ser
+     ambiente: mas oscura y algo desenfocada. */
+  @media(min-width:1141px){
+    .hero-img{filter:blur(2px);transform:scale(1.02);}
+    .hero-scrim{background:
+      linear-gradient(94deg,rgba(11,19,40,.95) 0%,rgba(11,19,40,.88) 40%,rgba(11,19,40,.80) 100%),
+      linear-gradient(0deg,rgba(11,19,40,.55),transparent 48%);}
+  }
   @media(max-width:820px){
     .hero-img{object-position:62% 46%;}
     .hero-scrim{background:
@@ -436,11 +446,8 @@
   .vista-copy h2{color:#fff;font-size:clamp(29px,3vw,44px);margin:16px 0 16px;}
   .vista-copy h2 em{white-space:nowrap;color:var(--amber);}
   .vista-copy p{font-size:17.5px;color:rgba(255,255,255,.82);line-height:1.62;margin:0 0 28px;}
-  .vista-meta{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px;}
-  .vista-meta span{font-size:13.5px;font-weight:600;color:rgba(255,255,255,.8);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:30px;padding:8px 16px;white-space:nowrap;}
   /* La mas larga mide 366 px: en un telefono angosto parte en dos lineas en
      vez de correr la pagina de lado. */
-  @media(max-width:420px){ .vista-meta span{white-space:normal;border-radius:16px;} }
   /* El teléfono va AL LADO del panel, no encima: sobre una foto el encimado
      lucía, pero sobre un panel de datos tapaba el inicio de las barras. */
   .vista-stage{position:relative;display:flex;justify-content:flex-end;align-items:center;gap:clamp(16px,2vw,26px);}
@@ -579,7 +586,7 @@
       "mainEntity": [
         { "@type": "Question", "name": "¿Necesito instalar algo o crear una cuenta?", "acceptedAnswer": { "@type": "Answer", "text": "No hay nada que instalar: funciona en el navegador, pero sí necesita una cuenta. Se crea en un minuto: escribe su correo, le llega un código y listo. La cuenta guarda su avance y le permite volver a sus asambleas." } },
         { "@type": "Question", "name": "¿Cómo votan los copropietarios?", "acceptedAnswer": { "@type": "Answer", "text": "Usted proyecta un código QR. Cada participante habilitado ingresa con su RUT y un código de un solo uso que le llega al correo o le da la Mesa, y su voto se asocia al padrón cargado por la administración; el resultado se calcula ponderado por los derechos de cada unidad. Votan quienes figuran como hábiles en el padrón." } },
-        { "@type": "Question", "name": "¿Es seguro? ¿Quién ve mis datos?", "acceptedAnswer": { "@type": "Answer", "text": "Su acta se guarda en su cuenta y solo usted puede verla: la restricción está en la base de datos, fila por fila. Los datos de la votación en vivo viajan cifrados; la sala se elimina al cerrarla y, en todo caso, dentro de 48 horas." } },
+        { "@type": "Question", "name": "¿Es seguro? ¿Quién ve mis datos?", "acceptedAnswer": { "@type": "Answer", "text": "Su acta se guarda en su cuenta y solo usted puede verla. No vendemos datos ni enviamos publicidad. El padrón y los votos de la votación en vivo se borran del servidor a más tardar a las 48 horas, y el contenido de un acta finalizada, a los 180 días: conserve el PDF que descarga." } },
         { "@type": "Question", "name": "¿El acta está diseñada conforme a la Ley N°&nbsp;21.442?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El sistema aplica los quórums y mayorías según la materia seleccionada y genera el documento a partir de los antecedentes ingresados, listo para revisar y firmar." } },
         { "@type": "Question", "name": "¿Cuánto cuesta?", "acceptedAnswer": { "@type": "Answer", "text": "$14.990 por un mes de servicio para un condominio, con todas las herramientas: actas de asamblea con folio, votación en vivo, consultas por escrito, actas del comité y las cuentas del condominio. Impuestos incluidos. No se renueva solo: al terminar el mes, usted decide si activa otro. Si administra varios condominios, cada uno lleva su propio mes." } }
       ]
@@ -719,7 +726,6 @@
         <h2 id="tit-votacion">Nadie cuenta manos <em>levantadas.</em></h2>
         <p>Proyecte el código QR. Cada participante habilitado ingresa con su RUT y un código de un solo uso, su voto se asocia al padrón cargado por la administración y el resultado se pondera por derechos al instante, directo al acta.</p>
         <a class="btn btn-primary" href="/acta">Comenzar mi acta</a>
-        <small class="vista-meta"><span>Votan quienes figuran como hábiles en el padrón</span> <span>Presencial, telemática o mixta</span> <span>La sala se elimina al cerrarla, y en todo caso a las 48 horas</span></small>
       </div>
       <div class="vista-stage reveal d1">
         <div class="vv-panel" aria-hidden="true">
@@ -843,8 +849,7 @@
       <div style="flex:1 1 380px;min-width:min(280px,100%)">
         <span class="eyebrow">Nuevo · incluida en su mes</span>
         <h2 id="tit-cuentas" style="font-size:clamp(26px,2.8vw,36px);margin:12px 0 10px">Y las cuentas <em>del mes.</em></h2>
-        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0 0 14px">La asamblea es una vez al año; el gasto común es todos los meses. Anote lo que se gastó y el reparto entre las unidades lo hace la alícuota de cada una —la regla del artículo 6, salvo que el reglamento disponga otra—. Sale la <strong style="color:var(--ink)">liquidación del artículo 31</strong>, con la proporción de cada copropietario, sus intereses y multas, y el detalle de ingresos, egresos y saldo de caja que la ley exige mostrar. El fondo común de reserva del artículo 39 se lleva aparte, sin mezclarse con la caja.</p>
-        <p style="font-size:14.5px;color:var(--tx3);line-height:1.6;margin:0;max-width:56ch">Los datos quedan en su navegador: no se suben a ninguna parte y el respaldo lo baja usted.</p>
+        <p style="font-size:16.5px;color:var(--tx2);line-height:1.65;margin:0 0 14px">La asamblea es una vez al año; los gastos comunes, todos los meses. Registre ingresos y egresos, reparta los gastos entre las unidades según la alícuota de cada una y obtenga la <strong style="color:var(--ink)">liquidación mensual</strong> de cada copropietario, con el saldo de caja y el fondo de reserva por separado.</p>
       </div>
       <div style="flex:0 0 auto">
         <a class="btn btn-ink" href="/finanzas">Llevar las cuentas</a>
@@ -862,7 +867,7 @@
     <div class="faq">
       <details class="reveal"><summary>¿Necesito instalar algo o crear una cuenta?</summary><div>No hay nada que instalar: funciona en el navegador. <strong>Cuenta sí necesita</strong>, y se crea en un minuto: escribe su correo, le llega un código y entra. La cuenta guarda su avance, le permite volver a sus asambleas y es donde le llega el comprobante.</div></details>
       <details class="reveal"><summary>¿Cómo votan los copropietarios?</summary><div>Usted proyecta un QR; cada participante habilitado ingresa con su RUT y un código de un solo uso, y su voto se asocia al padrón cargado por la administración. El resultado se pondera por derechos al instante. Votan quienes figuran como hábiles en el padrón.</div></details>
-      <details class="reveal"><summary>¿Es seguro? ¿Quién ve mis datos?</summary><div>Su acta se guarda en su cuenta y <strong>solo usted puede verla</strong>: la restricción está en la base de datos, fila por fila. Los datos de la votación viajan cifrados; la sala se elimina al cerrarla y, en todo caso, dentro de 48 horas. El acta queda en su cuenta hasta que usted la borre. Está todo detallado en la <a href="/privacidad">declaración de privacidad</a>.</div></details>
+      <details class="reveal"><summary>¿Es seguro? ¿Quién ve mis datos?</summary><div>Su acta se guarda en su cuenta y <strong>solo usted puede verla</strong>. No vendemos datos ni enviamos publicidad. El padrón y los votos de la votación en vivo se borran del servidor a más tardar a las 48 horas, y el contenido de un acta finalizada, a los 180 días: conserve el PDF que descarga. El detalle está en la <a href="/privacidad">declaración de privacidad</a>.</div></details>
       <details class="reveal"><summary>¿Sirve para asambleas telemáticas o mixtas?</summary><div>Sí. Puede utilizarse en asambleas presenciales, telemáticas o mixtas. En estas últimas deben cumplirse además las condiciones previstas en el reglamento de copropiedad y las exigencias de identificación del Reglamento de la Ley.</div></details>
       <details class="reveal"><summary>¿El acta está diseñada conforme a la Ley N°&nbsp;21.442?</summary><div>Sí. El sistema aplica los quórums y mayorías según la materia seleccionada y genera el documento a partir de los antecedentes ingresados, listo para revisar y firmar.</div></details>
       <details class="reveal"><summary>¿Se puede acordar algo sin reunir a todos a votar?</summary><div>Sí. El artículo 15 de la Ley N°&nbsp;21.442 permite la <strong>consulta por escrito</strong>: se expone la propuesta en una sesión informativa previa, se envía la consulta a los correos del Registro de Copropietarios y se fija un plazo para responder. Queda aprobada cuando las respuestas a favor suman el porcentaje de derechos que la ley exige para esa materia. Cuando la consulta verse sobre las materias señaladas en la letra a) del N° 2 o en el N° 3 del artículo 15, el acuerdo deberá además reducirse a escritura pública.</div></details>
