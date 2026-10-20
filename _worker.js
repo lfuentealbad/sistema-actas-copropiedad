@@ -348,7 +348,7 @@ function limiteDe(ruta) {
   // /api/voto/codigo manda un correo por llamada: va en el estricto, como el
   // pago y la clave filtrada.
   if (ruta.startsWith('/api/pago/') || ruta === '/api/clave/filtrada' || ruta === '/api/voto/codigo' ||
-      ruta === '/api/prueba/aviso') {
+      ruta === '/api/prueba/aprobada' || ruta === '/api/prueba/aviso') {
     return 'LIMITE_ESTRICTO';
   }
   if (ruta === '/cf-geo' || ruta.startsWith('/api/')) return 'LIMITE_GENERAL';
@@ -451,6 +451,59 @@ async function avisoPrueba(request, env) {
   const envio = await enviarCorreo(env, { para: env.CORREO_FALLBACK, asunto: 'actaviva: solicitud de prueba', texto });
   if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
   if (!envio.ok) console.log('prueba', 'aviso no enviado', paraLog(envio.motivo || '', 60));
+  return json({ ok: true, enviado: !!envio.ok });
+}
+
+// Al aprobar una prueba, la persona recibe un correo (20-10-2026): sin
+// aviso, quien la pidio tenia que volver a mirar el panel y podia perder el
+// interes. Lo pide el panel de la cuenta revisora despues de resolver_prueba.
+// El Worker no confia en lo que le mandan: lee la solicitud con la sesion de
+// quien pide (solicitudes_para_revisar exige revisor y segundo factor) y
+// solo escribe al correo que la base tiene para esa solicitud aprobada.
+async function avisoAprobada(request, env) {
+  const s = await sesionDe(request, env);
+  if (s.estado !== 'ok') return sinSesion(s);
+  const leido = await jsonAcotado(request, TOPE.codigo);
+  if (leido.respuesta) return leido.respuesta;
+  const id = String(leido.datos.id || '');
+  if (!UUID.test(id)) return json({ error: 'solicitud_invalida' }, 400);
+  const token = /^Bearer\s+(\S+)$/.exec((request.headers.get('authorization') || '').trim())[1];
+  let d;
+  try {
+    const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/solicitudes_para_revisar`, {
+      method: 'POST',
+      headers: { apikey: env.SUPABASE_ANON, authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: '{}',
+      signal: AbortSignal.timeout(ESPERA.supabase)
+    });
+    if (r.status === 400 || r.status === 401 || r.status === 403) return json({ error: 'no_autorizado' }, 403);
+    if (!r.ok) return json({ ok: false }, 502);
+    d = await r.json();
+  } catch (e) {
+    return json({ ok: false }, 502);
+  }
+  const x = ((d && d.resueltas) || []).find(f => f && f.id === id && f.estado === 'aprobada');
+  if (!x) return json({ ok: true, enviado: false });
+  const marca = 'aviso-aprobada:' + id;
+  if (env.PAGOS && await env.PAGOS.get(marca)) return json({ ok: true, enviado: false });
+  const limpio = v => sinEnlaces(String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ')).slice(0, 200);
+  const nombre = limpio(x.nombre).split(' ')[0];
+  const texto = [
+    (nombre ? 'Hola, ' + nombre + ':' : 'Hola:'),
+    '',
+    'Aprobamos su solicitud de prueba en actaviva. Su cuenta tiene un mes completo de servicio para «' + limpio(x.condominio) + '», con todas las herramientas: el acta de asamblea con folio, la votación en vivo, la consulta por escrito, el acta del comité y las cuentas del condominio.',
+    '',
+    'Entre a su panel para empezar. En «Mi servicio» verá hasta qué día está vigente el mes:',
+    ORIGEN + '/cuenta',
+    '',
+    'Pronto lo contactaremos para acompañarlo durante la prueba.',
+    '',
+    '—',
+    'actaviva · actascopropiedad.cl'
+  ].join('\n');
+  const envio = await enviarCorreo(env, { para: x.correo, asunto: 'actaviva: su prueba fue aprobada', texto });
+  if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
+  if (!envio.ok) console.log('prueba', 'aviso de aprobacion no enviado', paraLog(envio.motivo || '', 60));
   return json({ ok: true, enviado: !!envio.ok });
 }
 
@@ -1269,6 +1322,11 @@ async function atender(request, env) {
   if (url.pathname === '/api/prueba/aviso') {
     if (request.method !== 'POST') return json({ error: 'metodo_no_permitido' }, 405, { allow: 'POST' });
     return avisoPrueba(request, env);
+  }
+
+  if (url.pathname === '/api/prueba/aprobada') {
+    if (request.method !== 'POST') return json({ error: 'metodo_no_permitido' }, 405, { allow: 'POST' });
+    return avisoAprobada(request, env);
   }
 
   if (url.pathname === '/api/pago/estado') {

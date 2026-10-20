@@ -17,7 +17,7 @@
 <script src="/cuenta.js"></script>
 <style>
   /* Pedido del dueño (28-08 y 20-10-2026): los textos de la interfaz van justificados. */
-  p,li,dd{text-align:justify;hyphens:auto;}
+  p,li,dd{text-align:justify;hyphens:manual;}
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:normal; }
   @font-face{ font-family:'Fraunces'; src:url('/fonts/fraunces-italic.woff2') format('woff2'); font-weight:100 900; font-display:swap; font-style:italic; }
   :root{
@@ -44,7 +44,7 @@
 
   /* ---------- cabecera ---------- */
   header.site{position:sticky;top:0;z-index:100;background:rgba(243,247,251,.92);backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line-soft);}
-  .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 26px;max-width:1240px;margin:0 auto;}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 26px;max-width:none;margin:0 auto;}
   .brand{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);}
   .brand b{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 560;font-weight:560;font-size:23px;line-height:1;letter-spacing:-.035em;}
   .brand b i{font-style:normal;color:var(--teal);}
@@ -52,13 +52,13 @@
   .brand small{display:block;font-family:var(--sans);font-weight:600;font-size:11px;color:var(--tx2);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
   @media (max-width:560px){ .brand small{display:none;} }
 
-  .wrap{max-width:1240px;margin:0 auto;padding:0 26px;}
+  .wrap{max-width:none;margin:0 auto;padding:0 26px;}
 
   /* ---------- saludo ---------- */
   .hola{padding:40px 0 24px;}
   .hola .dia{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;}
   .hola h1{font-family:var(--serif);font-variation-settings:'opsz' 100,'wght' 560;font-weight:560;font-size:clamp(28px,5vw,38px);line-height:1.12;letter-spacing:-.022em;color:var(--ink);}
-  .hola p{margin:8px 0 0;font-size:17px;color:var(--tx2);max-width:62ch;}
+  .hola p{margin:8px 0 0;font-size:17px;color:var(--tx2);}
 
   /* ---------- disposición ---------- */
   .tablero{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding-bottom:60px;}
@@ -98,7 +98,7 @@
   /* ---------- secciones ---------- */
   .seccion{scroll-margin-top:86px;margin-bottom:44px;}
   .seccion > h2{font-family:var(--serif);font-variation-settings:'opsz' 40,'wght' 580;font-weight:580;font-size:22px;letter-spacing:-.015em;color:var(--ink);margin-bottom:4px;}
-  .seccion > .sub{margin:0 0 18px;font-size:15.5px;color:var(--tx2);line-height:1.55;text-align:justify;hyphens:auto;}
+  .seccion > .sub{margin:0 0 18px;font-size:15.5px;color:var(--tx2);line-height:1.55;text-align:justify;hyphens:manual;}
 
   /* ---------- tarjetas de servicio ---------- */
   .servicios{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:16px;}
@@ -107,7 +107,7 @@
   .sv .ic{width:42px;height:42px;border-radius:12px;background:var(--teal-pale);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
   .sv .ic svg{width:21px;height:21px;color:var(--teal);}
   .sv h3{font-size:17.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em;margin-bottom:6px;}
-  .sv p{margin:0 0 16px;font-size:14.8px;color:var(--tx2);line-height:1.6;flex:1;text-align:justify;hyphens:auto;}
+  .sv p{margin:0 0 16px;font-size:14.8px;color:var(--tx2);line-height:1.6;flex:1;text-align:justify;hyphens:manual;}
   .sv .val{position:absolute;top:20px;right:20px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
   .sv .val.inc{background:var(--ok-bg);color:var(--ok);}
   .sv .val.pag{background:#FBF0E8;color:#9E4715;}
@@ -259,7 +259,7 @@
                cuenta que esta en public.revisores_prueba. -->
           <div class="caja" id="p-revisar" hidden style="margin:0 0 18px">
             <h3 style="font-size:17px;margin:0 0 6px">Solicitudes de prueba</h3>
-            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:auto">Al aprobar, la cuenta recibe un mes completo para el condominio que indicó. Al rechazar, la persona puede enviar otra solicitud.</p>
+            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:manual">Al aprobar, la cuenta recibe un mes completo para el condominio que indicó. Al rechazar, la persona puede enviar otra solicitud.</p>
             <!-- Paso 21: listar y resolver piden el segundo factor (aal2). -->
             <p style="margin:0 0 14px;font-size:14.5px"><a href="/admin">Ver el panel de administración →</a></p>
             <div id="p-rev-factor" hidden></div>
@@ -280,7 +280,7 @@
                esta en vitrina, el acceso se da a quien lo pide. -->
           <div class="caja" id="p-prueba" hidden data-vitrina style="margin-top:16px">
             <h3 style="font-size:17px;margin:0 0 6px">Solicitar una prueba</h3>
-            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:auto">Por ahora, actaviva funciona con acceso por solicitud. Cuéntenos quién es y para qué condominio lo usaría. Revisamos cada solicitud y, si la aprobamos, su cuenta recibe un mes completo de servicio para ese condominio, con todas las herramientas, y lo contactamos para acompañarlo durante la prueba.</p>
+            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:manual">Por ahora, actaviva funciona con acceso por solicitud. Cuéntenos quién es y para qué condominio lo usaría. Revisamos cada solicitud y, si la aprobamos, su cuenta recibe un mes completo de servicio para ese condominio, con todas las herramientas, y lo contactamos para acompañarlo durante la prueba.</p>
             <div id="p-prueba-estado"></div>
             <div id="p-prueba-form">
               <div class="campo"><label for="p-pr-nombre">Nombre</label><input type="text" id="p-pr-nombre" maxlength="120" autocomplete="name"></div>
@@ -298,7 +298,7 @@
 
           <div class="caja" id="p-activar" data-pago style="margin-top:16px">
             <h3 style="font-size:17px;margin:0 0 6px" id="p-activar-tit">Activar un mes</h3>
-            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:auto">Escriba el condominio tal como aparecerá en sus actas. El mes queda atado a ese nombre: los documentos de otro condominio necesitan su propio mes. Si se equivoca al escribirlo, lo puede corregir mientras no haya emitido nada.</p>
+            <p style="margin:0 0 14px;font-size:14.5px;color:var(--tx2);line-height:1.6;text-align:justify;hyphens:manual">Escriba el condominio tal como aparecerá en sus actas. El mes queda atado a ese nombre: los documentos de otro condominio necesitan su propio mes. Si se equivoca al escribirlo, lo puede corregir mientras no haya emitido nada.</p>
             <div class="campo">
               <label for="p-mes-condo">Condominio</label>
               <input type="text" id="p-mes-condo" maxlength="100" autocomplete="organization" placeholder="Ej: Condominio Las Araucarias">
