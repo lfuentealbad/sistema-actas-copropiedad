@@ -841,6 +841,10 @@
     transition: background 0.18s, color 0.18s;
     white-space: nowrap;
     min-height: 44px;
+    /* 20-10-2026: el grupo ocupa el ancho del campo; los botones se lo
+       reparten en partes iguales, sin dejar una franja vacia a la derecha. */
+    flex: 1 1 0;
+    text-align: center;
   }
   .toggle-btn:last-child { border-right: none; }
   .toggle-btn:hover:not(.active) {
@@ -2039,7 +2043,7 @@
     border-left: none;
     letter-spacing: -.02em;
   }
-  .card-desc { padding-left: 0; max-width: 92ch; text-align: justify; hyphens: manual; }
+  .card-desc { padding-left: 0; text-align: justify; hyphens: manual; }
   .card::before { display: none; }
   .card { border-color: rgba(16,24,48,.10); border-radius: var(--r-lg); }
 
@@ -2613,7 +2617,7 @@
 <div class="section" id="step-5">
   <div class="card">
     <h2 class="card-title">Firmantes del Acta</h2>
-    <div class="card-desc">El acta debe ser firmada dentro de los <strong>30 días corridos</strong> desde la celebración de la asamblea.</div>
+    <div class="card-desc">El acta debe firmarse, en forma presencial o electrónica, a más tardar dentro de los <strong>30 días</strong> siguientes a la adopción de los acuerdos (art. 15, Ley N° 21.442).</div>
 
     <div id="firmantes-container">
 
@@ -2632,7 +2636,7 @@
       <div class="field">
         <label for="notario">¿Asistió un notario o ministro de fe? <span class="help-tip" tabindex="0" role="tooltip" aria-label="Información sobre Ministro de Fe">?<span class="help-tip-content">La ley exige la asistencia de un <strong>notario</strong>, quien certificará el acta, en las sesiones sobre materias de mayoría reforzada (N° 3 del art. 15) y también cuando se trata la modificación del reglamento de copropiedad (letra a) del N° 2), aunque esta sea de mayoría absoluta. <strong>Solo</strong> en condominios de viviendas sociales el art. 73 permite cumplirla con un funcionario municipal designado o el Oficial del Registro Civil.</span></span></label>
         <div class="tip" style="margin-bottom:8px;margin-top:6px;font-size: 13px">
-          <strong>Art. 73 Ley 21.442:</strong> En condominios de viviendas sociales, la exigencia de notario se cumple con un funcionario municipal designado o el Oficial del Registro Civil.
+          <strong>Art. 73 Ley 21.442:</strong> En condominios de viviendas sociales, la exigencia de notario se entiende cumplida si actúa como ministro de fe un funcionario municipal designado al efecto o el oficial del Registro Civil competente.
         </div>
         <div class="toggle-group" style="margin-top:6px">
           <button class="toggle-btn" data-ac="setNotario" data-args="@|Si"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Sí</button>
@@ -2705,7 +2709,7 @@
       <ul>
         <li><strong>Se borra del servidor:</strong> el padrón cargado (RUT y derechos) y los votos de la sala en vivo.</li>
         <li><strong>Se conserva en este equipo:</strong> el acta que acaba de generar y los resultados ya traídos a ella.</li>
-        <li><strong>Trazabilidad de uso:</strong> el registro de quién usó el sistema (nombre, correo y comuna) se mantiene hasta 90 días y luego se purga automáticamente.</li>
+        <li><strong>Registro de accesos:</strong> qué se hizo en la sala, cuándo y desde qué dirección IP, con una huella del RUT en lugar del RUT y nunca el sentido del voto. Se conserva 90 días y luego se borra solo.</li>
       </ul>
       <button type="button" class="btn-tool danger" data-ac="actaCerrarSala" data-args="@"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v5M14 11v5M6 7l1 12a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-12M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2"/></svg>Cerrar sala y borrar datos del servidor</button>
       <div class="cierre-nota">Si no usó la votación en vivo, aquí no hay nada que borrar. El acta sigue guardada en su cuenta y se borra desde su panel. En un computador compartido, use además "Limpiar formulario" al terminar.</div>

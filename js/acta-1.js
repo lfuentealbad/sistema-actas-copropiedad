@@ -1711,7 +1711,7 @@ function descargarPlantilla() {
     ['Guarde el archivo y súbalo con el botón «Importar desde Excel» del Paso 3.'],
     ['El sistema le dirá cuántas unidades cargó, cuánto suma el porcentaje de derechos y si encontró algún problema.']
   ];
-  var hojaGuia = XLSX.utils.aoa_to_sheet(guia);
+  var hojaGuia = XLSX.utils.aoa_to_sheet(filasDeGuia(guia, 80));
   hojaGuia['!cols'] = [ {wch:26}, {wch:84}, {wch:14} ];
 
   var libro = XLSX.utils.book_new();
@@ -1720,6 +1720,25 @@ function descargarPlantilla() {
   XLSX.writeFile(libro, 'padron_asamblea.xlsx');
 
   if (window.track) window.track('plantilla_descargada');
+}
+// SheetJS (la version libre) no escribe «ajustar texto»: una descripcion
+// larga se cortaba contra la columna de al lado y no se leia entera. Se
+// parte en filas que caben en el ancho de la columna «Qué se escribe»
+// (20-10-2026).
+function filasDeGuia(filas, ancho) {
+  var out = [];
+  filas.forEach(function (f) {
+    if (f.length < 3 || String(f[1]).length <= ancho) { out.push(f); return; }
+    var linea = '', primera = true;
+    String(f[1]).split(' ').forEach(function (p) {
+      if (linea && (linea + ' ' + p).length > ancho) {
+        out.push(primera ? [f[0], linea, f[2]] : ['', linea, '']);
+        primera = false; linea = p;
+      } else linea = linea ? linea + ' ' + p : p;
+    });
+    if (linea) out.push(primera ? [f[0], linea, f[2]] : ['', linea, '']);
+  });
+  return out;
 }
 function actualizarVotacion() {
 _hyrf();
