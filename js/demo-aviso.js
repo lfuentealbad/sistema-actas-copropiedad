@@ -258,6 +258,9 @@
   global.DEMO_MES = {
     fn: MES_FN,
     exigir: exigirMes,
+    // La misma normalizacion que pase_clave en la base: el cierre del acta
+    // simulado la usa para comparar el condominio guardado con el resumen.
+    clave: clave,
     activar: function (condominio) { var l = meses(); var m = registrarMes(l, condominio); guardarMeses(l); return m; },
     meses: function () { return JSON.parse(JSON.stringify(meses())); },
     reiniciar: function () { guardarMeses([]); }

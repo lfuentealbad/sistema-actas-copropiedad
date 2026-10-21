@@ -55,7 +55,7 @@ const VIGENCIA_LLAVE_DIAS = 60;
 // navegador declara haber aceptado y lo que queda guardado con cada orden.
 // Si se publican terminos nuevos, cambia aqui, en terminos.html y en el
 // TERMINOS_VERSION de cuenta.js: hay una prueba que no los deja separarse.
-const TERMINOS_VERSION = '2026-10-11';
+const TERMINOS_VERSION = '2026-10-20';
 
 // El sitio tiene un solo nombre. Las URL que se le entregan a Flow salen de
 // aqui y no de la peticion: asi da lo mismo por que nombre se entro y que
@@ -279,6 +279,17 @@ function faltaConfig(env) {
 //  verdad: la cabecera la escribe el cliente y puede faltar (chunked) o
 //  mentir. Lo que pase del tope no se lee.
 // ---------------------------------------------------------------------
+// Bytes -> cadena binaria (un caracter por byte, 0-255), lo que espera
+// extraerTextoPlano. Por tramos: apply con un arreglo de un mega revienta la
+// pila.
+export function binarioDe(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  }
+  return s;
+}
+
 async function leerHasta(flujo, max) {
   if (!flujo) return { bytes: new Uint8Array(0), excedido: false };
   const lector = flujo.getReader();
@@ -796,7 +807,12 @@ async function registrarRespuesta(message, env) {
     // que es exactamente lo que se quiere con uno de varios megas. Truncado,
     // ademas, la firma no se puede verificar.
     const { bytes, excedido } = await leerHasta(message.raw, TOPE_CORREO);
-    texto = extraerTextoPlano(new TextDecoder('utf-8').decode(bytes));
+    // Auditoria CN-010 (20-10-2026): el interprete decodifica cada parte MIME
+    // con su charset y espera los bytes tal cual (un caracter por byte).
+    // Antes se le pasaba el correo ya convertido desde UTF-8 y lo volvia a
+    // decodificar: en una parte 8bit, «Sí» quedaba «S�» y «No sé», «No s�»,
+    // que se leia como rechazo.
+    texto = extraerTextoPlano(binarioDe(bytes));
     firma = excedido
       ? { ok: false, motivo: 'demasiado_grande' }
       : await verificarDkim(bytes, { resolverTxt: n => txtPorDoh(n, ESPERA.dns) });

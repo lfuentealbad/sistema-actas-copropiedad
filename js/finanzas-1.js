@@ -681,18 +681,22 @@ function guardarConfig(){
     if(campo) campo.value = '';
     avisos.push('La firma tiene que ser una imagen (data:image/...) o un enlace https://; la que se escribió no se usará.');
   }
-  // Validación art. 39: mínimo 5%
+  // Validación art. 39: mínimo 5%. Auditoria CN-019 (20-10-2026): el art.
+  // 47 del Reglamento permite a condominios de viviendas sociales con
+  // programas de autofinanciamiento rebajarlo temporalmente por acuerdo de
+  // asamblea extraordinaria. Forzarlo a 5 % dejaba fuera ese caso: se avisa
+  // y se respeta lo escrito.
   if(c.porcFondo < 5){
-    c.porcFondo = 5;
-    document.getElementById('cfgPorcFondo').value = 5;
-    avisos.push('El fondo de reserva se ajustó al mínimo legal del 5% (art. 39).');
+    avisos.push('El fondo de reserva queda bajo el mínimo del 5 % del art. 39. Solo procede en condominios de viviendas sociales con programas de autofinanciamiento, por acuerdo de asamblea extraordinaria (art. 47 del Reglamento).');
   }
   // Validación art. 7: la mora no puede pasar del 50% del interés corriente
   // bancario. Ese dato lo publica la CMF y aquí lo escribe la administración;
   // sin él no hay tope que calcular y solo se avisa.
   const topeMora = c.interesCorriente > 0 ? c.interesCorriente / 2 : 0;
   if(topeMora > 0 && c.tasaMora > topeMora){
-    c.tasaMora = Math.round(topeMora * 100) / 100;
+    // Hacia abajo (auditoria CN-015): redondear al centesimo mas cercano
+    // podia dejarla sobre el tope (2,35 % / 2 = 1,175 % -> 1,18 %).
+    c.tasaMora = Math.floor(topeMora * 100) / 100;
     document.getElementById('cfgTasaMora').value = c.tasaMora;
     avisos.push(`El interés por mora se ajustó a ${fmtPct(c.tasaMora)}, el tope del art. 7.`);
   } else if(c.tasaMora > 0 && topeMora === 0){
@@ -765,7 +769,7 @@ function balanceUnidad(uid){
 function renderUnidades(){
   const tb = document.querySelector('#tablaUnidades tbody');
   if(!estado.unidades.length){
-    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="et">Sin copropietarios cargados</div><div class="ed">Descarga la plantilla, llénala con los datos de tus unidades y vuelve a importar — o agrégalos uno por uno.</div></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="et">Sin copropietarios cargados</div><div class="ed">Descargue la plantilla, llénela con los datos de sus unidades y vuelva a importarla, o agréguelas una por una.</div></div></td></tr>`;
     document.getElementById('alicTotal').textContent = '0%';
     return;
   }
@@ -906,7 +910,7 @@ function aNumeroCSV(s){
 
 async function procesarImportacion(){
   const f = document.getElementById('csvFile').files[0];
-  if(!f){ toast('Selecciona un archivo'); return; }
+  if(!f){ toast('Seleccione un archivo'); return; }
   // La planilla tambien suele venir de otra persona. Un padron de miles de
   // unidades pesa menos de 1 MB; algo mucho mayor no es un padron y dejaria
   // la pestana pegada mientras el lector de Excel lo recorre.
@@ -926,7 +930,7 @@ async function procesarImportacion(){
     console.error(err);
     await confirmar({
       titulo:'Error al leer el archivo',
-      mensaje:`${err.message}\n\nSi cargaste un Excel y falla, intenta guardarlo como CSV UTF-8 desde Excel y vuelve a importar.`,
+      mensaje:`${err.message}\n\nSi cargó un Excel y falla, guárdelo como CSV UTF-8 desde Excel y vuelva a importarlo.`,
       okText:'Entendido', cancelText:'Cerrar',
       variant:'warning'
     });
@@ -1010,7 +1014,7 @@ function procesarFilasUnidades(filas){
     if(sinAlicuota === count && count>0){
       confirmar({
         titulo:'Alícuotas en cero',
-        mensaje:`Se importaron ${fmtNum(count)} unidades, pero ninguna tiene alícuota mayor a 0.\nVerifica que la columna "% Alícuota" esté correctamente llenada en tu archivo.`,
+        mensaje:`Se importaron ${fmtNum(count)} unidades, pero ninguna tiene alícuota mayor a 0.\nVerifique que la columna "% Alícuota" esté bien llenada en su archivo.`,
         okText:'Entendido', cancelText:'Cerrar',
         variant:'warning'
       });
@@ -1113,6 +1117,11 @@ function actualizarSugerenciaTotal(){
   const sumEg = egPeriodo.reduce((s,e)=>s+e.monto,0);
   const breakdown = document.getElementById('genBreakdown');
 
+  // Auditoria CN-012 (20-10-2026): si la prima del seguro ya esta entre los
+  // egresos del periodo, el total sugerido la incluye; sumarla aparte la
+  // cobraba dos veces.
+  const seguroEnEgresos = egPeriodo.some(e=>/seguro/i.test(String(e.categoria||'')));
+  if(seguroEnEgresos) document.getElementById('genIncluyeSeguro').checked = false;
   if(egPeriodo.length){
     // Auto-fill con suma de egresos del período
     document.getElementById('genTotal').value = sumEg;
@@ -1125,6 +1134,7 @@ function actualizarSugerenciaTotal(){
       <div style="font-size:11px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">Egresos registrados para ${escapeHtml(fmtPeriodoLargo(periodo))} · ${egPeriodo.length} ítems</div>
       ${items.map(([cat,m])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0"><span>${escapeHtml(cat)}</span><span style="font-variant-numeric:tabular-nums;color:var(--ink-soft)">${fmtCLP(m)}</span></div>`).join('')}
       <div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0 0;border-top:1px solid var(--line);margin-top:8px;font-weight:700;color:var(--primary)"><span>Total egresos del período</span><span>${fmtCLP(sumEg)}</span></div>
+      ${seguroEnEgresos ? '<div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">La prima del seguro ya está entre estos egresos, así que no se suma aparte.</div>' : ''}
     `;
   } else {
     // No hay egresos: ofrecer promedio últimos 3 meses como sugerencia
@@ -1137,7 +1147,7 @@ function actualizarSugerenciaTotal(){
       <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5">
         <strong style="color:var(--warning)">Sin egresos registrados para ${escapeHtml(fmtPeriodoLargo(periodo))}.</strong><br>
         Lo recomendado es <strong>registrar primero todos los gastos del mes</strong> en la pestaña "Egresos del condominio" y luego generar los cobros. Así el sistema usa la suma exacta como base de prorrateo (art. 22 Ley 21.442).<br>
-        ${promedio ? `<br>Sugerencia (promedio últimos 3 meses con datos): <strong>${fmtCLP(promedio)}</strong>. Puedes editarlo abajo.` : 'Ingresa el monto manualmente.'}
+        ${promedio ? `<br>Sugerencia (promedio últimos 3 meses con datos): <strong>${fmtCLP(promedio)}</strong>. Puede editarlo abajo.` : 'Ingrese el monto manualmente.'}
       </div>
     `;
   }
@@ -1152,7 +1162,7 @@ function actualizarPreviewCobros(){
   const tb = document.querySelector('#previewCobros tbody');
   document.getElementById('genTotalFmt').textContent = total ? fmtCLP(total) : '$ 0';
   if(!total){
-    tb.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:20px">Ingresa un monto total para ver la distribución</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--ink-mute);padding:20px">Ingrese un monto total para ver la distribución</td></tr>`;
     document.getElementById('previewSumGC').textContent = '$ 0';
     document.getElementById('previewSumFR').textContent = '$ 0';
     document.getElementById('previewSumSeg').textContent = '$ 0';
@@ -1255,21 +1265,36 @@ async function confirmarGenerarCobros(){
   const total = parseFloat(document.getElementById('genTotal').value)||0;
   const incFondo = document.getElementById('genIncluyeFondo').checked;
   const incSeguro = document.getElementById('genIncluyeSeguro').checked;
-  if(!periodo){ toast('Selecciona un período', 'warning'); return; }
-  if(total<=0){ toast('Ingresa el monto total a recaudar', 'warning'); return; }
+  if(!periodo){ toast('Seleccione un período', 'warning'); return; }
+  if(total<=0){ toast('Ingrese el monto total a recaudar', 'warning'); return; }
 
-  // Verificar duplicados
+  // Auditoria CN-011 (20-10-2026). Regenerar un periodo borraba TODO lo
+  // pendiente (tambien multas, intereses y cuotas extraordinarias cargadas a
+  // mano) y volvia a cobrar la cuota a quien ya la habia pagado. Ahora solo
+  // se recalcula lo que este boton genera (gasto comun, fondo y seguro), y
+  // a quien ya pago un concepto no se le vuelve a cobrar.
+  const GENERADOS = ['ordinaria','fondo','seguro'];
   const yaExiste = estado.unidades.some(u=>estado.cobros.find(c=>c.unidadId===u.id && c.periodo===periodo && c.tipo==='ordinaria'));
   if(yaExiste){
     const ok = await confirmar({
       titulo:'Cobros existentes',
-      mensaje:`Ya hay cobros generados para ${fmtPeriodoLargo(periodo)}.\n\nLos cobros pendientes serán reemplazados. Los pagados se conservan.`,
-      okText:'Reemplazar',
+      mensaje:`Ya hay cobros generados para ${fmtPeriodoLargo(periodo)}.\n\nSe recalculan las cuotas pendientes de gasto común, fondo de reserva y seguro. Lo ya pagado no se vuelve a cobrar, y las multas, intereses y cuotas extraordinarias se conservan.`,
+      okText:'Recalcular',
       variant:'warning'
     });
     if(!ok) return;
-    estado.cobros = estado.cobros.filter(c=>!(c.periodo===periodo && c.estado==='pendiente'));
+    estado.cobros = estado.cobros.filter(c=>!(c.periodo===periodo && c.estado==='pendiente' && GENERADOS.indexOf(c.tipo) >= 0));
   }
+  if(incSeguro && estado.egresos.some(e=>e.periodo===periodo && /seguro/i.test(String(e.categoria||'')))){
+    const ok = await confirmar({
+      titulo:'El seguro ya está en los egresos',
+      mensaje:`Entre los egresos de ${fmtPeriodoLargo(periodo)} hay un gasto de seguros. Si el monto a recaudar ya los incluye, cobrar además la prima la suma dos veces.\n\n¿Cobrar la prima aparte de todos modos?`,
+      okText:'Cobrarla aparte',
+      variant:'warning'
+    });
+    if(!ok) return;
+  }
+  const yaPagado = (uid, tipo) => estado.cobros.some(c=>c.unidadId===uid && c.periodo===periodo && c.tipo===tipo && c.estado==='pagado');
 
   const porcFondo = estado.config.porcFondo/100;
   const cuotas = repartirPorAlicuota(total);
@@ -1279,12 +1304,12 @@ async function confirmarGenerarCobros(){
     if(!u.alicuota) return;
     const cuota = cuotas[u.id] || 0;
     if(cuota<=0) return;
-    estado.cobros.push({
+    if(!yaPagado(u.id, 'ordinaria')) estado.cobros.push({
       id:id(), unidadId:u.id, periodo,
       tipo:'ordinaria', concepto:`Gasto común ${fmtPeriodoLargo(periodo)}`,
       adeudado: cuota, estado:'pendiente'
     });
-    if(incFondo){
+    if(incFondo && !yaPagado(u.id, 'fondo')){
       const fondo = Math.round(cuota * porcFondo);
       if(fondo>0){
         estado.cobros.push({
@@ -1294,7 +1319,7 @@ async function confirmarGenerarCobros(){
         });
       }
     }
-    if(primas){
+    if(primas && !yaPagado(u.id, 'seguro')){
       const prima = primas[u.id] || 0;
       if(prima>0){
         estado.cobros.push({
@@ -1340,7 +1365,7 @@ function renderCobros(){
   }
 
   if(!cobros.length){
-    wrap.innerHTML = `<div class="empty"><div class="et">Sin cuotas que mostrar</div><div class="ed">${estado.cobros.length?'Ajusta los filtros o búsqueda.':'Genera cobros del mes con el botón superior, o crea uno manual.'}</div></div>`;
+    wrap.innerHTML = `<div class="empty"><div class="et">Sin cuotas que mostrar</div><div class="ed">${estado.cobros.length?'Ajuste los filtros o la búsqueda.':'Genera cobros del mes con el botón superior, o crea uno manual.'}</div></div>`;
     return;
   }
 
@@ -1598,7 +1623,7 @@ function renderEgresos(){
   egs.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
   const tb = document.querySelector('#tablaEgresos tbody');
   if(!egs.length){
-    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="et">Sin egresos</div><div class="ed">Registra los gastos del condominio.</div></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="et">Sin egresos</div><div class="ed">Registre los gastos del condominio.</div></div></td></tr>`;
     return;
   }
   tb.innerHTML = egs.map(e=>`
@@ -2087,7 +2112,7 @@ function buildLiquidacionHTML(unidad, periodo){
         <strong>RUT:</strong> ${escapeHtml(c.condRut||'—')}
       </div>
       <div class="pay-box">
-        <div class="h">¡Paga tus gastos comunes!</div>
+        <div class="h">Pague sus gastos comunes a tiempo.</div>
         <div><strong>${escapeHtml(c.banco||'—')}</strong> · ${escapeHtml(c.bancoTipo||'')}</div>
         <div>N° ${escapeHtml(c.bancoNum||'—')}</div>
         <div>${escapeHtml(c.bancoTitular||c.condNombre||'')}</div>
@@ -2269,8 +2294,8 @@ function buildLiquidacionHTML(unidad, periodo){
 function renderLiquidacion(){
   const uid = document.getElementById('liqUnidad').value;
   const periodo = document.getElementById('liqMes').value;
-  if(!uid){ toast('Selecciona una unidad'); return; }
-  if(!esPeriodo(periodo)){ toast('Selecciona un período'); return; }
+  if(!uid){ toast('Seleccione una unidad'); return; }
+  if(!esPeriodo(periodo)){ toast('Seleccione un período'); return; }
   const u = estado.unidades.find(x=>x.id===uid);
   if(!u){ toast('Unidad no encontrada'); return; }
   document.getElementById('liqContenedor').innerHTML = buildLiquidacionHTML(u, periodo);
@@ -2278,7 +2303,7 @@ function renderLiquidacion(){
 function imprimirLiquidacion(){
   const uid = document.getElementById('liqUnidad').value;
   const periodo = document.getElementById('liqMes').value;
-  if(!uid || !esPeriodo(periodo)){ toast('Selecciona unidad y período', 'warning'); return; }
+  if(!uid || !esPeriodo(periodo)){ toast('Seleccione unidad y período', 'warning'); return; }
   const u = estado.unidades.find(x=>x.id===uid);
   if(!u){ toast('Unidad no encontrada'); return; }
   document.getElementById('liquidacionPrint').innerHTML = buildLiquidacionHTML(u, periodo);
@@ -2292,7 +2317,7 @@ function imprimirLiquidacion(){
 }
 async function generarTodasLiquidaciones(){
   const periodo = document.getElementById('liqMes').value;
-  if(!esPeriodo(periodo)){ toast('Selecciona un período', 'warning'); return; }
+  if(!esPeriodo(periodo)){ toast('Seleccione un período', 'warning'); return; }
   if(!estado.unidades.length){ toast('No hay unidades', 'warning'); return; }
   const ok = await confirmar({
     titulo:'Generar todas las liquidaciones',
@@ -2327,7 +2352,7 @@ function calcularPresupuesto(){
   const totalAnual = Object.values(porCat).reduce((s,v)=>s+v, 0);
   const tb = document.querySelector('#tablaPresupuesto tbody');
   if(!Object.keys(porCat).length){
-    tb.innerHTML = `<tr><td colspan="4"><div class="empty"><div class="et">Sin datos históricos</div><div class="ed">Registra egresos en distintos meses para calcular el presupuesto.</div></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty"><div class="et">Sin datos históricos</div><div class="ed">Registre egresos en distintos meses para calcular el presupuesto.</div></div></td></tr>`;
     return;
   }
   const filas = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
@@ -2388,7 +2413,7 @@ function renderMantenciones(){
   const tb = document.querySelector('#tablaMantenciones tbody');
   const items = [...estado.mantenciones].sort((a,b)=>(a.mes||'').localeCompare(b.mes||''));
   if(!items.length){
-    tb.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="et">Sin programa de mantenciones</div><div class="ed">Agrega items para los próximos 12 meses.</div></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="et">Sin programa de mantenciones</div><div class="ed">Agregue ítems para los próximos 12 meses.</div></div></td></tr>`;
     return;
   }
   tb.innerHTML = items.map(m=>`
@@ -2663,7 +2688,7 @@ function exportarRespaldo(){
 }
 async function importarRespaldo(){
   const f = document.getElementById('importFile').files[0];
-  if(!f){ toast('Selecciona un archivo', 'warning'); return; }
+  if(!f){ toast('Seleccione un archivo', 'warning'); return; }
   // El respaldo de un condominio grande, con anos de cobros, pesa unos pocos
   // MB, y el navegador no guarda mucho mas. Algo muy superior no es un
   // respaldo de estas cuentas y no vale la pena leerlo entero.

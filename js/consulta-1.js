@@ -118,17 +118,50 @@ function separar(linea){
 // derechos; la ley dice que solo los hábiles concurren con su voto (art.
 // 15). Y la habilidad es del copropietario, no de la unidad: quien tiene
 // varias y debe en una, no vota con ninguna (art. 14 del Reglamento).
-function filasDesdeTexto(texto){
-  const filas = texto.split(/\n+/).map(separar).filter(c => c.length >= 4)
+// Auditoria 20-10-2026:
+//  CN-009: la habilidad se calcula con TODAS las filas, antes de quitar las
+//    que no tienen correo. Al reves, una unidad inhabil sin correo
+//    desaparecia y su dueno votaba con la otra.
+//  CN-008: la base guarda una fila por correo (la casilla es la identidad,
+//    art. 17 del Reglamento). Si el mismo copropietario tiene varias unidades
+//    con la misma casilla, se suman en una fila: su respuesta pesa por todas.
+//    Antes se guardaba la primera y el resto de sus derechos se perdia. Si
+//    la casilla la comparten copropietarios distintos, no se puede saber
+//    quien respondio: se guarda el primero y se avisa.
+function padronDesdeTexto(texto){
+  const todas = texto.split(/\n+/).map(separar).filter(c => c.length >= 4)
     .map(c => ({
       unidad: (c[0]||'').trim(), nombre: (c[1]||'').trim(), rut: (c[2]||'').trim(),
       correo: (c[3]||'').trim().toLowerCase(),
       der: parseFloat(String(c[4]||'0').replace(',', '.')) || 0,
       habil: Derechos.bandera(String(c[5]||'').trim()) !== false
-    }))
-    .filter(f => /^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$/.test(f.correo));
-  return Derechos.habilidadPorCopropietario(filas).filas;
+    }));
+  const conHabil = Derechos.habilidadPorCopropietario(todas).filas;
+  const valido = f => /^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$/.test(f.correo);
+  const sinCorreo = conHabil.filter(f => !valido(f)).length;
+  const rutDe = f => Derechos.normalizarRut(f.rut);
+  const porCorreo = Object.create(null), filas = [];
+  let unidadesSumadas = 0, casillasCompartidas = 0;
+  conHabil.filter(valido).forEach(f => {
+    const g = porCorreo[f.correo];
+    if(!g){ const n = Object.assign({}, f, { unidades: [f.unidad], d: Derechos.desdeTexto(String(f.der)) }); porCorreo[f.correo] = n; filas.push(n); return; }
+    if(rutDe(f) && rutDe(f) === rutDe(g)){
+      g.unidades.push(f.unidad);
+      g.d += Derechos.desdeTexto(String(f.der));
+      g.habil = g.habil && f.habil;
+      g.inhabilPorOtraUnidad = g.inhabilPorOtraUnidad || f.inhabilPorOtraUnidad;
+      unidadesSumadas++;
+    } else casillasCompartidas++;
+  });
+  filas.forEach(f => {
+    f.der = Derechos.aNumero(f.d);
+    const u = f.unidades.filter(Boolean).join(', ');
+    f.unidad = u.length <= 40 ? u : f.unidades[0] + ' y ' + (f.unidades.length - 1) + ' más';
+    delete f.d; delete f.unidades;
+  });
+  return { filas, sinCorreo, unidadesSumadas, casillasCompartidas };
 }
+function filasDesdeTexto(texto){ return padronDesdeTexto(texto).filas; }
 
 // Aquí el correo no es opcional como en el acta: es el mecanismo de
 // identidad que fija el art. 17 del reglamento. Sin correo, esa unidad
@@ -227,22 +260,26 @@ $('f-xlsx').addEventListener('change', function(ev){
 // porcentaje de derechos no se computa.
 function revisarPadron(texto){
   const lineas = texto.split(/\n+/).map(l => l.trim()).filter(Boolean);
-  const filas = filasDesdeTexto(texto);
-  const correos = {}, ruts = {};
-  let correosRepetidos = 0, rutsRepetidos = 0;
+  const pd = padronDesdeTexto(texto);
+  const filas = pd.filas;
+  // RUT repetido en casillas distintas: puede ser legitimo (dos correos del
+  // mismo dueno) o una unidad duplicada. Se avisa para revisar.
+  const ruts = {};
+  let rutsRepetidos = 0;
   filas.forEach(f => {
-    if(correos[f.correo]) correosRepetidos++; else correos[f.correo] = 1;
     const r = f.rut.replace(/[.\s-]/g,'').toLowerCase();
     if(r){ if(ruts[r]) rutsRepetidos++; else ruts[r] = 1; }
   });
-  // Las líneas que se cayeron son, casi siempre, filas sin correo válido.
-  // Se descuenta el encabezado si venía en la planilla.
-  const conEncabezado = /correo|derecho|unidad/i.test(lineas[0] || '') && filas.length < lineas.length;
-  const descartadas = Math.max(0, lineas.length - filas.length - (conEncabezado ? 1 : 0));
-  const suma = filas.reduce((s,f) => s + f.der, 0);
+  const correosRepetidos = pd.casillasCompartidas;
+  const unidadesSumadas = pd.unidadesSumadas;
+  // Sin correo valido quedan fuera; el encabezado de la planilla no cuenta.
+  const conEncabezado = /correo|derecho|unidad/i.test(lineas[0] || '') && !/@/.test(lineas[0] || '');
+  const descartadas = Math.max(0, pd.sinCorreo - (conEncabezado ? 1 : 0));
+  // La suma es la de lo que se guarda (CN-008), con los enteros exactos.
+  const suma = Derechos.aNumero(filas.reduce((s,f) => s + Derechos.desdeTexto(String(f.der)), 0));
   const inhabiles = filas.filter(f => f.habil === false).length;
   const arrastrados = filas.filter(f => f.inhabilPorOtraUnidad).map(f => f.unidad || f.rut);
-  return { filas, suma, descartadas, correosRepetidos, rutsRepetidos, inhabiles, arrastrados };
+  return { filas, suma, descartadas, correosRepetidos, unidadesSumadas, rutsRepetidos, inhabiles, arrastrados };
 }
 
 async function guardarPadron(btn){
@@ -258,7 +295,8 @@ async function guardarPadron(btn){
 
     const avisos = [];
     if(r.descartadas > 0)      avisos.push(r.descartadas + ' fila(s) sin correo válido quedaron fuera: esas unidades no podrán responder.');
-    if(r.correosRepetidos > 0) avisos.push(r.correosRepetidos + ' correo(s) repetido(s): solo se guardó una unidad por casilla.');
+    if(r.unidadesSumadas > 0)  avisos.push(r.unidadesSumadas + ' unidad(es) de un mismo copropietario con el mismo correo se sumaron: su respuesta pesa por todas ellas.');
+    if(r.correosRepetidos > 0) avisos.push(r.correosRepetidos + ' correo(s) compartido(s) por copropietarios distintos: se guardó solo el primero de cada casilla, porque una respuesta desde ahí no se puede atribuir a uno u otro.');
     if(r.rutsRepetidos > 0)    avisos.push(r.rutsRepetidos + ' RUT repetido(s): revise que no haya unidades duplicadas.');
     if(r.inhabiles > 0)        avisos.push(r.inhabiles + ' unidad(es) inhábil(es): pueden responder, pero su respuesta no se computa (art. 15, Ley N° 21.442).'
                                  + (r.arrastrados.length ? ' De ellas, ' + r.arrastrados.join(', ') + ' por pertenecer a quien no está al día en otra de sus unidades (art. 14 del Reglamento).' : ''));

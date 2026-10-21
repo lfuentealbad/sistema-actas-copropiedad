@@ -54,7 +54,9 @@
       var habil=(row.querySelector('.habil')?row.querySelector('.habil').value:'si')==='si';
       var asiste=(row.querySelector('.asiste')?row.querySelector('.asiste').value:'si')==='si';
       var correo=get('.correo-asist').toLowerCase();
-      filas.push({rut:rut,nombre:nombre,unidad:unidad,der:der,habil:habil,asiste:asiste,correo:correo});
+      // derTxt: el texto tal cual, para que la tarjeta de resultados sume con
+      // los enteros exactos de js/derechos.js (auditoria CN-007).
+      filas.push({rut:rut,nombre:nombre,unidad:unidad,der:der,derTxt:get('.derechos'),habil:habil,asiste:asiste,correo:correo});
     });
     // Art. 14 del Reglamento: la habilidad es del copropietario, no de la
     // unidad. Se decide con TODAS sus filas -tambien las de unidades que no
@@ -66,16 +68,6 @@
   // Una persona puede tener varias unidades: en la sala vota una vez, con la
   // suma de sus derechos, y es habil solo si lo es en todas (C3). Los votos
   // llegan por RUT, asi que el computo tambien se hace por RUT.
-  function porRut(lista){
-    var out=Object.create(null);
-    lista.forEach(function(a){
-      var k=norm(a.rut); if(!k) return;
-      if(!out[k]) out[k]={der:0,habil:true};
-      out[k].der+=a.der;
-      out[k].habil=out[k].habil && a.habil;
-    });
-    return out;
-  }
   function temas(){
     var out=[];
     document.querySelectorAll('.punto-card').forEach(function(card){
@@ -562,34 +554,35 @@
     var q=await c.rpc('vv_resultados',{p_codigo:asam.codigo,p_token:asam.token,p_punto:activo.key});
     if(q.error) return;
     var votos=(q.data&&q.data.votos)||[];
-    var byRut=porRut(asistentes()), habPresentes=0;
-    Object.keys(byRut).forEach(function(k){ if(byRut[k].habil) habPresentes++; });
-    var f=0,co=0,ab=0, nf=0,nc=0,na=0, n=0;
-    votos.forEach(function(v){ var p=byRut[v.rut]; if(!p||!p.habil) return; n++;
-      if(v.choice==='favor'){f+=p.der;nf++;} else if(v.choice==='contra'){co+=p.der;nc++;} else {ab+=p.der;na++;} });
+    // Auditoria CN-007 (20-10-2026): esta tarjeta tenia su propia regla
+    // (personas en ordinaria, 51 % en extraordinaria) y discrepaba del acta
+    // y de la sala. Ahora usa el mismo motor: js/derechos.js.
+    var porPersona=Object.create(null);
+    asistentes().forEach(function(a){
+      var k=norm(a.rut); if(!k) return;
+      if(!porPersona[k]) porPersona[k]={d:0,habil:true};
+      porPersona[k].d+=Derechos.desdeTexto(a.derTxt);
+      porPersona[k].habil=porPersona[k].habil && a.habil;
+    });
+    var habPresentes=0, derPresentes=0;
+    Object.keys(porPersona).forEach(function(k){ if(porPersona[k].habil){ habPresentes++; derPresentes+=porPersona[k].d; } });
+    var f=0,co=0,ab=0,nf=0,n=0;
+    votos.forEach(function(v){ var p=porPersona[norm(v.rut)]; if(!p||!p.habil) return; n++;
+      if(v.choice==='favor'){f+=p.d;nf++;} else if(v.choice==='contra'){co+=p.d;} else {ab+=p.d;} });
     var el=document.getElementById('vv-res-'+activo.n); if(!el) return;
     var tipo=(asam&&asam.tipo)||'ordinaria';
+    var r=Derechos.resolver({
+      regla: tipo==='ext-abs' ? 'absoluta' : tipo==='ext-ref' ? 'reforzada' : 'presentes',
+      favor:f, contra:co, abstencion:ab, presentes:derPresentes, personas:habPresentes,
+      personasFavor:nf, sinRegistrar:Math.max(0, habPresentes-n), cerrada:false
+    });
     var OK='var(--c-ok)', ER='var(--c-error)', WN='var(--c-warn,#9A6B1F)';
     var big=function(val,color,lab){ return '<span class="vv-pct" style="color:'+color+'">'+val+'</span><span class="vv-pct-lab">'+lab+'</span>'; };
-    if(tipo==='ordinaria'){
-      
-      var minimo=Math.floor(habPresentes/2)+1;
-      var pasa=(habPresentes>0 && nf>=minimo);
-      el.innerHTML=
-        big(nf,OK,'a favor')+big(nc,ER,'en contra')+big(na,WN,'abstención')+
-        '<span class="vv-votos"><b>'+n+'</b> de '+habPresentes+' presentes</span>'+
-        '<div class="vv-tema-meta">Asamblea ordinaria: se adopta por <b>mayoría de los presentes</b> — no por % de derechos. '+
-        (habPresentes>0?('Se requieren '+minimo+' de '+habPresentes+' votos'+(pasa?' · <b style="color:var(--c-ok)">alcanzado</b>':'')+'.'):'')+'</div>';
-    } else {
-      
-      var umb=(tipo==='ext-ref')?66:51;
-      var pasaE=(f>=umb);
-      el.innerHTML=
-        big(f.toFixed(2)+'%',OK,'a favor')+big(co.toFixed(2)+'%',ER,'en contra')+big(ab.toFixed(2)+'%',WN,'abstención')+
-        '<span class="vv-votos"><b>'+n+'</b> votos</span>'+
-        '<div class="vv-tema-meta">Asamblea extraordinaria: requiere <b>al menos '+umb+'% de los derechos del condominio</b> · '+
-        (pasaE?'<b style="color:var(--c-ok)">alcanza el umbral</b>':'aún no alcanza el umbral')+'.</div>';
-    }
+    el.innerHTML=
+      big(r.favorTexto+'%',OK,'a favor')+big(r.contraTexto+'%',ER,'en contra')+big(r.abstencionTexto+'%',WN,'abstención')+
+      '<span class="vv-votos"><b>'+n+'</b> de '+habPresentes+' presentes hábiles</span>'+
+      '<div class="vv-tema-meta">'+r.descripcionBase+' · '+r.descripcionUmbral+' · '+
+      (r.alcanzada ? '<b style="color:var(--c-ok)">alcanzada por ahora</b>' : 'aún no se alcanza')+'.</div>';
   }
   async function traer(t){
     var c=client();

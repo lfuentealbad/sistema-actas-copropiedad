@@ -595,9 +595,9 @@
           <h3 style="color:var(--primary)">👋 Bienvenido — empieza acá</h3>
           <p style="color:var(--ink-soft);font-size:var(--fs-base);line-height:var(--lh-base);margin-bottom:var(--sp-4)">Para usar la herramienta, sigue estos 4 pasos en orden:</p>
           <ol style="color:var(--ink-soft);font-size:var(--fs-base);line-height:var(--lh-loose);padding-left:var(--sp-5)">
-            <li><strong>Configura el condominio</strong> en <a href="#config">Datos del condominio</a> (nombre, RUT, banco, % fondo de reserva).</li>
-            <li><strong>Carga los copropietarios</strong> en <a href="#unidades">Copropietarios</a> con sus alícuotas (las que vienen del reglamento de copropiedad o del avalúo SII).</li>
-            <li><strong>Registra los gastos del mes</strong> en <a href="#egresos">Gastos del condominio</a> (facturas, sueldos, servicios).</li>
+            <li><strong>Configure el condominio</strong> en <a href="#config">Datos del condominio</a> (nombre, RUT, banco, % fondo de reserva).</li>
+            <li><strong>Cargue los copropietarios</strong> en <a href="#unidades">Copropietarios</a> con sus alícuotas (las que vienen del reglamento de copropiedad o del avalúo SII).</li>
+            <li><strong>Registre los gastos del mes</strong> en <a href="#egresos">Gastos del condominio</a> (facturas, sueldos, servicios).</li>
             <li><strong>Genera las cuotas</strong> en <a href="#cobros">Cuotas mensuales</a>: el sistema distribuye los gastos por alícuota y emite la liquidación de cada unidad.</li>
           </ol>
           <div style="margin-top:var(--sp-4);display:flex;gap:var(--sp-2);flex-wrap:wrap">
@@ -720,7 +720,7 @@
       <div class="pane-head">
         <div>
           <h1>Gastos del condominio</h1>
-          <div class="desc">Lo que el condominio paga: facturas de proveedores, sueldos, servicios básicos, mantenciones, etc. Agrupado según las categorías legales (art. 9 Ley 21.442 y art. 24 Decreto 7/2023). La suma de estos gastos es la base para calcular las cuotas mensuales.</div>
+          <div class="desc">Lo que el condominio paga: facturas de proveedores, sueldos, servicios básicos, mantenciones, etc. Agrupado según las categorías legales (art. 2, números 9 y 10, Ley 21.442, y art. 24 Decreto 7/2023). La suma de estos gastos es la base para calcular las cuotas mensuales.</div>
         </div>
         <div class="btn-row">
           <button class="btn primary" data-ac="abrirEgreso">Registrar egreso</button>
@@ -772,7 +772,7 @@
       <div class="pane-head">
         <div>
           <h1>Fondo de reserva</h1>
-          <div class="desc">Reserva acumulada para emergencias. Se forma con un recargo no inferior al 5% sobre el gasto común mensual, más multas, intereses y aportes por uso exclusivo (art. 39 Ley 21.442). Solo cubre gastos urgentes, extraordinarios o imprevistos.</div>
+          <div class="desc">Reserva acumulada para emergencias. Se forma con un recargo no inferior al 5% sobre el gasto común mensual, más multas, intereses y aportes por uso exclusivo (art. 39 Ley 21.442). Cubre gastos urgentes, extraordinarios o imprevistos, y también gastos ordinarios de mantención o reparación si la asamblea lo acuerda por mayoría absoluta de los derechos del condominio.</div>
         </div>
         <div class="btn-row">
           <button class="btn" data-ac="abrirMovFondo" data-args="egreso">Registrar uso del fondo</button>
@@ -879,7 +879,7 @@
       <div class="card">
         <h3>Administración</h3>
         <div class="legal-note" style="margin-bottom:var(--sp-4)">
-          <strong>¿Sin administrador externo?</strong> En condominios chicos sin administrador profesional, ingresa aquí los datos de quien firma las liquidaciones (presidente del comité o tesorero).
+          <strong>¿Sin administrador externo?</strong> En condominios chicos sin administrador profesional, ingrese aquí los datos de quien firma las liquidaciones (presidente del comité o tesorero).
         </div>
         <div class="row">
           <div><label for="cfgAdmNombre">Nombre del administrador / presidente del comité</label><input id="cfgAdmNombre" maxlength="200" autocomplete="name" /></div>
@@ -899,7 +899,7 @@
         <div class="row cols-3">
           <div>
             <label for="cfgPorcFondo">% recargo fondo de reserva <span class="legal-tag">Art. 39 Ley</span></label>
-            <input id="cfgPorcFondo" type="number" step="0.5" min="5" />
+            <input id="cfgPorcFondo" type="number" step="0.5" min="0" />
             <div class="legal">No puede ser inferior al 5% del gasto común mensual.</div>
           </div>
           <div>
@@ -985,7 +985,7 @@
         </div>
         <div class="card">
           <h3>Datos de prueba</h3>
-          <p class="muted" style="font-size:12.5px">Carga un set de datos demostrativo para explorar el sistema.</p>
+          <p class="muted" style="font-size:12.5px">Carga datos de ejemplo para explorar el sistema.</p>
           <div class="btn-row"><button class="btn" data-ac="cargarDemo">Cargar demo</button></div>
         </div>
         <div class="card">
@@ -1136,7 +1136,7 @@
       <label for="uAlicuota">Alícuota (%) <span class="legal-tag">Art. 6 Ley</span></label>
       <input id="uAlicuota" type="number" step="0.0001" min="0" inputmode="decimal" placeholder="0,0000" />
       <div class="field-help">
-        <strong>¿De dónde sale?</strong> Del <em>reglamento de copropiedad</em> del edificio (escritura pública). Si no lo tienes, puedes calcularla provisionalmente como <code>m² de la unidad ÷ m² totales del condominio × 100</code>.
+        <strong>¿De dónde sale?</strong> Del <em>reglamento de copropiedad</em> del edificio (escritura pública). Si no lo tiene, puede calcularla provisionalmente como <code>m² de la unidad ÷ m² totales del condominio × 100</code>.
         La suma de todas las unidades debe dar 100%.
       </div>
     </div>
@@ -1157,7 +1157,7 @@
 <div class="modal" id="mImportCSV" role="dialog" aria-modal="true" aria-labelledby="mImportCSVTitle"><div class="panel">
   <h2 id="mImportCSVTitle">Importar copropietarios</h2>
   <p class="muted" style="font-size:12.5px">Sube el archivo Excel (.xlsx) o CSV con los datos del condominio.</p>
-  <p class="muted" style="font-size:12px">¿No tienes plantilla? <a href="#" data-ac="descargarPlantilla">Descárgala aquí</a> (Excel con columnas y ejemplos), llénala con tus datos y vuelve a subirla.</p>
+  <p class="muted" style="font-size:12px">¿No tiene plantilla? <a href="#" data-ac="descargarPlantilla">Descárguela aquí</a> (Excel con columnas y ejemplos), llénela con sus datos y vuelva a subirla.</p>
   <input type="file" id="csvFile" accept=".csv,.xlsx" aria-label="Planilla de copropietarios (.xlsx o .csv)" />
   <div class="legal-note" style="margin-top:12px">
     <strong>Importante:</strong> el correo electrónico es obligatorio si deseas usar el envío de liquidaciones por correo (art. 5 inc. 1 Ley 21.442 — registro de copropietarios).
@@ -1188,7 +1188,7 @@
   <div>
     <label for="genTotal">Monto total a recaudar ($) <span class="legal-tag">Art. 22 Ley</span></label>
     <input type="number" id="genTotal" />
-    <div style="font-size:12px;color:var(--ink-mute);margin-top:4px">Equivale a <strong id="genTotalFmt" style="color:var(--ink)">$ 0</strong>. Puedes editarlo si quieres cobrar un monto distinto al sugerido.</div>
+    <div style="font-size:12px;color:var(--ink-mute);margin-top:4px">Equivale a <strong id="genTotalFmt" style="color:var(--ink)">$ 0</strong>. Puede editarlo si quiere cobrar un monto distinto al sugerido.</div>
   </div>
   <div style="margin-top:14px;max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px">
     <table class="table" id="previewCobros">
@@ -1251,7 +1251,7 @@
   <h2 id="mEgresoTitle">Egreso del condominio</h2>
   <div class="row">
     <div><label for="eFecha">Fecha</label><input id="eFecha" type="date" /></div>
-    <div><label for="eCategoria">Categoría <span class="legal-tag">Art. 9 Ley · Art. 24 D.7</span></label>
+    <div><label for="eCategoria">Categoría <span class="legal-tag">Art. 2 N° 9 y 10 Ley · Art. 24 D.7</span></label>
       <select id="eCategoria"></select>
     </div>
   </div>

@@ -185,7 +185,7 @@ qConst: 'Al menos el 66% de los derechos del condominio.',
 qAcuerdo: 'Al menos el 66 % de los derechos del condominio a favor. Solo votan los copropietarios hábiles.',
 materias: [
 'Modificación del reglamento de copropiedad, en las materias que requieren mayoría reforzada.',
-'Delegación de facultades al comité de administración respecto de materias que requieren acuerdo de mayoría absoluta.',
+'Delegación de facultades al comité de administración.',
 'Enajenación, arrendamiento o cesión de tenencia de bienes de dominio común, o la constitución de gravámenes sobre ellos.',
 'Reconstrucción o demolición del condominio.',
 'Petición a la dirección de obras municipales para dejar sin efecto la declaración que acogió el condominio al régimen de copropiedad inmobiliaria, o su modificación.',
@@ -396,7 +396,7 @@ alertDiv.style.display = 'block';
 if (diff >= 5 && diff <= 15) {
 alertDiv.innerHTML = '<div style="background:#d8f3dc;border-left:4px solid #2d6a4f;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#2d6a4f"><strong>Plazo válido:</strong> ' + diff + ' días de anticipación. Cumple la Ley N° 21.442.</div>';
 } else {
-alertDiv.innerHTML = '<div style="background:#F6E6E3;border-left:4px solid #c0392b;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#c0392b"><strong>Plazo fuera de rango:</strong> ' + diff + ' días. La ley exige entre 5 y 15 días corridos.</div>';
+alertDiv.innerHTML = '<div style="background:#F6E6E3;border-left:4px solid #c0392b;border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#c0392b"><strong>Plazo fuera de rango:</strong> ' + diff + ' días. La ley exige una anticipación mínima de cinco días y que no exceda de quince (art. 16).</div>';
 }
 }
 function addRow() {
@@ -1042,12 +1042,15 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 })() +
 '<div class="acta-section"><div class="acta-section-title">2. Antecedentes de la Convocatoria</div>' +
 '<p>' +
+// Auditoria CN-018 (20-10-2026): el 10 % de los copropietarios puede PEDIR
+// la sesion (art. 14), pero la cita el presidente del comite o, si no lo
+// hace, el administrador (art. 16). El acta ya no dice que la convocaron.
 (quienConvoco === 'presidente'
-? 'La presente asamblea fue convocada por el presidente del Comit\u00e9 de Administraci\u00f3n'
+? 'La presente asamblea fue convocada por el presidente del Comit\u00e9 de Administraci\u00f3n, <strong>' + nombreConv + '</strong>'
 : quienConvoco === 'administrador'
-? 'La presente asamblea fue convocada por el administrador o administradora'
-: 'La presente asamblea fue convocada por copropietarios que representan el 10% o m\u00e1s de los derechos del condominio') +
-', <strong>' + nombreConv + '</strong>, mediante ' + medioNotif +
+? 'La presente asamblea fue convocada por el administrador o administradora, <strong>' + nombreConv + '</strong>'
+: 'La presente asamblea fue citada a petici\u00f3n de copropietarios que representan al menos el 10% de los derechos del condominio (art. 14, Ley N\u00b0\u00a021.442). La citaci\u00f3n la curs\u00f3 <strong>' + nombreConv + '</strong>') +
+', mediante ' + medioNotif +
 ' con fecha <strong>' + fechaCit + '</strong>.'
 + ' La documentaci\u00f3n fue remitida con 24 horas de anticipaci\u00f3n: <strong>' + doc24 + '</strong>.'
 + (grabacion === 'S\u00ed' || grabacion === 'Si' ? ' Se deja constancia de que la sesi\u00f3n fue registrada mediante grabaci\u00f3n de respaldo.' : '') +
@@ -3347,7 +3350,7 @@ function _resumenDelActa() {
 function _subirAntesDeCerrar(c, sello) {
   if (_guardarTimer) { clearTimeout(_guardarTimer); _guardarTimer = null; }
   var snap;
-  try { snap = _captureFieldsSnapshot(); } catch (e) { return Promise.resolve(); }
+  try { snap = _captureFieldsSnapshot(); } catch (e) { return Promise.reject(new Error("no_guardada")); }
   snap.savedAt = new Date().toISOString();
   snap.sello = sello;
   var fila = {
@@ -3358,12 +3361,21 @@ function _subirAntesDeCerrar(c, sello) {
   var subir = function () {
     return Promise.resolve(c.from('actas_guardadas').update(fila).eq('id', _actaId).eq('dueno', _uidSesion).select('id'));
   };
+  // Auditoria CN-006 (20-10-2026): antes, si esto fallaba, se finalizaba
+  // igual, y el archivo descargado podia no ser lo que quedaba en la cuenta.
+  // Ahora un fallo detiene el cierre (rechaza), y ac_finalizar compara la
+  // huella guardada aqui con la que se sella.
+  var bien = function (r) { return r && !r.error && Array.isArray(r.data) && r.data.length === 1; };
   return subir().then(function (r) {
+    if (bien(r)) return;
     if (r && r.error && /actas_tamano/.test(String(r.error.message || ''))) {
-      delete snap.sello;
-      return subir();
+      // Demasiado grande con el cuerpo sellado: se guarda sin el cuerpo,
+      // pero con la huella, que es lo que la base compara al cerrar.
+      snap.sello = { huella: sello.huella };
+      return subir().then(function (r2) { if (!bien(r2)) throw new Error('no_guardada'); });
     }
-  }).then(null, function () {});
+    throw new Error('no_guardada');
+  });
 }
 
 // ---------------------------------------------------------------------
@@ -3405,9 +3417,23 @@ function actaFinalizar(alTerminar) {
     var resumen = _resumenDelActa();
     return _subirAntesDeCerrar(c, { huella: huella, cuerpo: cuerpo }).then(function () {
       return c.rpc('ac_finalizar', { p_acta: _actaId, p_huella: huella, p_resumen: resumen });
+    }, function () {
+      return { noGuardada: true };
     }).then(function (r) {
+      if (r.noGuardada) {
+        alTerminar('No pudimos guardar la última versión del acta en su cuenta, así que no se finalizó. Revise su conexión y vuelva a presionar «Finalizar».');
+        return;
+      }
       if (r.error) {
         var m = String(r.error.message || '');
+        if (/version_no_guardada/.test(m)) {
+          alTerminar('Lo guardado en su cuenta no coincide con el acta que se iba a finalizar, así que no se finalizó. Vuelva a presionar «Finalizar».');
+          return;
+        }
+        if (/condominio_distinto/.test(m)) {
+          alTerminar('El nombre del condominio guardado no coincide con el del acta. Revise el nombre en el Paso 1 y vuelva a finalizar.');
+          return;
+        }
         // Los errores del contrato C2 que no son de conexion se explican:
         // "Reintente en unos minutos" no arregla ninguno.
         if (/huella_invalida/.test(m)) {

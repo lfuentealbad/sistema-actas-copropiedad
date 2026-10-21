@@ -37,9 +37,12 @@
   Reporting-Endpoints: csp="/api/csp"
   Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://rujwokagmjbqtrcvosye.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri /api/csp; report-to csp
 
-# Librerías y fuentes son inmutables (versionadas): cache agresivo
+# Librerias: un dia de cache. Los nombres no llevan version (supabase.min.js
+# sigue llamandose igual al actualizarse): con un ano e 'immutable', un
+# parche de seguridad no llegaba a quien ya la tenia (auditoria CN-004,
+# 20-10-2026).
 /vendor/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: public, max-age=86400
 
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable

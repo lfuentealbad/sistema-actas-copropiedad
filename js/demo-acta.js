@@ -341,6 +341,14 @@
       var huella = String(a.p_huella || '').trim().toLowerCase();
       if (!/^[0-9a-f]{64}$/.test(huella)) return fallar('huella_invalida');
       if (!resumenValido(a.p_resumen)) return fallar('resumen_invalido');
+      // Paso 23 (auditoria CN-006 y CN-003): se sella lo que quedo guardado,
+      // y el mes es el del condominio guardado, no el que diga el resumen.
+      var cont = acta.contenido || {};
+      if (!cont.sello || String(cont.sello.huella || '').toLowerCase() !== huella) return fallar('version_no_guardada');
+      var clave = (global.DEMO_MES && global.DEMO_MES.clave) ||
+        function (s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ') || null; };
+      var condoGuardado = (cont.fields || {})['condo-nombre'];
+      if (!clave(condoGuardado) || clave(condoGuardado) !== clave(a.p_resumen.condominio)) return fallar('condominio_distinto');
       var sinMes = global.DEMO_MES ? global.DEMO_MES.exigir(a.p_resumen.condominio) : 'pase_requerido';
       if (sinMes) return fallar(sinMes);
 
