@@ -185,7 +185,7 @@ qConst: 'Al menos el 66% de los derechos del condominio.',
 qAcuerdo: 'Al menos el 66 % de los derechos del condominio a favor. Solo votan los copropietarios hábiles.',
 materias: [
 'Modificación del reglamento de copropiedad, en las materias que requieren mayoría reforzada.',
-'Delegación de facultades al comité de administración.',
+'Delegación de facultades al comité de administración respecto de las materias de las letras c), d) y e) del numeral 2 del cuadro del art. 15: gastos o inversiones extraordinarias que excedan seis cuotas de gastos comunes ordinarios en doce meses, administración conjunta o subadministraciones, y programas de autofinanciamiento.',
 'Enajenación, arrendamiento o cesión de tenencia de bienes de dominio común, o la constitución de gravámenes sobre ellos.',
 'Reconstrucción o demolición del condominio.',
 'Petición a la dirección de obras municipales para dejar sin efecto la declaración que acogió el condominio al régimen de copropiedad inmobiliaria, o su modificación.',

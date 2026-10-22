@@ -21,8 +21,23 @@ function busy(btn, on, txt){
 // El mismo formateador exacto que el acta y la sala: dos decimales como
 // minimo y los que hagan falta para no mentir sobre el umbral.
 const pct = n => Derechos.texto(Derechos.desdeTexto(n)) + ' %';
-function guardar(){ try{ localStorage.setItem(LS, JSON.stringify(C)); }catch(e){} }
-function recuperar(){ try{ return JSON.parse(localStorage.getItem(LS)); }catch(e){ return null; } }
+// La consulta abierta en este equipo queda atada a la cuenta que la abrio
+// (verificacion de Codex, 22-10-2026, CN-001): si en el mismo navegador
+// entra otra cuenta sin cerrar sesion, no puede reabrirla con el token
+// guardado. Lo de otra cuenta, o sin dueno (version anterior), se descarta.
+let UID = null;
+function guardar(){ try{ localStorage.setItem(LS, JSON.stringify(Object.assign({}, C, { uid: UID }))); }catch(e){} }
+function recuperar(){
+  let g = null;
+  try{ g = JSON.parse(localStorage.getItem(LS)); }catch(e){ g = null; }
+  if(!UID) return null;
+  if(g && g.uid !== UID){
+    try{ localStorage.removeItem(LS); }catch(e){}
+    return null;
+  }
+  if(g) delete g.uid;
+  return g;
+}
 
 function casillaDe(codigo){ return 'c-' + codigo + '@' + location.hostname.replace(/^www\./,''); }
 
@@ -34,9 +49,8 @@ let PASE = null;
 // nada que pintar, y sobre todo no hay que reventar.
 function mostrarPago(texto){
   if(!$('c-pago')){
-    msg('nueva-msg', 'Crear la consulta requiere un mes de servicio activo, y eso no está ' +
-        'habilitado en esta presentación. La consulta completa se puede recorrer ' +
-        'en /consulta/demo.', 'warn');
+    msg('nueva-msg', 'Crear la consulta requiere un mes de servicio activo para este condominio. ' +
+        'Puede solicitar una prueba desde su panel, en «Mi servicio».', 'warn');
     return;
   }
   $('c-pago').classList.remove('hidden');
@@ -141,11 +155,17 @@ function padronDesdeTexto(texto){
   const sinCorreo = conHabil.filter(f => !valido(f)).length;
   const rutDe = f => Derechos.normalizarRut(f.rut);
   const porCorreo = Object.create(null), filas = [];
-  let unidadesSumadas = 0, casillasCompartidas = 0;
+  let unidadesSumadas = 0, casillasCompartidas = 0, unidadesRepetidas = 0;
+  // La misma unidad escrita dos veces no suma: se guarda una (verificacion
+  // de Codex, 22-10-2026: repetir una unidad del 30 % la hacia pesar 60 %).
+  const unidadDe = f => String(f.unidad || '').trim().toLowerCase().replace(/\s+/g, ' ');
   conHabil.filter(valido).forEach(f => {
     const g = porCorreo[f.correo];
-    if(!g){ const n = Object.assign({}, f, { unidades: [f.unidad], d: Derechos.desdeTexto(String(f.der)) }); porCorreo[f.correo] = n; filas.push(n); return; }
-    if(rutDe(f) && rutDe(f) === rutDe(g)){
+    if(!g){ const n = Object.assign({}, f, { unidades: [f.unidad], vistas: [unidadDe(f)], d: Derechos.desdeTexto(String(f.der)) }); porCorreo[f.correo] = n; filas.push(n); return; }
+    if(rutDe(f) && rutDe(f) === rutDe(g) && (!unidadDe(f) || g.vistas.indexOf(unidadDe(f)) >= 0)){
+      unidadesRepetidas++;
+    } else if(rutDe(f) && rutDe(f) === rutDe(g)){
+      g.vistas.push(unidadDe(f));
       g.unidades.push(f.unidad);
       g.d += Derechos.desdeTexto(String(f.der));
       g.habil = g.habil && f.habil;
@@ -157,9 +177,9 @@ function padronDesdeTexto(texto){
     f.der = Derechos.aNumero(f.d);
     const u = f.unidades.filter(Boolean).join(', ');
     f.unidad = u.length <= 40 ? u : f.unidades[0] + ' y ' + (f.unidades.length - 1) + ' más';
-    delete f.d; delete f.unidades;
+    delete f.d; delete f.unidades; delete f.vistas;
   });
-  return { filas, sinCorreo, unidadesSumadas, casillasCompartidas };
+  return { filas, sinCorreo, unidadesSumadas, casillasCompartidas, unidadesRepetidas };
 }
 function filasDesdeTexto(texto){ return padronDesdeTexto(texto).filas; }
 
@@ -272,14 +292,16 @@ function revisarPadron(texto){
   });
   const correosRepetidos = pd.casillasCompartidas;
   const unidadesSumadas = pd.unidadesSumadas;
+  const unidadesRepetidas = pd.unidadesRepetidas;
   // Sin correo valido quedan fuera; el encabezado de la planilla no cuenta.
   const conEncabezado = /correo|derecho|unidad/i.test(lineas[0] || '') && !/@/.test(lineas[0] || '');
   const descartadas = Math.max(0, pd.sinCorreo - (conEncabezado ? 1 : 0));
-  // La suma es la de lo que se guarda (CN-008), con los enteros exactos.
-  const suma = Derechos.aNumero(filas.reduce((s,f) => s + Derechos.desdeTexto(String(f.der)), 0));
+  // La suma es la de lo que se guarda (CN-008), con los enteros exactos y el
+  // mismo tope de 100 % por fila que aplica cc_set_padron.
+  const suma = Derechos.aNumero(filas.reduce((s,f) => s + Math.min(Derechos.desdeTexto(String(f.der)), Derechos.CIEN), 0));
   const inhabiles = filas.filter(f => f.habil === false).length;
   const arrastrados = filas.filter(f => f.inhabilPorOtraUnidad).map(f => f.unidad || f.rut);
-  return { filas, suma, descartadas, correosRepetidos, unidadesSumadas, rutsRepetidos, inhabiles, arrastrados };
+  return { filas, suma, descartadas, correosRepetidos, unidadesSumadas, unidadesRepetidas, rutsRepetidos, inhabiles, arrastrados };
 }
 
 async function guardarPadron(btn){
@@ -295,6 +317,7 @@ async function guardarPadron(btn){
 
     const avisos = [];
     if(r.descartadas > 0)      avisos.push(r.descartadas + ' fila(s) sin correo válido quedaron fuera: esas unidades no podrán responder.');
+    if(r.unidadesRepetidas > 0) avisos.push(r.unidadesRepetidas + ' unidad(es) aparecían dos veces con el mismo copropietario y correo: se guardaron una sola vez.');
     if(r.unidadesSumadas > 0)  avisos.push(r.unidadesSumadas + ' unidad(es) de un mismo copropietario con el mismo correo se sumaron: su respuesta pesa por todas ellas.');
     if(r.correosRepetidos > 0) avisos.push(r.correosRepetidos + ' correo(s) compartido(s) por copropietarios distintos: se guardó solo el primero de cada casilla, porque una respuesta desde ahí no se puede atribuir a uno u otro.');
     if(r.rutsRepetidos > 0)    avisos.push(r.rutsRepetidos + ' RUT repetido(s): revise que no haya unidades duplicadas.');
@@ -679,7 +702,8 @@ $('lnk-reanudar').addEventListener('click', function(ev){
     sub: 'Con su cuenta puede volver a la consulta, ver las respuestas y descargar el expediente.'
   }, function(u){
     // CN-001: el token de Mesa en memoria no sigue operando en otra sesion.
-    if(Cuenta.vigilarSesion) Cuenta.vigilarSesion(u && u.id);
+    UID = (u && u.id) || null;
+    if(Cuenta.vigilarSesion) Cuenta.vigilarSesion(UID);
     const g = recuperar();
     if(g && g.codigo){ C = g; abrirPanel(); }
     // El mes se mira de entrada: quien no lo tiene se entera antes de

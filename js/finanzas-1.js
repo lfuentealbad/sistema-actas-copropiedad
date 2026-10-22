@@ -52,7 +52,7 @@ const estadoInicial = {
   config:{
     condNombre:'', condRut:'', condDir:'', condComuna:'',
     admNombre:'', admRut:'', admCorreo:'', admTel:'', admRegistro:'', admFirma:'',
-    porcFondo:5, tasaMora:1.5, diaVenc:18,
+    porcFondo:5, tasaMora:1.5, diaVenc:18, vencReglamento:false,
     // El tope de la mora (art. 7) es la mitad del interés corriente bancario,
     // que publica la CMF y cambia todos los meses. No se puede saber sin red,
     // así que se pide: con ese dato el sistema aplica el tope solo.
@@ -649,6 +649,8 @@ function cargarConfig(){
   }).forEach(([id,k])=>{
     const el=document.getElementById(id); if(el) el.value=c[k]??'';
   });
+  const vr = document.getElementById('cfgVencReglamento');
+  if(vr) vr.checked = c.vencReglamento === true;
   // Formatear RUTs cargados
   ['cfgCondRut','cfgAdmRut'].forEach(id=>{
     const el = document.getElementById(id);
@@ -671,6 +673,8 @@ function guardarConfig(){
     const el=document.getElementById('cfg'+k.charAt(0).toUpperCase()+k.slice(1));
     if(el) c[k] = parseFloat(el.value)||0;
   });
+  const vrEl = document.getElementById('cfgVencReglamento');
+  if(vrEl) c.vencReglamento = vrEl.checked;
   const avisos = [];
   // La firma va a un <img src> de la liquidacion: solo imagen incrustada o
   // enlace http(s) (urlImagenSegura). Otra cosa la borraria sola la revision
@@ -1284,7 +1288,6 @@ async function confirmarGenerarCobros(){
       variant:'warning'
     });
     if(!ok) return;
-    estado.cobros = estado.cobros.filter(c=>!(c.periodo===periodo && c.estado==='pendiente' && GENERADOS.indexOf(c.tipo) >= 0));
   }
   if(incSeguro && estado.egresos.some(e=>e.periodo===periodo && /seguro/i.test(String(e.categoria||'')))){
     const ok = await confirmar({
@@ -1295,6 +1298,10 @@ async function confirmarGenerarCobros(){
     });
     if(!ok) return;
   }
+  // Se borra recien aqui, con las dos preguntas respondidas: cancelar la
+  // segunda dejaba borradas las cuotas pendientes sin generar las nuevas
+  // (lo encontro la verificacion de Codex, 22-10-2026).
+  if(yaExiste) estado.cobros = estado.cobros.filter(c=>!(c.periodo===periodo && c.estado==='pendiente' && GENERADOS.indexOf(c.tipo) >= 0));
   const yaPagado = (uid, tipo) => estado.cobros.some(c=>c.unidadId===uid && c.periodo===periodo && c.tipo===tipo && c.estado==='pagado');
 
   const porcFondo = estado.config.porcFondo/100;
@@ -1366,7 +1373,7 @@ function renderCobros(){
   }
 
   if(!cobros.length){
-    wrap.innerHTML = `<div class="empty"><div class="et">Sin cuotas que mostrar</div><div class="ed">${estado.cobros.length?'Ajuste los filtros o la búsqueda.':'Genera cobros del mes con el botón superior, o crea uno manual.'}</div></div>`;
+    wrap.innerHTML = `<div class="empty"><div class="et">Sin cuotas que mostrar</div><div class="ed">${estado.cobros.length?'Ajuste los filtros o la búsqueda.':'Genere los cobros del mes con el botón de arriba, o cree uno a mano.'}</div></div>`;
     return;
   }
 
@@ -2090,10 +2097,14 @@ function buildLiquidacionHTML(unidad, periodo){
   // fija otra.
   const fechaEmision = emisionLiquidacion(unidad.id, periodo);
   const [pY, pM] = periodo.split('-').map(Number);
-  let venc = new Date(pY, pM, c.diaVenc||18); // mes siguiente
+  // Verificacion de Codex (22-10-2026): el dia 18 venia por omision, sin
+  // que nadie dijera que lo fija el reglamento. Ahora, sin la marca
+  // «el reglamento fija este dia», rige la ley: diez dias desde la emision.
   const [eY, eM, eD] = fechaEmision.split('-').map(Number);
   const emitida = new Date(eY, eM - 1, eD);
-  if(venc <= emitida) venc = new Date(eY, eM - 1, eD + 10);
+  const diezDias = new Date(eY, eM - 1, eD + 10);
+  let venc = c.vencReglamento === true ? new Date(pY, pM, c.diaVenc||18) : diezDias; // mes siguiente
+  if(venc <= emitida) venc = diezDias;
   const vencStr = venc.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
   const folioEmision = folioLiquidacion(unidad.id, periodo);
 
@@ -2561,6 +2572,8 @@ function sanearEstado(data){
     if(typeof estadoInicial.config[k] === 'number'){
       const n = numeroCampo(cfg[k]);
       if(n !== null) limpio.config[k] = n;
+    } else if(typeof estadoInicial.config[k] === 'boolean'){
+      limpio.config[k] = cfg[k] === true;
     } else {
       limpio.config[k] = textoCampo(cfg[k], LARGO_CONFIG[k] || 200);
     }
@@ -2814,7 +2827,7 @@ async function cargarDemo(){
     admTel:'+56 9 0000 0000',
     admRegistro:'RNA-2024-08731',
     admFirma:'',
-    porcFondo:5, tasaMora:1.5, diaVenc:18,
+    porcFondo:5, tasaMora:1.5, diaVenc:18, vencReglamento:false,
     banco:'Banco Estado', bancoTipo:'Cuenta corriente',
     bancoNum:'0000000000', bancoTitular:'Edificio Cordillera de los Andes',
     obs:'Datos para transferencia electrónica:\nBanco Estado · Cta Cte 0000000000 · RUT 22.222.222-2\nDestinatario: Edificio Cordillera de los Andes\n\nEnviar comprobante a administracion@ejemplo.cl indicando el N° de departamento.\nRecuerde: el plazo de pago es de 10 días desde la emisión del aviso, salvo que el reglamento de copropiedad fije otro (art. 7 Ley 21.442). Pasado ese plazo corre el interés por mora indicado más abajo.',

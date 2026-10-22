@@ -598,7 +598,7 @@
             <li><strong>Configure el condominio</strong> en <a href="#config">Datos del condominio</a> (nombre, RUT, banco, % fondo de reserva).</li>
             <li><strong>Cargue los copropietarios</strong> en <a href="#unidades">Copropietarios</a> con sus alícuotas (las que vienen del reglamento de copropiedad o del avalúo SII).</li>
             <li><strong>Registre los gastos del mes</strong> en <a href="#egresos">Gastos del condominio</a> (facturas, sueldos, servicios).</li>
-            <li><strong>Genera las cuotas</strong> en <a href="#cobros">Cuotas mensuales</a>: el sistema distribuye los gastos por alícuota y emite la liquidación de cada unidad.</li>
+            <li><strong>Genere las cuotas</strong> en <a href="#cobros">Cuotas mensuales</a>: el sistema distribuye los gastos por alícuota y emite la liquidación de cada unidad.</li>
           </ol>
           <div style="margin-top:var(--sp-4);display:flex;gap:var(--sp-2);flex-wrap:wrap">
             <a href="#config" class="btn primary">Empezar — configurar condominio</a>
@@ -900,7 +900,7 @@
           <div>
             <label for="cfgPorcFondo">% recargo fondo de reserva <span class="legal-tag">Art. 39 Ley</span></label>
             <input id="cfgPorcFondo" type="number" step="0.5" min="0" />
-            <div class="legal">No puede ser inferior al 5% del gasto común mensual.</div>
+            <div class="legal">Mínimo 5 % del gasto común mensual, salvo condominios de viviendas sociales con programas de autofinanciamiento que lo rebajen por acuerdo de asamblea extraordinaria (art. 47 del Reglamento).</div>
           </div>
           <div>
             <label for="cfgTasaMora">Tasa interés mora mensual <span class="legal-tag">Art. 7 Ley</span></label>
@@ -915,7 +915,8 @@
           <div>
             <label for="cfgDiaVenc">Día de vencimiento mensual <span class="legal-tag">Art. 7 Ley</span></label>
             <input id="cfgDiaVenc" type="number" min="1" max="28" />
-            <div class="legal">10 días desde la emisión del aviso, salvo otro plazo en reglamento.</div>
+            <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:8px"><input type="checkbox" id="cfgVencReglamento" style="width:auto" />El reglamento de copropiedad fija este día</label>
+            <div class="legal">Sin esa marca, cada aviso vence a los 10 días de su emisión (art. 7). Con ella se usa este día, salvo que ya haya pasado al emitir.</div>
           </div>
         </div>
       </div>
@@ -1160,7 +1161,7 @@
   <p class="muted" style="font-size:12px">¿No tiene plantilla? <a href="#" data-ac="descargarPlantilla">Descárguela aquí</a> (Excel con columnas y ejemplos), llénela con sus datos y vuelva a subirla.</p>
   <input type="file" id="csvFile" accept=".csv,.xlsx" aria-label="Planilla de copropietarios (.xlsx o .csv)" />
   <div class="legal-note" style="margin-top:12px">
-    <strong>Importante:</strong> el correo electrónico es obligatorio si deseas usar el envío de liquidaciones por correo (art. 5 inc. 1 Ley 21.442 — registro de copropietarios).
+    <strong>Importante:</strong> el correo electrónico es obligatorio si desea enviar las liquidaciones por correo (art. 5 inc. 1 Ley 21.442 — registro de copropietarios).
   </div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mImportCSV">Cancelar</button>
@@ -1266,9 +1267,9 @@
   <div><label for="eDesc">Descripción</label><textarea id="eDesc" maxlength="2000" rows="2"></textarea></div>
   <div><label for="eBoletaURL">Respaldo digital (opcional)</label>
     <input id="eBoletaURL" maxlength="2000" placeholder="https://drive.google.com/... o ruta del archivo en tu computador" />
-    <div class="field-help">Pega aquí el link de Drive/Dropbox a la foto/PDF de la boleta. Solo un link que empieza con https:// (o http://) se abre con un clic; una ruta del computador queda anotada como texto. La ley exige conservar respaldos (art. 21 inc. 2 Ley 21.442).</div>
+    <div class="field-help">Pegue aquí el enlace de Drive o Dropbox a la foto o PDF de la boleta. Solo un link que empieza con https:// (o http://) se abre con un clic; una ruta del computador queda anotada como texto. La ley exige conservar respaldos (art. 21 inc. 2 Ley 21.442).</div>
   </div>
-  <div class="legal-note" style="margin-top:12px">El art. 21 inciso 2 de la Ley exige conservar respaldo (verificadores) de cada gasto. Mantén la documentación física o digital archivada por la administración.</div>
+  <div class="legal-note" style="margin-top:12px">El art. 21 inciso 2 de la Ley exige conservar respaldo (verificadores) de cada gasto. Mantenga la documentación física o digital archivada por la administración.</div>
   <div class="close-row">
     <button class="btn" data-ac="cerrarModal" data-args="mEgreso">Cancelar</button>
     <button class="btn primary" data-ac="guardarEgreso">Guardar</button>
