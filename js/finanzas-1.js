@@ -2356,7 +2356,7 @@ async function generarTodasLiquidaciones(){
   if(!estado.unidades.length){ toast('No hay unidades', 'warning'); return; }
   const ok = await confirmar({
     titulo:'Generar todas las liquidaciones',
-    mensaje:`Se generarán ${fmtNum(estado.unidades.length)} liquidaciones de ${fmtPeriodoLargo(periodo)} en un solo documento.\n\nAl imprimir, recomendado: "Guardar como PDF" para luego enviar a cada copropietario.\n\nSugerencia: nombra el archivo "Liquidaciones_${(estado.config.condNombre||'Condominio').replace(/\s+/g,'_')}_${periodo}.pdf"`,
+    mensaje:`Se generarán ${fmtNum(estado.unidades.length)} liquidaciones de ${fmtPeriodoLargo(periodo)} en un solo documento.\n\nAl imprimir, recomendado: "Guardar como PDF" para luego enviar a cada copropietario.\n\nSugerencia: nombre el archivo "Liquidaciones_${(estado.config.condNombre||'Condominio').replace(/\s+/g,'_')}_${periodo}.pdf"`,
     okText:'Generar e imprimir',
     variant:'primary'
   });
@@ -2578,6 +2578,11 @@ function sanearEstado(data){
       limpio.config[k] = textoCampo(cfg[k], LARGO_CONFIG[k] || 200);
     }
   });
+  // Un estado guardado antes de la marca «el reglamento fija este dia»
+  // (22-10-2026) vencia siempre el dia configurado. Se conserva: si no, al
+  // reimprimir cambiaria el vencimiento de liquidaciones ya emitidas
+  // (segunda verificacion de Codex).
+  if(!propia(cfg, 'vencReglamento') && propia(cfg, 'diaVenc')) limpio.config.vencReglamento = true;
   // La firma termina en un <img src> y el vencimiento del seguro es fecha.
   // La fecha se mira en lo que vino, no en lo recortado: cortado a diez
   // caracteres, "2026-12-31<cualquier cosa>" pareceria una fecha valida.
