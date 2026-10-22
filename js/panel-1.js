@@ -541,6 +541,8 @@
     }
 
     $('v-panel').hidden = false;
+    // CN-001: si en otra pestana sale o entra otra cuenta, el panel se recarga.
+    if(Cuenta.vigilarSesion) Cuenta.vigilarSesion(u.id);
     // Si no sabemos como se llama, se saluda sin nombre y se le ofrece
     // completarlo. Inventarlo a partir del correo daba resultados absurdos.
     var pila = (u.nombre || '').split(/\s+/)[0];

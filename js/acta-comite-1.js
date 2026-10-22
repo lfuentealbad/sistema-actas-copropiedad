@@ -844,6 +844,8 @@ function acCargar(alTerminar) {
 
   acQuienEntro(function (uid) {
     acUid = uid;
+    // CN-001: si en otra pestana sale o entra otra cuenta, se recarga.
+    if (uid && window.Cuenta && Cuenta.vigilarSesion) Cuenta.vigilarSesion(uid);
     acRevisarMes();
 
     if (pedida !== null && !AC_ID.test(pedida)) {

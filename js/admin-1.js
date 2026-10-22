@@ -44,6 +44,8 @@
           bloqueante: true, alEntrar: function(){ empezar(); } });
         return;
       }
+      // CN-001: la lista de cuentas no puede quedar a la vista de otra sesion.
+      if(Cuenta.vigilarSesion) Cuenta.vigilarSesion(u.id);
       c.rpc('revisor_estado').then(function(r){
         var e = r && !r.error ? r.data : null;
         if(e === 'ok') return cargar();

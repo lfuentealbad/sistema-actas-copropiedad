@@ -202,7 +202,13 @@
       <th>Unidad</th><th>Copropietario</th><th>Derechos</th><th>Respuesta</th><th></th>
     </tr></thead><tbody></tbody></table></div>
 
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+    <!-- Auditoria CN-016 (22-10-2026): firman todos los miembros del comite o
+         los copropietarios que designe la asamblea (art. 15): el documento
+         trae un espacio por firmante. -->
+    <div class="campo" style="max-width:340px;margin-top:18px"><label for="f-firmantes">Firmantes del documento</label>
+      <input type="number" id="f-firmantes" min="1" max="12" value="3" inputmode="numeric">
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Todos los miembros del comité de administración, o los copropietarios que designe la asamblea.</p></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
       <button class="btn btn-ghost btn-sm" data-ac="refrescar" data-args="b:true">Actualizar</button>
       <button class="btn btn-teal btn-sm" data-ac="generarDocumento" data-args="@">Generar documento</button>
       <button class="btn btn-primary btn-sm" data-ac="cerrar" data-args="@">Cerrar consulta</button>

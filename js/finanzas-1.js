@@ -69,6 +69,7 @@ const estadoInicial = {
   mantenciones: [],
   contadorFolio: 1000,
   foliosLiq: {},   // "unidadId|periodo" -> folio ya emitido, para que no cambie
+  emisionLiq: {},  // "unidadId|periodo" -> fecha de emision (AAAA-MM-DD), idem
 };
 let estado = JSON.parse(JSON.stringify(estadoInicial));
 
@@ -1762,12 +1763,17 @@ async function eliminarMovFondo(id){
 // descuentan acá. Antes se sumaban en los dos lados y la misma plata aparecía
 // dos veces: el saldo de caja del art. 31 salía inflado por el fondo entero.
 const esDelFondo = c => c.tipo==='fondo' || c.tipo==='multa' || c.tipo==='interes';
+// Auditoria CN-013 (22-10-2026): la caja cuenta el dinero el mes en que
+// entra, no el mes de la deuda. Una cuota de septiembre pagada en octubre
+// es recaudacion de octubre: reimprimir septiembre no puede sumar plata que
+// llego despues. Un cobro antiguo sin fecha de pago cae en su periodo.
+const mesDeCaja = c => (typeof c.fechaPago === 'string' && /^\d{4}-\d{2}/.test(c.fechaPago)) ? c.fechaPago.slice(0,7) : c.periodo;
 
 function calcSaldoFondo(hastaPeriodo){
   // saldo del fondo = aportes recaudados (cobros tipo fondo pagados) + multas + intereses + aportes manuales − egresos manuales
   let saldo = 0;
   estado.cobros.filter(c=>c.estado==='pagado' && esDelFondo(c))
-    .filter(c=>!hastaPeriodo || c.periodo<=hastaPeriodo)
+    .filter(c=>!hastaPeriodo || mesDeCaja(c)<=hastaPeriodo)
     .forEach(c=>saldo += c.montoPagado||c.adeudado||0);
   estado.fondo.filter(m=>!hastaPeriodo || m.periodo<=hastaPeriodo).forEach(m=>{
     if(m.tipo==='ingreso') saldo += m.monto;
@@ -1778,7 +1784,7 @@ function calcSaldoFondo(hastaPeriodo){
 function renderFondo(){
   const periodo = periodoActual();
   document.getElementById('fondoSaldo').textContent = fmtCLP(calcSaldoFondo());
-  const aportesPeriodo = estado.cobros.filter(c=>c.estado==='pagado' && (c.tipo==='fondo'||c.tipo==='multa'||c.tipo==='interes') && c.periodo===periodo)
+  const aportesPeriodo = estado.cobros.filter(c=>c.estado==='pagado' && (c.tipo==='fondo'||c.tipo==='multa'||c.tipo==='interes') && mesDeCaja(c)===periodo)
     .reduce((s,c)=>s+(c.montoPagado||c.adeudado||0),0)
     + estado.fondo.filter(m=>m.tipo==='ingreso' && m.periodo===periodo).reduce((s,m)=>s+m.monto,0);
   const egresosPeriodo = estado.fondo.filter(m=>m.tipo==='egreso' && m.periodo===periodo).reduce((s,m)=>s+m.monto,0);
@@ -1806,7 +1812,7 @@ function renderFondo(){
 
 /* ============ DASHBOARD ============ */
 function calcMes(periodo){
-  const pagados = estado.cobros.filter(c=>c.estado==='pagado' && c.periodo===periodo);
+  const pagados = estado.cobros.filter(c=>c.estado==='pagado' && mesDeCaja(c)===periodo);
   const recaudado = pagados.filter(c=>!esDelFondo(c))
     .reduce((s,c)=>s+(c.montoPagado||c.adeudado||0),0);
   const aportesFondo = pagados.filter(esDelFondo)
@@ -1819,7 +1825,7 @@ function calcSaldoCaja(hastaPeriodo){
   let saldo = 0;
   // Sin los cobros del fondo: esos viven en calcSaldoFondo (art. 39).
   estado.cobros.filter(c=>c.estado==='pagado' && !esDelFondo(c)).forEach(c=>{
-    if(!hastaPeriodo || c.periodo<=hastaPeriodo) saldo += c.montoPagado||c.adeudado||0;
+    if(!hastaPeriodo || mesDeCaja(c)<=hastaPeriodo) saldo += c.montoPagado||c.adeudado||0;
   });
   estado.ingresos.forEach(i=>{
     if(!hastaPeriodo || i.periodo<=hastaPeriodo) saldo += i.monto;
@@ -2057,6 +2063,16 @@ function folioLiquidacion(unidadId, periodo){
   return estado.foliosLiq[clave];
 }
 
+function emisionLiquidacion(unidadId, periodo){
+  if(!estado.emisionLiq) estado.emisionLiq = {};
+  const clave = `${unidadId}|${periodo}`;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(estado.emisionLiq[clave]||''))){
+    estado.emisionLiq[clave] = fechaHoy();
+    guardar();
+  }
+  return estado.emisionLiq[clave];
+}
+
 function buildLiquidacionHTML(unidad, periodo){
   // El periodo se imprime una docena de veces en el documento; se exige su
   // forma una vez aqui en vez de escaparlo en cada una.
@@ -2067,9 +2083,17 @@ function buildLiquidacionHTML(unidad, periodo){
   const adeudadoHistorico = estado.cobros.filter(co=>co.unidadId===unidad.id && co.estado==='pendiente' && co.periodo<periodo)
     .reduce((s,co)=>s+co.adeudado,0);
   const ultPago = obtenerUltimoPago(unidad.id, periodo);
-  const fechaEmision = fechaHoy();
+  // Auditoria CN-014 (22-10-2026): la fecha de emision se guarda la primera
+  // vez (junto al folio) y una reimpresion no la cambia. Y el aviso no puede
+  // nacer vencido: si el dia configurado ya paso al emitir, vence a los diez
+  // dias de la emision, que es la regla del art. 7 cuando el reglamento no
+  // fija otra.
+  const fechaEmision = emisionLiquidacion(unidad.id, periodo);
   const [pY, pM] = periodo.split('-').map(Number);
-  const venc = new Date(pY, pM, c.diaVenc||18); // mes siguiente
+  let venc = new Date(pY, pM, c.diaVenc||18); // mes siguiente
+  const [eY, eM, eD] = fechaEmision.split('-').map(Number);
+  const emitida = new Date(eY, eM - 1, eD);
+  if(venc <= emitida) venc = new Date(eY, eM - 1, eD + 10);
   const vencStr = venc.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
   const folioEmision = folioLiquidacion(unidad.id, periodo);
 
@@ -2078,13 +2102,13 @@ function buildLiquidacionHTML(unidad, periodo){
   const totalEgresosCom = Object.values(grupos).reduce((s,g)=>s+g.total,0);
   // Recaudación de gasto común, sin lo que se fue al fondo de reserva: eso se
   // informa aparte, más abajo y en la página 3 (art. 39).
-  const recaudadoMes = estado.cobros.filter(co=>co.estado==='pagado' && co.periodo===periodo && !esDelFondo(co))
+  const recaudadoMes = estado.cobros.filter(co=>co.estado==='pagado' && mesDeCaja(co)===periodo && !esDelFondo(co))
     .reduce((s,co)=>s+(co.montoPagado||co.adeudado||0),0);
   const ingresosExtra = estado.ingresos.filter(i=>i.periodo===periodo).reduce((s,i)=>s+i.monto,0);
   const totalIngresos = recaudadoMes + ingresosExtra;
   const saldoCaja = calcSaldoCaja(periodo);
   const saldoFondo = calcSaldoFondo(periodo);
-  const aportesFondoMes = estado.cobros.filter(co=>co.estado==='pagado' && esDelFondo(co) && co.periodo===periodo)
+  const aportesFondoMes = estado.cobros.filter(co=>co.estado==='pagado' && esDelFondo(co) && mesDeCaja(co)===periodo)
     .reduce((s,co)=>s+(co.montoPagado||co.adeudado||0),0);
   const egresosFondoMes = estado.fondo.filter(m=>m.tipo==='egreso' && m.periodo===periodo).reduce((s,m)=>s+m.monto,0);
 
@@ -2663,6 +2687,17 @@ function sanearEstado(data){
     const folio = montoCampo(fl[clave]);
     if(!uid || !esPeriodo(periodo) || !folio){ descartadas++; return; }
     limpio.foliosLiq[uid + '|' + periodo] = Math.floor(folio);
+  });
+
+  // ---- fechas de emision de liquidacion: "unidadId|AAAA-MM" -> AAAA-MM-DD ----
+  const el = esFila(data.emisionLiq) ? data.emisionLiq : {};
+  Object.keys(el).forEach(clave=>{
+    const corte = clave.lastIndexOf('|');
+    const uid = corte > 0 ? refUnidad(clave.slice(0, corte)) : null;
+    const periodo = clave.slice(corte + 1);
+    const f = String(el[clave] || '');
+    if(!uid || !esPeriodo(periodo) || !/^\d{4}-\d{2}-\d{2}$/.test(f)){ descartadas++; return; }
+    limpio.emisionLiq[uid + '|' + periodo] = f;
   });
 
   // El correlativo no puede quedar por debajo de un folio ya emitido: el

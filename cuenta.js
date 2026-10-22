@@ -78,6 +78,47 @@
     }, function () { cb(null); });
   }
 
+  // Auditoria CN-001 (20-10-2026). Si en otra pestana se cierra la sesion o
+  // entra otra cuenta, esta pagina no puede seguir mostrando ni operando
+  // datos de la anterior (el panel, la administracion, la consulta con su
+  // token de Mesa en memoria). Se vigila como en el acta (_vigilarSesion):
+  // el aviso de supabase-js entre pestanas, el evento storage por si ese
+  // canal no existe, y una pregunta al volver a la pestana. Al cambiar, por
+  // omision se recarga: la pagina vuelve a empezar con la sesion que haya.
+  var vigilandoSesion = false;
+  function vigilarSesion(uidInicial, alCambiar) {
+    if (vigilandoSesion) return;
+    vigilandoSesion = true;
+    var c = cliente();
+    if (!c) return;
+    var listo = false;
+    var cambio = function () {
+      if (listo) return;
+      listo = true;
+      if (typeof alCambiar === 'function') alCambiar(); else global.location.reload();
+    };
+    var revisar = function () {
+      c.auth.getSession().then(function (r) {
+        var s = r && r.data && r.data.session;
+        if (((s && s.user && s.user.id) || null) !== (uidInicial || null)) cambio();
+      }, function () {});
+    };
+    try {
+      c.auth.onAuthStateChange(function (evento, sesion) {
+        var uid = (sesion && sesion.user && sesion.user.id) || null;
+        // Dentro del aviso no se llama a supabase-js (se puede trabar).
+        if (uid !== (uidInicial || null)) setTimeout(cambio, 0);
+      });
+    } catch (e) {}
+    global.addEventListener('storage', function (e) {
+      if (!e || e.key === null || /^sb-.*-auth-token$/.test(String(e.key))) setTimeout(revisar, 0);
+    });
+    global.addEventListener('focus', revisar);
+    global.document.addEventListener('visibilitychange', function () {
+      if (global.document.visibilityState === 'visible') revisar();
+    });
+  }
+
   function guardarNombre(nombre, cb) {
     var n = String(nombre || '').trim();
     if (n.length < 2) { cb('Escriba su nombre.'); return; }
@@ -1653,6 +1694,7 @@
     // sesion que abre uno no la ve el otro y auth.uid() llega nulo a Postgres.
     cliente: cliente,
     usuario: usuario,
+    vigilarSesion: vigilarSesion,
     tokenDeAcceso: tokenDeAcceso,
     // El mes de servicio (paso 17).
     pase: {

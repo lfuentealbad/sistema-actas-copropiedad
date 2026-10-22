@@ -483,6 +483,11 @@ function veredicto(est, a){
         'el ' + pct(a) + ' de los derechos, y la materia exige ' + u.texto + '.', clase:'rechazado' };
 }
 
+function nFirmantes(){
+  const n = parseInt(($('f-firmantes') || {}).value, 10);
+  return n >= 1 && n <= 12 ? n : 3;
+}
+
 async function generarDocumento(btn){
   if(!C) return;
   busy(btn, true, 'Generando…');
@@ -585,9 +590,14 @@ async function generarDocumento(btn){
       '</tbody></table>' +
       '<div class="veredicto">' + v.texto + '</div></div>' +
 
-      '<div class="firmas">' +
-      '<div class="firma"><b>Presidente del Comité de Administración</b>Nombre y firma</div>' +
-      '<div class="firma"><b>Administrador</b>Nombre y firma</div>' +
+      // Auditoria CN-016 (22-10-2026): la firma es de todos los miembros del
+      // comite o de los copropietarios que designe la asamblea (art. 15), no
+      // del presidente y el administrador (que no integra el comite, art. 18).
+      '<p style="margin-top:36px">Firman la presente acta todos los miembros del comité de administración o los copropietarios ' +
+      'que la asamblea designe, en forma presencial o electrónica, a más tardar dentro de los 30 días siguientes a la ' +
+      'adopción del acuerdo (art. 15, Ley N° 21.442):</p>' +
+      '<div class="firmas">' + Array.from({ length: nFirmantes() }, () =>
+        '<div class="firma"><b>Nombre, RUT y firma</b>Calidad: miembro del comité / copropietario designado</div>').join('') +
       '</div>' +
       '<p style="margin-top:26px;font-size:9pt;color:#5C6168;">Documento generado el ' + fmtFecha(new Date().toISOString()) +
       '. Cuando el acuerdo verse sobre las materias señaladas en la letra a) del N° 2 o en el N° 3 del ' +
@@ -626,7 +636,7 @@ async function listarMisConsultas(){
     if(error) throw error;
     const lista = data || [];
     if(lista.length === 0){
-      msg('nueva-msg','Su cuenta no tiene consultas de los últimos 180 días.','err');
+      msg('nueva-msg','Su cuenta no tiene consultas guardadas.','err');
       return;
     }
     const cont = $('mis-lista');
@@ -668,6 +678,8 @@ $('lnk-reanudar').addEventListener('click', function(ev){
     titulo: 'Entre para su consulta',
     sub: 'Con su cuenta puede volver a la consulta, ver las respuestas y descargar el expediente.'
   }, function(u){
+    // CN-001: el token de Mesa en memoria no sigue operando en otra sesion.
+    if(Cuenta.vigilarSesion) Cuenta.vigilarSesion(u && u.id);
     const g = recuperar();
     if(g && g.codigo){ C = g; abrirPanel(); }
     // El mes se mira de entrada: quien no lo tiene se entera antes de
