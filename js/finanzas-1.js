@@ -378,7 +378,12 @@ const aFechaLocal = d => `${d.getFullYear()}-${dosCifras(d.getMonth()+1)}-${dosC
 const aPeriodoLocal = d => `${d.getFullYear()}-${dosCifras(d.getMonth()+1)}`;
 const periodoActual = () => aPeriodoLocal(new Date());
 const fechaHoy = () => aFechaLocal(new Date());
-const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+// Con un contador: cientos de cobros se crean en el mismo milisegundo, y
+// cinco caracteres al azar podian repetirse (verificacion de Codex,
+// 22-10-2026: la prueba del respaldo fallaba de vez en cuando). Un id
+// repetido hacia que editar o borrar un cobro tocara otro.
+let _secuenciaId = 0;
+const id = () => Date.now().toString(36) + (_secuenciaId++).toString(36) + Math.random().toString(36).slice(2,8);
 const escapeHtml = s => String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // escapeHtml cubre las dos comillas, asi que sirve tambien dentro de un
 // atributo, y todo dato que va a data-args, id o value pasa por ella. Pero a
@@ -2106,7 +2111,12 @@ function buildLiquidacionHTML(unidad, periodo){
   //    administracion marque que el reglamento fija el dia; aun asi, si ese
   //    dia ya paso al emitir, vence a los diez dias.
   const claveLiq = `${unidad.id}|${periodo}`;
-  const legado = !!(estado.foliosLiq && estado.foliosLiq[claveLiq]) && !(estado.emisionLiq && estado.emisionLiq[claveLiq]);
+  // Antiguo: ya tenia folio y no tiene vencimiento guardado. Si ademas tenia
+  // emision guardada, se imprimio con la regla del 22-10-2026 (el dia
+  // configurado, o diez dias si ya habia pasado); si no, con el dia
+  // configurado a secas (cuarta verificacion de Codex).
+  const legado = !!(estado.foliosLiq && estado.foliosLiq[claveLiq]) && !(estado.vencLiq && estado.vencLiq[claveLiq]);
+  const conEmision = !!(estado.emisionLiq && estado.emisionLiq[claveLiq]);
   const fechaEmision = emisionLiquidacion(unidad.id, periodo);
   const [pY, pM] = periodo.split('-').map(Number);
   if(!estado.vencLiq) estado.vencLiq = {};
@@ -2115,8 +2125,10 @@ function buildLiquidacionHTML(unidad, periodo){
     const emitida = new Date(eY, eM - 1, eD);
     const diezDias = new Date(eY, eM - 1, eD + 10);
     let v;
-    if(legado) v = new Date(pY, pM, c.diaVenc||18); // como se imprimia antes
-    else {
+    if(legado){
+      v = new Date(pY, pM, c.diaVenc||18); // como se imprimia antes
+      if(conEmision && v <= emitida) v = diezDias;
+    } else {
       v = c.vencReglamento === true ? new Date(pY, pM, c.diaVenc||18) : diezDias; // mes siguiente
       if(v <= emitida) v = diezDias;
     }
