@@ -70,6 +70,7 @@ const estadoInicial = {
   contadorFolio: 1000,
   foliosLiq: {},   // "unidadId|periodo" -> folio ya emitido, para que no cambie
   emisionLiq: {},  // "unidadId|periodo" -> fecha de emision (AAAA-MM-DD), idem
+  vencLiq: {},     // "unidadId|periodo" -> vencimiento (AAAA-MM-DD), idem
 };
 let estado = JSON.parse(JSON.stringify(estadoInicial));
 
@@ -2095,16 +2096,35 @@ function buildLiquidacionHTML(unidad, periodo){
   // nacer vencido: si el dia configurado ya paso al emitir, vence a los diez
   // dias de la emision, que es la regla del art. 7 cuando el reglamento no
   // fija otra.
+  //
+  // Verificaciones de Codex (22-10-2026): el vencimiento se decide por
+  // documento, no por cuenta, y se guarda la primera vez como la emision.
+  //  - Un documento ya emitido antes de guardar fechas (tiene folio y no
+  //    tiene emision guardada) conserva el vencimiento con que se imprimio:
+  //    el dia configurado del mes siguiente.
+  //  - Uno nuevo sigue el art. 7 (diez dias desde la emision), salvo que la
+  //    administracion marque que el reglamento fija el dia; aun asi, si ese
+  //    dia ya paso al emitir, vence a los diez dias.
+  const claveLiq = `${unidad.id}|${periodo}`;
+  const legado = !!(estado.foliosLiq && estado.foliosLiq[claveLiq]) && !(estado.emisionLiq && estado.emisionLiq[claveLiq]);
   const fechaEmision = emisionLiquidacion(unidad.id, periodo);
   const [pY, pM] = periodo.split('-').map(Number);
-  // Verificacion de Codex (22-10-2026): el dia 18 venia por omision, sin
-  // que nadie dijera que lo fija el reglamento. Ahora, sin la marca
-  // «el reglamento fija este dia», rige la ley: diez dias desde la emision.
-  const [eY, eM, eD] = fechaEmision.split('-').map(Number);
-  const emitida = new Date(eY, eM - 1, eD);
-  const diezDias = new Date(eY, eM - 1, eD + 10);
-  let venc = c.vencReglamento === true ? new Date(pY, pM, c.diaVenc||18) : diezDias; // mes siguiente
-  if(venc <= emitida) venc = diezDias;
+  if(!estado.vencLiq) estado.vencLiq = {};
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(estado.vencLiq[claveLiq]||''))){
+    const [eY, eM, eD] = fechaEmision.split('-').map(Number);
+    const emitida = new Date(eY, eM - 1, eD);
+    const diezDias = new Date(eY, eM - 1, eD + 10);
+    let v;
+    if(legado) v = new Date(pY, pM, c.diaVenc||18); // como se imprimia antes
+    else {
+      v = c.vencReglamento === true ? new Date(pY, pM, c.diaVenc||18) : diezDias; // mes siguiente
+      if(v <= emitida) v = diezDias;
+    }
+    estado.vencLiq[claveLiq] = aFechaLocal(v);
+    guardar();
+  }
+  const [vY, vM, vD] = estado.vencLiq[claveLiq].split('-').map(Number);
+  const venc = new Date(vY, vM - 1, vD);
   const vencStr = venc.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
   const folioEmision = folioLiquidacion(unidad.id, periodo);
 
@@ -2578,11 +2598,6 @@ function sanearEstado(data){
       limpio.config[k] = textoCampo(cfg[k], LARGO_CONFIG[k] || 200);
     }
   });
-  // Un estado guardado antes de la marca «el reglamento fija este dia»
-  // (22-10-2026) vencia siempre el dia configurado. Se conserva: si no, al
-  // reimprimir cambiaria el vencimiento de liquidaciones ya emitidas
-  // (segunda verificacion de Codex).
-  if(!propia(cfg, 'vencReglamento') && propia(cfg, 'diaVenc')) limpio.config.vencReglamento = true;
   // La firma termina en un <img src> y el vencimiento del seguro es fecha.
   // La fecha se mira en lo que vino, no en lo recortado: cortado a diez
   // caracteres, "2026-12-31<cualquier cosa>" pareceria una fecha valida.
@@ -2717,6 +2732,15 @@ function sanearEstado(data){
     if(!uid || !esPeriodo(periodo) || !/^\d{4}-\d{2}-\d{2}$/.test(f)){ descartadas++; return; }
     limpio.emisionLiq[uid + '|' + periodo] = f;
   });
+  const vl = esFila(data.vencLiq) ? data.vencLiq : {};
+  Object.keys(vl).forEach(clave=>{
+    const corte = clave.lastIndexOf('|');
+    const uid = corte > 0 ? refUnidad(clave.slice(0, corte)) : null;
+    const periodo = clave.slice(corte + 1);
+    const f = String(vl[clave] || '');
+    if(!uid || !esPeriodo(periodo) || !/^\d{4}-\d{2}-\d{2}$/.test(f)){ descartadas++; return; }
+    limpio.vencLiq[uid + '|' + periodo] = f;
+  });
 
   // El correlativo no puede quedar por debajo de un folio ya emitido: el
   // proximo pago repetiria numero en un documento con merito ejecutivo.
@@ -2814,7 +2838,7 @@ async function cargarDemo(){
   if(estado.unidades.length){
     const ok = await confirmar({
       titulo:'Cargar datos de prueba',
-      mensaje:'Ya hay datos cargados en el sistema. Si continúas, serán reemplazados por los datos demostrativos.',
+      mensaje:'Ya hay datos cargados en el sistema. Si continúa, serán reemplazados por los datos demostrativos.',
       okText:'Reemplazar',
       variant:'warning'
     });
