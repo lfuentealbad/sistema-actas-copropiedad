@@ -71,6 +71,7 @@ const estadoInicial = {
   foliosLiq: {},   // "unidadId|periodo" -> folio ya emitido, para que no cambie
   emisionLiq: {},  // "unidadId|periodo" -> fecha de emision (AAAA-MM-DD), idem
   vencLiq: {},     // "unidadId|periodo" -> vencimiento (AAAA-MM-DD), idem
+  versionVenc: 2,  // ver sanearEstado: limpia lo que dejaron versiones del 22-10-2026
 };
 let estado = JSON.parse(JSON.stringify(estadoInicial));
 
@@ -2753,6 +2754,15 @@ function sanearEstado(data){
     if(!uid || !esPeriodo(periodo) || !/^\d{4}-\d{2}-\d{2}$/.test(f)){ descartadas++; return; }
     limpio.vencLiq[uid + '|' + periodo] = f;
   });
+  // La marca del reglamento y los vencimientos guardados solo pudieron
+  // escribirse entre las 20:00 y las 20:46 del 22-10-2026, con versiones
+  // que los calculaban mal (quinta verificacion de Codex). Un estado sin
+  // esta version se limpia: la marca vuelve a la regla de la ley y cada
+  // vencimiento se recalcula con la regla con que se imprimio su documento.
+  if(data.versionVenc !== 2){
+    limpio.vencLiq = {};
+    limpio.config.vencReglamento = false;
+  }
 
   // El correlativo no puede quedar por debajo de un folio ya emitido: el
   // proximo pago repetiria numero en un documento con merito ejecutivo.
