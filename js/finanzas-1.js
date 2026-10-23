@@ -2754,15 +2754,15 @@ function sanearEstado(data){
     if(!uid || !esPeriodo(periodo) || !/^\d{4}-\d{2}-\d{2}$/.test(f)){ descartadas++; return; }
     limpio.vencLiq[uid + '|' + periodo] = f;
   });
-  // La marca del reglamento y los vencimientos guardados solo pudieron
-  // escribirse entre las 20:00 y las 20:46 del 22-10-2026, con versiones
-  // que los calculaban mal (quinta verificacion de Codex). Un estado sin
-  // esta version se limpia: la marca vuelve a la regla de la ley y cada
-  // vencimiento se recalcula con la regla con que se imprimio su documento.
-  if(data.versionVenc !== 2){
-    limpio.vencLiq = {};
-    limpio.config.vencReglamento = false;
-  }
+  // La marca del reglamento solo pudo escribirse entre las 20:17 y las
+  // 20:56 del 22-10-2026, y una de esas versiones la encendia sola (quinta
+  // verificacion de Codex). Un estado sin esta version vuelve a la regla de
+  // la ley para los documentos que vengan; la marca queda a la vista para
+  // volver a encenderla. Los vencimientos ya guardados NO se tocan: son los
+  // que salieron impresos, y cambiar un vencimiento entregado es peor que
+  // cualquier diferencia de regla (sexta verificacion de Codex: limpiarlos
+  // cambiaba un 01/11 ya impreso por 18/11).
+  if(data.versionVenc !== 2) limpio.config.vencReglamento = false;
 
   // El correlativo no puede quedar por debajo de un folio ya emitido: el
   // proximo pago repetiria numero en un documento con merito ejecutivo.
