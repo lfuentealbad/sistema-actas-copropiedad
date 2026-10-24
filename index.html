@@ -565,32 +565,67 @@
     html{scroll-behavior:auto;}
   }
 </style>
-<script type="application/ld+json" data-pago>
+<!-- Datos para buscadores y asistentes (23-10-2026). Van en dos bloques: el
+     primero se ve siempre; el segundo trae el precio y lleva data-pago, asi
+     que la vitrina lo borra sin llevarse el resto. Hasta esta fecha iban
+     juntos y en vitrina no quedaba ninguno. Las preguntas repiten las de la
+     seccion #faq, sin la del precio: si cambia una, cambia la otra
+     (prueba-metadatos.mjs las compara). -->
+<script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
     {
+      "@type": "Organization",
+      "@id": "https://actascopropiedad.cl/#organizacion",
+      "name": "actaviva",
+      "legalName": "Soluciones CLB SpA",
+      "url": "https://actascopropiedad.cl/",
+      "logo": "https://actascopropiedad.cl/icon-512.png",
+      "email": "contacto@actascopropiedad.cl",
+      "address": { "@type": "PostalAddress", "addressLocality": "Concepción", "addressRegion": "Región del Biobío", "addressCountry": "CL" }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://actascopropiedad.cl/#sitio",
+      "name": "actaviva",
+      "url": "https://actascopropiedad.cl/",
+      "inLanguage": "es-CL",
+      "publisher": { "@id": "https://actascopropiedad.cl/#organizacion" }
+    },
+    {
       "@type": "WebApplication",
+      "@id": "https://actascopropiedad.cl/#aplicacion",
       "name": "actaviva",
       "url": "https://actascopropiedad.cl/",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
       "inLanguage": "es-CL",
-      "description": "Genere actas de asamblea de copropietarios con la estructura prevista en la Ley N°&nbsp;21.442, con votación en vivo desde el teléfono. Sin instalar nada.",
-      "offers": [
-        { "@type": "Offer", "name": "Un mes de servicio para un condominio, con todas las herramientas", "price": "14990", "priceCurrency": "CLP", "priceValidUntil": "2027-12-31" }
-      ]
+      "description": "Genere actas de asamblea de copropietarios con la estructura prevista en la Ley N° 21.442, con votación en vivo desde el teléfono. Sin instalar nada.",
+      "provider": { "@id": "https://actascopropiedad.cl/#organizacion" }
     },
     {
       "@type": "FAQPage",
+      "@id": "https://actascopropiedad.cl/#faq",
       "mainEntity": [
-        { "@type": "Question", "name": "¿Necesito instalar algo o crear una cuenta?", "acceptedAnswer": { "@type": "Answer", "text": "No hay nada que instalar: funciona en el navegador, pero sí necesita una cuenta. Se crea en un minuto: escribe su correo, le llega un código y listo. La cuenta guarda su avance y le permite volver a sus asambleas." } },
-        { "@type": "Question", "name": "¿Cómo votan los copropietarios?", "acceptedAnswer": { "@type": "Answer", "text": "Usted proyecta un código QR. Cada participante habilitado ingresa con su RUT y un código de un solo uso que le llega al correo o le da la Mesa, y su voto se asocia al padrón cargado por la administración; el resultado se calcula ponderado por los derechos de cada unidad. Votan quienes figuran como hábiles en el padrón." } },
-        { "@type": "Question", "name": "¿Es seguro? ¿Quién ve mis datos?", "acceptedAnswer": { "@type": "Answer", "text": "Su acta se guarda en su cuenta y solo usted puede verla. No vendemos datos ni enviamos publicidad. El padrón y los votos de la votación en vivo se borran del servidor a más tardar a las 48 horas, y el contenido de un acta finalizada, a los 180 días: conserve el PDF que descarga." } },
-        { "@type": "Question", "name": "¿El acta está diseñada conforme a la Ley N°&nbsp;21.442?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El sistema aplica los quórums y mayorías según la materia seleccionada y genera el documento a partir de los antecedentes ingresados, listo para revisar y firmar." } },
-        { "@type": "Question", "name": "¿Cuánto cuesta?", "acceptedAnswer": { "@type": "Answer", "text": "$14.990 por un mes de servicio para un condominio, con todas las herramientas: actas de asamblea con folio, votación en vivo, consultas por escrito, actas del comité y las cuentas del condominio. Impuestos incluidos. No se renueva solo: al terminar el mes, usted decide si activa otro. Si administra varios condominios, cada uno lleva su propio mes." } }
+        { "@type": "Question", "name": "¿Necesito instalar algo o crear una cuenta?", "acceptedAnswer": { "@type": "Answer", "text": "No hay nada que instalar: funciona en el navegador. Cuenta sí necesita, y se crea en un minuto: su nombre, su correo y una clave, y un código al correo para confirmarlo. La cuenta guarda su avance, le permite volver a sus asambleas y es donde le llega el comprobante." } },
+        { "@type": "Question", "name": "¿Cómo votan los copropietarios?", "acceptedAnswer": { "@type": "Answer", "text": "Usted proyecta un QR; cada participante habilitado ingresa con su RUT y un código de un solo uso, y su voto se asocia al padrón cargado por la administración. El resultado se pondera por derechos al instante. Votan quienes figuran como hábiles en el padrón." } },
+        { "@type": "Question", "name": "¿Es seguro? ¿Quién ve mis datos?", "acceptedAnswer": { "@type": "Answer", "text": "Su acta se guarda en su cuenta y solo usted puede verla. No vendemos datos ni enviamos publicidad. El padrón y los votos de la votación en vivo se borran del servidor a más tardar a las 48 horas, y el contenido de un acta finalizada, a los 180 días: conserve el PDF que descarga. El detalle está en la declaración de privacidad." } },
+        { "@type": "Question", "name": "¿Sirve para asambleas telemáticas o mixtas?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. Puede utilizarse en asambleas presenciales, telemáticas o mixtas. En estas últimas deben cumplirse además las condiciones previstas en el reglamento de copropiedad y las exigencias de identificación del Reglamento de la Ley." } },
+        { "@type": "Question", "name": "¿El acta está diseñada conforme a la Ley N° 21.442?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El sistema aplica los quórums y mayorías según la materia seleccionada y genera el documento a partir de los antecedentes ingresados, listo para revisar y firmar." } },
+        { "@type": "Question", "name": "¿Se puede acordar algo sin reunir a todos a votar?", "acceptedAnswer": { "@type": "Answer", "text": "Sí. El artículo 15 de la Ley N° 21.442 permite la consulta por escrito: se expone la propuesta en una sesión informativa previa, se envía la consulta a los correos del Registro de Copropietarios y se fija un plazo para responder. Queda aprobada cuando las respuestas a favor suman el porcentaje de derechos que la ley exige para esa materia. Cuando la consulta verse sobre las materias señaladas en la letra a) del N° 2 o en el N° 3 del artículo 15, el acuerdo deberá además reducirse a escritura pública." } }
       ]
     }
+  ]
+}
+</script>
+<script type="application/ld+json" data-pago>
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "@id": "https://actascopropiedad.cl/#aplicacion",
+  "offers": [
+    { "@type": "Offer", "name": "Un mes de servicio para un condominio, con todas las herramientas", "price": "14990", "priceCurrency": "CLP", "priceValidUntil": "2027-12-31" }
   ]
 }
 </script>

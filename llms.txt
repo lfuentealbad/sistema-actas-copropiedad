@@ -1,0 +1,23 @@
+# actaviva
+
+> Servicio web chileno para administraciones y comités de condominios. Elabora actas de asamblea de copropietarios con la estructura prevista en la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo desde el teléfono ponderada por los derechos de cada unidad. Funciona en el navegador, sin instalar nada. Lo opera Soluciones CLB SpA, con domicilio en Concepción, Chile.
+
+Para usarlo se crea una cuenta en https://actascopropiedad.cl/cuenta con nombre, correo y clave.
+
+## Herramientas
+
+- [Acta de asamblea](https://actascopropiedad.cl/acta): arma el acta de la asamblea de copropietarios, aplica los quórums y mayorías según la materia seleccionada y genera el documento con folio, listo para revisar y firmar.
+- Votación en vivo, dentro del acta: se proyecta un código QR; cada participante habilitado ingresa con su RUT y un código de un solo uso, y su voto se asocia al padrón cargado por la administración. Votan quienes figuran como hábiles en el padrón.
+- [Consulta por escrito](https://actascopropiedad.cl/consulta/): acuerdos sin reunir a todos al mismo tiempo, según el artículo 15 de la Ley N° 21.442. Cada copropietario aprueba o rechaza desde su correo y el quórum se computa según sus derechos.
+- [Acta del comité](https://actascopropiedad.cl/acta-comite): deja por escrito lo que acordó el comité de administración, conforme al artículo 17 de la Ley N° 21.442.
+- [Cuentas del condominio](https://actascopropiedad.cl/finanzas): reparte los gastos comunes por alícuota, controla el fondo de reserva y emite la liquidación mensual.
+- [Verificar un acta](https://actascopropiedad.cl/verificar): cualquier persona comprueba si un acta emitida en el sitio es auténtica con el folio y el código de verificación impresos en el documento.
+
+## Datos y condiciones
+
+- [Declaración de privacidad](https://actascopropiedad.cl/privacidad): qué datos se piden, para qué, cuánto se guardan y cómo ejercer los derechos (Ley N° 21.719). El padrón y los votos de la votación en vivo se borran del servidor a más tardar a las 48 horas.
+- [Términos del servicio](https://actascopropiedad.cl/terminos): qué incluye el servicio, el derecho a retracto y cómo reclamar (Ley N° 19.496).
+
+## Contacto
+
+- Correo: contacto@actascopropiedad.cl
