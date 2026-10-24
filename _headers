@@ -47,6 +47,11 @@
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 
+# El resumen para asistentes lleva tildes: sin charset, un navegador puede
+# leerlo como Latin-1.
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+
 # Las demostraciones no se indexan. Ya llevan <meta name="robots">, pero eso
 # solo lo lee quien descarga el HTML; la cabecera vale tambien para lo que
 # un buscador guarde sin procesar la pagina. Cada ruta en sus tres formas:
