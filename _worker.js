@@ -444,12 +444,12 @@ async function avisoPrueba(request, env) {
   const marca = 'aviso-prueba:' + d.id;
   if (env.PAGOS && await env.PAGOS.get(marca)) return json({ ok: true, enviado: false });
   const limpio = v => sinEnlaces(String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ')).slice(0, 200);
+  // Sin nombre, correo ni telefono (25-10-2026): la privacidad promete que la
+  // solicitud se borra con la cuenta, y una copia en la casilla del dueno
+  // sobreviviria a ese borrado. Esos datos se ven en el panel de revision.
   const texto = [
     'Llegó una solicitud de prueba a actaviva.',
     '',
-    'Nombre: ' + limpio(d.nombre),
-    'Correo: ' + limpio(d.correo),
-    'Teléfono: ' + limpio(d.telefono),
     'Condominio: ' + limpio(d.condominio),
     'Comuna: ' + limpio(d.comuna),
     'Rol: ' + limpio(d.rol),
