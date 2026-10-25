@@ -53,6 +53,8 @@
   var vacio  = document.getElementById('q-vacio');
   var limpiar= document.getElementById('q-limpiar');
 
+  /* La version breve (25-10-2026) ya no tiene buscador. */
+  if(campo){
   function sinTildes(t){
     return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
@@ -96,6 +98,7 @@
   document.getElementById('q-todo').addEventListener('click', function(e){
     e.preventDefault(); campo.value = ''; reponer(); campo.focus();
   });
+  }
 
   /* ---- si llegan con #p7 desde fuera, se abre esa pregunta ---- */
   function abrirDelHash(traer){

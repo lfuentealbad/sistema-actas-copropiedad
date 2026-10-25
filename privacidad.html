@@ -127,6 +127,14 @@
   .q .sum{margin:0;font-size:17px;color:var(--tx2);line-height:1.6;}
   .q strong{color:var(--ink);font-weight:600;}
 
+  /* Version breve (25-10-2026): el texto va a la vista, sin desplegables. */
+  .q > p{margin:0 0 12px;font-size:16.5px;color:var(--tx2);line-height:1.65;}
+  .q > p:last-child{margin-bottom:0;}
+  .q > ul{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:9px;font-size:16.5px;color:var(--tx2);}
+  .q > ul li{padding-left:19px;position:relative;}
+  .q > ul li::before{content:"";position:absolute;left:3px;top:11px;width:5px;height:5px;border-radius:50%;background:var(--teal-l);}
+  .q b{color:var(--ink);font-weight:600;}
+
   details.mas{margin-top:14px;}
   details.mas > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:8px;
     font-size:14.5px;font-weight:600;color:var(--teal-d);padding:9px 14px;min-height:44px;border-radius:10px;
@@ -228,34 +236,13 @@
 <main class="wrap" id="doc">
 
   <div class="doc-head">
-    <span class="eyebrow">Centro de privacidad</span>
+    <span class="eyebrow">Privacidad</span>
     <h1>Declaración de privacidad</h1>
-    <p class="lede">Qué datos le pedimos, para qué los usamos, con quién los compartimos, cuánto los guardamos y cómo puede pedirnos que los borremos. En preguntas concretas y sin letra chica.</p>
+    <p class="lede">Qué datos tratamos, para qué, con quién los compartimos, cuánto los guardamos y cómo ejercer sus derechos.</p>
     <div class="meta">
       <span class="sello"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4-3 6.6-7 8-4-1.4-7-4-7-8V7z"/></svg>Ley N° 21.719</span>
-      <span>Versión 11 · vigente desde el 22 de octubre de 2026 · preparada bajo la Ley N° 19.628 y los estándares de la Ley N° 21.719, que entra en vigencia el 1 de diciembre de 2026</span>
-      <a href="#p14">Ver el historial de cambios</a>
+      <span>Versión 12 · vigente desde el 25 de octubre de 2026 · preparada bajo la Ley N° 19.628 y la Ley N° 21.719</span>
     </div>
-  </div>
-
-  <div class="resumen">
-    <h2>Lo esencial, en cuatro líneas</h2>
-    <ul>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>El <strong>acta se guarda en su cuenta</strong>, con los nombres, RUT y votos que usted cargue. Solo usted la ve, y puede borrarla cuando quiera; si no, su contenido se elimina a los 180 días de finalizada.</span></li>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>De su cuenta guardamos <strong>su correo y sus compras</strong>. Nada más. No vendemos datos ni enviamos publicidad.</span></li>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>El padrón y los votos de una asamblea <strong>se borran del servidor a más tardar a las 48 horas</strong>.</span></li>
-      <li><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Puede pedirnos <strong>ver, corregir o borrar</strong> sus datos escribiendo a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>.</span></li>
-    </ul>
-  </div>
-
-  <div class="buscador">
-    <div class="bcampo" id="bcampo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-      <label class="skip" for="q-buscar">Buscar en esta declaración</label>
-      <input type="search" id="q-buscar" placeholder="Buscar en esta declaración: votos, cookies, borrar…" autocomplete="off" spellcheck="false">
-      <button type="button" id="q-limpiar" aria-label="Limpiar la búsqueda">×</button>
-    </div>
-    <p class="bstat" id="q-stat" role="status" aria-live="polite"></p>
   </div>
 
   <div class="cuerpo">
@@ -268,382 +255,115 @@
     <div>
 
       <details class="indice-movil">
-        <summary>Ver el índice de preguntas</summary>
+        <summary>Ver el índice</summary>
         <div class="env"><nav aria-label="Índice de la declaración"><ol id="ix-mov"></ol></nav></div>
       </details>
 
       <div class="preguntas" id="preguntas">
 
-        <!-- 1 -->
         <section class="q" id="p1">
-          <h2>¿A qué se aplica esta declaración?</h2>
-          <p class="sum">A todo lo que ocurre en <strong>actascopropiedad.cl</strong>: el generador de actas, la votación en vivo, la consulta por escrito y su cuenta.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>Cubre los datos que tratamos nosotros al prestarle el servicio. Es parte de los términos del servicio y se aplica a cualquier persona que use el sitio: administradores, miembros del comité, copropietarios que votan y quienes solo entran a mirar.</p>
-            <h3>Qué queda fuera</h3>
-            <ul>
-              <li>Los sitios de terceros a los que podamos enlazar. Cada uno tiene sus propias reglas.</li>
-              <li>Lo que la administración de su comunidad haga con el padrón fuera de la plataforma: sus planillas, sus correos, su archivo.</li>
-              <li>El correo que usted envíe desde su propio proveedor (Gmail, Outlook u otro). Ese proveedor trata su correo con sus propias condiciones.</li>
-            </ul>
-          </div></details>
-        </section>
-
-        <!-- 2 -->
-        <section class="q" id="p2">
           <h2>¿Quién responde por sus datos?</h2>
-          <p class="sum">Depende del dato. Por <strong>su cuenta y sus compras</strong> respondemos nosotros. Por el <strong>padrón y los votos</strong> de una asamblea responde la administración de su comunidad.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>La ley distingue entre quien <em>decide</em> para qué se usan los datos —el responsable— y quien solo <em>los procesa por encargo</em>. En actaviva conviven los dos roles.</p>
-
-            <div class="ficha">
-              <b class="t">Responsable de su cuenta y sus compras</b>
-              <p><b>Soluciones CLB SpA</b>, RUT <b>78.502.641-1</b>, sociedad por acciones constituida en Chile, con domicilio en la comuna de <b>Concepción</b>, Región del Biobío. Opera actascopropiedad.cl.</p>
-              <p>Contacto para materias de privacidad: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a></p>
-            </div>
-
-            <div class="ficha">
-              <b class="t">Responsable de los datos de una asamblea</b>
-              <p>La <b>administración o el comité de administración de cada condominio</b>. Es quien reúne el padrón, decide convocar y para qué se usan esos datos.</p>
-              <p>Frente a esos datos nosotros somos un <b>encargado</b>: los tratamos solo para operar la votación o la consulta, siguiendo sus instrucciones, y no los usamos para nada más.</p>
-            </div>
-
-            <p class="nota">Esto no es un tecnicismo: define a quién le reclama. Si su solicitud es sobre el padrón o su voto, quien debe resolverla es su administración. Si nos escribe a nosotros, la derivamos y se lo avisamos.</p>
-          </div></details>
+          <p>Por su cuenta, sus compras y su solicitud de prueba responde <b>Soluciones CLB SpA</b>, con domicilio en la comuna de Concepción, Región del Biobío, que opera actascopropiedad.cl. Contacto: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>.</p>
+          <p>Por el <strong>padrón y los votos</strong> de una asamblea responde la administración de su comunidad, que los reúne y decide para qué se usan. Nosotros los tratamos por su encargo, solo para operar la votación, la consulta o el acta.</p>
         </section>
 
-        <!-- 3 -->
+        <section class="q" id="p2">
+          <h2>¿Qué datos tratamos y para qué?</h2>
+          <div class="tabla"><table>
+            <thead><tr><th>Datos</th><th>Para qué</th><th>Por qué podemos</th></tr></thead>
+            <tbody>
+              <tr><td><b>Su cuenta</b>: nombre, correo y clave, que se guarda transformada y nadie puede leer</td><td>Darle acceso al servicio y soporte</td><td>El contrato con usted</td></tr>
+              <tr><td><b>Su solicitud de prueba</b>: nombre, teléfono, condominio, comuna, rol y número de unidades</td><td>Revisarla, activar la prueba y acompañarlo durante ella</td><td>Medidas previas al contrato, a su pedido</td></tr>
+              <tr><td><b>Su compra</b>: monto, fecha, orden y el condominio con las fechas de su mes. La tarjeta la procesa la pasarela de pagos</td><td>Cobrar y emitir el comprobante</td><td>El contrato y la obligación tributaria</td></tr>
+              <tr><td><b>El acta</b>: lo que usted escriba, incluido el padrón con nombres, RUT, unidades, derechos y votos. <b>Acta del comité</b>: asistentes, temas y acuerdos. Sin RUT ni votos</td><td>Guardarla en su cuenta y emitirla con folio</td><td>El encargo de su comunidad, que debe levantar acta (Ley N° 21.442)</td></tr>
+              <tr><td><b>Votación en vivo y consulta por escrito</b>: el padrón con nombre, RUT, unidad, derechos y correo; los votos; y el texto del correo con que se responde una consulta</td><td>Operar la votación o la consulta, enviar el código para votar y la constancia del voto</td><td>El encargo de su comunidad</td></tr>
+              <tr><td><b>Lo que nos escribe</b> a contacto@actascopropiedad.cl</td><td>Responderle</td><td>Su propia solicitud</td></tr>
+              <tr><td><b>Datos técnicos</b>: dirección IP, datos del navegador, el registro de accesos y métricas agregadas</td><td>Mantener el sistema seguro, investigar una suplantación y saber qué partes se usan</td><td>Interés legítimo en la seguridad del servicio</td></tr>
+            </tbody>
+          </table></div>
+          <p>Los datos los entrega usted, salvo el padrón, que carga la administración a partir del Registro de Copropietarios. No pedimos datos sensibles, no hacemos perfiles ni tomamos decisiones automatizadas, no enviamos publicidad y no vendemos datos.</p>
+          <p>Mientras escribe un acta, el sitio guarda una copia del borrador en el propio navegador, que no sale de ese equipo. Se borra al cerrar sesión. La herramienta <b>Cuentas del condominio</b> tampoco nos envía nada: guarda todo en el navegador donde usted la usa y en ninguna otra parte.</p>
+        </section>
+
         <section class="q" id="p3">
-          <h2>¿Qué datos recogemos?</h2>
-          <p class="sum">Los mínimos para que la herramienta funcione: <strong>su correo</strong>, el <strong>padrón</strong> que carga su administración y los <strong>votos</strong> de cada punto.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <div class="tabla"><table>
-              <thead><tr><th>En qué parte</th><th>Qué datos</th></tr></thead>
-              <tbody>
-                <tr><td><b>Su cuenta</b></td><td>Su <b>nombre</b>, su correo electrónico, su clave —que se guarda transformada, de modo que nadie, tampoco nosotros, puede leerla— y un identificador técnico de sesión. La cuenta es necesaria para usar las herramientas del servicio.</td></tr>
-                <tr><td><b>Su solicitud de prueba</b></td><td>Si pide una prueba desde su panel: su <b>nombre</b>, <b>teléfono</b>, el <b>condominio</b> y su comuna, si es administrador, integrante del comité o copropietario, y cuántas unidades tiene el condominio. Los usamos <b>solo para revisar la solicitud, activar la prueba y contactarlo para acompañarlo</b> durante ella; no los compartimos ni los usamos para publicidad. Se guardan mientras tenga su cuenta y se borran con ella.</td></tr>
-                <tr><td><b>Su compra</b></td><td>Monto, fecha, número de orden y el <b>condominio</b> para el que activó el mes, con el día en que empieza y termina. Los <b>datos de su tarjeta los procesa la pasarela de pagos</b>; no pasan por nuestros servidores ni los guardamos.</td></tr>
-                <tr><td><b>El acta</b></td><td>El acta completa: condominio, fecha, acuerdos, observaciones y el padrón que cargue, con nombres, RUT, unidades, porcentajes de derechos y votos.</td></tr>
-                <tr><td><b>Votación en vivo</b></td><td>Nombre, RUT, unidad y porcentaje de derechos de cada copropietario del padrón; el correo si la administración lo carga; y el voto y la hora en cada punto. <b>El copropietario que vota no necesita cuenta</b>: se identifica con su RUT contra el padrón y confirma que es él con un <b>código de 6 cifras de un solo uso</b>, que le llega al correo que el padrón tiene para su RUT o que le entrega la Mesa en la sala con su carnet a la vista. Del código guardamos solo una huella, no el código; vence a los 10 minutos (el del correo) o a los 15 (el de la Mesa), o al usarse, y la purga diaria lo borra. Para que ese RUT vote desde un solo teléfono, el navegador del teléfono genera un <b>identificador de dispositivo al azar</b> —no se obtiene del teléfono ni dice nada de él— y lo guarda ahí junto al RUT. En la base de datos queda solo una huella de ese identificador, que se borra con el resto de la sala; la copia del teléfono queda en ese navegador hasta que se borren sus datos. Si la persona necesita cambiar de teléfono, la Mesa libera su RUT o le da un código nuevo.</td></tr>
-                <tr><td><b>Consulta por escrito</b></td><td>Lo mismo que arriba, más <b>el texto del correo</b> con que cada copropietario responde. De ese correo leemos también su <b>firma DKIM</b>, la que pone el proveedor de la casilla, para comprobar que de verdad salió de la casilla que dice.</td></tr>
-                <tr><td><b>Acta del comité</b></td><td>El acta de la reunión del comité de administración: condominio, fecha, temas y acuerdos, y los <b>nombres y cargos</b> de quienes asistieron. <b>Sin RUT ni votos</b>: es la que menos datos lleva. Solo su cuenta puede verla y usted puede borrarla desde su panel cuando quiera.</td></tr>
-                <tr><td><b>Cuentas del condominio</b></td><td><b>Nada llega a nosotros.</b> Esta herramienta guarda los gastos, las unidades con su alícuota, los cobros y el fondo de reserva <b>en el navegador donde usted la usa</b> y en ninguna otra parte: aunque para abrirla necesita su cuenta, estos datos no se guardan en ella ni en ningún servidor, y no hay copia nuestra. Si borra los datos del navegador, se pierden; por eso la herramienta ofrece bajar un respaldo, que también queda en su equipo.</td></tr>
-                <tr><td><b>Datos técnicos</b></td><td>Dirección IP y datos del navegador que el servidor registra para seguridad —entre otras cosas, para limitar los intentos repetidos desde una misma dirección—, y métricas de uso agregadas que no lo identifican. Además, un <b>registro de accesos</b> de lo que se hace en cada sala de votación y consulta por escrito: qué acción, cuándo y desde qué dirección IP. Lo explicamos en «¿Cómo protegemos sus datos?».</td></tr>
-              </tbody>
-            </table></div>
-            <p>No pedimos datos sensibles: ni salud, ni origen, ni afiliación política, sindical o religiosa. Si alguien los escribe dentro de un texto libre, es por decisión suya y no por una casilla nuestra.</p>
-          </div></details>
-        </section>
-
-        <!-- 4 -->
-        <section class="q" id="p4">
-          <h2>¿Qué pasa con el documento del acta?</h2>
-          <p class="sum">Se redacta en su navegador, que guarda una copia mientras usted trabaja, y <strong>se guarda en su cuenta</strong> para que pueda retomarla desde otro equipo. Contiene datos de los copropietarios, así que conviene saber exactamente qué pasa con ella.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>El asistente corre en su navegador, pero el borrador <strong>se guarda en su cuenta</strong> a medida que escribe. Es lo que permite retomarlo desde otro equipo, emitirle un folio al finalizarlo y volver a él más adelante.</p>
-
-            <h3>Qué queda guardado</h3>
-            <p>El acta completa, tal como usted la tenga: el condominio, la fecha, los acuerdos, las observaciones y <strong>el padrón que haya cargado — nombres, RUT, unidades, porcentajes de derechos y el voto de cada uno</strong>. No es poca cosa, y por eso lo decimos aquí y no en la letra chica.</p>
-
-            <h3>Quién puede verla</h3>
-            <ul>
-              <li><strong>Solo su cuenta.</strong> La restricción está puesta en la base de datos, fila por fila: no es una comprobación del navegador que se pueda saltar.</li>
-              <li><strong>Nosotros no la leemos</strong> ni la usamos para nada distinto de devolvérsela. No la analizamos, no la cruzamos con otras comunidades y no la entregamos a terceros, salvo orden de autoridad competente.</li>
-              <li>Los copropietarios que aparecen en el padrón <strong>no tienen acceso al acta</strong>: quien la comparte con ellos es la administración, por sus propios medios.</li>
-            </ul>
-
-            <h3>La copia en su navegador</h3>
-            <p>Mientras escribe, el asistente guarda además una <strong>copia del borrador en el propio navegador</strong>, con el mismo contenido, padrón incluido. Sirve para no perder lo escrito si se corta la conexión, y no sale de ese equipo.</p>
-            <ul>
-              <li>Se borra al <strong>cerrar sesión</strong> desde el sitio. Si en ese momento hay cambios que no alcanzaron a llegar a su cuenta, le preguntamos antes de borrarlos.</li>
-              <li>También puede borrarla desde su panel, en el borrador marcado «abierta aquí».</li>
-              <li>Al cerrar sesión se borra también lo que dejaron en ese navegador el acta del comité, la sala de votación y la consulta por escrito. Su mes de servicio no vive en el navegador sino en su cuenta, así que no se pierde al salir.</li>
-              <li>No se borran las <strong>cuentas del condominio</strong>: viven solo en ese navegador, y borrarlas sería perderlas.</li>
-            </ul>
-            <p class="nota-i">Si usa un computador compartido, cierre sesión al terminar. Cerrar la pestaña no basta.</p>
-
-            <h3>Cuánto dura y cómo se borra</h3>
-            <ul>
-              <li>Un borrador que nadie modifica en <strong>365 días</strong> se elimina solo.</li>
-              <li>Una vez finalizada, el acta ya no se puede modificar. Su contenido completo, padrón incluido, se elimina a los <strong>180 días</strong> de finalizada; en su panel queda solo el folio, el nombre del condominio y la fecha. Conserve el archivo que descargó: ese es el documento.</li>
-              <li>Puede <strong>borrar cualquier acta desde su panel</strong>, y se elimina de inmediato, incluidas las ya finalizadas.</li>
-              <li>Si cierra la cuenta, se eliminan todas sus actas. El registro de emisión de las ya finalizadas se conserva: vea el punto siguiente.</li>
-              <li>Hay un tope de 100 actas por cuenta.</li>
-            </ul>
-
-            <h3>El registro que permite verificarla</h3>
-            <p>Al finalizar el acta se guarda aparte un <strong>registro de emisión</strong>: el folio, el código de verificación (los 12 primeros caracteres de la huella), la fecha de emisión, la huella del documento, un identificador interno de la cuenta que la emitió —sin su correo ni su nombre— y un resumen con el condominio, la fecha y el tipo de sesión, el quórum y, por cada acuerdo, su materia, su resultado y el porcentaje a favor. <strong>No incluye el padrón</strong>: ni nombres, ni RUT, ni el voto de cada copropietario. La materia se copia tal como usted la escribió en el acta.</p>
-            <p>Sirve para que quien reciba el documento pueda comprobar que es el que se emitió: en <a href="/verificar">actascopropiedad.cl/verificar</a>, con el folio y el código de verificación impresos en el acta, la página responde si coinciden y muestra ese resumen, la fecha de emisión y la huella completa. Por eso el registro no se puede modificar y no se borra al borrar el acta, al cerrar la cuenta ni al vencer los plazos de arriba.</p>
-
-            <h3>Quién responde por esos datos</h3>
-            <p>Aquí está la parte que más importa. El padrón lo reúne y lo carga la <strong>administración de su comunidad</strong>, que es quien decide para qué se usa: ante la Ley N° 21.719 el <strong>responsable es ella</strong>. Nosotros somos <strong>encargados</strong>: guardamos esos datos por instrucción suya, con las medidas descritas más arriba, y no los usamos para fines propios.</p>
-            <p>En la práctica eso significa que, si un copropietario quiere saber qué datos suyos hay o pedir que se corrijan, la solicitud la resuelve su administración. Si nos escribe a nosotros, la derivamos a ella y se lo avisamos.</p>
-            <p class="nota-i">Si usted es quien carga el padrón: hágalo con datos del Registro de Copropietarios o de una fuente legítima equivalente, y solo de la asamblea que está levantando. Es su obligación como responsable.</p>
-            </div></details>
-        </section>
-
-        <!-- 5 -->
-        <section class="q" id="p5">
-          <h2>¿Para qué usamos sus datos?</h2>
-          <p class="sum">Para prestarle el servicio, cobrarlo, cumplir la ley y mantener el sistema seguro. <strong>No hacemos perfiles, no enviamos publicidad y no vendemos datos.</strong></p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <div class="tabla"><table>
-              <thead><tr><th>Para qué</th><th>Con qué datos</th><th>Por qué podemos</th></tr></thead>
-              <tbody>
-                <tr><td><b>Crear y mantener su cuenta</b></td><td>Su correo</td><td>Es necesario para ejecutar el contrato que usted celebra con nosotros</td></tr>
-                <tr><td><b>Cobrarle y emitir el comprobante</b></td><td>Correo, monto, orden y el condominio del mes</td><td>Ejecución del contrato y obligación legal tributaria</td></tr>
-                <tr><td><b>Operar la votación o la consulta</b></td><td>Padrón y votos</td><td>Instrucciones de la comunidad, que a su vez cumple el deber legal de levantar acta (Ley N° 21.442)</td></tr>
-                <tr><td><b>Enviarle la constancia de su voto</b></td><td>Su correo del padrón</td><td>Deja registro de cómo votó y le permite reclamar si alguien votó en su nombre</td></tr>
-                <tr><td><b>Confirmar que es usted antes de votar en la sala</b></td><td>Su correo del padrón, para enviarle el código</td><td>Instrucciones de la comunidad y seguridad del voto: sin el código, cualquiera que supiera su RUT podría votar por usted</td></tr>
-                <tr><td><b>Mantener el sistema seguro</b></td><td>IP, registros técnicos y el registro de accesos</td><td>Interés legítimo en prevenir fraude y abuso, investigar una suplantación y responder a un incidente de seguridad</td></tr>
-                <tr><td><b>Mejorar la herramienta</b></td><td>Métricas agregadas</td><td>No permiten identificar a nadie</td></tr>
-              </tbody>
-            </table></div>
-            <h3>Lo que no hacemos</h3>
-            <ul>
-              <li>No vendemos, arrendamos ni cedemos sus datos con fines comerciales.</li>
-              <li>No le enviamos publicidad. Los correos que recibe son operativos: el código para confirmar su correo, el enlace para recuperar su clave, el aviso de su prueba, su comprobante y la constancia de su voto.</li>
-              <li>No construimos perfiles ni tomamos decisiones automatizadas que produzcan efectos sobre usted.</li>
-              <li>No cruzamos los datos de una comunidad con los de otra.</li>
-            </ul>
-          </div></details>
-        </section>
-
-        <!-- 6 -->
-        <section class="q" id="p6">
           <h2>¿Con quién los compartimos?</h2>
-          <p class="sum">Solo con los <strong>proveedores que hacen funcionar el servicio</strong>, y con quien la ley nos obligue. Ninguno puede usar sus datos para fines propios.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <div class="tabla"><table>
-              <thead><tr><th>Proveedor</th><th>Para qué</th></tr></thead>
-              <tbody>
-                <tr><td><b>Cloudflare</b></td><td>Entrega el sitio y lo protege de ataques</td></tr>
-                <tr><td><b>Supabase</b></td><td>Base de datos de su cuenta, de la votación en vivo y de la consulta por escrito</td></tr>
-                <tr><td><b>Pasarela de pagos</b></td><td>Procesa el cobro. Es ella —no nosotros— quien ve los datos de su tarjeta</td></tr>
-                <tr><td><b>Proveedor de correo</b></td><td>Envía el código para confirmar su correo, el enlace para recuperar la clave, los avisos de su prueba, los códigos para votar en la sala, los comprobantes y las constancias de voto</td></tr>
-              </tbody>
-            </table></div>
-            <p>Cada uno trata los datos por cuenta nuestra, bajo contrato, limitado a lo necesario para su función.</p>
-            <h3>Cuándo más podríamos entregarlos</h3>
-            <ul>
-              <li>Cuando lo ordene un tribunal o una autoridad competente, en el marco de sus atribuciones.</li>
-              <li>Cuando sea necesario para defender un derecho en juicio.</li>
-              <li>Si en el futuro la sociedad se transfiere o fusiona, los datos pasarían al continuador, que queda sujeto a esta misma declaración. Se lo avisaríamos antes.</li>
-            </ul>
-          </div></details>
+          <p>Solo con los proveedores que hacen funcionar el servicio, y cada uno los trata solo para prestar su servicio:</p>
+          <div class="tabla"><table>
+            <thead><tr><th>Proveedor</th><th>Para qué</th></tr></thead>
+            <tbody>
+              <tr><td><b>Cloudflare</b></td><td>Entrega el sitio, lo protege de ataques y reenvía el correo que llega a contacto@actascopropiedad.cl</td></tr>
+              <tr><td><b>Supabase</b></td><td>Base de datos</td></tr>
+              <tr><td><b>Proveedor de correo</b></td><td>Envía los correos del servicio: códigos, avisos de su prueba, comprobantes y constancias de voto</td></tr>
+              <tr><td><b>Google (Gmail)</b></td><td>Casilla donde recibimos y respondemos lo que nos escribe a contacto@actascopropiedad.cl</td></tr>
+              <tr><td><b>Pasarela de pagos</b></td><td>Procesa el cobro y es la única que ve los datos de su tarjeta</td></tr>
+            </tbody>
+          </table></div>
+          <p>Fuera de eso, solo entregamos datos si lo ordena un tribunal o una autoridad competente.</p>
         </section>
 
-        <!-- 7 -->
+        <section class="q" id="p4">
+          <h2>¿Qué pasa con el acta?</h2>
+          <p>Se guarda en su cuenta mientras la escribe, para que pueda retomarla desde otro equipo. <strong>Solo su cuenta puede verla</strong>: la restricción está en la base de datos. Nosotros no la leemos ni la usamos para otra cosa.</p>
+          <p>Al finalizarla se guarda aparte un <strong>registro de emisión</strong>: el folio, el código de verificación, la fecha de emisión, la huella del documento, un identificador interno de la cuenta y un resumen con el condominio, la fecha, el quórum y el resultado de cada acuerdo. No incluye el padrón. Permite que quien reciba el acta compruebe en <a href="/verificar">/verificar</a>, con el folio y el código de verificación impresos en el acta, que es la que se emitió. Por eso no se borra al borrar el acta ni al cerrar la cuenta.</p>
+        </section>
+
+        <section class="q" id="p5">
+          <h2>¿Cuánto tiempo los guardamos?</h2>
+          <div class="tabla"><table>
+            <thead><tr><th>Datos</th><th>Cuánto</th></tr></thead>
+            <tbody>
+              <tr><td><b>El acta y su padrón</b></td><td>Un borrador sin finalizar, hasta <b>365 días</b> desde su último cambio. Una vez finalizada, su contenido se elimina a los <b>180 días</b>. Puede borrarla antes desde su panel, y al cerrar la cuenta se eliminan todas</td></tr>
+              <tr><td><b>Acta del comité</b></td><td>Los mismos plazos: 365 días un borrador sin cerrar, 180 días el contenido de una ya cerrada</td></tr>
+              <tr><td><b>Registro de emisión</b></td><td>Sin plazo, para que el acta se pueda verificar. No se borra al borrar el acta ni al cerrar la cuenta</td></tr>
+              <tr><td><b>Su cuenta y su solicitud de prueba</b></td><td>Mientras mantenga la cuenta. Se borran con ella</td></tr>
+              <tr><td><b>Sus compras</b></td><td>El plazo que exige la normativa tributaria, aunque cierre la cuenta</td></tr>
+              <tr><td><b>Votación en vivo</b></td><td>El padrón y los votos se borran del servidor a más tardar a las 48 horas. El código para votar vence a los 10 o 15 minutos</td></tr>
+              <tr><td><b>Consulta por escrito</b></td><td><b>180 días</b> desde que vence el plazo para responder, porque el texto de cada respuesta es la prueba del acuerdo</td></tr>
+              <tr><td><b>Registro de accesos</b><br><span style="font-size:14px">qué se hizo en una sala o consulta, cuándo, desde qué dirección IP y, en la sala, una huella del RUT; nunca el sentido del voto</span></td><td><b>90 días</b>, y después se borra solo</td></tr>
+              <tr><td><b>Lo que nos escribe</b></td><td>El tiempo necesario para atender su consulta</td></tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="q" id="p6">
+          <h2>¿Cómo los protegemos?</h2>
+          <ul>
+            <li>Todo el tráfico va cifrado (HTTPS).</li>
+            <li>La base de datos niega el acceso por omisión, y cada consulta pasa por una función que verifica quién pregunta.</li>
+            <li>Las claves de administración nunca llegan al navegador.</li>
+            <li>El borrado es automático.</li>
+            <li>En la sala de votación, el teléfono genera un identificador de dispositivo al azar para que cada RUT vote desde un solo equipo; en el servidor queda solo una huella de ese identificador.</li>
+            <li>Llevamos un registro de accesos de cada sala y consulta: qué se hizo, cuándo, desde qué dirección IP y, en la sala, una huella del RUT, nunca el sentido del voto. Ese registro se borra solo a los 90 días.</li>
+          </ul>
+          <p>Si ocurre una filtración que pueda afectarle, le avisamos a usted y a la Agencia de Protección de Datos Personales, sin demora.</p>
+        </section>
+
         <section class="q" id="p7">
           <h2>¿Sus datos salen de Chile?</h2>
-          <p class="sum">Sí. Los servidores de nuestros proveedores están <strong>fuera de Chile</strong>, principalmente en Estados Unidos. Se lo decimos derechamente porque la ley exige informarlo.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>Es la situación normal de casi cualquier servicio en línea, pero eso no la vuelve invisible: constituye una <strong>transferencia internacional de datos</strong> y usted tiene derecho a saberlo antes de usar la plataforma.</p>
-            <p>La transferencia se rige por los <strong>acuerdos de tratamiento de datos suscritos con cada proveedor</strong>, que los obligan contractualmente a un estándar de protección equivalente al que exige la ley chilena, a tratar los datos solo bajo nuestras instrucciones y a devolverlos o eliminarlos al terminar el servicio.</p>
-            <p class="nota">El archivo que usted descarga (el HTML del acta) se genera y queda en su equipo. El borrador que se guarda en su cuenta para poder retomarlo desde otro dispositivo vive en los servidores descritos aquí, con las mismas reglas. La copia que el navegador guarda mientras usted trabaja no sale de ese equipo.</p>
-          </div></details>
+          <p>Sí. Nuestros proveedores tienen sus servidores fuera de Chile, principalmente en Estados Unidos; la base de datos está en Ohio. No podemos afirmar que esos países ofrezcan un nivel de protección equivalente al chileno, por lo que la transferencia se apoya en los compromisos de protección de datos que cada proveedor asume en sus condiciones de servicio.</p>
         </section>
 
-        <!-- 8 -->
         <section class="q" id="p8">
-          <h2>¿Cuánto tiempo los guardamos?</h2>
-          <p class="sum">Lo menos posible. Los datos de una sala de votación <strong>se borran a las 48 horas</strong>. El contenido de un acta finalizada, a los <strong>180 días</strong>. La consulta por escrito dura más que la sala, porque es la prueba del acuerdo. El registro de accesos, a los <strong>90 días</strong>.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <div class="tabla"><table>
-              <thead><tr><th>Dato</th><th>Cuánto lo guardamos</th></tr></thead>
-              <tbody>
-                <tr><td><b>El acta y su padrón</b></td><td>Un borrador sin finalizar, hasta <b>365 días</b> desde su último cambio. Una vez finalizada, su contenido se elimina a los <b>180 días</b>. Antes de eso la borra usted cuando quiera desde su panel, y se elimina de inmediato. Al cerrar la cuenta se eliminan todas</td></tr>
-                <tr><td><b>Acta del comité</b></td><td>Los mismos plazos: 365 días un borrador sin cerrar, 180 días el contenido de una ya cerrada</td></tr>
-                <tr><td><b>Registro de emisión</b><br><span style="font-size:14px">folio, código, fecha, huella y resumen sin el padrón</span></td><td>Sin plazo: es lo que permite verificar el acta en /verificar. No se borra al borrar el acta ni al cerrar la cuenta</td></tr>
-                <tr><td><b>Copia del borrador en su navegador</b></td><td>Hasta que cierre sesión en ese equipo, o la borre desde su panel. No está en nuestros servidores</td></tr>
-                <tr><td><b>El correo de su cuenta</b></td><td>Mientras mantenga la cuenta abierta. Si pide cerrarla, lo eliminamos</td></tr>
-                <tr><td><b>Comprobantes de compra</b></td><td>El plazo que exige la normativa tributaria, aunque cierre su cuenta</td></tr>
-                <tr><td><b>Padrón y votos de la votación en vivo</b></td><td><b>Máximo 48 horas</b>. Si la Mesa cierra la sala antes, se borran en ese momento</td></tr>
-                <tr><td><b>Consulta por escrito</b><br><span style="font-size:14px">padrón, respuestas y texto de los correos</span></td><td><b>180 días</b> desde que vence el plazo para responder, aunque la administración no la haya cerrado. Pasado ese tiempo, se elimina completa</td></tr>
-                <tr><td><b>Registro de accesos</b><br><span style="font-size:14px">qué se hizo en una sala o consulta, cuándo, desde qué IP y, en la sala, una huella del RUT; nunca el sentido del voto</span></td><td><b>90 días</b>, y después se borra solo. No se borra antes al cerrar la sala, al vencer la consulta ni al cerrar la cuenta: es justo lo que hace falta para investigar lo que pasó en ellas</td></tr>
-                <tr><td><b>Código para votar en la sala</b></td><td>Solo su huella. Vence a los 10 o 15 minutos, o al usarse, y se borra en la purga diaria, a más tardar con el resto de la sala a las 48 horas</td></tr>
-                <tr><td><b>Otros registros técnicos de seguridad</b></td><td>Días, y no se usan para identificarlo</td></tr>
-              </tbody>
-            </table></div>
-            <h3>Por qué la consulta por escrito es distinta</h3>
-            <p>Ahí el <strong>texto del correo es la prueba de la manifestación de voluntad</strong>. Sin ese texto no se puede acreditar el acuerdo —incluida su reducción a escritura pública cuando la materia lo exige— ni defenderlo si alguien lo impugna. Borrarlo a las 48 horas dejaría a la comunidad sin respaldo.</p>
-            <p>Por eso se conserva hasta 180 días después de que vence el plazo para responder. Si la comunidad lo necesita por más tiempo, descargue el documento de la consulta antes de que venza ese plazo y consérvelo: después, el respaldo es ese archivo.</p>
-          </div></details>
-        </section>
-
-        <!-- 9 -->
-        <section class="q" id="p9">
           <h2>¿Usan cookies?</h2>
-          <p class="sum">No para seguirle el rastro. Solo lo estrictamente necesario para que su sesión se mantenga abierta.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <ul>
-              <li><strong>No hay cookies publicitarias ni de terceros.</strong> Nadie le arma un perfil a partir de su paso por el sitio.</li>
-              <li><strong>La analítica no usa cookies</strong> ni crea un identificador suyo: cuenta visitas y páginas de forma agregada.</li>
-              <li><strong>Si inicia sesión</strong>, su navegador guarda localmente un dato técnico para no pedirle el código en cada pantalla. Desaparece cuando cierra la sesión, junto con lo demás que el sitio dejó en ese navegador (vea «La copia en su navegador», en la pregunta 4).</li>
-              <li>Lo que las herramientas guardan en su navegador —la copia del borrador del acta, las cuentas del condominio, el identificador de dispositivo de la sala— sirve para que funcionen, no para seguirlo.</li>
-            </ul>
-            <p>Por eso no verá en este sitio el cartel de aceptación de cookies: no hay nada que aceptar.</p>
-          </div></details>
+          <p>No para seguirle el rastro. No hay cookies publicitarias ni de terceros, y la analítica cuenta visitas de forma agregada, sin cookies. Si inicia sesión, su navegador guarda lo necesario para mantenerla abierta, y lo borra al cerrarla. Por eso no verá un cartel de cookies: no hay nada que aceptar.</p>
         </section>
 
-        <!-- 10 -->
+        <section class="q" id="p9">
+          <h2>¿Cuáles son sus derechos?</h2>
+          <p>Puede pedir <strong>acceso, rectificación, supresión, oposición y portabilidad</strong> de sus datos escribiendo a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a> desde el correo de su cuenta. Es gratis. Le acusamos recibo dentro de 2 días hábiles y le respondemos dentro del plazo legal.</p>
+          <p>Si su solicitud es sobre el padrón o los votos de una asamblea, la resuelve su administración: se la derivamos y se lo avisamos. Si rechazamos su solicitud o no le respondemos a tiempo, puede reclamar ante la Agencia de Protección de Datos Personales.</p>
+        </section>
+
         <section class="q" id="p10">
-          <h2>¿Cómo protegemos sus datos?</h2>
-          <p class="sum">Cifrado en el transporte, acceso restringido dato por dato, claves que nunca llegan al navegador y borrado automático.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <ul>
-              <li>Todo el tráfico va por <strong>HTTPS obligatorio</strong>. Nadie en la red puede leer lo que envía.</li>
-              <li>La base de datos <strong>deniega el acceso por omisión</strong>: cada consulta debe pasar por una función que verifica quién pregunta. Un participante no puede ver los datos de otro aunque manipule su navegador.</li>
-              <li>Las <strong>claves de administración nunca viajan al navegador</strong>. Lo que el sitio lleva es una clave pública, inútil por sí sola.</li>
-              <li>El <strong>borrado es automático</strong>, no depende de que alguien se acuerde.</li>
-              <li>Revisamos el código y las reglas de acceso de forma periódica.</li>
-            </ul>
-            <h3>El registro de accesos</h3>
-            <p>Por seguridad, llevamos un <strong>registro de accesos</strong> de lo que se hace en cada sala de votación y en cada consulta por escrito: identificarse con un RUT, pedir o usar un código para votar, votar, liberar un teléfono, cargar o leer el padrón, borrar la sala, ver o resolver las respuestas de una consulta. De cada acción queda <strong>qué fue, cuándo y desde qué dirección IP</strong> (de una dirección IPv6, solo su prefijo); si quien la hizo tenía sesión, el identificador interno de su cuenta; y, en la sala, una <strong>huella del RUT</strong> en lugar del RUT. <strong>Nunca el sentido del voto</strong>: el registro dice que alguien votó en un punto, no cómo.</p>
-            <p>Sirve para investigar una suplantación —«alguien se identificó con mi RUT», «yo no voté eso»— y para responder a un incidente de seguridad. La huella no muestra el RUT, pero sigue siendo un dato personal: con su RUT y la sala se puede calcular, y así encontramos sus eventos si usted nos lo pide. Nadie lo puede ver ni modificar desde el sitio, y <strong>se borra solo a los 90 días</strong>.</p>
-            <p>Ningún sistema es infalible y no vamos a decirle lo contrario. Lo que sí podemos comprometer es que, si algo ocurre, se lo diremos.</p>
-          </div></details>
-        </section>
-
-        <!-- 11 -->
-        <section class="q" id="p11">
-          <h2>¿Y si hay una filtración de datos?</h2>
-          <p class="sum">Le avisamos a usted y a la <strong>Agencia de Protección de Datos Personales</strong>, por el medio más rápido disponible y sin demoras.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>Tenemos un procedimiento escrito para incidentes de seguridad. Si una brecha puede afectarle, el aviso que reciba dirá, en lenguaje claro:</p>
-            <ol>
-              <li>Qué ocurrió y cuándo lo detectamos.</li>
-              <li>Qué datos suyos estuvieron involucrados.</li>
-              <li>Qué consecuencias pueden derivarse.</li>
-              <li>Qué hicimos para contenerlo.</li>
-              <li>Qué le recomendamos hacer a usted.</li>
-            </ol>
-            <p>Cada incidente queda registrado, se le informa también a la administración de su comunidad cuando afecta datos de una asamblea, y el registro queda disponible para la autoridad.</p>
-          </div></details>
-        </section>
-
-        <!-- 12 -->
-        <section class="q" id="p12">
-          <h2>¿Cuáles son sus derechos y cómo los ejerce?</h2>
-          <p class="sum">Acceso, rectificación, supresión, oposición y portabilidad. Un solo canal, gratuito: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a></p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <div class="tabla"><table>
-              <thead><tr><th>Derecho</th><th>Qué le permite pedir</th></tr></thead>
-              <tbody>
-                <tr><td><b>Acceso</b></td><td>Que le digamos qué datos suyos tenemos, de dónde salieron y para qué los usamos</td></tr>
-                <tr><td><b>Rectificación</b></td><td>Que corrijamos un dato equivocado o incompleto</td></tr>
-                <tr><td><b>Supresión</b></td><td>Que eliminemos sus datos cuando ya no sean necesarios o retire su consentimiento</td></tr>
-                <tr><td><b>Oposición</b></td><td>Que dejemos de tratarlos por motivos que le afecten en su situación particular</td></tr>
-                <tr><td><b>Portabilidad</b></td><td>Que le entreguemos sus datos en un formato que pueda llevarse a otro servicio</td></tr>
-              </tbody>
-            </table></div>
-
-            <h3>Cómo se pide</h3>
-            <ol>
-              <li>Escriba a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a> <strong>desde el correo registrado</strong>, indicando qué quiere. Si escribe desde otra casilla, le pediremos acreditar su identidad.</li>
-              <li>Le <strong>acusamos recibo dentro de 2 días hábiles</strong>.</li>
-              <li>Le respondemos dentro del plazo que fija la ley, y en todo caso <strong>lo antes posible</strong>. El trámite es gratuito.</li>
-              <li>Si no podemos acceder a lo que pide, le explicamos por qué y le indicamos cómo reclamar.</li>
-            </ol>
-
-            <p class="nota">Si su solicitud recae sobre el <strong>padrón o los votos de una asamblea</strong>, quien debe resolverla es la administración de su comunidad, que es el responsable de esos datos. Nosotros le derivamos la solicitud y se lo confirmamos por correo.</p>
-
-            <h3>Si no queda conforme</h3>
-            <p>Puede reclamar ante la <strong>Agencia de Protección de Datos Personales</strong>. Ejercer sus derechos no le cuesta nada ni le trae consecuencia alguna en el servicio.</p>
-          </div></details>
-        </section>
-
-        <!-- 13 -->
-        <section class="q" id="p13">
-          <h2>¿Pueden usarlo menores de edad?</h2>
-          <p class="sum">El servicio está dirigido a personas mayores de edad. No pedimos ni buscamos datos de niños, niñas o adolescentes.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>Un copropietario menor de edad actúa a través de su representante legal, que es quien figura en el padrón y quien vota.</p>
-            <p>Si detectamos que se cargaron datos de un menor por error, los eliminamos y avisamos a la administración que hizo la carga.</p>
-          </div></details>
-        </section>
-
-        <!-- 14 -->
-        <section class="q" id="p14">
           <h2>¿Qué pasa si cambia esta declaración?</h2>
-          <p class="sum">Publicamos la nueva versión en esta misma página, con su fecha. Si el cambio es importante, se lo avisamos por correo antes de que entre en vigencia.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det">
-            <p>Nunca aplicaremos con efecto retroactivo un cambio que amplíe el uso de datos que ya recogimos, sin pedirle antes su consentimiento.</p>
-            <h3>Historial de versiones</h3>
-            <div class="tabla"><table>
-              <thead><tr><th>Versión</th><th>Fecha</th><th>Qué cambió</th></tr></thead>
-              <tbody>
-                <tr><td><b>11</b></td><td>22 de octubre de 2026</td><td>La cuenta se crea con nombre, correo y clave, y se entra con la clave: se quita la mención a entrar con Google, que no está habilitado, y se precisa qué correos envía el proveedor de correo. No cambia qué datos tratamos ni para qué.</td></tr>
-                <tr><td><b>10</b></td><td>20 de octubre de 2026</td><td>Redacción más concreta del plazo de la votación en vivo: el padrón y los votos se borran del servidor a más tardar a las 48 horas. Se detallan los correos operativos que enviamos, incluido el aviso de que su prueba fue aprobada, y se aclara que las cuentas del condominio no se guardan en su cuenta aunque se abran con ella. No cambia qué datos tratamos ni para qué.</td></tr>
-                <tr><td><b>9</b></td><td>18 de octubre de 2026</td><td>Se declara la <b>solicitud de prueba</b>: mientras el acceso sea por solicitud, quien la envía desde su panel deja su nombre, teléfono, condominio, comuna, rol y número de unidades, que se usan solo para revisarla, activar la prueba y acompañarlo.</td></tr>
-                <tr><td><b>8</b></td><td>7 de octubre de 2026</td><td>El pago pasa a ser un <b>mes de servicio para un condominio</b>: con la compra se guarda el nombre del condominio y las fechas del mes, en su cuenta. El navegador ya no guarda la llave de un pago.</td></tr>
-                <tr><td><b>7</b></td><td>28 de septiembre de 2026</td><td>Se declara el <b>registro de accesos</b> por seguridad: qué se hizo en una sala de votación o consulta por escrito, cuándo, desde qué IP y, en la sala, una huella del RUT en lugar del RUT —nunca el sentido del voto—. Sirve para investigar suplantaciones y responder a incidentes, y se borra a los <b>90 días</b>. Para votar en la sala, el copropietario confirma que es él con un <b>código de un solo uso</b> que llega a su correo del padrón o que le da la Mesa. En la consulta por escrito se comprueba la <b>firma DKIM</b> de cada respuesta.</td></tr>
-                <tr><td><b>6</b></td><td>22 de septiembre de 2026</td><td>Se declara la <b>copia del borrador en el navegador</b> y que se borra al cerrar sesión. Se fijan los <b>plazos de conservación</b>: 365 días para un borrador sin finalizar, 180 días para el contenido de un acta finalizada y 180 días para la consulta por escrito, contados desde que vence su plazo para responder. Se describe el <b>registro de emisión</b> que permite verificar un acta en /verificar, y el <b>identificador de dispositivo</b> que ata el RUT al teléfono durante la votación en vivo.</td></tr>
-                <tr><td><b>5</b></td><td>4 de septiembre de 2026</td><td>Se identifica al <b>responsable</b> con su razón social, RUT y domicilio, al quedar constituida la sociedad. Se agregan las <b>cuentas del condominio</b>, la herramienta gratuita para llevar los gastos comunes, dejando dicho que esos datos <b>no salen del navegador</b>: no hay copia en nuestros servidores ni en su cuenta, y el respaldo lo guarda usted.</td></tr>
-                <tr><td><b>4</b></td><td>27 de agosto de 2026</td><td>Revisión jurídica externa de los textos publicados. Se precisa que el acta se descarga a su equipo pero el <b>borrador vive en su cuenta</b>, que el padrón y los votos se eliminan al cerrar la sala, y que la consulta por escrito puede requerir reducción a escritura pública.</td></tr>
-                <tr><td><b>3</b></td><td>20 de agosto de 2026</td><td>El acta pasa a <b>guardarse siempre</b> en la cuenta, porque es el producto que se cobra. Se detalla qué contiene, quién accede, cuánto dura y cómo se borra, y se explicita que frente al padrón la comunidad es responsable y nosotros encargados.</td></tr>
-                <tr><td><b>2</b></td><td>19 de agosto de 2026</td><td>Se agrega la opción de <b>guardar el acta en la cuenta</b>, apagada por omisión. Se detalla qué se guarda, quién accede, cuánto dura y cómo borrarla. La cuenta pasa a ser necesaria para usar el servicio, salvo para los copropietarios que votan.</td></tr>
-                <tr><td><b>1</b></td><td>17 de agosto de 2026</td><td>Primera versión de la declaración. Reemplaza el aviso de privacidad anterior, con el mismo contenido reorganizado en preguntas y con más detalle sobre plazos de conservación, proveedores y transferencia internacional.</td></tr>
-              </tbody>
-            </table></div>
-          </div></details>
+          <p>Publicamos la nueva versión en esta página, con su fecha. Si el cambio es importante, se lo avisamos por correo antes de que rija.</p>
         </section>
 
-        <!-- 15 -->
-        <section class="q" id="p15">
-          <h2>Glosario</h2>
-          <p class="sum">Las palabras de la ley, en castellano corriente.</p>
-          <details class="mas"><summary><span class="cerrado">Ver el detalle</span><span class="abierto">Ocultar el detalle</span></summary>
-          <div class="det glos">
-            <dl>
-              <dt>Dato personal</dt>
-              <dd>Cualquier información que permita identificarlo, directa o indirectamente: su nombre, su RUT, su correo, su unidad.</dd>
-              <dt>Titular</dt>
-              <dd>Usted: la persona a quien se refieren los datos.</dd>
-              <dt>Tratamiento</dt>
-              <dd>Cualquier cosa que se haga con un dato: recogerlo, guardarlo, mostrarlo, enviarlo, borrarlo.</dd>
-              <dt>Responsable</dt>
-              <dd>Quien decide para qué y cómo se tratan los datos. Aquí somos nosotros para su cuenta, y su administración para los datos de la asamblea.</dd>
-              <dt>Encargado</dt>
-              <dd>Quien trata datos por cuenta de un responsable, siguiendo sus instrucciones y sin poder usarlos para fines propios.</dd>
-              <dt>Base de licitud</dt>
-              <dd>El motivo legal que permite tratar un dato: un contrato, una obligación legal, su consentimiento o un interés legítimo.</dd>
-              <dt>Brecha de seguridad</dt>
-              <dd>Un incidente que expone, altera o destruye datos sin autorización.</dd>
-              <dt>Transferencia internacional</dt>
-              <dd>Que los datos se alojen o procesen en servidores fuera de Chile.</dd>
-              <dt>Huella</dt>
-              <dd>Un resumen matemático de un documento (SHA-256): si cambia una sola letra, la huella cambia. Permite comprobar que un documento es el que se emitió sin tener que guardar el documento.</dd>
-              <dt>Padrón</dt>
-              <dd>La lista de copropietarios con su unidad y su porcentaje de derechos, que la administración carga para la asamblea.</dd>
-            </dl>
-          </div></details>
-        </section>
-
-      </div>
-
-      <div class="sinres" id="q-vacio">
-        <b>No encontramos esa palabra</b>
-        <span>Pruebe con otra, o <a href="#" id="q-todo">vuelva a ver todas las preguntas</a>. Si su duda no está aquí, escríbanos: <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>.</span>
       </div>
 
       <div class="contacto">
         <h2>¿Le quedó una duda?</h2>
-        <p>Escríbanos y le respondemos una persona, no un formulario. Es el mismo canal para ejercer cualquiera de sus derechos.</p>
+        <p>Escríbanos y le responde una persona. Es el mismo canal para ejercer sus derechos.</p>
         <a class="bt" href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>
         <small>Vea también los <a href="/terminos">términos del servicio</a>.</small>
       </div>
