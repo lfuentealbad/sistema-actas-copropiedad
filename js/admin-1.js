@@ -112,6 +112,64 @@
       pintarCuentas();
       $('a-hora').textContent = 'Datos al ' + new Date().toLocaleString('es-CL', { day:'2-digit', month:'long', hour:'2-digit', minute:'2-digit' }) + '.';
     });
+    // Aparte: si esta lectura falla, el resto del panel igual se ve.
+    c.rpc('admin_tareas').then(function(r){
+      if(!r || r.error){ pintarTareas(null); return; }
+      pintarTareas(r.data || []);
+    });
+  }
+
+  // Tareas automaticas (paso 30, 25-10-2026). Son las purgas de pg_cron que
+  // cumplen los plazos de la privacidad; las que se esperan van aqui, para
+  // notar tambien si una desaparece.
+  var TAREAS = {
+    vv_purga_datos:    'Salas de votación: borra el padrón y los votos antes de las 48 horas',
+    vv_purga_extra:    'Registro de accesos a los 90 días, códigos vencidos y métricas antiguas',
+    ac_purga_actas:    'Actas: borradores sin uso por 365 días y contenido de las finalizadas a los 180 días',
+    'purga-consultas': 'Consultas por escrito: 180 días después de su plazo'
+  };
+
+  function cadaCuanto(f){
+    var m = /^\*\/(\d+) \* \* \* \*$/.exec(f || '');
+    if(m) return 'cada ' + m[1] + ' minutos';
+    if(/^\d+ \d+ \* \* \*$/.test(f || '')) return 'cada día';
+    return esc(f);
+  }
+  function fechaHora(v){
+    var d = new Date(v);
+    return !v || isNaN(d) ? 'nunca' : d.toLocaleString('es-CL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function pintarTareas(lista){
+    var aviso = $('a-tareas-aviso');
+    if(!lista){
+      $('a-tareas').innerHTML = '<tr><td colspan="4" class="vacio">No pudimos leer el estado de las tareas. Recargue la página.</td></tr>';
+      aviso.hidden = true;
+      return;
+    }
+    var vistas = {}, problemas = 0;
+    var filas = lista.map(function(t){
+      vistas[t.nombre] = true;
+      var estado;
+      if(!t.activa) estado = '<span class="et-esp">Desactivada</span>';
+      else if(t.fallas_7 > 0) estado = '<span class="et-esp">Falló ' + num(t.fallas_7) + (t.fallas_7 == 1 ? ' vez' : ' veces') + ' en 7 días</span>' +
+        (t.ultimo_error ? '<span class="err">' + esc(t.ultimo_error) + '</span>' : '');
+      else if(t.atrasada) estado = '<span class="et-esp">Atrasada: no corre desde ' + esc(fechaHora(t.ultima)) + '</span>';
+      else estado = '<span class="et-ok">Bien</span>';
+      if(!t.activa || t.fallas_7 > 0 || t.atrasada) problemas++;
+      return '<tr><td>' + esc(TAREAS[t.nombre] || t.nombre) + '<span class="sec">' + esc(t.nombre) + '</span></td>' +
+        '<td>' + cadaCuanto(t.frecuencia) + '</td><td>' + esc(fechaHora(t.ultima)) + '</td><td>' + estado + '</td></tr>';
+    });
+    Object.keys(TAREAS).forEach(function(n){
+      if(vistas[n]) return;
+      problemas++;
+      filas.push('<tr><td>' + esc(TAREAS[n]) + '<span class="sec">' + esc(n) + '</span></td><td>—</td><td>—</td>' +
+        '<td><span class="et-esp">No existe: hay que volver a programarla</span></td></tr>');
+    });
+    $('a-tareas').innerHTML = filas.join('') || '<tr><td colspan="4" class="vacio">No hay tareas programadas.</td></tr>';
+    aviso.hidden = problemas === 0;
+    aviso.innerHTML = problemas === 0 ? '' : '<p><strong>' + (problemas === 1 ? 'Una tarea automática necesita' : num(problemas) + ' tareas automáticas necesitan') +
+      ' revisión.</strong> Mientras no corra, los datos no se borran en el plazo que promete la privacidad. <a href="#s-tareas">Ver cuál</a>.</p>';
   }
 
   function cifra(et, n, d, alerta, enlace){
