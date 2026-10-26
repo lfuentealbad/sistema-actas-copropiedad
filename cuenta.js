@@ -1240,8 +1240,12 @@
       recuperarClave(correo, function (err) {
         if (err) { aviso(err); return; }
         // aviso() escribe con innerHTML: el correo va escapado, como en el
-        // resto del panel.
-        aviso('Le enviamos un enlace a <b>' + esc(correo) + '</b> para poner una clave nueva.', 'ok');
+        // resto del panel. Supabase responde igual exista o no la cuenta
+        // (para no revelar que correos estan registrados), asi que el aviso
+        // no puede afirmar que el correo salio (25-10-2026: el dueno lo
+        // pidio con un correo sin cuenta y espero un enlace que no iba a
+        // llegar).
+        aviso('Si <b>' + esc(correo) + '</b> tiene una cuenta, le llegará en unos minutos un enlace para poner una clave nueva. Revise también la carpeta de spam.', 'ok');
       });
     });
 
