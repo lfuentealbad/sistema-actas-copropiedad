@@ -533,9 +533,25 @@
   Cuenta.usuario(function(u){
     if(!u){
       $('v-entrar').hidden = false;
-      Cuenta.abrirCajon({ alEntrar: function(){ location.reload(); } });
+      // 26-10-2026: un enlace de recuperacion abierto en otro navegador que
+      // el que lo pidio (PKCE), o vencido, llega aqui sin sesion. No es
+      // alguien nuevo: el cajon abre en «Entrar» y dice como seguir. Se
+      // quita de la direccion el ?code= o el error del enlace: al recargar,
+      // supabase-js intentaria canjearlo otra vez y, al fallar, cerraria la
+      // sesion recien abierta.
+      var deEnlace = /[?&](recuperar=1|code=|error_code=)/.test(location.search) || /error_code=/.test(location.hash);
+      var opciones = { alEntrar: function(){ location.href = deEnlace ? '/cuenta?recuperar=1' : '/cuenta'; } };
+      if(deEnlace){
+        try { history.replaceState(null, '', location.pathname); } catch(e){}
+        opciones.modo = 'entrar';
+        opciones.titulo = 'Recupere su clave';
+        opciones.sub = 'El enlace no se pudo usar en este navegador o ya venció. Escriba su correo y presione «¿Olvidó su clave?»: le enviaremos un código para entrar aquí mismo.';
+      } else {
+        opciones.alEntrar = function(){ location.reload(); };
+      }
+      Cuenta.abrirCajon(opciones);
       $('cta-abre').addEventListener('click', function(){
-        Cuenta.abrirCajon({ alEntrar: function(){ location.reload(); } });
+        Cuenta.abrirCajon({ alEntrar: opciones.alEntrar });
       });
       return;
     }

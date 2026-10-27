@@ -739,6 +739,9 @@
     }, function () { cb('No pudimos entrar. Revise su conexión.'); });
   }
 
+  // El enlace por correo para poner una clave nueva. Desde el 26-10-2026 el
+  // cajon ya no lo usa: «¿Olvidó su clave?» manda un codigo (ver cta-olvide),
+  // porque el enlace, con PKCE, solo sirve en el navegador donde se pidio.
   function recuperarClave(correo, cb) {
     if (!correoValido(correo)) { cb('Escriba su correo para enviarle el enlace.'); return; }
     var c = cliente();
@@ -1141,6 +1144,7 @@
     var pendiente = null;    // correo esperando su codigo
     var tipoCodigo = 'email';  // 'email' al entrar, 'signup' al confirmar
     var esAlta = false;        // el codigo viene de crear la cuenta sin clave
+    var paraRecuperar = false; // el codigo viene de «¿Olvidó su clave?»
     var tituloPropio = !!o.titulo;   // lo puso quien abrio el panel
 
     function aviso(t, clase) {
@@ -1233,19 +1237,23 @@
     });
 
     // ---- recuperar la clave
+    // 26-10-2026: con un codigo, no con un enlace. El enlace usa PKCE y solo
+    // sirve en el navegador donde se pidio: abierto en el telefono, o desde
+    // la app de Gmail, no entraba, y el panel recibia a la persona con
+    // «Crear cuenta». El codigo se escribe aqui mismo, se lea el correo
+    // donde se lea. Entrar con el deja poner la clave nueva sin la actual
+    // (correoRecienProbado) y el panel lleva a ese campo (?recuperar=1).
+    // Como pedirCodigo responde igual exista o no la cuenta, el texto del
+    // paso siguiente es condicional.
     $('cta-olvide').addEventListener('click', function (ev) {
       ev.preventDefault();
       var correo = $('cta-correo').value.trim().toLowerCase();
-      aviso('');
-      recuperarClave(correo, function (err) {
+      if (!correoValido(correo)) { aviso('Escriba su correo y le enviamos un código para entrar.'); $('cta-correo').focus(); return; }
+      aviso('Enviando…', 'ok');
+      pedirCodigo(correo, function (err) {
         if (err) { aviso(err); return; }
-        // aviso() escribe con innerHTML: el correo va escapado, como en el
-        // resto del panel. Supabase responde igual exista o no la cuenta
-        // (para no revelar que correos estan registrados), asi que el aviso
-        // no puede afirmar que el correo salio (25-10-2026: el dueno lo
-        // pidio con un correo sin cuenta y espero un enlace que no iba a
-        // llegar).
-        aviso('Si <b>' + esc(correo) + '</b> tiene una cuenta, le llegará en unos minutos un enlace para poner una clave nueva. Revise también la carpeta de spam.', 'ok');
+        aviso('');
+        irAlCodigo(correo, 'recuperar');
       });
     });
 
@@ -1254,11 +1262,15 @@
     function irAlCodigo(correo, tipo) {
       pendiente = correo;
       esAlta = tipo === 'alta';
-      // Una cuenta creada con código se verifica como cualquier código de
-      // entrada (tipo 'email' en Supabase).
-      tipoCodigo = esAlta ? 'email' : tipo;
+      paraRecuperar = tipo === 'recuperar';
+      // Una cuenta creada con código, o que recupera la clave, se verifica
+      // como cualquier código de entrada (tipo 'email' en Supabase).
+      tipoCodigo = esAlta || paraRecuperar ? 'email' : tipo;
       $('cta-dest').textContent = correo;
-      $('cta-instr').innerHTML = esAlta
+      $('cta-instr').innerHTML = paraRecuperar
+        ? 'Si <b>' + esc(correo) + '</b> tiene una cuenta, le enviamos un código. Escríbalo aquí y entrará a su panel para poner una clave nueva. ' +
+          'Sirve aunque abra el correo en otro equipo. Si no aparece, revise el spam.'
+        : esAlta
         ? 'Le enviamos un código a <b>' + esc(correo) + '</b>. Búsquelo en su correo y escríbalo aquí para entrar. Si no aparece, revise el spam.'
         : tipo === 'signup'
         ? 'Su cuenta quedó creada. Para activarla, escriba el código que enviamos a <b>' + esc(correo) + '</b>. Si no aparece, revise el spam.'
@@ -1266,10 +1278,10 @@
         // cuenta, y este texto no puede desmentirlo.
         : 'Si <b>' + esc(correo) + '</b> tiene una cuenta, le enviamos un código. Búsquelo en su correo y escríbalo aquí. ' +
           'Si no aparece, revise el spam. Si todavía no tiene cuenta, vuelva y regístrese.';
-      $('cta-tit').textContent = tipo === 'signup' ? 'Confirme su correo' : 'Escriba su código';
+      $('cta-tit').textContent = tipo === 'signup' ? 'Confirme su correo' : paraRecuperar ? 'Recupere su clave' : 'Escriba su código';
       if (esAlta) $('cta-tit').textContent = 'Escriba su código';
       $('cta-subt').style.display = 'none';
-      $('cta-verificar').textContent = tipo === 'signup' ? 'Confirmar y entrar' : 'Entrar';
+      $('cta-verificar').textContent = tipo === 'signup' ? 'Confirmar y entrar' : paraRecuperar ? 'Entrar y poner una clave nueva' : 'Entrar';
       $('cta-form').style.display = 'none';
       $('cta-alt').style.display = 'none';
       $('cta-codigo-paso').style.display = 'block';
@@ -1283,13 +1295,17 @@
       verificarCodigo(pendiente, $('cta-codigo').value, function (err) {
         ocupado(btn, false);
         if (err) { aviso(err); return; }
+        // Quien recupera la clave va directo a ponerla, venga de la pagina
+        // que venga: es lo que vino a hacer. La direccion va limpia, sin un
+        // ?code= de un enlace viejo que supabase-js intentaria canjear.
+        if (paraRecuperar) { recordarQueEntro(); global.location.href = '/cuenta?recuperar=1'; return; }
         usuario(listo);
       }, tipoCodigo);
     });
 
     $('cta-otro').addEventListener('click', function (ev) {
       ev.preventDefault();
-      pendiente = null; aviso('');
+      pendiente = null; paraRecuperar = false; aviso('');
       $('cta-codigo-paso').style.display = 'none';
       $('cta-form').style.display = 'block';
       $('cta-alt').style.display = 'block';
