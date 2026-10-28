@@ -407,12 +407,12 @@ function importarPadron(input){
       const cero=nuevo.filter(p=>!p.der).length, malR=nuevo.filter(p=>p.rut&&!validarRut(p.rut)).length;
       let msg='✓ Importados '+nuevo.length+' copropietarios.';
       if(omit) msg+='\nSe omitieron '+omit+' filas sin RUT ni nombre.';
-      if(!hayColDer) msg+='\n⚠ No encontré la columna de % de derechos: todos quedaron en 0%. Revisa el encabezado.';
-      else if(cero) msg+='\n⚠ '+cero+' quedaron con 0% de derechos, revísalos.';
+      if(!hayColDer) msg+='\n⚠ No encontré la columna de % de derechos: todos quedaron en 0%. Revise el encabezado.';
+      else if(cero) msg+='\n⚠ '+cero+' quedaron con 0% de derechos: revíselos.';
       if(malR) msg+='\n⚠ '+malR+' RUT con formato inválido (marcados en rojo).';
-      msg+='\n\nRevisa la tabla y pulsa "Guardar padrón".';
+      msg+='\n\nRevise la tabla y presione "Guardar padrón".';
       alert(msg);
-    }catch(err){ alert('No pude leer el archivo. Guárdalo como CSV (UTF-8) o Excel .xlsx e intenta de nuevo.'); }
+    }catch(err){ alert('No pude leer el archivo. Guárdelo como CSV (UTF-8) o Excel .xlsx e intente de nuevo.'); }
     input.value='';
   };
   if(esCSV) rd.readAsText(f,'UTF-8'); else rd.readAsArrayBuffer(f);
@@ -435,7 +435,7 @@ async function guardarPadron(btn){
     const r=await persistirPadronDB(filas);
     padronDirty=false; ok.textContent='✓ Padrón guardado ('+r.n+').'+textoDescartadas(r.descartadas); persistMesa();
     if(r.descartadas.length) alert(textoDescartadas(r.descartadas).trim());
-  }catch(e){ ok.textContent=''; alert('No se pudo guardar el padrón. Revisa tu conexión e intenta de nuevo.'); }
+  }catch(e){ ok.textContent=''; alert('No se pudo guardar el padrón. Revise su conexión e intente de nuevo.'); }
   finally{ setBusy(btn,false); }
 }
 
@@ -455,7 +455,7 @@ function renderPuntos(){
     c.appendChild(d);
   });
 }
-function quitarPunto(i){ if(puntos[i].key===puntoActivo && votacionAbierta){ alert('No puedes quitar un punto mientras está en votación. Ciérralo primero.'); return; } if(!confirm('¿Quitar el punto "'+puntos[i].titulo+'"?')) return; puntos.splice(i,1); renderPuntos(); persistMesa(); }
+function quitarPunto(i){ if(puntos[i].key===puntoActivo && votacionAbierta){ alert('No puede quitar un punto mientras está en votación. Ciérrelo primero.'); return; } if(!confirm('¿Quitar el punto "'+puntos[i].titulo+'"?')) return; puntos.splice(i,1); renderPuntos(); persistMesa(); }
 async function abrirPunto(key,btn){
   if(padronDirty){ await autoGuardarPadron(); }
   if(padronDirty){ alert('Hay RUT inválidos o unidades repetidas en el padrón. Corrígelos antes de abrir la votación.'); return; }
@@ -466,7 +466,7 @@ async function abrirPunto(key,btn){
     if(error) throw error;
     puntoActivo=key; votacionAbierta=true;
     renderPuntos(); mostrarVotacionMesa(); await cargarVotos(); persistMesa();
-  }catch(e){ votacionAbierta=false; alert('No se pudo abrir la votación. Revisa tu conexión.'); }
+  }catch(e){ votacionAbierta=false; alert('No se pudo abrir la votación. Revise su conexión.'); }
   finally{ setBusy(btn,false); }
 }
 async function cerrarPunto(btn){
@@ -670,11 +670,11 @@ function initVotar(){
 async function unirse(btn){
   const code=$('v-codigo').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   const err=$('v-cod-error'); err.classList.add('hidden');
-  if(code.length<4){ err.classList.remove('hidden'); err.textContent='Escribe el código que muestra la Mesa (ej: ABC123).'; return; }
+  if(code.length<4){ err.classList.remove('hidden'); err.textContent='Escriba el código que muestra la Mesa (ej.: ABC123).'; return; }
   setBusy(btn,true,'Entrando…');
   try{
     const { data }=await sb.rpc('vv_estado',{p_codigo:code});
-    if(!data||!data.existe){ err.classList.remove('hidden'); err.textContent='No encontramos la asamblea '+code+'. Verifica el código con la Mesa o vuelve a escanear el QR.'; return; }
+    if(!data||!data.existe){ err.classList.remove('hidden'); err.textContent='No encontramos la asamblea '+code+'. Verifique el código con la Mesa o vuelva a escanear el QR.'; return; }
     asambleaP={codigo:code, titulo:data.titulo}; estado={isOpen:!!data.abierta, question:data.punto||''};
     $('votar-codigo').classList.add('hidden'); $('votar-id').classList.remove('hidden');
     const ri=$('rut-input'); if(ri) setTimeout(()=>{try{ri.focus();}catch(e){}},120);
@@ -686,7 +686,7 @@ async function unirse(btn){
     // identificador: el vinculo sigue siendo suyo y no tiene que ir a la Mesa.
     const g=leerVinculo(code);
     if(g && g.rut && ri){ ri.value=formatRut(g.rut); await identificar(); }
-  }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revisa tu internet e intenta de nuevo.'; }
+  }catch(e){ err.classList.remove('hidden'); err.textContent='No pudimos conectar. Revise su conexión a internet e intente de nuevo.'; }
   finally{ setBusy(btn,false); }
 }
 function onEstado(nuevo){
