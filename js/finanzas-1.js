@@ -12,10 +12,12 @@
  *  reglamento reparta de otra manera no puede usarla tal cual, y la pagina
  *  se lo tiene que decir.
  *
- *  Los datos viven en el navegador de quien administra (localStorage).
- *  No se suben: el respaldo lo baja y lo guarda la propia persona. Y como
- *  ese archivo pasa de mano en mano, el que se importa lo escribio otro: se
- *  revisa campo por campo antes de entrar (ver sanearEstado, en RESPALDOS).
+ *  Los datos viven en la cuenta de quien administra (tabla finanzas_cuentas,
+ *  paso 31, desde el 27-10-2026). El navegador guarda una copia de trabajo
+ *  mientras la sesion esta abierta y la suelta al cerrarla (ver EN LA
+ *  CUENTA). El respaldo sigue existiendo, y como ese archivo pasa de mano en
+ *  mano, el que se importa lo escribio otro: se revisa campo por campo antes
+ *  de entrar (ver sanearEstado, en RESPALDOS).
  *
  *  Sin manejadores en linea: los botones llevan data-ac= y los resuelve
  *  js/acciones.js. Toda funcion invocada desde el HTML tiene que ser
@@ -100,14 +102,203 @@ function cargar(){
 function guardar(){
   if(hayCofre()){
     if(!CofreFinanzas.abierto()) return Promise.resolve(false);
+    marcarPendiente();
+    programarSubida();
     return CofreFinanzas.guardar(JSON.stringify(estado)).then(()=>true, err=>{
       toast('No se pudo guardar en este navegador: ' + ((err && err.message) || 'error desconocido'), 'danger');
       return false;
     });
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+  marcarPendiente();
+  programarSubida();
   // Las primeras cuentas que se escriben cambian el aviso de arriba.
   pintarCofre();
+}
+
+/* ============ EN LA CUENTA (paso 31, 27-10-2026) ============
+ *  Pedido del dueno: las cuentas se guardan en la cuenta de cada usuario, no
+ *  en el navegador. La base tiene una fila por cuenta (finanzas_cuentas, con
+ *  RLS: cada uno ve y toca solo la suya). El navegador guarda una copia de
+ *  trabajo y dos marcas:
+ *    PENDIENTE_KEY  la copia tiene cambios que todavia no llegan a la base;
+ *    EN_CUENTA_KEY  el id de la cuenta a la que pertenece la copia.
+ *  Al abrir la pagina manda la base, salvo que la copia de esa misma cuenta
+ *  tenga cambios sin subir (sin red, o se cerro la pestana a medio guardar).
+ *  Al cerrar sesion, cuenta.js borra la copia (salvo cambios sin subir, que
+ *  pregunta). Una copia de antes del paso 31, de nadie, se ofrece subir.
+ */
+const PENDIENTE_KEY = 'actaviva_finanzas_pendiente';
+const EN_CUENTA_KEY = 'actaviva_finanzas_en_cuenta';
+const ESPERA_SUBIDA = 1200;
+let _uid = null;            // la cuenta con sesion; null sin sesion o sin red
+let _relojSubida = null;
+let _subiendo = null;       // la promesa de la subida en curso
+let _otraVez = false;       // hubo cambios mientras se subia
+let _avisoFalla = false;    // el aviso de que no se pudo subir, una sola vez
+let _subirAlAbrir = false;  // la copia protegida tiene algo que subir al abrirla
+
+function marcarPendiente(){
+  try{
+    localStorage.setItem(PENDIENTE_KEY, '1');
+    if(_uid) localStorage.setItem(EN_CUENTA_KEY, _uid);
+  }catch(e){}
+}
+function hayPendiente(){ try{ return localStorage.getItem(PENDIENTE_KEY) === '1'; }catch(e){ return false; } }
+function quitarPendiente(){ try{ localStorage.removeItem(PENDIENTE_KEY); }catch(e){} }
+function copiaDe(){ try{ return localStorage.getItem(EN_CUENTA_KEY); }catch(e){ return null; } }
+
+function clienteCuenta(){
+  return typeof Cuenta !== 'undefined' && Cuenta.cliente ? Cuenta.cliente() : null;
+}
+function usuarioActual(){
+  return new Promise(res => {
+    if(typeof Cuenta === 'undefined' || !Cuenta.usuario) return res(null);
+    try{ Cuenta.usuario(u => res(u && u.id ? u.id : null)); }catch(e){ res(null); }
+  });
+}
+
+// { ok:false } sin red o sin servicio; { ok:true, contenido } con lo que
+// tenga la cuenta (null si todavia no guardo nada).
+async function traerDeLaCuenta(){
+  const c = clienteCuenta();
+  if(!c || !_uid) return { ok:false };
+  try{
+    const r = await c.from('finanzas_cuentas').select('contenido').eq('dueno', _uid).maybeSingle();
+    if(r && r.error) return { ok:false };
+    return { ok:true, contenido: r && r.data ? r.data.contenido : null };
+  }catch(e){ return { ok:false }; }
+}
+
+function programarSubida(){
+  if(!_uid) return;
+  if(_relojSubida) clearTimeout(_relojSubida);
+  _relojSubida = setTimeout(subirALaCuenta, ESPERA_SUBIDA);
+}
+
+// Sube el estado entero. Si mientras viajaba hubo cambios, vuelve a subir;
+// si falla, la copia de trabajo queda PENDIENTE y se reintenta.
+function subirALaCuenta(){
+  if(!_uid) return Promise.resolve(false);
+  if(_subiendo){ _otraVez = true; return _subiendo; }
+  const c = clienteCuenta();
+  if(!c) return Promise.resolve(false);
+  if(_relojSubida){ clearTimeout(_relojSubida); _relojSubida = null; }
+  const foto = JSON.stringify(estado);
+  _subiendo = Promise.resolve(c.from('finanzas_cuentas')
+    .upsert({ dueno: _uid, contenido: JSON.parse(foto), actualizada: new Date().toISOString() }, { onConflict: 'dueno' }))
+    .then(r => {
+      if(r && r.error) throw r.error;
+      try{ localStorage.setItem(EN_CUENTA_KEY, _uid); }catch(e){}
+      if(foto === JSON.stringify(estado)) quitarPendiente();
+      _avisoFalla = false;
+      pintarCofre();
+      return true;
+    })
+    .catch(() => {
+      if(!_avisoFalla){
+        _avisoFalla = true;
+        toast('No se pudo guardar en su cuenta. Los cambios quedan en este equipo y se guardan solos al volver la conexión.', 'warning');
+      }
+      _relojSubida = setTimeout(subirALaCuenta, 30000);
+      pintarCofre();
+      return false;
+    })
+    .then(ok => {
+      _subiendo = null;
+      if(_otraVez){ _otraVez = false; return subirALaCuenta(); }
+      return ok;
+    });
+  return _subiendo;
+}
+
+// La copia de la cuenta pasa a ser la de trabajo.
+function adoptar(contenido){
+  const r = sanearEstado(contenido);
+  estado = r.estado;
+  if(hayCofre()){ try{ CofreFinanzas.olvidar(); }catch(e){} }
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+    localStorage.setItem(EN_CUENTA_KEY, _uid);
+  }catch(e){}
+  quitarPendiente();
+}
+
+function hayDatosEnEsteEquipo(){
+  if(hayCofre()) return true;
+  try{ const raw = localStorage.getItem(STORAGE_KEY); return !!raw && hayDatos(JSON.parse(raw)); }catch(e){ return false; }
+}
+
+function abrirLocal(){ if(hayCofre()){ mostrarCandado(); return; } cargar(); arrancar(); }
+function iniciarFinanzas(){
+  // Sin cuenta.js (no deberia pasar en el sitio) se abre al instante con la
+  // copia del equipo, como antes del paso 31.
+  if(typeof Cuenta === 'undefined' || !Cuenta.usuario){ abrirLocal(); return Promise.resolve(); }
+  return iniciarConCuenta();
+}
+async function iniciarConCuenta(){
+  _uid = await usuarioActual();
+  const local = abrirLocal;
+  if(!_uid){ local(); return; }
+  const nube = await traerDeLaCuenta();
+  const mia = copiaDe() === _uid;
+  // Sin red: se trabaja con la copia de este equipo; lo que se cambie queda
+  // PENDIENTE y se sube al volver la conexion. Una copia que no es de esta
+  // cuenta se muestra, pero no se ata a ella: al volver la red se pregunta.
+  if(!nube.ok){
+    if(!mia && hayDatosEnEsteEquipo()) _uid = null;
+    local();
+    return;
+  }
+  // Cambios de esta misma cuenta que no alcanzaron a subir: mandan ellos.
+  if(mia && hayPendiente() && hayDatosEnEsteEquipo()){
+    if(hayCofre()){ _subirAlAbrir = true; mostrarCandado(); return; }
+    cargar(); arrancar(); subirALaCuenta();
+    return;
+  }
+  if(nube.contenido){ adoptar(nube.contenido); arrancar(); return; }
+  // La cuenta no tiene cuentas del condominio todavia.
+  if(hayDatosEnEsteEquipo() && !mia){
+    // Una copia de antes del paso 31: puede ser de otra persona que uso
+    // este equipo, asi que se pregunta antes de subirla a esta cuenta.
+    const nombre = (() => { try{ return (JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}).config.condNombre || ''; }catch(e){ return ''; } })();
+    const subir = await confirmar({
+      titulo:'Cuentas guardadas en este equipo',
+      mensaje:'En este navegador hay cuentas del condominio' + (nombre ? ' «' + nombre + '»' : '') +
+        ' guardadas antes. ¿Las guarda en su cuenta? Así las encuentra en cualquier equipo donde entre.',
+      okText:'Guardarlas en mi cuenta', variant:'primary'
+    });
+    if(subir){
+      try{ localStorage.setItem(EN_CUENTA_KEY, _uid); }catch(e){}
+      marcarPendiente();
+      if(hayCofre()){ _subirAlAbrir = true; mostrarCandado(); return; }
+      cargar(); arrancar(); subirALaCuenta();
+      return;
+    }
+    // No son suyas: se empieza en blanco y la copia del equipo no se toca.
+    estado = JSON.parse(JSON.stringify(estadoInicial));
+    arrancar();
+    return;
+  }
+  if(mia){
+    // La copia era de esta cuenta, pero la cuenta ya no tiene nada: se
+    // borraron desde otro equipo. Manda la cuenta.
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    if(hayCofre()){ try{ CofreFinanzas.olvidar(); }catch(e){} }
+    quitarPendiente();
+    estado = JSON.parse(JSON.stringify(estadoInicial));
+  }
+  arrancar();
+}
+
+// Al volver la conexion o al esconder la pestana se sube lo que falte.
+if(typeof window !== 'undefined' && window.addEventListener){
+  window.addEventListener('online', () => { if(_uid && hayPendiente()) subirALaCuenta(); });
+}
+if(typeof document !== 'undefined' && document.addEventListener){
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'hidden' && _uid && hayPendiente()) subirALaCuenta();
+  });
 }
 
 /* ============ CONTRASENA DE ESTE EQUIPO (CN-003) ============
@@ -175,6 +366,8 @@ async function abrirCandado(){
     await guardar();
     toast('Se corrigieron datos guardados que no tenían un formato válido. Conviene revisar las cuentas.', 'warning');
   }
+  // Lo que estaba protegido en este equipo y no habia llegado a la cuenta.
+  if(_subirAlAbrir){ _subirAlAbrir = false; subirALaCuenta(); }
 }
 
 function olvideClave(){
@@ -307,6 +500,12 @@ function pintarCofre(){
     t = '<p class="muted" style="font-size:12.5px">Las cuentas están cifradas en este navegador. Sin la contraseña nadie puede abrirlas, ni usted ni nosotros: guarde el respaldo.</p>'
       + '<div class="btn-row"><button type="button" class="btn" data-ac="bloquearFinanzas">Bloquear ahora</button>'
       + '<button type="button" class="btn" data-ac="quitarClave">Quitar la contraseña</button></div>';
+  } else if(_uid){
+    // Paso 31: con sesion, las cuentas viven en la cuenta.
+    a = hayPendiente()
+      ? '<b>Guardando en su cuenta…</b> Si no hay conexión, los cambios quedan en este equipo y se guardan solos al volver.'
+      : 'Las cuentas se guardan en <b>su cuenta</b>: las encuentra en cualquier equipo donde entre. Al cerrar sesión, este navegador no conserva copia.';
+    t = '<p class="muted" style="font-size:12.5px">Se guardan en su cuenta cada vez que cambia algo, y las encuentra en cualquier equipo donde entre. Igual puede bajar un respaldo cuando quiera.</p>';
   } else if(hayDatos()){
     a = '<b>Estas cuentas quedan en este navegador sin contraseña:</b> cualquiera que use este equipo puede verlas. '
       + (puede ? '<button type="button" class="btn sm" data-ac="abrirProteger">Proteger con contraseña</button> ' : '')
@@ -2833,6 +3032,9 @@ async function importarRespaldo(){
     toast('No se pudo guardar en este navegador: '+err.message, 'danger');
     return;
   }
+  // Se espera a que llegue a la cuenta antes de recargar: si no, la pagina
+  // volveria a abrir con lo que la cuenta tenia antes del respaldo.
+  await subirALaCuenta();
   toast('Respaldo importado', 'success');
   location.reload();
 }
@@ -2851,7 +3053,20 @@ async function resetearTodo(){
     variant:'danger'
   });
   if(!ok2) return;
+  // Desde el paso 31 lo que vale esta en la cuenta: se borra ahi primero. Si
+  // no se pudo, no se toca nada, o la pagina volveria a traerlas.
+  const c = clienteCuenta();
+  if(_uid && c){
+    try{
+      const r = await c.from('finanzas_cuentas').delete().eq('dueno', _uid);
+      if(r && r.error) throw r.error;
+    }catch(err){
+      toast('No se pudieron borrar de su cuenta. Revise su conexión e intente de nuevo.', 'danger');
+      return;
+    }
+  }
   localStorage.removeItem(STORAGE_KEY);
+  quitarPendiente();
   if(hayCofre()){ await CofreFinanzas.esperar(); CofreFinanzas.olvidar(); }
   location.reload();
 }
@@ -3088,6 +3303,7 @@ async function cargarDemo(){
   estado.contadorFolio = 5500 + 9 * 30 + 18;
 
   await guardar();
+  await subirALaCuenta();
   toast('Datos demostrativos cargados — Edificio Cordillera de los Andes', 'success');
   setTimeout(()=>location.reload(), 800);
 }
@@ -3115,10 +3331,10 @@ function mostrarMasUnidades(n){
 
 /* ============ INIT ============ */
 document.addEventListener('DOMContentLoaded', function(){
-  // Protegidas con contrasena: no se pinta nada hasta abrir el candado.
-  if(hayCofre()){ mostrarCandado(); return; }
-  cargar();
-  arrancar();
+  // Primero se pregunta a la cuenta (ver EN LA CUENTA). Protegidas con
+  // contrasena y sin nada en la cuenta, no se pinta nada hasta abrir el
+  // candado.
+  return iniciarFinanzas();
 });
 function arrancar(){
   // Los filtros de cada seccion nacen en el mes activo: la cinta manda.

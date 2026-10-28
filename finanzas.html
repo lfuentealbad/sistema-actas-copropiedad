@@ -487,7 +487,7 @@
   .candado-panel h2{ margin-bottom:var(--sp-2); }
   .candado-panel input{ width:100%; }
   /* El mes de servicio (paso 17): sin mes vigente, la herramienta no se
-     muestra. Los datos siguen en este navegador; no se borra nada. */
+     muestra. Los datos siguen en la cuenta; no se borra nada. */
   html.fin-sin-mes .cinta, html.fin-sin-mes .app{ display:none; }
   .candado-panel p{ text-align:justify; hyphens:manual; }
   @media (max-width:700px){
@@ -525,7 +525,7 @@
 
 <aside class="aviso-datos" role="note">
   <span aria-hidden="true">&#128274;</span>
-  <span><span id="avisoDatosTexto">Las cuentas quedan en este navegador, no se suben a ninguna parte. Baje un respaldo cada cierto tiempo desde <b>Respaldo y datos</b>.</span> <a href="/privacidad">C&oacute;mo tratamos los datos</a>.</span>
+  <span><span id="avisoDatosTexto">Las cuentas se guardan en <b>su cuenta</b>: las encuentra en cualquier equipo donde entre.</span> <a href="/privacidad">C&oacute;mo tratamos los datos</a>.</span>
 </aside>
 
 
@@ -555,7 +555,7 @@
   <div class="candado-panel">
     <h2 id="finMesTitulo">Las cuentas van incluidas en su mes de servicio</h2>
     <p class="muted" id="finMesTexto">Para llevar las cuentas del condominio necesita un mes de servicio activo.</p>
-    <p class="muted" style="font-size:12.5px">Lo que ya anotó sigue guardado en este navegador: al activar el mes lo encuentra tal como lo dejó.</p>
+    <p class="muted" style="font-size:12.5px">Lo que ya anotó sigue guardado en su cuenta: al activar el mes lo encuentra tal como lo dejó.</p>
     <div class="btn-row" style="margin-top:12px">
       <a class="btn primary" id="finMesActivar" href="/cuenta?volver=%2Ffinanzas#s-mes">Activar el mes</a>
       <button type="button" class="btn" id="finMesEntrar" hidden>Entrar a mi cuenta</button>
@@ -962,7 +962,7 @@
       <div class="pane-head">
         <div>
           <h1>Respaldo y datos</h1>
-          <div class="desc">Los datos se almacenan localmente en este navegador. Es responsabilidad de la administración resguardar respaldos periódicos (art. 9 inc. 5 Ley 21.442).</div>
+          <div class="desc">Las cuentas se guardan en su cuenta cada vez que cambia algo. Conviene igual bajar un respaldo periódico (art. 9 inc. 5 Ley 21.442).</div>
         </div>
       </div>
       <div class="grid cols-2">
@@ -978,10 +978,9 @@
           <div class="btn-row" style="margin-top:8px"><button class="btn" data-ac="importarRespaldo">Importar</button></div>
         </div>
         <div class="card">
-          <h3>Contraseña de este equipo</h3>
+          <h3>Dónde se guardan</h3>
           <div id="cofreEstado">
-            <p class="muted" style="font-size:12.5px">En un equipo que usan otras personas, protéjalas: la copia de este navegador queda cifrada y la página pide la contraseña al abrirse.</p>
-            <div class="btn-row"><button type="button" class="btn" data-ac="abrirProteger">Proteger con contraseña</button></div>
+            <p class="muted" style="font-size:12.5px">Se guardan en su cuenta cada vez que cambia algo, y las encuentra en cualquier equipo donde entre. Igual puede bajar un respaldo cuando quiera.</p>
           </div>
         </div>
         <div class="card">
@@ -991,7 +990,7 @@
         </div>
         <div class="card">
           <h3>Reiniciar</h3>
-          <p class="muted" style="font-size:12.5px">Borra todos los datos del navegador. Esta acción no se puede deshacer.</p>
+          <p class="muted" style="font-size:12.5px">Borra todas las cuentas del condominio, de su cuenta y de este navegador. Esta acción no se puede deshacer.</p>
           <div class="btn-row"><button class="btn danger" data-ac="resetearTodo">Borrar todo</button></div>
         </div>
       </div>

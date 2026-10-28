@@ -165,9 +165,10 @@
   // trabajo: ver borradoresPendientes().
   var BORRADOR_ACTA = 'sistema_actas_v2';
   var BORRADOR_COMITE = 'acta_comite_borrador';
-  // Fuera a proposito: 'actaviva_finanzas_v1'. Las cuentas del condominio
-  // viven SOLO en este navegador, sin copia en el servidor; borrarlas al
-  // salir destruiria lo unico que hay. Y 'ac_ya_entro', que es un "1".
+  // Las cuentas del condominio van aparte (ver estadoFinanzas): desde el
+  // paso 31 viven en la cuenta y la copia del equipo se suelta al salir,
+  // salvo una de antes que nunca llego a la cuenta. Fuera a proposito
+  // 'ac_ya_entro', que es un "1".
 
   function almacen() {
     try { return global.localStorage || null; } catch (e) { return null; }
@@ -503,15 +504,42 @@
     'Cancelar: dejarlos en este navegador para retomarlos después. ' +
     'Cualquiera que use este equipo podrá verlos.';
 
-  // CN-003: las cuentas del condominio no se borran al salir (son la unica
-  // copia), pero sin contrasena quedan a la vista del que se siente despues.
-  // Se avisa antes de cerrar, y Cancelar deja la sesion como estaba.
+  // Las cuentas del condominio (paso 31, 27-10-2026). La copia del equipo:
+  //  'en_cuenta'  es de esta cuenta y esta al dia en ella: se borra al salir;
+  //  'pendiente'  tiene cambios que no llegaron a la cuenta: se pregunta;
+  //  'sin_subir'  es de antes del paso 31 y nunca llego a ninguna cuenta: es
+  //               la unica copia, no se borra (CN-003: sin contrasena se
+  //               avisa, y Cancelar deja la sesion como estaba);
+  //  'nada'.
   var FINANZAS = 'actaviva_finanzas_v1';
+  var FIN_CIFRADO = 'actaviva_finanzas_cifrado_v1';
+  var FIN_PENDIENTE = 'actaviva_finanzas_pendiente';
+  var FIN_EN_CUENTA = 'actaviva_finanzas_en_cuenta';
+  var AVISO_FIN_PENDIENTE =
+    'En este equipo quedaron cambios de las cuentas del condominio (Finanzas) que no alcanzaron a guardarse en su cuenta.\n\n' +
+    'Aceptar: borrarlos de este equipo y cerrar sesión.\n' +
+    'Cancelar: seguir con la sesión abierta y volver a Finanzas para que se guarden.';
+  function estadoFinanzas() {
+    var ls = almacen();
+    if (!ls) return 'nada';
+    var hay = false;
+    try { hay = !!ls.getItem(FIN_CIFRADO) || finanzasSinProteger(); } catch (e) { hay = false; }
+    if (!hay) return 'nada';
+    var deCuenta = false, pend = false;
+    try { deCuenta = !!ls.getItem(FIN_EN_CUENTA); pend = ls.getItem(FIN_PENDIENTE) === '1'; } catch (e) {}
+    if (!deCuenta) return 'sin_subir';
+    return pend ? 'pendiente' : 'en_cuenta';
+  }
+  function soltarFinanzas() {
+    var ls = almacen();
+    if (!ls) return;
+    [FINANZAS, FIN_CIFRADO, FIN_PENDIENTE, FIN_EN_CUENTA].forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
+  }
   var AVISO_FINANZAS =
     'En este equipo quedan las cuentas del condominio (Finanzas) sin contraseña: ' +
     'cualquiera que lo use puede verlas.\n\n' +
     'Aceptar: cerrar sesión igual.\n' +
-    'Cancelar: seguir con la sesión abierta, para protegerlas desde Finanzas → Respaldo y datos.';
+    'Cancelar: seguir con la sesión abierta y abrir Finanzas para guardarlas en su cuenta.';
   function finanzasSinProteger() {
     var ls = almacen();
     if (!ls) return false;
@@ -528,15 +556,19 @@
   function salir(cb) {
     var c = cliente();
     var fin = function () { if (cb) cb(); };
-    if (finanzasSinProteger()) {
+    var finanzas = estadoFinanzas();
+    var aviso = finanzas === 'pendiente' ? AVISO_FIN_PENDIENTE
+      : finanzas === 'sin_subir' && finanzasSinProteger() ? AVISO_FINANZAS : null;
+    if (aviso) {
       var seguir = true;
       var t1 = Date.now();
-      try { seguir = global.confirm(AVISO_FINANZAS); } catch (e) { seguir = true; }
+      try { seguir = global.confirm(aviso); } catch (e) { seguir = true; }
       // Igual que abajo: un dialogo que no se mostro no es un Cancelar, y un
       // aviso no puede impedir cerrar la sesion.
       if (!seguir && Date.now() - t1 < 50) seguir = true;
       if (!seguir) return;
     }
+    var soltar = finanzas === 'en_cuenta' || finanzas === 'pendiente';
     // La comparacion con la cuenta necesita la sesion: va antes de cerrarla.
     borradoresPendientes(c, function (pend) {
       var conservar = [];
@@ -553,7 +585,7 @@
       }
       // Se limpia DESPUES de cerrar: si mientras viajaba el cierre el asistente
       // alcanzo a autoguardar, eso tambien se va.
-      var cerrar = function () { borrarDelEquipo(conservar); fin(); };
+      var cerrar = function () { borrarDelEquipo(conservar); if (soltar) soltarFinanzas(); fin(); };
       if (!c) { cerrar(); return; }
       try {
         c.auth.signOut().then(function (r) {

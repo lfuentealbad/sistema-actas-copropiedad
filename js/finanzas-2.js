@@ -2,9 +2,9 @@ document.addEventListener("DOMContentLoaded",function(){
   if(!window.Cuenta) return;
   Cuenta.montarNav("nav-cuenta",{claro:true});
 
-  // El mes de servicio (paso 17, 07-10-2026). Las cuentas viven solo en
-  // este navegador, asi que aqui no hay base que diga que no: la puerta es
-  // de la pagina. Sin respuesta de la base (sin red) no se cierra nada.
+  // El mes de servicio (paso 17, 07-10-2026). La tabla de las cuentas
+  // (paso 31) solo pide que cada uno toque su fila: la puerta del mes es de
+  // la pagina. Sin respuesta de la base (sin red) no se cierra nada.
   var puerta=document.getElementById("fin-mes");
   if(!puerta || !Cuenta.pase || document.documentElement.classList.contains("vitrina")) return;
   function mostrar(texto, entrar){
