@@ -256,9 +256,9 @@
       return responder({ existe: true, titulo: s.titulo, abierta: s.abierta, punto: s.punto });
     },
 
-    // Identificarse ya no ata (CN-010): si el telefono ya es de este RUT
-    // entrega sus datos; si no, pide el codigo, y lo unico que dice de la
-    // persona es su correo enmascarado.
+    // Paso 33 (03-11-2026): el RUT basta. Si ningun telefono lo tiene,
+    // queda atado a este; si lo tiene otro, pide el codigo, y lo unico que
+    // dice de la persona es su correo enmascarado.
     // El limite de intentos por conexion ('demasiados_intentos') no se
     // simula: aqui todo corre en este navegador y no hay a quien frenar.
     vv_identificar: function (a) {
@@ -268,12 +268,15 @@
       var filas = filasDe(s, a.p_rut);
       if (!filas.length) return responder({ existe: false, motivo: 'rut' });
       var d = vinculoDe(filas);
-      if (d !== a.p_dispositivo) {
-        var correo = null;
-        filas.forEach(function (p) { if (!correo && p.correo) correo = p.correo; });
-        return responder({ existe: true, verificar: true, ocupado: !!d, correo: enmascarar(correo) });
+      var correo = null;
+      filas.forEach(function (p) { if (!correo && p.correo) correo = p.correo; });
+      if (d && d !== a.p_dispositivo) {
+        return responder({ existe: true, verificar: true, ocupado: true, correo: enmascarar(correo) });
       }
-      return responder(resumen(filas));
+      if (!d) filas.forEach(function (p) { p.dispositivo = a.p_dispositivo; });
+      var r = resumen(filas);
+      r.correo = enmascarar(correo);
+      return responder(r);
     },
 
     // La Mesa entrega un codigo en la sala a quien no tiene correo.

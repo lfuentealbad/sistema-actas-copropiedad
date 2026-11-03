@@ -7,7 +7,7 @@ Para usarlo se crea una cuenta en https://actascopropiedad.cl/cuenta con nombre,
 ## Herramientas
 
 - [Acta de asamblea](https://actascopropiedad.cl/acta): arma el acta de la asamblea de copropietarios, aplica los quórums y mayorías según la materia seleccionada y genera el documento con folio, listo para revisar y firmar.
-- Votación en vivo, dentro del acta: se proyecta un código QR; cada participante habilitado ingresa con su RUT y un código de un solo uso, y su voto se asocia al padrón cargado por la administración. Votan quienes figuran como hábiles en el padrón.
+- Votación en vivo, dentro del acta: se proyecta un código QR; cada participante habilitado ingresa con su RUT, su voto se asocia al padrón cargado por la administración y le llega como constancia a su correo. Votan quienes figuran como hábiles en el padrón.
 - [Consulta por escrito](https://actascopropiedad.cl/consulta/): acuerdos sin reunir a todos al mismo tiempo, según el artículo 15 de la Ley N° 21.442. Cada copropietario aprueba o rechaza desde su correo y el quórum se computa según sus derechos.
 - [Acta del comité](https://actascopropiedad.cl/acta-comite): deja por escrito lo que acordó el comité de administración, conforme al artículo 17 de la Ley N° 21.442.
 - [Cuentas del condominio](https://actascopropiedad.cl/finanzas): reparte los gastos comunes por alícuota, controla el fondo de reserva y emite la liquidación mensual.

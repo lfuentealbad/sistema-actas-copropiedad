@@ -758,10 +758,11 @@ async function identificar(btn){
         : 'No encontramos ese RUT. Revise que esté bien escrito (ej: 12.345.678-5) o consulte con la Mesa.');
       return;
     }
-    // CN-010 (28-09-2026): el RUT esta en el padron pero este telefono
-    // todavia no es suyo. Falta el codigo de 6 cifras. La respuesta no trae
-    // nada de la persona salvo su correo enmascarado; y si era el RUT que
-    // este telefono tenia guardado, se olvida, para no pedir codigo en cada
+    // Desde el paso 33 (03-11-2026) el RUT basta y la base ata este telefono
+    // en el acto. Solo pide verificar si OTRO telefono ya lo tiene: ahi
+    // falta el codigo de 6 cifras de la Mesa. La respuesta no trae nada de
+    // la persona salvo su correo enmascarado; y si era el RUT que este
+    // telefono tenia guardado, se olvida, para no pedir codigo en cada
     // recarga por un RUT que ya no es de aqui.
     if(data.verificar){
       if(data.ocupado){
@@ -775,10 +776,13 @@ async function identificar(btn){
   }catch(e){ fallo('No pudimos conectar. Revise su internet.'); }
   finally{ setBusy(btn,false); }
 }
-// Lo que pasa cuando el telefono ya es de este RUT: por un codigo recien
-// confirmado, o porque ya lo era (recargo la pagina).
+// Lo que pasa cuando el telefono ya es de este RUT: recien atado por el
+// RUT o por un codigo, o porque ya lo era (recargo la pagina).
 function entrarComoVotante(data, r, disp){
   const rut=typeof data.rut==='string'&&data.rut ? data.rut : r;
+  // El correo enmascarado del padron: lo trae vv_identificar y, si se entro
+  // con un codigo, la pantalla del codigo.
+  const correo=typeof data.correo==='string'&&data.correo ? data.correo : (verificando&&verificando.correo)||'';
   guardarVinculo(asambleaP.codigo, rut, disp);
   yo={rut:rut, nombre:String(data.nombre||''), unidad:String(data.unidad||''), habil:data.habil===true, der:Number(data.der)||0};
   verificando=null;
@@ -786,17 +790,19 @@ function entrarComoVotante(data, r, disp){
   // Con varias unidades la base las junta con ", " y suma sus derechos.
   $('v-nom').textContent=yo.nombre+(yo.unidad.indexOf(',')>=0?' · Unidades ':' · Unidad ')+yo.unidad;
   $('v-peso').textContent=yo.der.toFixed(2)+'%';
+  // Paso 33: a la vista y sin poder cambiarlo, a donde llega la constancia.
+  const vc=$('v-correo'); if(vc) vc.value=correo||'Sin correo en el padrón';
   aplicarHabilidad();
 }
 
 // ---------------------------------------------------------------------
 //  El codigo del votante (CN-010, 28-09-2026)
 // ---------------------------------------------------------------------
-// El RUT no es secreto: por eso un telefono queda atado a un RUT solo
-// despues de escribir un codigo de 6 cifras de un solo uso. Llega al correo
-// que el padron tiene para ese RUT (lo manda el servidor: esta pagina nunca
-// ve ni el codigo ni la direccion completa), o lo entrega la Mesa en la sala
-// a quien no tiene correo o no lo recibe, con el carnet a la vista.
+// Desde el paso 33 (03-11-2026), decision del dueno, el RUT basta para atar
+// un telefono libre. El codigo de 6 cifras de un solo uso queda para pasar
+// a este telefono un RUT que ya tiene otro: lo entrega la Mesa en la sala,
+// con el carnet a la vista, o llega al correo del padron (lo manda el
+// servidor: esta pagina nunca ve ni el codigo ni la direccion completa).
 let verificando=null;   // { rut, correo }
 function mostrarVerificacion(rut, data){
   verificando={ rut: rut, correo: typeof data.correo==='string' && data.correo ? data.correo : '' };

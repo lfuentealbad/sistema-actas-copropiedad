@@ -55,7 +55,7 @@ const VIGENCIA_LLAVE_DIAS = 60;
 // navegador declara haber aceptado y lo que queda guardado con cada orden.
 // Si se publican terminos nuevos, cambia aqui, en terminos.html y en el
 // TERMINOS_VERSION de cuenta.js: hay una prueba que no los deja separarse.
-const TERMINOS_VERSION = '2026-10-20';
+const TERMINOS_VERSION = '2026-11-03';
 
 // El sitio tiene un solo nombre. Las URL que se le entregan a Flow salen de
 // aqui y no de la peticion: asi da lo mismo por que nombre se entro y que

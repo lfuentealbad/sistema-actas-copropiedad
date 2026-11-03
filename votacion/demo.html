@@ -190,7 +190,7 @@
         </table>
         </div>
         <p class="hint" id="m-padron-sum">—</p>
-        <p class="hint">Para votar, cada copropietario confirma su identidad con un código de 6 cifras que le llega al correo del padrón. Si no tiene correo o no le llega, pulse <strong>Código</strong> en su fila, con su carnet a la vista, y dígale el código: vence en 15 minutos. Su teléfono queda vinculado a su RUT y nadie más puede votar con él. Si cambia de teléfono, con un código nuevo se cambia solo; también puede pulsar <strong>Liberar</strong>. Sus votos se conservan.
+        <p class="hint">Cada copropietario entra con su RUT y su teléfono queda vinculado a él: nadie más puede votar con ese RUT. Cada voto le llega como constancia al correo del padrón. Si cambia de teléfono, o si alguien entró antes con su RUT, pulse <strong>Código</strong> en su fila, con su carnet a la vista, y dígale el código (vence en 15 minutos); también puede pulsar <strong>Liberar</strong>. Sus votos se conservan.
           <button class="btn btn-ghost btn-sm" style="margin-left:6px" data-ac="actualizarVinculos" data-args="@">Actualizar teléfonos</button>
           <button class="btn btn-ghost btn-sm" style="margin-left:6px" data-ac="reiniciarIntentos" data-args="@" title="Si en la sala aparece «demasiados intentos», vuelve a cero los contadores de esta asamblea">Reiniciar intentos</button></p>
         <button class="btn btn-teal" style="margin-top:8px" data-ac="guardarPadron" data-args="@">Guardar padrón</button>
@@ -247,7 +247,7 @@
 
     <div class="card hidden" id="votar-id">
       <h2>Identifíquese</h2>
-      <p class="muted">Ingrese su RUT. Después le pediremos un código de 6 cifras, que le llega a su correo o que le entrega la Mesa: así nadie puede votar por usted. Su RUT quedará vinculado a este teléfono durante la asamblea.</p>
+      <p class="muted">Ingrese su RUT. Quedará vinculado a este teléfono durante la asamblea.</p>
       <div style="margin-top:12px"><label for="rut-input">RUT</label><input type="text" id="rut-input" placeholder="12.345.678-5" autocomplete="off"></div>
       <button class="btn btn-teal" style="margin-top:12px;width:100%" data-ac="identificar" data-args="@">Continuar</button>
       <div id="rut-error" class="hidden" role="alert" style="color:var(--err);font-size:13.5px;margin-top:10px"></div>
@@ -270,6 +270,10 @@
       <div class="vote-id">
         <div class="nom" id="v-nom">—</div>
         <div class="peso">Su voto representa el <b id="v-peso">—</b> de los derechos del condominio.</div>
+        <!-- Paso 33 (03-11-2026): sin codigo, el correo a la vista avisa a
+             donde llegara la constancia de cada voto. -->
+        <div style="margin-top:12px"><label for="v-correo">Correo electrónico</label><input type="text" id="v-correo" readonly aria-readonly="true" aria-describedby="v-correo-nota" value="—" style="background:var(--bg);color:var(--tx2);cursor:default"></div>
+        <p class="muted" id="v-correo-nota" style="font-size:12.5px;margin:6px 0 0">Solo la Mesa puede modificar el correo electrónico según lo cargado en el padrón.</p>
       </div>
       <div id="v-wait" class="status"><div class="big" id="v-q">—</div><div id="v-wait-sub">Esperando que la Mesa abra la votación…</div></div>
       <div id="v-choices" class="hidden">
