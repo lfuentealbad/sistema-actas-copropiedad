@@ -201,8 +201,6 @@ materias: [
 var d = info[tipo];
 if (!d) {
   tip.innerHTML = '';
-  var sinTemas = document.getElementById('materias-sugeridas');
-  if (sinTemas) { sinTemas.innerHTML = ''; sinTemas.hidden = true; }
   return;
 }
 var letters = 'abcdefghijklmnopqrstuvwxyz';
@@ -228,24 +226,16 @@ materiasHTML += '<div class="mat-actions-row">';
 materiasHTML += '<span class="mat-count" id="mat-count-label">0 tema(s) seleccionado(s)</span>';
 materiasHTML += '<button class="btn btn-add-temas" data-ac="agregarTemasATabla">Agregar temas seleccionados a la tabla \u2192</button>';
 materiasHTML += '</div>';
-// Los temas van en el paso 4, donde se arma la tabla (07-10-2026). En el
-// paso 1, junto a los datos del condominio, eran tres pantallas de casillas
-// antes de poder seguir. Aqu\u00ed quedan los qu\u00f3rum y el aviso del notario, que
-// hay que saber antes de citar.
-var destinoTemas = document.getElementById('materias-sugeridas');
+// Los temas se eligen en el paso 1, con el tipo de asamblea (03-11-2026,
+// decision del dueno): la asamblea se cita con sus materias definidas. Del
+// 07-10 al 03-11-2026 estuvieron en el paso 4, junto a la tabla.
 var bloqueTemas = '<b>Materias propias de esta sesi\u00f3n:</b> marque las que se tratar\u00e1n y agr\u00e9guelas a la tabla.' + materiasHTML;
 tip.innerHTML =
 '<strong>' + d.titulo + '</strong><br><br>' +
 '<b>Qu\u00f3rum de constituci\u00f3n:</b> ' + d.qConst + '<br>' +
 '<b>Qu\u00f3rum de acuerdos:</b> ' + d.qAcuerdo +
-(destinoTemas
-  ? '<br><br>Los temas de esta asamblea se eligen en el <b>paso 4</b>, al armar la tabla.'
-  : '<br><br>' + bloqueTemas) +
+'<br><br>' + bloqueTemas +
 '<div class="aviso-fe" id="aviso-fe-notario" hidden></div>';
-if (destinoTemas) {
-  destinoTemas.innerHTML = '<strong>' + d.titulo + '</strong><br><br>' + bloqueTemas;
-  destinoTemas.hidden = false;
-}
 revisarAvisoNotario();
 }
 // Modificar el reglamento exige notario aunque la sesion sea de mayoria
@@ -384,7 +374,7 @@ cb.checked = false;
 li.classList.remove('checked');
 });
 updateMatCount();
-showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' agregado' + (n > 1 ? 's' : '') + ' a la tabla, aquí abajo.');
+showMatToast('✓ ' + n + ' tema' + (n > 1 ? 's' : '') + ' agregado' + (n > 1 ? 's' : '') + ' a la tabla del paso 4.');
 }
 function checkPlazo() {
 const fechaCit = document.getElementById('fecha-citacion').value;

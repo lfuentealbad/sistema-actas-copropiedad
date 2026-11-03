@@ -1738,10 +1738,11 @@
     margin-top: 1px;
   }
   .materias-list li .mat-text { flex: 1; }
-  /* En el telefono la lista vive en el paso 4, dentro de la tarjeta: con los
-     rellenos de escritorio el texto justificado quedaba en 119 px a 320. */
+  /* En el telefono la lista vive en la ficha del tipo de asamblea (paso 1):
+     con los rellenos de escritorio el texto justificado quedaba en 119 px a
+     320. */
   @media (max-width: 480px) {
-    #materias-sugeridas { padding: 12px 12px 12px 14px; }
+    #quorum-tip { padding: 12px 12px 12px 14px; }
     .materias-list li { gap: 8px; padding: 8px 4px; }
   }
   .mat-custom-row {
@@ -2488,10 +2489,6 @@
   <div class="card">
     <h2 class="card-title">Desarrollo de la Tabla</h2>
     <div class="card-desc">Registre cada punto de la tabla con su presentación, debate y resultado de votación.</div>
-
-    <!-- Las materias que la ley reserva a este tipo de asamblea, para agregarlas
-         a la tabla con un clic. Vivían en el paso 1; las llena updateTipoAsamblea. -->
-    <div class="tip" id="materias-sugeridas" style="margin-bottom:18px" hidden></div>
     <div id="puntos-container"></div>
     <div id="puntos-empty-state" class="empty-state">
       <span class="empty-state-icon" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></span>

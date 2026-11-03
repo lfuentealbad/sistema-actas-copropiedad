@@ -217,9 +217,11 @@
     else n = Math.floor(Math.random() * 1000000);
     return ('000000' + n).slice(-6);
   }
+  // Como vv_correo_enmascarado (paso 35): hasta 4 letras, al menos 2 ocultas.
   function enmascarar(correo) {
     if (!correo || correo.indexOf('@') < 0) return null;
-    return correo.charAt(0) + '•••@' + correo.split('@')[1];
+    var local = correo.split('@')[0];
+    return local.slice(0, Math.min(4, Math.max(1, local.length - 2))) + '•••@' + correo.split('@')[1];
   }
   // Los codigos vigentes de la sala: rut -> [{ clave, disp, vence, intentos }].
   // Como en la base: 10 minutos el del correo (atado al telefono que lo
