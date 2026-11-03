@@ -423,6 +423,10 @@ async function sesionDe(request, env) {
 // sola vez por solicitud (marca en KV). Si el correo no esta configurado,
 // la solicitud igual queda en la base: el dueno la ve con
 //   select * from public.solicitudes_prueba where estado = 'pendiente';
+//
+// Paso 32 (03-11-2026): la base aprueba sola la mayoria de las solicitudes.
+// Entonces el aviso al dueno dice que se activo (para revisarla o revocarla)
+// y la persona recibe el mismo correo de bienvenida que al aprobar a mano.
 async function avisoPrueba(request, env) {
   const s = await sesionDe(request, env);
   if (s.estado !== 'ok') return sinSesion(s);
@@ -440,7 +444,18 @@ async function avisoPrueba(request, env) {
   } catch (e) {
     return json({ ok: false }, 502);
   }
-  if (!d || d.estado !== 'pendiente' || !UUID.test(String(d.id || ''))) return json({ ok: true, enviado: false });
+  const automatica = !!d && d.estado === 'aprobada' && d.automatica === true;
+  if (!d || (d.estado !== 'pendiente' && !automatica) || !UUID.test(String(d.id || ''))) return json({ ok: true, enviado: false });
+  // La bienvenida va al correo de la propia cuenta, el que la base guardo
+  // para esta solicitud, y una sola vez, como la de la aprobacion a mano.
+  if (automatica) {
+    const marcaB = 'aviso-aprobada:' + d.id;
+    if (!(env.PAGOS && await env.PAGOS.get(marcaB))) {
+      const b = await enviarCorreo(env, { para: d.correo, asunto: 'actaviva: su prueba está activa', texto: textoPruebaActiva(d.nombre, d.condominio) });
+      if (b.ok && env.PAGOS) await env.PAGOS.put(marcaB, '1', { expirationTtl: 60 * 60 * 24 * 30 });
+      if (!b.ok) console.log('prueba', 'bienvenida no enviada', paraLog(b.motivo || '', 60));
+    }
+  }
   const marca = 'aviso-prueba:' + d.id;
   if (env.PAGOS && await env.PAGOS.get(marca)) return json({ ok: true, enviado: false });
   const limpio = v => sinEnlaces(String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ')).slice(0, 200);
@@ -448,7 +463,7 @@ async function avisoPrueba(request, env) {
   // solicitud se borra con la cuenta, y una copia en la casilla del dueno
   // sobreviviria a ese borrado. Esos datos se ven en el panel de revision.
   const texto = [
-    'Llegó una solicitud de prueba a actaviva.',
+    automatica ? 'Se activó sola una prueba en actaviva.' : 'Llegó una solicitud de prueba a actaviva.',
     '',
     'Condominio: ' + limpio(d.condominio),
     'Comuna: ' + limpio(d.comuna),
@@ -456,10 +471,12 @@ async function avisoPrueba(request, env) {
     'Unidades: ' + limpio(d.unidades),
     '',
     // Paso 20: se aprueba o rechaza desde el panel de la cuenta revisora.
-    'Para aprobarla o rechazarla, entre a su panel:',
+    // Paso 32: ahi mismo se revoca una que se activo sola.
+    automatica ? 'Para revisarla o revocarla, entre a su panel:' : 'Para aprobarla o rechazarla, entre a su panel:',
     ORIGEN + '/cuenta#s-mes'
   ].join('\n');
-  const envio = await enviarCorreo(env, { para: env.CORREO_FALLBACK, asunto: 'actaviva: solicitud de prueba', texto });
+  const envio = await enviarCorreo(env, { para: env.CORREO_FALLBACK,
+    asunto: automatica ? 'actaviva: prueba activada' : 'actaviva: solicitud de prueba', texto });
   if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
   if (!envio.ok) console.log('prueba', 'aviso no enviado', paraLog(envio.motivo || '', 60));
   return json({ ok: true, enviado: !!envio.ok });
@@ -497,12 +514,23 @@ async function avisoAprobada(request, env) {
   if (!x) return json({ ok: true, enviado: false });
   const marca = 'aviso-aprobada:' + id;
   if (env.PAGOS && await env.PAGOS.get(marca)) return json({ ok: true, enviado: false });
+  const texto = textoPruebaActiva(x.nombre, x.condominio);
+  const envio = await enviarCorreo(env, { para: x.correo, asunto: 'actaviva: su prueba fue aprobada', texto });
+  if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
+  if (!envio.ok) console.log('prueba', 'aviso de aprobacion no enviado', paraLog(envio.motivo || '', 60));
+  return json({ ok: true, enviado: !!envio.ok });
+}
+
+// La bienvenida de una prueba activa: la usan la aprobacion a mano y la
+// automatica (paso 32). Lleva el nombre de pila, porque va a la propia
+// persona.
+function textoPruebaActiva(nombreCompleto, condominio) {
   const limpio = v => sinEnlaces(String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ')).slice(0, 200);
-  const nombre = limpio(x.nombre).split(' ')[0];
-  const texto = [
+  const nombre = limpio(nombreCompleto).split(' ')[0];
+  return [
     (nombre ? 'Hola, ' + nombre + ':' : 'Hola:'),
     '',
-    'Aprobamos su solicitud de prueba en actaviva. Su cuenta tiene un mes completo de servicio para «' + limpio(x.condominio) + '», con todas las herramientas: el acta de asamblea con folio, la votación en vivo, la consulta por escrito, el acta del comité y las cuentas del condominio.',
+    'Su prueba en actaviva está activa. Su cuenta tiene un mes completo de servicio para «' + limpio(condominio) + '», con todas las herramientas: el acta de asamblea con folio, la votación en vivo, la consulta por escrito, el acta del comité y las cuentas del condominio.',
     '',
     'Entre a su panel para empezar. En «Mi servicio» verá hasta qué día está vigente el mes:',
     ORIGEN + '/cuenta',
@@ -512,10 +540,6 @@ async function avisoAprobada(request, env) {
     '—',
     'actaviva · actascopropiedad.cl'
   ].join('\n');
-  const envio = await enviarCorreo(env, { para: x.correo, asunto: 'actaviva: su prueba fue aprobada', texto });
-  if (envio.ok && env.PAGOS) await env.PAGOS.put(marca, '1', { expirationTtl: 60 * 60 * 24 * 30 });
-  if (!envio.ok) console.log('prueba', 'aviso de aprobacion no enviado', paraLog(envio.motivo || '', 60));
-  return json({ ok: true, enviado: !!envio.ok });
 }
 
 function sinSesion(s) {

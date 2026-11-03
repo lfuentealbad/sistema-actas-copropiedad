@@ -99,12 +99,12 @@
         if(SECCIONES_BLOQ.indexOf(id) < 0 || a.classList.contains('bloq')) return;
         a.classList.add('bloq');
         a.setAttribute('aria-disabled', 'true');
-        a.setAttribute('title', 'Se habilita cuando aprobemos su prueba');
+        a.setAttribute('title', 'Se habilita cuando active su prueba');
         a.insertAdjacentHTML('beforeend', SVG_CANDADO);
         a.addEventListener('click', avisarBloq);
       });
       $('p-bloq').hidden = false;
-      if(pie) pie.textContent = 'Para empezar, solicite su prueba. Cuando la aprobemos, se habilitan todas las secciones.';
+      if(pie) pie.textContent = 'Para empezar, active su prueba en «Mi servicio»: al hacerlo se habilitan todas las secciones.';
     }
     function abrir(){
       if(abierto) return;
@@ -146,7 +146,7 @@
       if(tit) tit.textContent = e.condominios.length ? 'Activar un mes para otro condominio, o renovar' : 'Activar un mes';
       if(!e.condominios.length){
         host.innerHTML = enVitrina()
-          ? vacio('Todavía no tiene un mes de servicio', 'Cuando aprobemos su solicitud de prueba, el mes aparecerá aquí, con el condominio y la fecha en que termina.')
+          ? vacio('Todavía no tiene un mes de servicio', 'Cuando active su prueba, el mes aparecerá aquí, con el condominio y la fecha en que termina.')
           : vacio('Todavía no ha activado ningún mes', 'Escriba el condominio aquí abajo y active el mes: desde ese momento tiene todas las herramientas para ese condominio.');
         return;
       }
@@ -157,7 +157,9 @@
 
   // -------------------------------------------------------------------
   //  Prueba por solicitud (paso 19, 18-10-2026). Solo en vitrina: mientras
-  //  el sitio no vende, el acceso se da a quien lo pide y el dueno aprueba.
+  //  el sitio no vende, el acceso se da a quien lo pide. Desde el paso 32
+  //  (03-11-2026) la base la aprueba en el acto si cumple sus condiciones;
+  //  si no, queda pendiente y la revisa el dueno, como antes.
   // -------------------------------------------------------------------
   var MOTIVOS_PRUEBA = {
     nombre_invalido: 'Escriba su nombre.',
@@ -186,10 +188,13 @@
       var s = (r && !r.error && r.data) || {};
       if(s.estado === 'pendiente'){
         est.innerHTML = '<div class="nota">Recibimos su solicitud para <b>' + esc(s.condominio) + '</b> el ' +
-          esc(Cuenta.pase.fecha(s.creada_en)) + '. La revisaremos y lo contactaremos.</div>';
+          esc(Cuenta.pase.fecha(s.creada_en)) + '. Esta necesita una revisión: la haremos pronto y lo contactaremos.</div>';
         form.hidden = true;
       } else if(s.estado === 'aprobada'){
-        est.innerHTML = '<div class="nota">Su prueba para <b>' + esc(s.condominio) + '</b> fue aprobada: el mes aparece más arriba y ya puede usar todas las secciones del panel.</div>';
+        est.innerHTML = '<div class="nota">Su prueba para <b>' + esc(s.condominio) + '</b> está activa: el mes aparece más arriba y ya puede usar todas las secciones del panel.</div>';
+        form.hidden = true;
+      } else if(s.estado === 'revocada'){
+        est.innerHTML = '<div class="nota">Terminamos la prueba para <b>' + esc(s.condominio) + '</b>. Si cree que es un error, escríbanos a <a href="mailto:contacto@actascopropiedad.cl">contacto@actascopropiedad.cl</a>.</div>';
         form.hidden = true;
       } else if(s.estado === 'rechazada'){
         est.innerHTML = '<div class="nota">No pudimos aprobar su solicitud anterior. Puede enviar otra.</div>';
@@ -211,10 +216,10 @@
     if(datos.p_comuna.length < 2) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.comuna_invalida, true);
     if(!(datos.p_unidades >= 1 && datos.p_unidades <= 20000)) return mesMsg('p-prueba-msg', MOTIVOS_PRUEBA.unidades_invalidas, true);
     var btn = $('p-pr-enviar');
-    btn.disabled = true; btn.textContent = 'Enviando…';
+    btn.disabled = true; btn.textContent = 'Activando…';
     mesMsg('p-prueba-msg', '');
     Cuenta.cliente().rpc('solicitar_prueba', datos).then(function(r){
-      btn.disabled = false; btn.textContent = 'Enviar solicitud';
+      btn.disabled = false; btn.textContent = 'Activar la prueba';
       if(r.error){
         var m = String(r.error.message || '');
         var k = Object.keys(MOTIVOS_PRUEBA).filter(function(x){ return m.indexOf(x) >= 0; })[0];
@@ -224,10 +229,17 @@
       // El estado de la solicitud ya lo dice la nota que pinta pintarPrueba:
       // repetirlo abajo era ruido (20-10-2026).
       mesMsg('p-prueba-msg', '');
-      // Aviso al dueno por correo. Si falla, la solicitud igual quedo guardada.
+      // Aviso al dueno por correo (y, si se activo sola, la bienvenida a la
+      // persona). Si falla, la solicitud igual quedo guardada.
       Cuenta.tokenDeAcceso().then(function(t){
         if(t) fetch('/api/prueba/aviso', { method: 'POST', headers: { authorization: 'Bearer ' + t } }).catch(function(){});
       });
+      // Paso 32: si se activo en el acto, el mes y las secciones aparecen
+      // sin recargar.
+      if(r.data && r.data.estado === 'aprobada'){
+        candado();
+        pintarMeses();
+      }
       pintarPrueba();
     });
   }
@@ -332,16 +344,59 @@
       }
       var pend = r.data.pendientes || [], hechas = r.data.resueltas || [];
       $('p-rev-lista').innerHTML = pend.length ? lista(pend.map(filaSolicitud).join('')) :
-        '<div class="vacio"><b>No hay solicitudes pendientes</b>Cuando alguien pida una prueba, aparecerá aquí.</div>';
+        '<div class="vacio"><b>No hay solicitudes pendientes</b>Aquí llegan las que necesitan su revisión. Las que se activan solas aparecen abajo, en «Resueltas».</div>';
+      // Paso 32: las que se activaron solas van abiertas, para verlas de un
+      // vistazo y revocarlas si algo no calza.
+      var hayAuto = hechas.some(function(x){ return x.automatica && x.estado === 'aprobada'; });
       $('p-rev-hechas').innerHTML = hechas.length ?
-        '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:14px;color:var(--tx2)">Resueltas (' + hechas.length + ')</summary>' +
-        lista(hechas.map(function(x){
-          return '<div class="it"><div class="info"><b>' + esc(x.condominio) +
-            (x.estado === 'aprobada' ? '<span class="pill ok">APROBADA</span>' : '<span class="pill n">RECHAZADA</span>') +
-            '</b><span>' + esc(x.nombre) + ' · ' + esc(x.correo) + ' · ' + esc(fecha(x.resuelta_en)) + '</span></div></div>';
-        }).join('')) + '</details>' : '';
+        '<details style="margin-top:14px"' + (hayAuto ? ' open' : '') + '><summary style="cursor:pointer;font-size:14px;color:var(--tx2)">Resueltas (' + hechas.length + ')</summary>' +
+        lista(hechas.map(filaResuelta).join('')) + '</details>' : '';
       var botones = $('p-rev-lista').querySelectorAll('button[data-sol]');
       for(var i = 0; i < botones.length; i++) botones[i].addEventListener('click', resolverSolicitud);
+      var revocar = $('p-rev-hechas').querySelectorAll('button[data-revocar]');
+      for(var j = 0; j < revocar.length; j++) revocar[j].addEventListener('click', revocarPrueba);
+    });
+  }
+
+  function contacto(x){
+    var tel = String(x.telefono || '').replace(/[^0-9+]/g, '');
+    var wsp = tel.replace(/^\+/, '');
+    return '<a href="mailto:' + esc(x.correo) + '">' + esc(x.correo) + '</a>' +
+      (x.telefono ? ' · <a href="tel:' + esc(tel) + '">' + esc(x.telefono) + '</a>' : '') +
+      (wsp.length >= 8 ? ' · <a href="https://wa.me/' + esc(wsp) + '" target="_blank" rel="noopener">WhatsApp</a>' : '');
+  }
+
+  function filaResuelta(x){
+    var pill = x.estado === 'aprobada' ? '<span class="pill ok">' + (x.automatica ? 'ACTIVADA SOLA' : 'APROBADA') + '</span>'
+      : x.estado === 'revocada' ? '<span class="pill n">REVOCADA</span>'
+      : '<span class="pill n">RECHAZADA</span>';
+    var extra = x.comuna ? ' <span style="font-weight:400;color:var(--tx2)">· ' + esc(x.comuna) + '</span>' : '';
+    var detalle = x.rol ? esc(ROLES_PRUEBA[x.rol] || x.rol) + ' · ' + esc(x.unidades) + ' unidades · ' : '';
+    var correos = x.estado === 'aprobada' ? '<br>Correos de la sala enviados: ' + esc(x.correos_usados || 0) : '';
+    return '<div class="it"><div class="info"><b>' + esc(x.condominio) + extra + pill + '</b>' +
+      '<span>' + esc(x.nombre) + ' · ' + detalle + esc(fecha(x.resuelta_en)) + '<br>' + contacto(x) + correos + '</span></div>' +
+      (x.estado === 'aprobada'
+        ? '<div class="acc"><button type="button" class="btn btn-s btn-sm" data-revocar="' + esc(x.id) + '">Revocar</button></div>'
+        : '') + '</div>';
+  }
+
+  // Paso 32: revocar una prueba aprobada. Corta el mes en el acto y sus
+  // salas dejan de mandar correos. La base exige revisor y segundo factor.
+  function revocarPrueba(ev){
+    var b = ev.currentTarget;
+    var fila = b.closest('.it'), condo = fila ? fila.querySelector('b').firstChild.textContent.trim() : '';
+    if(!window.confirm('¿Revocar la prueba de ' + condo + '? Su mes termina ahora y sus salas de votación dejan de mandar correos. No se puede deshacer.')) return;
+    b.disabled = true;
+    mesMsg('p-rev-msg', '');
+    Cuenta.cliente().rpc('revocar_prueba', { p_id: b.getAttribute('data-revocar') }).then(function(r){
+      if(r.error){
+        var m = String(r.error.message || '');
+        if(/segundo_factor/.test(m)) return pintarRevision();
+        mesMsg('p-rev-msg', /no_aprobada/.test(m) ? 'Esa prueba ya no estaba activa.' : 'No se pudo revocar. Intente de nuevo.', true);
+      } else {
+        mesMsg('p-rev-msg', 'Revocada: ' + condo + '.');
+      }
+      cargarRevision();
     });
   }
 

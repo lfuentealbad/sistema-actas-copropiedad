@@ -826,7 +826,7 @@ async function pedirCodigoCorreo(btn){
     const d=await r.json().catch(()=>({}));
     if(r.ok && d.enviado){
       $('verif-msg').textContent='Listo: le enviamos el código a '+(d.correo||verificando.correo)+'. Vence en '+(d.minutos||10)+' minutos. Revise también la carpeta de spam.';
-    }else if(d.motivo==='correo_no_configurado' || d.motivo==='sin_correo'){
+    }else if(d.motivo==='correo_no_configurado' || d.motivo==='sin_correo' || d.motivo==='tope_prueba'){
       errorVerif('Esta asamblea no puede enviar códigos por correo. Pida su código a la Mesa, con su carnet.');
     }else if(d.motivo==='demasiados_codigos' || r.status===429){
       errorVerif('Ya se enviaron varios códigos. Espere unos minutos, revise su correo (también spam) o pida el código a la Mesa.');
