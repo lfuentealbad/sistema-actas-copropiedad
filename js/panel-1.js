@@ -144,6 +144,12 @@
       }
       var tit = $('p-activar-tit');
       if(tit) tit.textContent = e.condominios.length ? 'Activar un mes para otro condominio, o renovar' : 'Activar un mes';
+      // Paso 34: la cuenta del dueno usa todo, sin mes y sin pedir prueba.
+      if(e.total){
+        host.innerHTML = vacio('Acceso total', 'Su cuenta usa todas las herramientas, para cualquier condominio, sin necesidad de un mes de servicio.');
+        var pr = $('p-prueba'); if(pr) pr.hidden = true;
+        return;
+      }
       if(!e.condominios.length){
         host.innerHTML = enVitrina()
           ? vacio('Todavía no tiene un mes de servicio', 'Cuando active su prueba, el mes aparecerá aquí, con el condominio y la fecha en que termina.')

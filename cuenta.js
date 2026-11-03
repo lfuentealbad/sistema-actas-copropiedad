@@ -211,6 +211,7 @@
   //   estado.activo        hay al menos un mes vigente
   //   estado.condominios   [{condominio, clave, activo, hasta, ultimo, corregir}]
   //   estado.vigentes      los activos
+  //   estado.total         la cuenta del dueno (paso 34): todo, sin mes
   function estadoPase(cb) {
     var c = cliente();
     if (!c || typeof c.rpc !== 'function') { cb(null); return; }
@@ -220,20 +221,24 @@
         return x && typeof x.condominio === 'string';
       }) : [];
       var vigentes = lista.filter(function (x) { return x.activo === true; });
+      var total = r.data.total === true;
       var ls = almacen();
       try {
-        var hasta = vigentes.map(function (x) { return String(x.hasta || ''); }).sort().pop();
+        var hasta = total ? '2100-01-01T00:00:00Z' : vigentes.map(function (x) { return String(x.hasta || ''); }).sort().pop();
         if (ls && hasta) ls.setItem(PASE_EN_EQUIPO, JSON.stringify({ hasta: hasta }));
         else if (ls) ls.removeItem(PASE_EN_EQUIPO);
       } catch (e) {}
-      cb({ activo: r.data.activo === true && vigentes.length > 0, condominios: lista, vigentes: vigentes });
+      cb({ activo: total || (r.data.activo === true && vigentes.length > 0), total: total,
+           condominios: lista, vigentes: vigentes });
     }, function () { cb(null); });
   }
 
-  // El mes vigente que cubre a ese condominio, o null.
+  // El mes vigente que cubre a ese condominio, o null. Con acceso total
+  // (paso 34), cualquier condominio esta cubierto.
   function paseDe(estado, condominio) {
     var k = claveCondominio(condominio);
     if (!estado || !k) return null;
+    if (estado.total) return { condominio: String(condominio).trim(), clave: k, activo: true, total: true };
     for (var i = 0; i < estado.vigentes.length; i++) {
       if (estado.vigentes[i].clave === k) return estado.vigentes[i];
     }

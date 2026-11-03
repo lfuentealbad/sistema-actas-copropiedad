@@ -4097,7 +4097,8 @@ function _avisoCondominio() {
   if (!caja || !campo || !_pase || !_pase.activo || !window.Cuenta || !Cuenta.pase) { if (caja) caja.hidden = true; return; }
   var nombre = campo.value.trim();
   var nombres = _pase.vigentes.map(function (x) { return x.condominio; });
-  if (_actaFolio || (nombre && Cuenta.pase.de(_pase, nombre))) { caja.hidden = true; caja.textContent = ''; return; }
+  // Con acceso total (paso 34) no hay mes que avisar.
+  if (_actaFolio || _pase.total || (nombre && Cuenta.pase.de(_pase, nombre))) { caja.hidden = true; caja.textContent = ''; return; }
   caja.textContent = '';
   var p = document.createElement('div');
   if (!nombre) {
