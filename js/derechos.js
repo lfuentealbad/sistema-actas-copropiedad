@@ -120,26 +120,37 @@
   // -------------------------------------------------------------------
   //  La regla legal
   // -------------------------------------------------------------------
-  //  Art. 15 de la Ley N° 21.442: el voto de cada copropietario es
-  //  proporcional a los derechos de su unidad en los bienes de dominio
-  //  común. Cambia la BASE según el tipo de asamblea.
+  //  Cuadro del art. 15 de la Ley N° 21.442. La ordinaria acuerda por
+  //  «mayoría absoluta de los asistentes»; las extraordinarias, por
+  //  derechos del condominio. Cambian la BASE y lo que se cuenta.
   //
   //  Mayoría absoluta es MÁS DE LA MITAD, no "51 %": el 50+1 solo
-  //  coincide con 51 cuando la base son 100 unidades enteras, y aquí la
-  //  base son derechos con decimales.
+  //  coincide con 51 cuando la base son 100 unidades enteras.
   var REGLAS = {
-    // Asamblea ordinaria: mayoría absoluta de los derechos PRESENTES y
-    // hábiles. La comparación va multiplicada por dos para no partir la
-    // base y quedarse otra vez con un decimal a medias.
+    // Asamblea ordinaria: mayoría absoluta de los ASISTENTES hábiles,
+    // contados por persona y no por derechos. El cuadro dice «de los
+    // asistentes» en la ordinaria y «de derechos» en las extraordinarias,
+    // y la guía del MINVU lo lee igual («50% + 1 de los que asisten»).
+    // Decisión del dueño, 03-11-2026; hasta entonces se contaban derechos.
+    //
+    // Uno por copropietario, no por unidad: «Cada copropietario tendrá
+    // solo un voto» (art. 15), y quien tiene varias unidades es un solo
+    // copropietario (arts. 13 y 14 del Reglamento, D.S. N° 7). Quien llama
+    // agrupa con claveCopropietario() y pasa `personas` y `personasFavor`.
     presentes: {
-      base: function (ctx) { return ctx.presentes || 0; },
-      alcanza: function (favor, base) { return favor * 2 > base; },
-      umbral: function (base) { return { num: base, den: 2 * ESCALA }; },
-      describeBase: function (base, personas) {
-        return 'Base: ' + texto(base) + ' % de derechos hábiles presentes ('
-          + personas + ' asistente' + (personas === 1 ? '' : 's') + ')';
+      porPersonas: true,
+      base: function (ctx) { return ctx.personas || 0; },
+      alcanza: function (favor, base, ctx) { return (ctx.personasFavor || 0) * 2 > base; },
+      umbral: function (base) { return { votos: Math.floor(base / 2) + 1 }; },
+      describeBase: function (base, personas, ctx) {
+        return 'Base: ' + base + ' asistente' + (base === 1 ? '' : 's') + ' hábil'
+          + (base === 1 ? '' : 'es') + ', un voto por copropietario ('
+          + texto(ctx.presentes || 0) + ' % de los derechos)';
       },
-      describeUmbral: function (t) { return 'Mayoría absoluta: más de ' + t + ' % a favor'; }
+      describeUmbral: function (t) {
+        return 'Mayoría absoluta de los asistentes: al menos ' + t + ' voto'
+          + (t === '1' ? '' : 's') + ' a favor';
+      }
     },
 
     // Extraordinaria de mayoría absoluta: más del 50 % de los derechos
@@ -169,8 +180,11 @@
   //    regla:        'presentes' | 'absoluta' | 'reforzada',
   //    favor, contra, abstencion:  enteros escalados,
   //    presentes:    entero escalado (derechos hábiles presentes),
-  //    personas:     cuántos asistentes hábiles hay detrás,
-  //    personasFavor: cuántos votaron a favor,
+  //    personas:     cuántos copropietarios hábiles presentes hay
+  //                  (uno por copropietario: claveCopropietario),
+  //    personasFavor, personasContra, personasAbstencion: cuántos de
+  //                  ellos votaron cada cosa. En la ordinaria deciden,
+  //                  en las extraordinarias acompañan,
   //    sinRegistrar: cuántos asistentes hábiles no han fijado preferencia,
   //    cerrada:      true si la votación ya no admite más votos
   //  }
@@ -196,9 +210,10 @@
     var sinRegistrar = cfg.sinRegistrar || 0;
     var personas = cfg.personas || 0;
 
-    var alcanzada = base > 0 && regla.alcanza(favor, base);
+    var porPersonas = !!regla.porPersonas;
+    var alcanzada = base > 0 && regla.alcanza(favor, base, cfg);
     var u = regla.umbral(base);
-    var umbralTexto = texto(u.num, u.den);
+    var umbralTexto = porPersonas ? String(u.votos) : texto(u.num, u.den);
 
     var estado;
     if (base <= 0) estado = 'pendiente';
@@ -216,15 +231,36 @@
       umbral: u,
       sinRegistrar: sinRegistrar,
 
-      baseTexto: texto(base),
+      // Verdadero en la ordinaria: lo que decide son los votos, y los
+      // derechos solo acompañan. Quien pinta el resultado lo mira.
+      porPersonas: porPersonas,
+      personas: personas,
+      personasFavor: cfg.personasFavor || 0,
+      personasContra: cfg.personasContra || 0,
+      personasAbstencion: cfg.personasAbstencion || 0,
+
+      baseTexto: porPersonas ? String(base) : texto(base),
       umbralTexto: umbralTexto,
       favorTexto: texto(favor),
       contraTexto: texto(cfg.contra || 0),
       abstencionTexto: texto(cfg.abstencion || 0),
 
-      descripcionBase: regla.describeBase(base, personas),
+      descripcionBase: regla.describeBase(base, personas, cfg),
       descripcionUmbral: regla.describeUmbral(umbralTexto)
     };
+  }
+
+  // -------------------------------------------------------------------
+  //  Un copropietario, un voto
+  // -------------------------------------------------------------------
+  //  La clave con que se agrupan las filas del padrón para contar
+  //  asistentes: el RUT, porque el dueño de dos unidades es un solo
+  //  copropietario. Sin RUT no hay cómo saber si dos filas son de la
+  //  misma persona, y la fila cuenta sola con `respaldo` (su unidad o su
+  //  posición).
+  function claveCopropietario(rut, respaldo) {
+    var k = normalizarRut(rut);
+    return k ? 'rut:' + k : 'fila:' + String(respaldo == null ? '' : respaldo);
   }
 
   // -------------------------------------------------------------------
@@ -318,6 +354,7 @@
     bandera: bandera,
     habilSegura: habilSegura,
     normalizarRut: normalizarRut,
+    claveCopropietario: claveCopropietario,
     habilidadPorCopropietario: habilidadPorCopropietario
   };
 

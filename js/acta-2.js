@@ -566,20 +566,25 @@
     });
     var habPresentes=0, derPresentes=0;
     Object.keys(porPersona).forEach(function(k){ if(porPersona[k].habil){ habPresentes++; derPresentes+=porPersona[k].d; } });
-    var f=0,co=0,ab=0,nf=0,n=0;
+    var f=0,co=0,ab=0,nf=0,nc=0,na=0,n=0;
     votos.forEach(function(v){ var p=porPersona[norm(v.rut)]; if(!p||!p.habil) return; n++;
-      if(v.choice==='favor'){f+=p.d;nf++;} else if(v.choice==='contra'){co+=p.d;} else {ab+=p.d;} });
+      if(v.choice==='favor'){f+=p.d;nf++;} else if(v.choice==='contra'){co+=p.d;nc++;} else {ab+=p.d;na++;} });
     var el=document.getElementById('vv-res-'+activo.n); if(!el) return;
     var tipo=(asam&&asam.tipo)||'ordinaria';
     var r=Derechos.resolver({
       regla: tipo==='ext-abs' ? 'absoluta' : tipo==='ext-ref' ? 'reforzada' : 'presentes',
       favor:f, contra:co, abstencion:ab, presentes:derPresentes, personas:habPresentes,
-      personasFavor:nf, sinRegistrar:Math.max(0, habPresentes-n), cerrada:false
+      personasFavor:nf, personasContra:nc, personasAbstencion:na,
+      sinRegistrar:Math.max(0, habPresentes-n), cerrada:false
     });
     var OK='var(--c-ok)', ER='var(--c-error)', WN='var(--c-warn,#9A6B1F)';
     var big=function(val,color,lab){ return '<span class="vv-pct" style="color:'+color+'">'+val+'</span><span class="vv-pct-lab">'+lab+'</span>'; };
+    // En la ordinaria deciden los votos (uno por copropietario); en las
+    // extraordinarias, los derechos.
     el.innerHTML=
-      big(r.favorTexto+'%',OK,'a favor')+big(r.contraTexto+'%',ER,'en contra')+big(r.abstencionTexto+'%',WN,'abstención')+
+      (r.porPersonas
+        ? big(String(nf),OK,'a favor')+big(String(nc),ER,'en contra')+big(String(na),WN,'abstención')
+        : big(r.favorTexto+'%',OK,'a favor')+big(r.contraTexto+'%',ER,'en contra')+big(r.abstencionTexto+'%',WN,'abstención'))+
       '<span class="vv-votos"><b>'+n+'</b> de '+habPresentes+' presentes hábiles</span>'+
       '<div class="vv-tema-meta">'+r.descripcionBase+' · '+r.descripcionUmbral+' · '+
       (r.alcanzada ? '<b style="color:var(--c-ok)">alcanzada por ahora</b>' : 'aún no se alcanza')+'.</div>';

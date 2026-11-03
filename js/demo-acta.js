@@ -494,7 +494,7 @@
     b.type = 'button';
     b.id = 'demo-ejemplo';
     b.className = 'header-action';
-    /* En un telefono de 320 px, junto a «Ayuda» y la cuenta, el rotulo
+    /* En un telefono de 320 px, junto a la cuenta, el rotulo
      * largo empujaba la cabecera fuera de la pantalla: ahi dice «Ejemplo». */
     b.innerHTML = '<span class="demo-ej-largo">Datos de ejemplo</span><span class="demo-ej-corto">Ejemplo</span>';
     var s = document.createElement('style');

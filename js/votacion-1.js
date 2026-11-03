@@ -29,7 +29,7 @@ function formatRut(rut){
 // fue, para que nadie lo tome por el que vale.
 function setBusy(btn,busy,txt){ if(!btn||!btn.tagName) return; if(busy){ if(btn.dataset.t===undefined) btn.dataset.t=btn.textContent; btn.disabled=true; if(txt) btn.textContent=txt; } else { btn.disabled=false; if(btn.dataset.t!==undefined){ btn.textContent=btn.dataset.t; delete btn.dataset.t; } } }
 function setConn(txt,cls){ const e=$('conn'); if(!e) return; e.textContent=txt; e.className='conn '+(cls||''); }
-function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (más del 50% de los derechos del condominio)':t==='ext-ref'?'Extraordinaria · reforzada (66% de los derechos del condominio)':'Ordinaria · acuerdos por mayoría absoluta de los derechos presentes'; }
+function tipoLabel(t){ return t==='ext-abs'?'Extraordinaria · mayoría absoluta (más del 50% de los derechos del condominio)':t==='ext-ref'?'Extraordinaria · reforzada (66% de los derechos del condominio)':'Ordinaria · acuerdos por mayoría absoluta de los asistentes hábiles (un voto por copropietario)'; }
 function leyendaVoto(c){ return c==='favor'?'A favor':c==='contra'?'En contra':c==='abst'?'Abstención':''; }
 
 // Arma un elemento con trozos de texto sin pasar por innerHTML. Lo que se
@@ -512,7 +512,19 @@ function calc(votos){
       if(v){ n++; if(v==='favor'){f+=d;nf++;} else if(v==='contra'){c+=d;nc++;} else {a+=d;na++;} }
       else sinRegistrar++;
     } });
-  return {map,f,c,a,n,nf,nc,na,totalCond,totalHabil,habPresentes,derPresentes,sinRegistrar,filas};
+  // Las personas, una por copropietario (art. 15): en la ordinaria son lo
+  // que decide. El voto de la sala ya es del RUT, asi que el dueño de dos
+  // unidades vota una sola vez y aqui se cuenta una sola vez.
+  const vistos=Object.create(null);
+  let copHabiles=0, cf=0, cc=0, ca=0, copSinRegistrar=0;
+  filas.forEach((p,i)=>{
+    if(!Derechos.habilSegura(p.habil)||Derechos.bandera(p.asiste)===false) return;
+    const k=Derechos.claveCopropietario(p.rut,i); if(vistos[k]) return; vistos[k]=1;
+    copHabiles++; const v=map[norm(p.rut)];
+    if(!v) copSinRegistrar++; else if(v==='favor') cf++; else if(v==='contra') cc++; else ca++;
+  });
+  return {map,f,c,a,n,nf,nc,na,totalCond,totalHabil,habPresentes,derPresentes,sinRegistrar,filas,
+    copHabiles,cf,cc,ca,copSinRegistrar};
 }
 // La regla y el formato salen de js/derechos.js, el mismo archivo que usa
 // el acta. Eran tres implementaciones de lo mismo y discrepaban.
@@ -526,13 +538,17 @@ function conclusionTipo(r,cerrada){
   const v = Derechos.resolver({
     regla: reglaDeLaSala(),
     favor:r.f, contra:r.c, abstencion:r.a,
-    presentes:r.derPresentes, personas:r.habPresentes, personasFavor:r.nf,
-    sinRegistrar:r.sinRegistrar, cerrada:cerrada
+    presentes:r.derPresentes, personas:r.copHabiles, personasFavor:r.cf,
+    personasContra:r.cc, personasAbstencion:r.ca,
+    sinRegistrar:r.copSinRegistrar, cerrada:cerrada
   });
 
-  const detrasDe = ' ('+r.nf+' de '+r.habPresentes+' asistentes hábiles)';
-  const cuenta = v.favorTexto+' % de los derechos a favor'+detrasDe;
-  const exige = v.descripcionUmbral.replace(/^Mayoría (absoluta|reforzada): /,'');
+  // Primero lo que decide: votos en la ordinaria, derechos en las
+  // extraordinarias. Lo otro acompaña entre paréntesis.
+  const cuenta = v.porPersonas
+    ? r.cf+' de '+r.copHabiles+' asistentes hábiles a favor ('+v.favorTexto+' % de los derechos)'
+    : v.favorTexto+' % de los derechos a favor ('+r.cf+' de '+r.copHabiles+' asistentes hábiles)';
+  const exige = v.descripcionUmbral.replace(/^Mayoría [^:]*: /,'');
 
   // Mientras la votacion sigue abierta esto es una tendencia, aunque la
   // mayoria ya este numericamente alcanzada. El acta decia "pendiente"
@@ -546,15 +562,13 @@ function renderResultados(votos){
   const r=calc(votos), cerrada=!votacionAbierta;
   const tipo=asamblea?asamblea.tipo:'ordinaria';
   if(tipo==='ordinaria'){
-    // Las barras van en derechos, como el veredicto. La base de la ordinaria
-    // son los derechos presentes, no el condominio entero.
-    const set=(b,pc,val)=>{ $(b).style.width=(r.derPresentes>0?Math.min(val/r.derPresentes*100,100):0)+'%'; $(pc).textContent=Derechos.texto(val)+' %'; };
-    set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
-    // La mitad exacta de la base, con el mismo formateador que el acta.
-    const minimo=Derechos.texto(r.derPresentes, 2*Derechos.ESCALA);
-    pintar($('mesa-base'), ['Han votado ', {tag:'strong', txt:r.n}, ' de '+r.habPresentes+' presentes hábiles · base: ',
-      {tag:'strong', txt:Derechos.texto(r.derPresentes)+' %'}, ' de derechos presentes · se adopta con ',
-      {tag:'strong', txt:'más de '+minimo+' %'}, ' a favor.']);
+    // Las barras van en votos, como el veredicto: mayoría absoluta de los
+    // asistentes hábiles, un voto por copropietario (js/derechos.js).
+    const set=(b,pc,val)=>{ $(b).style.width=(r.copHabiles>0?Math.min(val/r.copHabiles*100,100):0)+'%'; $(pc).textContent=val+(val===1?' voto':' votos'); };
+    set('bar-favor','pct-favor',r.cf); set('bar-contra','pct-contra',r.cc); set('bar-abst','pct-abst',r.ca);
+    const minimo=Derechos.resolver({regla:'presentes', personas:r.copHabiles, cerrada:true}).umbralTexto;
+    pintar($('mesa-base'), ['Han votado ', {tag:'strong', txt:r.copHabiles-r.copSinRegistrar}, ' de '+r.copHabiles+' copropietarios hábiles presentes · se adopta con ',
+      {tag:'strong', txt:'al menos '+minimo+(minimo==='1'?' voto':' votos')}, ' a favor (un voto por copropietario).']);
   } else {
     const set=(b,pc,val)=>{ $(b).style.width=Math.min(Derechos.aNumero(val),100)+'%'; $(pc).textContent=Derechos.texto(val)+' %'; };
     set('bar-favor','pct-favor',r.f); set('bar-contra','pct-contra',r.c); set('bar-abst','pct-abst',r.a);
@@ -587,16 +601,18 @@ async function exportarResultados(btn){
     out+='Tipo de asamblea: '+tipoLabel(asamblea.tipo)+'\nCódigo: '+asamblea.codigo+'\n';
     const esOrd=(asamblea.tipo||'ordinaria')==='ordinaria';
     out+=(esOrd
-      ? 'Adopción de acuerdos: por mayoría absoluta de los derechos presentes.\n\n'
+      ? 'Adopción de acuerdos: por mayoría absoluta de los asistentes hábiles, un voto por copropietario.\n\n'
       : 'Total derechos hábiles: '+Derechos.texto(Derechos.suma(Derechos.habilidadPorCopropietario(padron).filas.filter(p=>p.habil!==false).map(p=>Derechos.desdeTexto(p.der))))+' % del condominio\n\n');
     for(let i=0;i<puntos.length;i++){
       const p=puntos[i];
       const { data }=await sb.rpc('vv_resultados',{p_codigo:asamblea.codigo,p_token:asamblea.token,p_punto:p.key});
       const r=calc((data&&data.votos)||[]); const cn=conclusionTipo(r,true);
       out+='PUNTO '+(i+1)+': '+p.titulo+'\n';
-      out+='  A favor: '+Derechos.texto(r.f)+' %  ·  En contra: '+Derechos.texto(r.c)+' %  ·  Abstención: '+Derechos.texto(r.a)+' %'
-        +(esOrd ? '  (de '+Derechos.texto(r.derPresentes)+' % de derechos presentes)' : '')+'\n';
-      out+='  Votaron: '+r.n+' de '+r.habPresentes+' copropietarios hábiles\n';
+      out+=(esOrd
+        ? '  A favor: '+r.cf+'  ·  En contra: '+r.cc+'  ·  Abstención: '+r.ca+'  (votos, de '+r.copHabiles+' copropietarios hábiles presentes)\n'
+          +'  En derechos: '+Derechos.texto(r.f)+' %  ·  '+Derechos.texto(r.c)+' %  ·  '+Derechos.texto(r.a)+' %\n'
+        : '  A favor: '+Derechos.texto(r.f)+' %  ·  En contra: '+Derechos.texto(r.c)+' %  ·  Abstención: '+Derechos.texto(r.a)+' %\n');
+      out+='  Votaron: '+(r.copHabiles-r.copSinRegistrar)+' de '+r.copHabiles+' copropietarios hábiles\n';
       out+='  Resultado: '+cn.txt+'\n\n';
     }
     if(puntos.length===0) out+='(Aún no hay puntos.)\n';

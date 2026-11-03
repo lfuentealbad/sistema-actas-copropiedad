@@ -154,7 +154,7 @@ var info = {
 'ordinaria': {
 titulo: 'Asamblea Ordinaria (Art. 15 Ley N° 21.442)',
 qConst: 'Al menos el 33 % de los derechos del condominio, contando a todos los que concurren.',
-qAcuerdo: 'Mayoría absoluta de los asistentes, contada en derechos y solo entre los hábiles, que son los únicos que votan: más de la mitad de los derechos hábiles presentes.',
+qAcuerdo: 'Mayoría absoluta de los asistentes: más de la mitad de los copropietarios hábiles presentes, que son los únicos que votan. Se cuentan personas, no derechos, y cada copropietario es un voto aunque tenga varias unidades.',
 materias: [
 'Rendición de cuentas por parte del administrador y aprobación del balance presentado.',
 'Designación, reelección o renuncia de los miembros del comité de administración.',
@@ -592,6 +592,17 @@ function _fichasPadron() {
     ? conDatos + (conDatos === 1 ? ' unidad · ' : ' unidades · ') + presentes + (presentes === 1 ? ' asiste' : ' asisten')
     : '';
 }
+// Cuantos copropietarios habiles hay entre los presentes: el dueño de dos
+// unidades es uno solo. Sin RUT, cada fila cuenta sola.
+function _copropietariosHabiles(filas) {
+var vistos = Object.create(null), n = 0;
+filas.forEach(function (f, i) {
+if (!f.asiste || !f.habil) return;
+var k = Derechos.claveCopropietario(f.rut, i);
+if (!vistos[k]) { vistos[k] = 1; n++; }
+});
+return n;
+}
 function calcularQuorum() {
 _marcarAusentes();
 var tipo = document.getElementById('tipo-asamblea').value;
@@ -607,9 +618,11 @@ countTotal++;
 totalPresentes += f.der;
 if (f.habil) {
 totalHabil += f.der;
-countHabil++;
 }
 });
+// Asistentes habiles contados por copropietario, no por unidad: es lo que
+// decide en la ordinaria (art. 15, ver js/derechos.js).
+countHabil = _copropietariosHabiles(_padron.filas);
 
 var sumaPadron = Derechos.suma(_padron.filas.map(function (f) { return f.der; }));
 var avisoSuma = document.getElementById('suma-derechos-aviso');
@@ -670,24 +683,23 @@ var pctA = document.getElementById('quorum-acuerdos-pct');
 var txtA = document.getElementById('quorum-acuerdos-text');
 var subtO = boxAcuerdos.querySelector('div:last-of-type');
 if (subtO) {
-subtO.textContent = 'Mayor\u00eda absoluta de los asistentes h\u00e1biles, en derechos \u00b7 Art. 15 Ley 21.442';
+subtO.textContent = 'Mayor\u00eda absoluta de los asistentes h\u00e1biles, un voto por copropietario \u00b7 Art. 15 Ley 21.442';
 }
-if (countHabil === 0 || totalHabil === 0) {
+if (countHabil === 0) {
 txtA.textContent = 'Ingrese copropietarios h\u00e1biles para calcular';
 pctA.textContent = '--';
 fillA.style.width = '0%';
 } else {
-// Mayoria absoluta de los DERECHOS presentes, no de las cabezas: el voto
-// es proporcional a los derechos de cada unidad (art. 15).
-// La mitad de una base entera puede caer en media diezmilesima. Se
-// imprime exacta dividiendo dentro del formateador, no antes.
-var mitad = Derechos.texto(totalHabil, 2 * Derechos.ESCALA);
+// Mayoria absoluta de los asistentes: se cuentan personas, no derechos
+// (la regla y su porque, en js/derechos.js).
+var minimo = Derechos.resolver({ regla: 'presentes', personas: countHabil, cerrada: true }).umbralTexto;
 fillA.style.width = '50%';
-pctA.textContent = 'M\u00e1s de ' + mitad + ' %';
+pctA.textContent = minimo + ' de ' + countHabil;
 txtA.innerHTML =
-'Base para votaci\u00f3n: <strong>' + Derechos.texto(totalHabil) + ' %</strong> de derechos h\u00e1biles presentes '
-+ '(' + countHabil + ' asistente' + (countHabil === 1 ? '' : 's') + '). '
-+ 'Se requiere <strong>m\u00e1s de ' + mitad + ' %</strong> a favor.';
+'Base para votaci\u00f3n: <strong>' + countHabil + ' copropietario' + (countHabil === 1 ? '' : 's')
++ ' h\u00e1bil' + (countHabil === 1 ? '' : 'es') + '</strong> presente' + (countHabil === 1 ? '' : 's')
++ ' (' + Derechos.texto(totalHabil) + ' % de los derechos). '
++ 'Se requieren <strong>al menos ' + minimo + ' voto' + (minimo === '1' ? '' : 's') + '</strong> a favor.';
 }
 } else {
 boxAcuerdos.style.display = 'flex';
@@ -880,7 +892,10 @@ let countHabil = 0;
 let asistIdx = 0;
 // El acta lee el padron por el mismo camino que el paso 2, con la
 // habilidad ya arrastrada por copropietario (art. 14 del Reglamento).
-_padronDelActa().filas.forEach(function(f) {
+const _filasActa = _padronDelActa().filas;
+// Los asistentes habiles se cuentan por copropietario, como en el paso 2.
+countHabil = _copropietariosHabiles(_filasActa);
+_filasActa.forEach(function(f) {
 const asiste = f.asiste;
 const unidad = f.unidad;
 const nombre = f.nombre;
@@ -890,7 +905,7 @@ const rep = f.representante;
 
 if (asiste) {
 totalPresentes += der;
-if (f.habil) { totalHabil += der; countHabil++; }
+if (f.habil) { totalHabil += der; }
 }
 asistIdx++;
 const asisteCell = asiste
@@ -939,11 +954,20 @@ if (hasVot) {
 votText += '<p><strong>Votaci\u00f3n:</strong> ';
 votText += pvotBase + '. ';
 votText += pvotUmbral + '. ';
-{
-// Siempre en derechos, en toda asamblea. Entre parentesis va cuanta
-// gente hay detras de esos derechos: acompana la cifra, no la decide.
 var favPer = pc.dataset.votFavorPers;
 var totPer = pc.dataset.votTotalPers;
+if (pvotUnidad === 'votos') {
+// Ordinaria: deciden los votos, uno por copropietario. Entre parentesis
+// van los derechos que hay detras: acompanan la cifra, no la deciden.
+votText += 'A favor: <strong>' + favPer + ' de ' + totPer + ' asistentes hábiles</strong>'
++ ' (' + pvotFavor + ' % de los derechos). ';
+votText += 'En contra: <strong>' + (pc.dataset.votContraPers || '0') + '</strong>'
++ ' (' + pvotContra + ' % de los derechos). ';
+votText += 'Abstención: <strong>' + (pc.dataset.votAbstPers || '0') + '</strong>'
++ ' (' + pvotAbst + ' % de los derechos).</p>';
+} else {
+// Extraordinarias: deciden los derechos del condominio. Entre parentesis
+// va cuanta gente hay detras.
 votText += 'A favor: <strong>' + pvotFavor + ' % de los derechos</strong>';
 votText += (favPer !== undefined && totPer !== undefined
 ? ' (' + favPer + ' de ' + totPer + ' asistentes hábiles)' : '') + '. ';
@@ -1067,12 +1091,11 @@ return '<p>' + lugarPart + ', ' + modalPart + ', siendo las '
 : 'Este porcentaje <strong>no alcanza</strong> el m\u00ednimo de ' + quorumMin + '% requerido para constituir la asamblea.') +
 '</p>' +
 (esOrdinaria
-? '<p>Para efectos de la adopci\u00f3n de acuerdos, \u00e9stos se computan sobre los '
-+ '<strong>derechos</strong> de los copropietarios h\u00e1biles presentes, que alcanzan el '
-+ '<strong>' + Derechos.texto(totalHabil) + ' %</strong> de los derechos del condominio '
-+ '(' + countHabil + ' asistente' + (countHabil === 1 ? '' : 's') + '). '
-+ 'El voto de cada copropietario es proporcional a sus derechos en los bienes de dominio '
-+ 'com\u00fan, conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442.'
+? '<p>Para efectos de la adopci\u00f3n de acuerdos, \u00e9stos se adoptan por mayor\u00eda absoluta '
++ 'de los asistentes, conforme al art\u00edculo 15 de la Ley N\u00b0\u00a021.442: votan los '
++ '<strong>' + countHabil + ' copropietario' + (countHabil === 1 ? '' : 's') + ' h\u00e1bil'
++ (countHabil === 1 ? '' : 'es') + '</strong> presente' + (countHabil === 1 ? '' : 's') + ', con un voto cada uno, '
++ 'que representan el <strong>' + Derechos.texto(totalHabil) + ' %</strong> de los derechos del condominio.'
 + (notario === 'Si' && notarioNombre
 ? ' Actu\u00f3 como ' + (escapeHtml(_pvau('notario-tipo')) || 'Ministro de Fe') + ' <strong>' + notarioNombre + '</strong>.'
 : '') + '</p></div>'
@@ -1781,7 +1804,7 @@ if (key && sel) prevPrefs[key] = sel.value;
 });
 tbody.innerHTML = '';
 var hayHabiles = false;
-_padronDelActa().filas.forEach(function(f) {
+_padronDelActa().filas.forEach(function(f, idx) {
 var esAsiste = f.asiste;
 if (!esAsiste) return;
 var esHabil = f.habil;
@@ -1796,6 +1819,8 @@ var prevPref = prevPrefs[key] || 'sin_reg';
 var tr = document.createElement('tr');
 tr.dataset.key = key;
 tr.dataset.rut = rutAsist;
+// Un copropietario, un voto (art. 15): sus unidades comparten la clave.
+tr.dataset.copro = Derechos.claveCopropietario(rutAsist, idx);
 tr.dataset.derechos = derechos;
 tr.dataset.habil = esHabil ? 'si' : 'no';
 tr.dataset.nombre = nombre;
@@ -1838,7 +1863,7 @@ sel.appendChild(opt);
 sel.value = prevPref;
 sel.className = 'pref-select ' + sel.value;
 sel.addEventListener('change', function() {
-this.className = 'pref-select ' + this.value;
+_votoDelCopropietario(tbody, tr, this.value);
 _jfg(n);
 _vufa(n);
 });
@@ -1853,6 +1878,15 @@ trEmpty.innerHTML = '<td colspan="5" style="text-align:center;color:var(--c-text
 tbody.appendChild(trEmpty);
 }
 _jfg(n);
+}
+// El voto es del copropietario y vale para todas sus unidades: marcar una
+// marca las demas, para que nunca vote distinto en cada una.
+function _votoDelCopropietario(tbody, fila, pref) {
+tbody.querySelectorAll('tr').forEach(function(row) {
+if (row !== fila && (row.dataset.habil !== 'si' || row.dataset.copro !== fila.dataset.copro)) return;
+var sel = row.querySelector('.pref-select');
+if (sel) { sel.value = pref; sel.className = 'pref-select ' + pref; }
+});
 }
 // La regla de mayoria que corresponde a cada tipo de asamblea. Los nombres
 // internos viejos ('abs_asistentes') se conservan en los borradores ya
@@ -1869,24 +1903,40 @@ var tipoAsm = document.getElementById('tipo-asamblea') ? document.getElementById
 
 // Enteros escalados de punta a punta. Sumar en coma flotante hacia que el
 // veredicto dependiera del ORDEN de las filas del padron.
-var totalDer = 0, favorDer = 0, contraDer = 0, abstDer = 0, sinReg = 0;
-var totalHab = 0, favorHab = 0, contraHab = 0, abstHab = 0;
-tbody.querySelectorAll('tr').forEach(function(row) {
+var totalDer = 0, favorDer = 0, contraDer = 0, abstDer = 0;
+// Los derechos se suman por unidad; las personas se cuentan por
+// copropietario, que vota una sola vez aunque tenga varias unidades.
+var porCopro = Object.create(null), claves = [];
+tbody.querySelectorAll('tr').forEach(function(row, i) {
 if (row.dataset.habil !== 'si') return;
 var der = Derechos.desdeTexto(row.dataset.derechos);
 var sel = row.querySelector('.pref-select');
 var pref = sel ? sel.value : 'sin_reg';
-totalDer += der; totalHab++;
-if (pref === 'favor') { favorDer += der; favorHab++; }
-else if (pref === 'contra') { contraDer += der; contraHab++; }
-else if (pref === 'abst') { abstDer += der; abstHab++; }
-else { sinReg++; }
+totalDer += der;
+if (pref === 'favor') favorDer += der;
+else if (pref === 'contra') contraDer += der;
+else if (pref === 'abst') abstDer += der;
+var k = row.dataset.copro || ('fila:' + i);
+if (!porCopro[k]) { porCopro[k] = Object.create(null); claves.push(k); }
+porCopro[k][pref] = true;
+});
+// Un copropietario con unidades que dicen cosas distintas (o alguna sin
+// registrar) todavia no voto: queda pendiente.
+var totalHab = claves.length, favorHab = 0, contraHab = 0, abstHab = 0, sinReg = 0, distintos = 0;
+claves.forEach(function(k) {
+var prefs = Object.keys(porCopro[k]);
+if (prefs.length > 1) { sinReg++; if (prefs.filter(function(p) { return p !== 'sin_reg'; }).length > 1) distintos++; }
+else if (prefs[0] === 'favor') favorHab++;
+else if (prefs[0] === 'contra') contraHab++;
+else if (prefs[0] === 'abst') abstHab++;
+else sinReg++;
 });
 
 var r = Derechos.resolver({
 regla: _reglaDe(tipoAsm),
 favor: favorDer, contra: contraDer, abstencion: abstDer,
 presentes: totalDer, personas: totalHab, personasFavor: favorHab,
+personasContra: contraHab, personasAbstencion: abstHab,
 sinRegistrar: sinReg,
 // En el acta la votacion se registra de una vez: no hay una sala abierta
 // esperando votos. Lo que falta por registrar, falta.
@@ -1897,16 +1947,24 @@ var rfEl = document.getElementById('pvot-rf-' + n);
 var rcEl = document.getElementById('pvot-rc-' + n);
 var raEl = document.getElementById('pvot-ra-' + n);
 if (!rfEl) return;
-// Siempre en derechos: es lo que la ley cuenta.
+// Lo que decide, en la unidad en que decide: votos en la ordinaria,
+// derechos en las extraordinarias.
+if (r.porPersonas) {
+rfEl.textContent = favorHab + (favorHab === 1 ? ' voto' : ' votos');
+rcEl.textContent = contraHab + (contraHab === 1 ? ' voto' : ' votos');
+raEl.textContent = abstHab + (abstHab === 1 ? ' voto' : ' votos');
+} else {
 rfEl.textContent = r.favorTexto + ' %';
 rcEl.textContent = r.contraTexto + ' %';
 raEl.textContent = r.abstencionTexto + ' %';
+}
 
 var detEl = document.getElementById('pvot-rdet-' + n);
 var conclEl = document.getElementById('pvot-rconcl-' + n);
 if (detEl) {
 var detalle = r.descripcionBase + ' · ' + r.descripcionUmbral;
 if (sinReg > 0) detalle += ' · ' + sinReg + ' asistente(s) sin registrar';
+if (distintos > 0) detalle += ' · ' + distintos + ' copropietario(s) con votos distintos en sus unidades: vota una sola vez';
 detEl.textContent = detalle;
 }
 if (conclEl) {
@@ -1937,13 +1995,15 @@ card.dataset.votAbst = String(abstDer);
 card.dataset.votFavorTxt = r.favorTexto;
 card.dataset.votContraTxt = r.contraTexto;
 card.dataset.votAbstTxt = r.abstencionTexto;
-// El numero de personas acompana, no decide.
+// Las personas deciden en la ordinaria y acompanan en las extraordinarias.
 card.dataset.votFavorPers = favorHab;
+card.dataset.votContraPers = contraHab;
+card.dataset.votAbstPers = abstHab;
 card.dataset.votTotalPers = totalHab;
 card.dataset.votBase = r.descripcionBase;
 card.dataset.votUmbral = r.descripcionUmbral;
 card.dataset.votAprobado= (r.estado === 'aprobado') ? 'si' : (r.estado === 'rechazado' ? 'no' : 'pendiente');
-card.dataset.votUnidad = '%';
+card.dataset.votUnidad = r.porPersonas ? 'votos' : '%';
 card.dataset.votSinReg = sinReg;
 }
 }
@@ -1964,8 +2024,7 @@ if (row.dataset.habil !== 'si') return;
 var chk = row.querySelector('.pvot-chk');
 if (!chk || !chk.checked) return;
 anyChecked = true;
-var sel = row.querySelector('.pref-select');
-if (sel) { sel.value = pref; sel.className = 'pref-select ' + pref; }
+_votoDelCopropietario(tbody, row, pref);
 });
 if (!anyChecked) {
 tbody.querySelectorAll('tr').forEach(function(row) {
@@ -3823,7 +3882,15 @@ function revisarConsistencia() {
 
   // (b bis) Y sobre que se vota, que es una base distinta de la anterior:
   // constituir cuenta a todos los presentes, acordar solo a los habiles.
-  if (cumple) {
+  // En la ordinaria se cuentan personas (art. 15, ver js/derechos.js).
+  var copropHabiles = _copropietariosHabiles(padron.filas);
+  if (cumple && tipo !== 'extraordinaria-abs' && tipo !== 'extraordinaria-ref') {
+    items.push({ ok: copropHabiles > 0, texto: copropHabiles > 0
+      ? 'Los acuerdos se adoptan por mayoría absoluta de los ' + copropHabiles
+        + ' copropietario(s) hábil(es) presente(s), un voto por copropietario.'
+      : 'No hay copropietarios hábiles presentes: con el padrón así, ningún acuerdo '
+        + 'tiene base sobre la cual computarse.' });
+  } else if (cumple) {
     items.push({ ok: presentesHabiles > 0, texto: presentesHabiles > 0
       ? 'Los acuerdos se computan sobre ' + Derechos.texto(presentesHabiles)
         + ' % de derechos: los de los copropietarios hábiles presentes.'

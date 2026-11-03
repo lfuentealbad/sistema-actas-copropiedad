@@ -1,6 +1,6 @@
 # actaviva
 
-> Servicio web chileno para administraciones y comités de condominios. Elabora actas de asamblea de copropietarios con la estructura prevista en la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo desde el teléfono ponderada por los derechos de cada unidad. Funciona en el navegador, sin instalar nada. Lo opera Soluciones CLB SpA, con domicilio en Concepción, Chile.
+> Servicio web chileno para administraciones y comités de condominios. Elabora actas de asamblea de copropietarios con la estructura prevista en la Ley N° 21.442 de Copropiedad Inmobiliaria, con votación en vivo desde el teléfono y las mayorías del art. 15. Funciona en el navegador, sin instalar nada. Lo opera Soluciones CLB SpA, con domicilio en Concepción, Chile.
 
 Para usarlo se crea una cuenta en https://actascopropiedad.cl/cuenta con nombre, correo y clave.
 
