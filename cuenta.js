@@ -97,15 +97,25 @@
       listo = true;
       if (typeof alCambiar === 'function') alCambiar(); else global.location.reload();
     };
+    // Revision del 06-11-2026: sin red y con el token vencido, Supabase no
+    // confirma la sesion (getSession y INITIAL_SESSION llegan sin ella) pero
+    // la deja guardada. Si la guardada sigue siendo la misma, no hubo cambio:
+    // no poder confirmarla no es haber salido. Salir de verdad la borra.
+    var sinConfirmar = function (uid) {
+      return !uid && !!uidInicial && sesionGuardada() === uidInicial;
+    };
     var revisar = function () {
       c.auth.getSession().then(function (r) {
         var s = r && r.data && r.data.session;
-        if (((s && s.user && s.user.id) || null) !== (uidInicial || null)) cambio();
+        var uid = (s && s.user && s.user.id) || null;
+        if (sinConfirmar(uid)) return;
+        if (uid !== (uidInicial || null)) cambio();
       }, function () {});
     };
     try {
       c.auth.onAuthStateChange(function (evento, sesion) {
         var uid = (sesion && sesion.user && sesion.user.id) || null;
+        if (sinConfirmar(uid)) return;
         // Dentro del aviso no se llama a supabase-js (se puede trabar).
         if (uid !== (uidInicial || null)) setTimeout(cambio, 0);
       });
@@ -423,7 +433,8 @@
     var snap = null;
     try { snap = JSON.parse(ls.getItem(BORRADOR_ACTA)); } catch (e) { snap = null; }
     var actaEnJuego = !!(snap && typeof snap === 'object' && !snap.actaFolio && !actaEnBlanco(snap));
-    if (!hayComite && !actaEnJuego) { cb(pend); return; }
+    // También sin borradores hace falta conocer quién sale: las copias de
+    // Finanzas pueden pertenecer a otra cuenta que usó este navegador.
 
     var uid = null;
     var ajeno = function (b) {
@@ -436,7 +447,7 @@
       clearTimeout(reloj);
       if (hayComite && !ajeno(comite)) pend.push(BORRADOR_COMITE);
       if (actaPendiente) pend.push(BORRADOR_ACTA);
-      cb(pend);
+      cb(pend, uid);
     };
     // Un solo plazo para las dos preguntas (quien sale y que tiene la
     // cuenta): getSession tambien puede quedarse esperando la red si tiene
@@ -493,6 +504,22 @@
   // devuelve el error y deja el token donde estaba. Cerrar sesion no puede
   // depender de la conexion, asi que en ese caso se suelta a mano.
   var LLAVE_SESION = 'sb-' + URL_SB.replace(/^https:\/\//, '').split('.')[0] + '-auth-token';
+  // Revision del 06-11-2026. El uid de la sesion que Supabase dejo guardada
+  // en este navegador, SIN verificar. Sin red y con el token vencido,
+  // getSession no la confirma pero tampoco la borra (si el servidor la
+  // rechaza, si). Sirve solo para reconocer al dueno de una copia del equipo
+  // que trabaja sin conexion; nunca para hablar con la base. Quien puede
+  // escribir este valor ya puede leer la copia del equipo directamente.
+  function sesionGuardada() {
+    var ls = almacen();
+    if (!ls) return null;
+    try {
+      var s = JSON.parse(ls.getItem(LLAVE_SESION) || 'null');
+      var id = s && s.user && s.user.id;
+      return typeof id === 'string' && id ? id : null;
+    } catch (e) { return null; }
+  }
+
   function soltarSesionLocal() {
     var ls = almacen();
     if (!ls) return;
@@ -524,21 +551,38 @@
     'En este equipo quedaron cambios de las cuentas del condominio (Finanzas) que no alcanzaron a guardarse en su cuenta.\n\n' +
     'Aceptar: borrarlos de este equipo y cerrar sesión.\n' +
     'Cancelar: seguir con la sesión abierta y volver a Finanzas para que se guarden.';
-  function estadoFinanzas() {
+  function estadoFinanzas(uid) {
     var ls = almacen();
     if (!ls) return 'nada';
     var hay = false;
     try { hay = !!ls.getItem(FIN_CIFRADO) || finanzasSinProteger(); } catch (e) { hay = false; }
     if (!hay) return 'nada';
-    var deCuenta = false, pend = false;
-    try { deCuenta = !!ls.getItem(FIN_EN_CUENTA); pend = ls.getItem(FIN_PENDIENTE) === '1'; } catch (e) {}
+    var deCuenta = null, pend = false;
+    try { deCuenta = ls.getItem(FIN_EN_CUENTA); pend = ls.getItem(FIN_PENDIENTE) === '1'; } catch (e) {}
+    // Solo es de otra cuenta si se SABE quien sale y no es ella. Sin la
+    // sesion (token vencido sin red, o la pregunta tardo) no se sabe, y no
+    // saber no puede apagar el aviso ni dejar la copia en un equipo
+    // compartido (revision del 06-11-2026; CN-003).
+    if (deCuenta && uid && deCuenta !== uid) return 'otra_cuenta';
     if (!deCuenta) return 'sin_subir';
     return pend ? 'pendiente' : 'en_cuenta';
   }
-  function soltarFinanzas() {
+  function duenoFinanzas() {
     var ls = almacen();
-    if (!ls) return;
+    try { return (ls && ls.getItem(FIN_EN_CUENTA)) || null; } catch (e) { return null; }
+  }
+  // 'dueno' es la cuenta de la copia que se vio al decidir. Se comprueba otra
+  // vez después de signOut: entretanto otra pestaña puede haber escrito la
+  // copia de B. La salida de A no puede borrarla.
+  function soltarFinanzas(dueno) {
+    var ls = almacen();
+    if (!ls || !dueno) return;
+    try { if (ls.getItem(FIN_EN_CUENTA) !== dueno) return; } catch (e) { return; }
     [FINANZAS, FIN_CIFRADO, FIN_PENDIENTE, FIN_EN_CUENTA].forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
+    try { ls.removeItem(FIN_CIFRADO + '-pendiente-' + dueno); } catch (e) {}
+    // La orden de borrado: un guardado cifrado que otra pestaña todavía
+    // tenía en vuelo no puede volver a dejar la copia (finanzas-cofre.js).
+    try { ls.setItem(FIN_CIFRADO + '-borrado-' + dueno, String(Date.now())); } catch (e) {}
   }
   var AVISO_FINANZAS =
     'En este equipo quedan las cuentas del condominio (Finanzas) sin contraseña: ' +
@@ -561,21 +605,22 @@
   function salir(cb) {
     var c = cliente();
     var fin = function () { if (cb) cb(); };
-    var finanzas = estadoFinanzas();
-    var aviso = finanzas === 'pendiente' ? AVISO_FIN_PENDIENTE
-      : finanzas === 'sin_subir' && finanzasSinProteger() ? AVISO_FINANZAS : null;
-    if (aviso) {
-      var seguir = true;
-      var t1 = Date.now();
-      try { seguir = global.confirm(aviso); } catch (e) { seguir = true; }
-      // Igual que abajo: un dialogo que no se mostro no es un Cancelar, y un
-      // aviso no puede impedir cerrar la sesion.
-      if (!seguir && Date.now() - t1 < 50) seguir = true;
-      if (!seguir) return;
-    }
-    var soltar = finanzas === 'en_cuenta' || finanzas === 'pendiente';
     // La comparacion con la cuenta necesita la sesion: va antes de cerrarla.
-    borradoresPendientes(c, function (pend) {
+    borradoresPendientes(c, function (pend, uid) {
+      // Si Supabase no confirmo quien sale, la sesion guardada lo dice: asi
+      // la copia de otra cuenta no se le ofrece para borrar.
+      var finanzas = estadoFinanzas(uid || sesionGuardada());
+      var aviso = finanzas === 'pendiente' ? AVISO_FIN_PENDIENTE
+        : finanzas === 'sin_subir' && finanzasSinProteger() ? AVISO_FINANZAS : null;
+      if (aviso) {
+        var seguir = true;
+        var t1 = Date.now();
+        try { seguir = global.confirm(aviso); } catch (e) { seguir = true; }
+        if (!seguir && Date.now() - t1 < 50) seguir = true;
+        if (!seguir) return;
+      }
+      var soltar = finanzas === 'en_cuenta' || finanzas === 'pendiente';
+      var dueno = soltar ? duenoFinanzas() : null;
       var conservar = [];
       if (pend.length) {
         var borrar = true;
@@ -590,7 +635,7 @@
       }
       // Se limpia DESPUES de cerrar: si mientras viajaba el cierre el asistente
       // alcanzo a autoguardar, eso tambien se va.
-      var cerrar = function () { borrarDelEquipo(conservar); if (soltar) soltarFinanzas(); fin(); };
+      var cerrar = function () { borrarDelEquipo(conservar); if (soltar) soltarFinanzas(dueno); fin(); };
       if (!c) { cerrar(); return; }
       try {
         c.auth.signOut().then(function (r) {
@@ -1751,6 +1796,7 @@
     // sesion que abre uno no la ve el otro y auth.uid() llega nulo a Postgres.
     cliente: cliente,
     usuario: usuario,
+    sesionGuardada: sesionGuardada,
     vigilarSesion: vigilarSesion,
     tokenDeAcceso: tokenDeAcceso,
     // El mes de servicio (paso 17).

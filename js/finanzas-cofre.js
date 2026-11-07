@@ -36,6 +36,27 @@
   var sal = null;      // la de la copia abierta: un guardado no la cambia
   var vueltas = VUELTAS;
   var cola = Promise.resolve();
+  var generacion = 0;
+  var rescates = Object.create(null);
+  function exigirVigente(g) {
+    if (g !== generacion) throw new Error('cofre_cerrado');
+  }
+  function clavePendiente(uid) {
+    return typeof uid === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(uid)
+      ? CLAVE + '-pendiente-' + uid : null;
+  }
+  function exigirGuardado(g) {
+    if (g !== generacion && !rescates[g]) throw new Error('cofre_cerrado');
+  }
+  // La orden de borrado que deja cuenta.js (soltarFinanzas) cuando la
+  // persona elige, al salir, borrar sus cuentas de este equipo.
+  function borradoDespues(r) {
+    var ls = almacen();
+    if (!ls || !r) return false;
+    var b = 0;
+    try { b = Number(ls.getItem(CLAVE + '-borrado-' + r.uid)) || 0; } catch (e) { b = 0; }
+    return b >= r.desde;
+  }
 
   function cripto() {
     var c = global.crypto;
@@ -60,11 +81,11 @@
   // La copia cifrada, o null si no hay; { danada: true } si hay algo que no
   // se puede leer. Las vueltas se leen de la copia (una version futura puede
   // subirlas), dentro de un rango: menos no protegeria, mas colgaria la pagina.
-  function leer() {
+  function leer(destino) {
     var ls = almacen();
     if (!ls) return null;
     var raw = null;
-    try { raw = ls.getItem(CLAVE); } catch (e) { return null; }
+    try { raw = ls.getItem(destino || CLAVE); } catch (e) { return null; }
     if (raw == null) return null;
     try {
       var d = JSON.parse(raw);
@@ -94,10 +115,10 @@
     return cripto().subtle.decrypt({ name: 'AES-GCM', iv: d.iv, additionalData: bytes(CONTEXTO) }, k, d.ct)
       .then(function (b) { return new global.TextDecoder().decode(b); });
   }
-  function escribir(s, it, c) {
+  function escribir(s, it, c, destino) {
     var ls = almacen();
     if (!ls) throw new Error('sin_almacen');
-    ls.setItem(CLAVE, JSON.stringify({
+    ls.setItem(destino || CLAVE, JSON.stringify({
       v: 1, alg: 'AES-GCM-256', kdf: 'PBKDF2-SHA-256', it: it,
       sal: aB64(s), iv: aB64(c.iv), ct: aB64(c.ct)
     }));
@@ -118,12 +139,15 @@
     // tambien es lo que dice una copia alterada: AES-GCM no distingue) o
     // 'copia_danada'.
     abrir: function (contrasena) {
+      var g = generacion;
       var d = leer();
       if (!d) return Promise.reject(new Error('sin_copia_protegida'));
       if (d.danada) return Promise.reject(new Error('copia_danada'));
       if (!cripto()) return Promise.reject(new Error('sin_cifrado'));
       return derivar(String(contrasena == null ? '' : contrasena), d.sal, d.it).then(function (k) {
+        exigirVigente(g);
         return descifrar(k, d).then(function (texto) {
+          exigirVigente(g);
           llave = k; sal = d.sal; vueltas = d.it;
           return texto;
         }, function () { throw new Error('contrasena_incorrecta'); });
@@ -133,16 +157,20 @@
     // Cifra el texto con una contrasena nueva y lo deja escrito. No da nada
     // por protegido sin leer lo escrito y descifrarlo de vuelta.
     proteger: function (texto, contrasena) {
+      var g = generacion;
       contrasena = String(contrasena == null ? '' : contrasena);
       if (contrasena.length < MINIMO) return Promise.reject(new Error('contrasena_corta'));
       if (!cripto()) return Promise.reject(new Error('sin_cifrado'));
       var s = cripto().getRandomValues(new Uint8Array(16));
       return derivar(contrasena, s, VUELTAS).then(function (k) {
+        exigirVigente(g);
         return cifrar(k, texto).then(function (c) {
+          exigirVigente(g);
           escribir(s, VUELTAS, c);
           var d = leer();
           if (!d || d.danada) throw new Error('verificacion_fallida');
           return descifrar(k, d).then(function (t) {
+            exigirVigente(g);
             if (t !== texto) throw new Error('verificacion_fallida');
             llave = k; sal = s; vueltas = VUELTAS;
           });
@@ -153,10 +181,23 @@
     // Guarda con la clave abierta. En fila: dos guardados seguidos se
     // escriben en el orden en que se pidieron.
     guardar: function (texto) {
+      var g = generacion;
       var k = llave, s = sal, it = vueltas;
       if (!k) return Promise.reject(new Error('cofre_cerrado'));
       cola = cola.catch(function () {}).then(function () {
-        return cifrar(k, texto).then(function (c) { escribir(s, it, c); });
+        exigirGuardado(g);
+        return cifrar(k, texto).then(function (c) {
+          exigirGuardado(g);
+          // Un guardado que ya estaba pedido puede conservarse cifrado para
+          // A, sin reabrir su clave ni sobrescribir el cofre que use B.
+          if (g === generacion) { escribir(s, it, c, CLAVE); return; }
+          var r = rescates[g];
+          // Revision del 06-11-2026: si A eligio al salir borrar sus cuentas
+          // de este equipo despues de abierto el rescate (cuenta.js deja la
+          // orden), el guardado en vuelo no las vuelve a dejar.
+          if (borradoDespues(r)) return;
+          escribir(s, it, c, r.destino);
+        });
       });
       return cola;
     },
@@ -165,12 +206,44 @@
     esperar: function () { return cola.catch(function () {}); },
 
     // Suelta la clave. La copia queda cifrada en el equipo.
-    cerrar: function () { llave = null; sal = null; },
+    cerrar: function (opciones) {
+      var g = generacion, destino = clavePendiente(opciones && opciones.conservarPara);
+      if (destino) {
+        rescates[g] = { destino: destino, uid: opciones.conservarPara, desde: Date.now() };
+        var limpiar = function () { delete rescates[g]; };
+        cola.then(limpiar, limpiar);
+      }
+      generacion++; llave = null; sal = null;
+      if (destino) return cola;
+    },
+
+    // Solo ciphertext, recuperado por la página DESPUÉS de verificar su UID.
+    tienePendiente: function (uid) {
+      var k = clavePendiente(uid), d = k && leer(k);
+      return !!d && !d.danada;
+    },
+    recuperarPendiente: function (uid) {
+      var k = clavePendiente(uid), ls = almacen(), d = k && leer(k);
+      if (!ls || !d || d.danada) return false;
+      var raw = ls.getItem(k);
+      ls.setItem(CLAVE, raw);
+      generacion++; llave = null; sal = null;
+      return true;
+    },
+    confirmarRecuperacion: function (uid) {
+      var k = clavePendiente(uid), ls = almacen();
+      if (!k || !ls) return false;
+      var raw = ls.getItem(k);
+      if (!raw || ls.getItem(CLAVE) !== raw) return false;
+      ls.removeItem(k);
+      return true;
+    },
 
     // Borra la copia cifrada. La pagina lo hace al quitar la proteccion
     // (despues de escribir la copia en claro) o cuando la persona decide
     // empezar de cero sin la contrasena.
     olvidar: function () {
+      generacion++;
       llave = null; sal = null;
       var ls = almacen();
       if (ls) { try { ls.removeItem(CLAVE); } catch (e) {} }

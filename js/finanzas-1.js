@@ -78,6 +78,7 @@ const estadoInicial = {
 let estado = JSON.parse(JSON.stringify(estadoInicial));
 
 function cargar(){
+  if(_sesionBloqueada) return;
   // Protegidas con contrasena: las abre el candado (abrirCandado), no esto.
   if(hayCofre()) return;
   try{
@@ -100,6 +101,7 @@ function cargar(){
 // si se pudo; si no, ya lo aviso. Con el cofre cerrado no escribe nada: ni en
 // claro ni encima de lo cifrado.
 function guardar(){
+  if(_sesionBloqueada) return Promise.resolve(false);
   if(hayCofre()){
     if(!CofreFinanzas.abierto()) return Promise.resolve(false);
     marcarPendiente();
@@ -137,6 +139,36 @@ let _subiendo = null;       // la promesa de la subida en curso
 let _otraVez = false;       // hubo cambios mientras se subia
 let _avisoFalla = false;    // el aviso de que no se pudo subir, una sola vez
 let _subirAlAbrir = false;  // la copia protegida tiene algo que subir al abrirla
+let _sesionBloqueada = false;
+let _generacionSesion = 0;
+
+// Retirar también lo ya renderizado: RLS no borra la memoria de otra pestaña.
+// La copia pendiente se conserva para su dueño; no se ofrece a otra cuenta.
+function retirarSesionFinanzas(){
+  if(_sesionBloqueada) return;
+  const conservarPara = _uid && copiaDe() === _uid && hayPendiente() ? _uid : null;
+  _sesionBloqueada = true;
+  _generacionSesion++;
+  _uid = null;
+  _otraVez = false;
+  _subirAlAbrir = false;
+  if(_relojSubida){ clearTimeout(_relojSubida); _relojSubida = null; }
+  if(_relojBloqueo){ clearTimeout(_relojBloqueo); _relojBloqueo = null; }
+  estado = JSON.parse(JSON.stringify(estadoInicial));
+  let rescate;
+  if(typeof CofreFinanzas !== 'undefined'){
+    try{ rescate = CofreFinanzas.cerrar(conservarPara ? { conservarPara } : undefined); }catch(e){}
+  }
+  if(document.body) document.body.textContent = 'La sesión cambió o este equipo conserva una copia de otra cuenta. Vuelva a entrar con la cuenta correspondiente.';
+  // Salir del documento antes de terminar AES cancelaría su callback y
+  // perdería el último guardado. La interfaz y la clave ya están retiradas.
+  const volver = () => { location.href = '/cuenta'; };
+  if(rescate && typeof rescate.then === 'function'){
+    rescate.then(volver, () => {
+      if(document.body) document.body.textContent = 'No se pudo conservar el último guardado cifrado. La copia anterior sigue intacta. Vuelva a entrar con la cuenta correspondiente.';
+    });
+  } else volver();
+}
 
 function marcarPendiente(){
   try{
@@ -171,7 +203,7 @@ async function traerDeLaCuenta(){
 }
 
 function programarSubida(){
-  if(!_uid) return;
+  if(!_uid || _sesionBloqueada) return;
   if(_relojSubida) clearTimeout(_relojSubida);
   _relojSubida = setTimeout(subirALaCuenta, ESPERA_SUBIDA);
 }
@@ -179,15 +211,18 @@ function programarSubida(){
 // Sube el estado entero. Si mientras viajaba hubo cambios, vuelve a subir;
 // si falla, la copia de trabajo queda PENDIENTE y se reintenta.
 function subirALaCuenta(){
-  if(!_uid) return Promise.resolve(false);
+  if(!_uid || _sesionBloqueada) return Promise.resolve(false);
   if(_subiendo){ _otraVez = true; return _subiendo; }
   const c = clienteCuenta();
   if(!c) return Promise.resolve(false);
   if(_relojSubida){ clearTimeout(_relojSubida); _relojSubida = null; }
   const foto = JSON.stringify(estado);
+  const uid = _uid, generacion = _generacionSesion;
+  const vigente = () => !_sesionBloqueada && _uid === uid && _generacionSesion === generacion;
   _subiendo = Promise.resolve(c.from('finanzas_cuentas')
-    .upsert({ dueno: _uid, contenido: JSON.parse(foto), actualizada: new Date().toISOString() }, { onConflict: 'dueno' }))
+    .upsert({ dueno: uid, contenido: JSON.parse(foto), actualizada: new Date().toISOString() }, { onConflict: 'dueno' }))
     .then(r => {
+      if(!vigente()) return false;
       if(r && r.error) throw r.error;
       try{ localStorage.setItem(EN_CUENTA_KEY, _uid); }catch(e){}
       if(foto === JSON.stringify(estado)) quitarPendiente();
@@ -196,6 +231,7 @@ function subirALaCuenta(){
       return true;
     })
     .catch(() => {
+      if(!vigente()) return false;
       if(!_avisoFalla){
         _avisoFalla = true;
         toast('No se pudo guardar en su cuenta. Los cambios quedan en este equipo y se guardan solos al volver la conexión.', 'warning');
@@ -206,6 +242,7 @@ function subirALaCuenta(){
     })
     .then(ok => {
       _subiendo = null;
+      if(!vigente()) return false;
       if(_otraVez){ _otraVez = false; return subirALaCuenta(); }
       return ok;
     });
@@ -214,6 +251,7 @@ function subirALaCuenta(){
 
 // La copia de la cuenta pasa a ser la de trabajo.
 function adoptar(contenido){
+  if(_sesionBloqueada) return;
   const r = sanearEstado(contenido);
   estado = r.estado;
   if(hayCofre()){ try{ CofreFinanzas.olvidar(); }catch(e){} }
@@ -233,19 +271,67 @@ function abrirLocal(){ if(hayCofre()){ mostrarCandado(); return; } cargar(); arr
 function iniciarFinanzas(){
   // Sin cuenta.js (no deberia pasar en el sitio) se abre al instante con la
   // copia del equipo, como antes del paso 31.
-  if(typeof Cuenta === 'undefined' || !Cuenta.usuario){ abrirLocal(); return Promise.resolve(); }
+  if(typeof Cuenta === 'undefined' || !Cuenta.usuario){
+    if(copiaDe()){ retirarSesionFinanzas(); return Promise.resolve(); }
+    abrirLocal(); return Promise.resolve();
+  }
   return iniciarConCuenta();
+}
+// La sesión que quedó guardada en el equipo, sin verificar (ver
+// Cuenta.sesionGuardada). null si no hay o no se sabe.
+function sesionGuardada(){
+  try{ return typeof Cuenta !== 'undefined' && Cuenta.sesionGuardada ? Cuenta.sesionGuardada() : null; }
+  catch(e){ return null; }
+}
+// Una copia de otra cuenta que ya está en ESA cuenta (sin cambios
+// pendientes) no es la única: se suelta de este equipo.
+function soltarCopiaAjena(){
+  if(hayCofre()){ try{ CofreFinanzas.olvidar(); }catch(e){} }
+  try{ localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(EN_CUENTA_KEY); }catch(e){}
 }
 async function iniciarConCuenta(){
   _uid = await usuarioActual();
+  if(_sesionBloqueada) return;
+  // Revisión del 06-11-2026: sin red y con el token vencido, la sesión no
+  // se puede confirmar, pero queda guardada. Si es la de la cuenta dueña
+  // de la copia, es esa persona trabajando sin conexión: se le abre su copia
+  // como antes, sin atarla ni subir nada (se sube al volver a abrir con red).
+  // Sin sesión guardada, una copia con dueño no se muestra.
+  const sinVerificar = _uid ? null : sesionGuardada();
+  const uid = _uid, generacion = _generacionSesion;
+  if(Cuenta.vigilarSesion) Cuenta.vigilarSesion(uid || sinVerificar, retirarSesionFinanzas);
   const local = abrirLocal;
-  if(!_uid){ local(); return; }
+  if(!_uid){
+    if(copiaDe() && copiaDe() !== sinVerificar){ retirarSesionFinanzas(); return; }
+    local(); return;
+  }
+  // Nunca reemplazar la única copia pendiente de otro usuario con la nube
+  // de esta cuenta. El dueño debe guardarla antes o usar otro perfil.
+  if(copiaDe() && copiaDe() !== uid && hayPendiente()){
+    retirarSesionFinanzas(); return;
+  }
+  if(typeof CofreFinanzas !== 'undefined' && CofreFinanzas.tienePendiente && CofreFinanzas.tienePendiente(uid)){
+    if(CofreFinanzas.recuperarPendiente(uid)){
+      try{
+        localStorage.setItem(EN_CUENTA_KEY, uid);
+        localStorage.setItem(PENDIENTE_KEY, '1');
+        CofreFinanzas.confirmarRecuperacion(uid);
+      }catch(e){ retirarSesionFinanzas(); return; }
+    }
+  }
   const nube = await traerDeLaCuenta();
+  if(_sesionBloqueada || _uid !== uid || _generacionSesion !== generacion) return;
+  // Revisión del 06-11-2026: la copia de otra cuenta sin cambios pendientes
+  // (en claro o protegida) ya está en su cuenta. Con la nube de esta a la
+  // vista se suelta, en vez de dejar a esta persona fuera de lo suyo. Sin
+  // red no se toca: no hay con qué reemplazarla.
+  if(nube.ok && copiaDe() && copiaDe() !== _uid && !hayPendiente()) soltarCopiaAjena();
   const mia = copiaDe() === _uid;
   // Sin red: se trabaja con la copia de este equipo; lo que se cambie queda
   // PENDIENTE y se sube al volver la conexion. Una copia que no es de esta
   // cuenta se muestra, pero no se ata a ella: al volver la red se pregunta.
   if(!nube.ok){
+    if(copiaDe() && !mia){ retirarSesionFinanzas(); return; }
     if(!mia && hayDatosEnEsteEquipo()) _uid = null;
     local();
     return;
@@ -257,6 +343,7 @@ async function iniciarConCuenta(){
     return;
   }
   if(nube.contenido){ adoptar(nube.contenido); arrancar(); return; }
+  if(copiaDe() && !mia){ retirarSesionFinanzas(); return; }
   // La cuenta no tiene cuentas del condominio todavia.
   if(hayDatosEnEsteEquipo() && !mia){
     // Una copia de antes del paso 31: puede ser de otra persona que uso
@@ -268,6 +355,7 @@ async function iniciarConCuenta(){
         ' guardadas antes. ¿Las guarda en su cuenta? Así las encuentra en cualquier equipo donde entre.',
       okText:'Guardarlas en mi cuenta', variant:'primary'
     });
+    if(_sesionBloqueada || _uid !== uid || _generacionSesion !== generacion) return;
     if(subir){
       try{ localStorage.setItem(EN_CUENTA_KEY, _uid); }catch(e){}
       marcarPendiente();
@@ -333,6 +421,7 @@ function mostrarCandado(){
 }
 
 async function abrirCandado(){
+  if(_sesionBloqueada) return;
   const inp = document.getElementById('candadoClave');
   const msg = document.getElementById('candadoMsg');
   const btn = document.getElementById('candadoAbrir');
@@ -352,6 +441,7 @@ async function abrirCandado(){
     return;
   }
   inp.value = '';
+  if(_sesionBloqueada) return;
   const r = sanearEstado(JSON.parse(texto));
   estado = r.estado;
   // Una copia en claro junto a la cifrada solo queda si se corto la luz entre
@@ -377,23 +467,25 @@ function olvideClave(){
 // Sin la contrasena no hay forma de abrirla. Lo unico que se puede hacer es
 // borrar la copia protegida y empezar de cero, o cargar un respaldo.
 async function borrarCopiaProtegida(){
+  if(_sesionBloqueada) return;
   const ok1 = await confirmar({
     titulo:'Borrar la copia protegida',
     mensaje:'Sin la contraseña nadie puede abrirla, ni usted ni nosotros. Si la borra, en este equipo no queda nada de esas cuentas; si tiene un respaldo, después puede importarlo.\nNo se puede deshacer.',
     okText:'Continuar', variant:'danger'
   });
-  if(!ok1) return;
+  if(!ok1 || _sesionBloqueada) return;
   const ok2 = await confirmar({
     titulo:'Confirmación final',
     mensaje:'Si estas cuentas son de otra persona, también se pierden para ella en este equipo. ¿Borrar la copia protegida?',
     okText:'Sí, borrar', variant:'danger'
   });
-  if(!ok2) return;
+  if(!ok2 || _sesionBloqueada) return;
   CofreFinanzas.olvidar();
   location.reload();
 }
 
 function abrirProteger(){
+  if(_sesionBloqueada) return;
   if(typeof CofreFinanzas === 'undefined' || !CofreFinanzas.disponible()){
     toast('Este navegador no puede cifrar. Use uno actualizado.', 'danger');
     return;
@@ -410,6 +502,7 @@ function abrirProteger(){
 // Sin contrasena no hay como volver a abrirlas: antes de protegerlas se baja
 // un respaldo. El boton de proteger no se habilita sin esto.
 function protegerRespaldo(){
+  if(_sesionBloqueada) return;
   exportarRespaldo();
   _respaldoAntesDeProteger = true;
   document.getElementById('protegerRespaldoOk').textContent = 'Respaldo descargado. Guárdelo donde solo usted lo vea: el archivo no queda protegido.';
@@ -417,6 +510,7 @@ function protegerRespaldo(){
 }
 
 async function protegerConClave(){
+  if(_sesionBloqueada) return;
   const msg = document.getElementById('protegerMsg');
   const c1 = document.getElementById('protegerClave');
   const c2 = document.getElementById('protegerClave2');
@@ -433,6 +527,7 @@ async function protegerConClave(){
     btn.disabled = false;
     return;
   }
+  if(_sesionBloqueada) return;
   // Recien con la copia cifrada escrita y comprobada se quita la otra.
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   c1.value = ''; c2.value = '';
@@ -446,13 +541,15 @@ async function protegerConClave(){
 // Vuelve a dejarlas en claro: primero se escribe la copia en claro y recien
 // despues se borra la cifrada, para que nunca haya cero copias.
 async function quitarClave(){
+  if(_sesionBloqueada) return;
   const ok = await confirmar({
     titulo:'Quitar la contraseña',
     mensaje:'Las cuentas vuelven a quedar legibles para cualquiera que use este navegador.',
     okText:'Quitar', variant:'warning'
   });
-  if(!ok) return;
+  if(!ok || _sesionBloqueada) return;
   await CofreFinanzas.esperar();
+  if(_sesionBloqueada) return;
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(estado)); }
   catch(err){ toast('No se pudo guardar en claro: ' + err.message + '. Siguen protegidas.', 'danger'); return; }
   CofreFinanzas.olvidar();
@@ -461,8 +558,10 @@ async function quitarClave(){
 }
 
 async function bloquearFinanzas(){
+  if(_sesionBloqueada) return;
   if(typeof CofreFinanzas === 'undefined') return;
   await CofreFinanzas.esperar();
+  if(_sesionBloqueada) return;
   CofreFinanzas.cerrar();
   estado = JSON.parse(JSON.stringify(estadoInicial));
   location.reload();
@@ -2975,6 +3074,7 @@ function sanearEstado(data){
 }
 
 function exportarRespaldo(){
+  if(_sesionBloqueada) return;
   const data = JSON.stringify(estado, null, 2);
   const blob = new Blob([data], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -2985,6 +3085,8 @@ function exportarRespaldo(){
   URL.revokeObjectURL(url);
 }
 async function importarRespaldo(){
+  if(_sesionBloqueada) return;
+  const generacion = _generacionSesion;
   const f = document.getElementById('importFile').files[0];
   if(!f){ toast('Seleccione un archivo', 'warning'); return; }
   // El respaldo de un condominio grande, con anos de cobros, pesa unos pocos
@@ -2995,7 +3097,9 @@ async function importarRespaldo(){
   try{
     // Se revisa ANTES de preguntar: la persona decide si reemplaza sus datos
     // sabiendo lo que trae el archivo, no despues.
-    r = sanearEstado(JSON.parse(await f.text()));
+    const texto = await f.text();
+    if(_sesionBloqueada || _generacionSesion !== generacion) return;
+    r = sanearEstado(JSON.parse(texto));
   }catch(err){ toast('Archivo inválido: '+err.message, 'danger'); return; }
   const avisos = [];
   if(r.descartadas) avisos.push(r.descartadas === 1
@@ -3012,14 +3116,17 @@ async function importarRespaldo(){
     okText:'Reemplazar',
     variant:'warning'
   });
-  if(!ok) return;
+  if(!ok || _sesionBloqueada || _generacionSesion !== generacion) return;
   const previo = estado;
   estado = r.estado;
   if(hayCofre()){
     // Protegidas: el respaldo entra cifrado con la misma contrasena. Si no
     // se pudo escribir, guardar() ya lo dijo y lo de antes sigue intacto.
-    if(!(await guardar())){ estado = previo; return; }
+    const guardado = await guardar();
+    if(_sesionBloqueada || _generacionSesion !== generacion) return;
+    if(!guardado){ estado = previo; return; }
     await CofreFinanzas.esperar();
+    if(_sesionBloqueada || _generacionSesion !== generacion) return;
     toast('Respaldo importado', 'success');
     location.reload();
     return;
@@ -3035,30 +3142,34 @@ async function importarRespaldo(){
   // Se espera a que llegue a la cuenta antes de recargar: si no, la pagina
   // volveria a abrir con lo que la cuenta tenia antes del respaldo.
   await subirALaCuenta();
+  if(_sesionBloqueada || _generacionSesion !== generacion) return;
   toast('Respaldo importado', 'success');
   location.reload();
 }
 async function resetearTodo(){
+  if(_sesionBloqueada) return;
+  const generacion = _generacionSesion, uid = _uid;
   const ok1 = await confirmar({
     titulo:'Borrar todos los datos',
     mensaje:`Esto borrará completamente el estado del condominio: configuración, copropietarios, gastos, cuotas, fondo y mantenciones.\nNo se puede deshacer.`,
     okText:'Continuar',
     variant:'danger'
   });
-  if(!ok1) return;
+  if(!ok1 || _sesionBloqueada || _generacionSesion !== generacion) return;
   const ok2 = await confirmar({
     titulo:'Confirmación final',
     mensaje:'¿Borrar todos los datos del condominio?',
     okText:'Sí, borrar todo',
     variant:'danger'
   });
-  if(!ok2) return;
+  if(!ok2 || _sesionBloqueada || _generacionSesion !== generacion) return;
   // Desde el paso 31 lo que vale esta en la cuenta: se borra ahi primero. Si
   // no se pudo, no se toca nada, o la pagina volveria a traerlas.
   const c = clienteCuenta();
   if(_uid && c){
     try{
-      const r = await c.from('finanzas_cuentas').delete().eq('dueno', _uid);
+      const r = await c.from('finanzas_cuentas').delete().eq('dueno', uid);
+      if(_sesionBloqueada || _generacionSesion !== generacion) return;
       if(r && r.error) throw r.error;
     }catch(err){
       toast('No se pudieron borrar de su cuenta. Revise su conexión e intente de nuevo.', 'danger');
@@ -3067,7 +3178,11 @@ async function resetearTodo(){
   }
   localStorage.removeItem(STORAGE_KEY);
   quitarPendiente();
-  if(hayCofre()){ await CofreFinanzas.esperar(); CofreFinanzas.olvidar(); }
+  if(hayCofre()){
+    await CofreFinanzas.esperar();
+    if(_sesionBloqueada || _generacionSesion !== generacion) return;
+    CofreFinanzas.olvidar();
+  }
   location.reload();
 }
 
@@ -3337,6 +3452,7 @@ document.addEventListener('DOMContentLoaded', function(){
   return iniciarFinanzas();
 });
 function arrancar(){
+  if(_sesionBloqueada) return;
   // Los filtros de cada seccion nacen en el mes activo: la cinta manda.
   irAlMes(mesActivo);
   montarOyentesFinos();

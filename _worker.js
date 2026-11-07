@@ -766,11 +766,21 @@ async function estadoPago(request, env, url) {
 // Nunca se descarta una respuesta en silencio: si no se puede registrar, se
 // reenvia a una casilla humana. Perder un voto sin que nadie se entere es
 // peor que cualquier error visible.
-async function aRevisionHumana(message, env, motivo) {
+//
+// Devuelve true si rechazo el correo (rechazo SMTP permanente). Auditoria
+// 05-11-2026 (AS-004): sin registro ni entrega a la Mesa no se acepta en
+// silencio. Revision del 06-11-2026: tampoco se rechaza lo que la base si
+// guardo (opciones.guardada) ni lo que el acuse le explica a la persona
+// (opciones.avisada): ahi un "no se pudo registrar" seria falso o sobraria.
+async function aRevisionHumana(message, env, motivo, opciones) {
   console.log('consulta: a revision humana —', paraLog(motivo, 200));
-  if (!env.CORREO_FALLBACK) return;
-  try { await message.forward(env.CORREO_FALLBACK); }
-  catch (e) { console.log('consulta: tampoco se pudo reenviar', paraLog(e && e.message, 200)); }
+  if (env.CORREO_FALLBACK) {
+    try { await message.forward(env.CORREO_FALLBACK); return false; }
+    catch (e) { console.log('consulta: tampoco se pudo reenviar', paraLog(e && e.message, 200)); }
+  }
+  if (opciones && (opciones.guardada || opciones.avisada)) return false;
+  message.setReject('No se pudo registrar ni entregar su respuesta. Vuelva a enviarla o contacte a la administración.');
+  return true;
 }
 
 // Acuse de recibo al copropietario. Sin esto, quien responde no sabe si su
@@ -905,11 +915,16 @@ async function registrarRespuesta(message, env) {
   // del padron, plazo vencido, consulta cerrada). Todo eso va a un humano.
   if (!r.ok || !datos || datos.ok !== true) {
     const motivo = (datos && datos.motivo) || ('http ' + r.status);
-    await aRevisionHumana(message, env, motivo);
+    // Sin firma, la base la guarda como 'ambigua' si es la primera (paso 15)
+    // y la Mesa la ve en su panel: rechazarla diria que no quedo registrada.
+    const guardada = !!(r.ok && datos && datos.motivo === 'remitente_no_autenticado');
     // Si el motivo es explicable se le dice a la persona por que su respuesta
     // no se computo; si fue un fallo nuestro, textoAcuse devuelve null y no
     // se le escribe nada.
-    await acusarRecibo(message, motivo, codigo);
+    const avisada = !!textoAcuse(motivo, codigo);
+    const rechazado = await aRevisionHumana(message, env, motivo, { guardada, avisada });
+    // Un correo ya rechazado no lleva ademas un acuse.
+    if (!rechazado) await acusarRecibo(message, motivo, codigo);
     return;
   }
 
